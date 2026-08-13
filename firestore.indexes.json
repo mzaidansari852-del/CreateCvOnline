@@ -1,36 +1,46 @@
 {
-  "$comment": "Composite indexes required by CreateCVOnline. Deploy with `npm run firebase:rules`. Firestore creates single-field indexes automatically; only the composite and collection-group ones below need declaring.",
+  "$comment": "Indexes required by CreateCVOnline. Deploy with `npm run firebase:rules`. Firestore auto-creates single-field indexes at COLLECTION scope only, so single-field COLLECTION_GROUP lookups must be declared under `fieldOverrides` — declaring them under `indexes` is rejected with HTTP 400 'this index is not necessary'. A fieldOverride REPLACES the automatic config for that field, so the COLLECTION-scoped entries below are re-declared on purpose, not redundantly.",
   "indexes": [
     {
-      "$comment": "getSharedCV(): collection-group lookup of a public CV by its share id.",
+      "$comment": "getSharedCV(): collection-group lookup of a public CV by its share id. Two equality filters, so a real composite index.",
       "collectionGroup": "cvs",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "shareId", "order": "ASCENDING" },
         { "fieldPath": "isPublic", "order": "ASCENDING" }
       ]
-    },
-    {
-      "$comment": "listAllCVs(): the admin console's most-recently-edited feed across all accounts.",
-      "collectionGroup": "cvs",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [{ "fieldPath": "updatedAt", "order": "DESCENDING" }]
-    },
-    {
-      "$comment": "listAllPayments(): the admin payment ledger across all accounts.",
-      "collectionGroup": "payments",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [{ "fieldPath": "createdAt", "order": "DESCENDING" }]
-    },
-    {
-      "$comment": "revenueSummary(): completed payments across all accounts.",
-      "collectionGroup": "payments",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "$comment": "listAllCVs(): admin feed of most-recently-edited CVs across every account. COLLECTION entries keep listCVs() working inside a single user's subcollection.",
+      "collectionGroup": "cvs",
+      "fieldPath": "updatedAt",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
+    {
+      "$comment": "listAllPayments(): admin payment ledger across every account. COLLECTION entries keep listUserPayments() working.",
+      "collectionGroup": "payments",
+      "fieldPath": "createdAt",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
+    {
+      "$comment": "revenueSummary(): equality filter on status across every account, no ordering.",
+      "collectionGroup": "payments",
+      "fieldPath": "status",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    }
+  ]
 }

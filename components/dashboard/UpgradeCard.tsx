@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { ArrowRight, Check, Crown } from 'lucide-react';
 
 import { ButtonLink } from '@/components/ui/button';
@@ -69,11 +70,29 @@ export function UpgradeCard({
       </ul>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
-        <ButtonLink href="/pricing" size="sm" trailingIcon={<ArrowRight size={15} aria-hidden />}>
-          See plans
+        <ButtonLink
+          href={`/payment/checkout?plan=${pro.id}`}
+          size="sm"
+          trailingIcon={<ArrowRight size={15} aria-hidden />}
+        >
+          Get {pro.name}
         </ButtonLink>
         <p className="text-xs text-ink-500">
-          Or {PLANS.lifetime.name.toLowerCase()} access once for ${PLANS.lifetime.price}.
+          Or{' '}
+          <Link
+            href={`/payment/checkout?plan=${PLANS.lifetime.id}`}
+            className="font-medium text-brand-700 underline underline-offset-2 hover:text-brand-800"
+          >
+            {PLANS.lifetime.name.toLowerCase()} access once for ${PLANS.lifetime.price}
+          </Link>
+          , or{' '}
+          <Link
+            href="/pricing"
+            className="font-medium text-brand-700 underline underline-offset-2 hover:text-brand-800"
+          >
+            compare the plans
+          </Link>
+          .
         </p>
       </div>
     </div>

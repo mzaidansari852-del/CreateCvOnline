@@ -122,7 +122,7 @@ export default async function AccountPage() {
             viewer.isPremium ? (
               <Badge tone="accent">{viewer.plan.name}</Badge>
             ) : (
-              <ButtonLink href="/pricing" size="sm">
+              <ButtonLink href="/payment/checkout?plan=pro" size="sm">
                 Upgrade
               </ButtonLink>
             )

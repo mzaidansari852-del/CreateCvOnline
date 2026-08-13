@@ -39,9 +39,19 @@ function intervalLabel(interval: string): string {
 
 export function PricingCards({
   ctaHref = '/register',
+  checkoutHref = '/payment/checkout',
   className,
 }: {
+  /** Where the free plan's button goes. */
   ctaHref?: string;
+  /**
+   * Where a paid plan's button goes, with `?plan=` appended.
+   *
+   * `/payment/checkout` is authenticated and redirects a signed-out visitor through
+   * `/login?next=…` back to itself, which is what lets this component — and therefore
+   * every page that renders it — stay fully static and still sell.
+   */
+  checkoutHref?: string;
   className?: string;
 }) {
   return (
@@ -106,7 +116,7 @@ export function PricingCards({
             </ul>
 
             <ButtonLink
-              href={plan.purchasable ? `${ctaHref}?plan=${plan.id}` : ctaHref}
+              href={plan.purchasable ? `${checkoutHref}?plan=${plan.id}` : ctaHref}
               variant={featured ? 'primary' : 'outline'}
               size="lg"
               fullWidth

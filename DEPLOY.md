@@ -176,6 +176,23 @@ Until you do, your database is running on whatever defaults the Firebase console
 which in production mode denies everything, so the app will appear broken in ways that
 look like application bugs.
 
+If the deploy stops with:
+
+```
+HTTP Error: 400, this index is not necessary, configure using single field index controls
+```
+
+your `firestore.indexes.json` has a composite index carrying only one field. Firestore
+builds single-field indexes automatically at `COLLECTION` scope, so the only reason to
+declare one is to widen it to `COLLECTION_GROUP` — and that belongs under
+`fieldOverrides`, not `indexes`. The shipped file is already correct; `npm test` guards it
+(`tests/lib/firestore-indexes.test.ts`), because the CLI validates the file's *shape*
+locally and only discovers this at deploy time.
+
+Be aware that a `fieldOverride` **replaces** the automatic configuration for that field
+rather than adding to it. That is why each override below re-lists its `COLLECTION`-scoped
+entries — drop them and the per-user queries lose their index in production.
+
 ---
 
 ## Deploying without Git

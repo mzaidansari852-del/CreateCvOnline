@@ -1,0 +1,43 @@
+rules_version = '2';
+
+/**
+ * Cloud Storage rules for CreateCVOnline.
+ *
+ * Storage is used for one thing: profile photos uploaded by a user for their own CV.
+ * Everything else the product stores lives in Firestore.
+ */
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    // users/{uid}/photo/{file}
+    match /users/{userId}/photo/{fileName} {
+      // A photo is embedded in a CV that may be shared by link, so the object itself is
+      // world-readable. The path is uid-scoped and the filename is generated, so it is
+      // not enumerable.
+      allow read: if true;
+
+      allow write: if isOwner(userId)
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp|avif)');
+
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // Nothing else is writable from a client.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

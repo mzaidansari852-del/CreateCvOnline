@@ -1,0 +1,169 @@
+rules_version = '2';
+
+/**
+ * Firestore security rules for CreateCVOnline.
+ *
+ * A note on how these interact with the app: every read and write the product performs
+ * goes through the Admin SDK on the server, which bypasses these rules entirely. Server
+ * routes already check ownership, entitlements and quotas before touching a document.
+ *
+ * These rules are therefore *defence in depth*, not the primary control. They exist so
+ * that a Firebase Web API key — which is public by design and sits in every page of the
+ * client bundle — cannot be used to read or modify anybody's data directly, and so that a
+ * future feature written against the client SDK inherits the right defaults rather than
+ * an open database.
+ *
+ * The default is deny. Nothing is readable or writable unless a rule below says so.
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* ------------------------------------------------------------------ */
+    /* Helpers                                                            */
+    /* ------------------------------------------------------------------ */
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** Administrators are identified by a custom claim, never by a document field. */
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    /** The set of keys in the incoming document that differ from the stored one. */
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    function isString(value, maxLength) {
+      return value is string && value.size() <= maxLength;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* users/{userId}                                                     */
+    /* ------------------------------------------------------------------ */
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+
+      // A user may create their own profile, but never award themselves a plan or a role.
+      allow create: if isOwner(userId)
+        && request.resource.data.uid == userId
+        && request.resource.data.role == 'user'
+        && request.resource.data.entitlement.plan == 'free'
+        && request.resource.data.entitlement.status in ['none', 'pending'];
+
+      // Self-service updates are limited to genuinely personal preferences. Everything
+      // that grants access — role, entitlement, quota counters — is server-only.
+      allow update: if isOwner(userId)
+        && changedKeys().hasOnly([
+             'displayName', 'photoURL', 'marketingOptIn', 'locale', 'updatedAt'
+           ])
+        && (!('displayName' in request.resource.data) || isString(request.resource.data.displayName, 120))
+        && (!('locale' in request.resource.data) || isString(request.resource.data.locale, 10));
+
+      allow update, delete: if isAdmin();
+      allow delete: if false;
+
+      /* ---------------------------------------------------------------- */
+      /* users/{userId}/cvs/{cvId}                                        */
+      /* ---------------------------------------------------------------- */
+
+      match /cvs/{cvId} {
+        // Only the owner and an administrator may read a CV. Public share links are
+        // resolved server-side with the Admin SDK, so no anonymous read path is needed
+        // here — and not having one means an unguessable id is not the only thing
+        // standing between a stranger and somebody's phone number.
+        allow read: if isOwner(userId) || isAdmin();
+
+        allow create: if isOwner(userId)
+          && request.resource.data.ownerId == userId
+          && isString(request.resource.data.title, 120)
+          // Sharing must be turned on through the API, which checks the plan first.
+          && request.resource.data.isPublic == false;
+
+        allow update: if isOwner(userId)
+          && request.resource.data.ownerId == userId
+          // The quota-relevant counters are written by the server only.
+          && !changedKeys().hasAny(['downloadCount', 'lastDownloadedAt', 'ownerId', 'createdAt']);
+
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      /* ---------------------------------------------------------------- */
+      /* users/{userId}/payments/{paymentId}                              */
+      /* ---------------------------------------------------------------- */
+
+      match /payments/{paymentId} {
+        // Readable by the owner (billing history) and administrators (support).
+        // Never client-writable: a payment record is what grants paid access, and it is
+        // only ever written after PayPal has been asked to confirm the money moved.
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if false;
+      }
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Collection-group reads                                             */
+    /* ------------------------------------------------------------------ */
+
+    // The admin console and the share-link lookup query across all users. Both run
+    // server-side; this rule exists so an administrator using the Firebase console or a
+    // client-side admin tool gets the same access, and nobody else does.
+    match /{path=**}/cvs/{cvId} {
+      allow read: if isAdmin();
+    }
+
+    match /{path=**}/payments/{paymentId} {
+      allow read: if isAdmin();
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Site content                                                       */
+    /* ------------------------------------------------------------------ */
+
+    // Blog articles and template metadata ship in the codebase. These collections exist
+    // for optional overrides managed from the admin console.
+    match /blogPosts/{postId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /templates/{templateId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /settings/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Contact form                                                       */
+    /* ------------------------------------------------------------------ */
+
+    // Written by the server route (which rate-limits and honeypots), read by admins.
+    // No client path at all — an open write rule here would be a spam funnel.
+    match /contactMessages/{messageId} {
+      allow read, write: if isAdmin();
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Everything else                                                    */
+    /* ------------------------------------------------------------------ */
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

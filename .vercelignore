@@ -1,0 +1,6 @@
+# Nothing here affects the build output — keep the upload small and the build fast.
+tests
+docs
+coverage
+*.log
+.env.local

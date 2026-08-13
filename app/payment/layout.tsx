@@ -1,0 +1,66 @@
+import Link from 'next/link';
+
+import { Logo } from '@/components/brand/Logo';
+import { site } from '@/lib/site';
+
+/**
+ * The shell for the two PayPal return pages.
+ *
+ * `/payment/*` sits outside the `(marketing)` group on purpose: someone returning from a
+ * checkout should be looking at the outcome of their payment, not at a navigation bar
+ * inviting them to browse templates. This layout gives both pages the same centred card,
+ * the same way back to the site, and the same footer of the documents that matter at the
+ * moment money has changed hands.
+ */
+export default function PaymentLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-dvh flex-col bg-ink-50">
+      <header className="container-page flex flex-wrap items-center justify-between gap-3 py-6">
+        <Logo />
+        <Link
+          href="/"
+          className="text-[13px] font-medium text-ink-600 underline-offset-2 transition-colors hover:text-brand-700 hover:underline"
+        >
+          Back to {site.domain}
+        </Link>
+      </header>
+
+      <main id="main" className="container-page flex flex-1 items-start justify-center py-8 sm:py-14">
+        <div className="w-full max-w-2xl">{children}</div>
+      </main>
+
+      <footer className="container-page py-8">
+        <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-[13px] text-ink-500">
+          <li>
+            <Link href="/pricing" className="underline-offset-2 hover:text-brand-700 hover:underline">
+              Pricing
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/refund-policy"
+              className="underline-offset-2 hover:text-brand-700 hover:underline"
+            >
+              Refund policy
+            </Link>
+          </li>
+          <li>
+            <Link href="/terms" className="underline-offset-2 hover:text-brand-700 hover:underline">
+              Terms
+            </Link>
+          </li>
+          <li>
+            <Link href="/privacy" className="underline-offset-2 hover:text-brand-700 hover:underline">
+              Privacy
+            </Link>
+          </li>
+          <li>
+            <Link href="/contact" className="underline-offset-2 hover:text-brand-700 hover:underline">
+              Contact
+            </Link>
+          </li>
+        </ul>
+      </footer>
+    </div>
+  );
+}

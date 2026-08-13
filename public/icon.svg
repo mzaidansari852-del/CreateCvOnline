@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="512" height="512" role="img" aria-label="CreateCVOnline">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3b5cff"/>
+      <stop offset="1" stop-color="#1b27b6"/>
+    </linearGradient>
+  </defs>
+  <rect width="40" height="40" rx="10" fill="url(#g)"/>
+  <path d="M13 10.5h9.4L28 16.1V29a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 12 29V12a1.5 1.5 0 0 1 1-1.5Z" fill="#fff" fill-opacity=".95"/>
+  <path d="M22 10.6V16a.9.9 0 0 0 .9.9h5.05" stroke="#1f3af5" stroke-width="1.5" stroke-linejoin="round" opacity=".35" fill="none"/>
+  <path d="m15.6 25.4 3-3.6 2.5 2 3.4-4.6" stroke="#1f3af5" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="24.5" cy="19.2" r="1.55" fill="#f95c33"/>
+</svg>

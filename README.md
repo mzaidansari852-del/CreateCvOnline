@@ -175,15 +175,36 @@ npm run firebase:rules             # deploys firestore.rules, indexes and storag
 The composite indexes in `firestore.indexes.json` are **required** — the share-link
 lookup and the admin console query across collection groups and will fail without them.
 
-### 8. Seed and grant yourself admin
+### 8. Grant yourself admin
+
+**From the hosting dashboard, no terminal needed.** Set `ADMIN_EMAILS` to your address,
+redeploy, then **sign out and sign back in**:
+
+```
+ADMIN_EMAILS=you@example.com,someone-else@example.com
+```
+
+Every sign-in reconciles that list: an address on it gets the `admin` custom claim, an
+account already holding it is left alone. It works on an account that already exists, so
+you do not have to have planned ahead. The claim is baked into the ID token, which is why
+the sign-out matters — your current token still says `user` until you get a fresh one.
+
+**From your machine**, if you prefer, or to *revoke*:
+
+```bash
+npm run set-admin -- --all-from-env        # uses ADMIN_EMAILS
+npm run set-admin -- --email you@example.com
+npm run set-admin -- --email them@example.com --revoke
+```
+
+Removing an address from `ADMIN_EMAILS` does **not** demote anyone — the claim persists
+until revoked. Use `--revoke`, or the role control on `/admin/users/[uid]`.
+
+Optional seed data:
 
 ```bash
 npm run seed
-npm run set-admin -- --all-from-env        # uses ADMIN_EMAILS
-# or: npm run set-admin -- --email you@example.com
 ```
-
-Sign out and back in — admin access rides on a custom claim baked into the token.
 
 Optional demo data:
 
@@ -215,11 +236,23 @@ npm run seed -- --demo-user demo@example.com --demo-password 'choose-something-s
 ### Testing a payment
 
 1. `npm run dev`, sign in, go to `/pricing`, choose Pro.
-2. Pay with the sandbox buyer account.
-3. You are returned to `/payment/success`, which calls
+2. You land on `/payment/checkout?plan=pro` — the order summary. Signed out, you are sent
+   through `/login?next=…` and returned here, which is why `/pricing` can stay static.
+3. **Continue to PayPal** calls `POST /api/payments/paypal/create-order`. The browser
+   sends only `{ planId }`; the price is read server-side from `lib/plans.ts`.
+4. Pay with the sandbox buyer account.
+5. You are returned to `/payment/success`, which calls
    `POST /api/payments/paypal/capture`.
-4. Confirm in `/dashboard/account` that the plan is now Pro, and in `/admin/payments`
+6. Confirm in `/dashboard/account` that the plan is now Pro, and in `/admin/payments`
    that the order is `completed`.
+
+### Currency
+
+`NEXT_PUBLIC_PAYPAL_CURRENCY` must be a currency PayPal actually settles in — USD, EUR,
+GBP, CAD, AUD, CHF and about twenty others. **MAD is not one of them**, so a Moroccan
+merchant prices in USD or EUR and receives in that currency; the buyer's card issuer does
+the conversion. Setting an unsupported code makes every order fail at creation with a
+`CURRENCY_NOT_SUPPORTED` error from PayPal.
 
 ### Webhooks (recommended)
 

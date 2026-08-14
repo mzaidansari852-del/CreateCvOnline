@@ -92,16 +92,40 @@ export async function ensureUserProfile(user: SessionUser): Promise<UserProfile>
     return profile;
   }
 
+  // ADMIN_EMAILS is reconciled on every sign-in, not only on the first one.
+  //
+  // Granting it only at account creation made the variable a trap: adding your address
+  // after you had already signed up did nothing, and the only route to a first admin was
+  // the CLI script — which needs the service-account key working on your own machine,
+  // precisely the setup someone deploying from a hosting dashboard has not done. The
+  // custom claim is the authority (`roleFromClaims` in lib/auth/session.ts), so it is the
+  // claim that has to be set, not just the mirrored Firestore field.
+  //
+  // Cheap: the branch only runs for an address explicitly listed in the variable, and
+  // only when that account is not already an admin.
+  const shouldBeAdmin =
+    user.email.length > 0 && serverEnv().adminEmails.includes(user.email.toLowerCase());
+
+  if (shouldBeAdmin && user.role !== 'admin') {
+    await adminAuth().setCustomUserClaims(user.uid, { admin: true, role: 'admin' });
+  }
+
   await ref.update({
     email: user.email,
     displayName: user.displayName || (snapshot.data()?.displayName ?? ''),
     photoURL: user.photoURL || (snapshot.data()?.photoURL ?? ''),
     emailVerified: user.emailVerified,
+    ...(shouldBeAdmin ? { role: 'admin' } : {}),
     lastLoginAt: now,
     updatedAt: now,
   });
 
-  return normalise(user.uid, { ...snapshot.data(), lastLoginAt: now, updatedAt: now });
+  return normalise(user.uid, {
+    ...snapshot.data(),
+    ...(shouldBeAdmin ? { role: 'admin' } : {}),
+    lastLoginAt: now,
+    updatedAt: now,
+  });
 }
 
 export async function updateUserProfile(

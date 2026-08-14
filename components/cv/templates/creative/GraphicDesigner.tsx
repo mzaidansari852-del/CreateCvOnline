@@ -10,7 +10,10 @@ export const meta: TemplateMeta = {
   category: 'creative',
   premium: true,
   atsScore: 2,
-  columns: 1,
+  // Two. The layout deals sections into `left`/`right` arrays and renders them side by
+  // side; declaring one column made the detail page, the gallery filter and the "At a
+  // glance" table all state something the picture visibly contradicts.
+  columns: 2,
   hasPhoto: true,
   accentDefault: '#f59e0b',
   tagline: 'A poster masthead over a two-column grid of section blocks.',

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 import { ArrowIcon } from '@/components/marketing/home/icons';
-import { TEMPLATE_CATEGORIES, templatesByCategory } from '@/lib/cv/template-registry';
+import { categoryPath, TEMPLATE_CATEGORIES, templatesByCategory } from '@/lib/cv/template-registry';
 
 /**
  * The six template categories, straight from the registry.
@@ -17,7 +17,7 @@ export function CategoryCards() {
         return (
           <li key={category.id}>
             <Link
-              href={`/templates?category=${category.slug}`}
+              href={categoryPath(category.id)}
               className="group flex h-full flex-col rounded-xl border border-ink-200 bg-white p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-card-hover"
             >
               <div className="flex items-center justify-between gap-3">

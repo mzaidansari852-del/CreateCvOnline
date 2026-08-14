@@ -858,7 +858,18 @@ function metaQualifiers(template: TemplateMeta): string[] {
 
 /** Characters the metadata helper adds for the brand suffix. */
 const BRAND_SUFFIX_LENGTH = ' | CreateCVOnline'.length;
-const TITLE_BUDGET = 68;
+
+/**
+ * The window a search result actually displays, in characters.
+ *
+ * 68 was the number here, contradicting the comment four lines above that says 60. Google
+ * truncates on rendered pixel width rather than a character count, but ~60 characters of
+ * mixed-case Latin is the usual place it lands; at 68 the qualifier this function works so
+ * hard to fit is exactly what gets cut. Dropping it to 60 means some templates fall back
+ * to a shorter qualifier, which is the intended behaviour: a qualifier that survives beats
+ * a longer one replaced by an ellipsis.
+ */
+const TITLE_BUDGET = 60;
 
 export function templateMetaTitle(template: TemplateMeta): string {
   const heading = templateHeading(template, 'Template');

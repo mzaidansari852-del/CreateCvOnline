@@ -66,6 +66,32 @@ describe('robots.txt', () => {
     expect(disallow).not.toContain('/');
   });
 
+  it('gives every named group the same allow list as the wildcard', () => {
+    const all = groups();
+    const wildcard = all.find((rule) => asList(rule.userAgent).includes('*'));
+    const expected = [...asList(wildcard?.allow)].sort();
+    for (const rule of all) {
+      if (rule === wildcard) continue;
+      expect(
+        [...asList(rule.allow)].sort(),
+        `${asList(rule.userAgent).join(', ')} must not receive different rules than *`,
+      ).toEqual(expected);
+    }
+  });
+
+  it('lets crawlers fetch the Open Graph card without opening the rest of /api', () => {
+    for (const rule of groups()) {
+      // `/api/` is a private prefix, so the share card of every page without a
+      // committed preview image was unfetchable. Google and Bing resolve
+      // Allow/Disallow conflicts by specificity, so the longer rule wins here only.
+      expect(asList(rule.allow)).toContain('/api/og');
+      expect(asList(rule.disallow)).toContain('/api/');
+      // Nothing else under /api may be opened up by a broader allow.
+      expect(asList(rule.allow)).not.toContain('/api/');
+      expect(asList(rule.allow)).not.toContain('/api');
+    }
+  });
+
   it('names Googlebot and Bingbot explicitly', () => {
     const named = groups().flatMap((rule) => asList(rule.userAgent));
     expect(named).toContain('Googlebot');

@@ -2,7 +2,12 @@ import Link from 'next/link';
 
 import { Logo } from '@/components/brand/Logo';
 import { footerNav, site } from '@/lib/site';
-import { TEMPLATE_COUNT } from '@/lib/cv/template-registry';
+import {
+  TEMPLATE_CATEGORIES,
+  TEMPLATE_COUNT,
+  categoryPath,
+  templatesByCategory,
+} from '@/lib/cv/template-registry';
 
 export function SiteFooter() {
   const year = new Date().getFullYear();
@@ -61,7 +66,35 @@ export function SiteFooter() {
           </nav>
         </div>
 
-        <div className="mt-12 flex flex-col gap-4 border-t border-ink-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
+        {/*
+          The six category pages, on every page of the site.
+          Each one is written to rank for "<category> CV templates" and each was previously
+          reachable only from the homepage and from templates in its own family — the two
+          places a crawler is least likely to need help getting to. A footer row is the
+          cheapest way to give all six a site-wide internal link.
+        */}
+        <nav aria-label="Templates by category" className="mt-12 border-t border-ink-200 pt-6">
+          <h2 className="text-xs font-bold tracking-[0.12em] text-ink-950 uppercase">
+            Browse templates by category
+          </h2>
+          <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+            {TEMPLATE_CATEGORIES.map((category) => (
+              <li key={category.id}>
+                <Link
+                  href={categoryPath(category.id)}
+                  className="text-sm text-ink-600 transition-colors hover:text-brand-700"
+                >
+                  {category.label} CV templates
+                  <span className="ml-1.5 text-ink-400">
+                    ({templatesByCategory(category.id).length})
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div className="mt-8 flex flex-col gap-4 border-t border-ink-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[13px] text-ink-500">
             © {year} {site.legalName}. All rights reserved.
           </p>

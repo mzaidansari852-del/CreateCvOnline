@@ -34,12 +34,24 @@ export default function robots(): MetadataRoute.Robots {
     '/template-preview/',
   ];
 
+  /*
+   * `/api/og` generates the Open Graph card for every page that does not have a committed
+   * preview image — the blog, the profession guides, the landing pages. `/api/` is in
+   * `PRIVATE_PATH_PREFIXES`, so those cards were unfetchable by any crawler that respects
+   * robots, and the pages shared with no image at all.
+   *
+   * Google and Bing resolve conflicts by specificity, not order: `Allow: /api/og` is
+   * longer than `Disallow: /api/` and therefore wins for that path alone. Everything else
+   * under `/api/` stays blocked.
+   */
+  const allow = ['/', '/api/og'];
+
   return {
     rules: [
-      { userAgent: '*', allow: '/', disallow },
+      { userAgent: '*', allow, disallow },
       // Named explicitly so there is no ambiguity about which group the big crawlers
       // match — with identical rules, which is the whole point.
-      { userAgent: ['Googlebot', 'Bingbot'], allow: '/', disallow },
+      { userAgent: ['Googlebot', 'Bingbot'], allow, disallow },
     ],
     sitemap: absoluteUrl('/sitemap.xml'),
     // The `Host` directive takes a bare hostname, not a URL.

@@ -17,6 +17,7 @@ import {
 import { TemplateGrid } from '@/components/marketing/TemplateStrip';
 import { ButtonLink } from '@/components/ui/button';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { categoryPath } from '@/lib/cv/template-registry';
 import { getExample } from '@/lib/cv-examples';
 import {
   getAllProfessionSlugs,
@@ -256,7 +257,7 @@ export default async function ProfessionPage(props: {
             <p>
               <Link href="/ats-cv">How applicant tracking systems read a CV</Link> covers the
               mechanics in more detail, and the{' '}
-              <Link href="/templates?category=ats">ATS-friendly templates</Link> are the layouts
+              <Link href={categoryPath('ats')}>ATS-friendly templates</Link> are the layouts
               least likely to lose any of this.
             </p>
           </Prose>

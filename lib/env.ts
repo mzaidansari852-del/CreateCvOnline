@@ -62,6 +62,69 @@ export const publicEnv: PublicEnv = {
   googleSiteVerification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
 };
 
+/* -------------------------------------------------------------------------- */
+/* The site URL guard                                                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `NEXT_PUBLIC_SITE_URL` is the only variable whose absence is completely invisible.
+ *
+ * Everything else fails in a way somebody notices: no Firebase key and nobody can sign
+ * in, no PayPal secret and checkout returns a 503. Miss this one and the site works
+ * perfectly — while every canonical tag, every `og:url`, every JSON-LD `@id`, every
+ * sitemap entry and the robots `Host` directive all point at `http://localhost:3000`,
+ * because that is what `normaliseUrl` falls back to. Google is told, on every page, that
+ * the real home of this content is a machine it cannot reach.
+ *
+ * There is no runtime symptom to catch it by, so it has to be caught at build time.
+ *
+ * On a deployment platform this throws and the build fails. Locally it only warns: a
+ * production build against localhost is a normal thing to do here — `npm run previews`
+ * and `npm run verify:seo` both do it — and making that fail would be trading a real
+ * problem for an invented one.
+ */
+export function siteUrlProblem(url: string): string | null {
+  let host: string;
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch {
+    return `NEXT_PUBLIC_SITE_URL is not a valid URL ("${url}").`;
+  }
+
+  const local =
+    host === 'localhost' ||
+    host === '0.0.0.0' ||
+    host === '::1' ||
+    host === '[::1]' ||
+    host.endsWith('.local') ||
+    host.endsWith('.localhost') ||
+    /^127(\.\d{1,3}){3}$/.test(host);
+
+  if (!local) return null;
+
+  return process.env.NEXT_PUBLIC_SITE_URL?.trim()
+    ? `NEXT_PUBLIC_SITE_URL points at "${host}", which no crawler or payment provider can reach.`
+    : 'NEXT_PUBLIC_SITE_URL is not set, so every canonical URL, Open Graph tag, JSON-LD ' +
+        'identifier and sitemap entry would be published as http://localhost:3000.';
+}
+
+/** True on Vercel, GitHub Actions, and anything else that sets the conventional flag. */
+const isDeploymentBuild = Boolean(process.env.VERCEL || process.env.CI);
+
+if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+  const problem = siteUrlProblem(publicEnv.siteUrl);
+  if (problem) {
+    const message =
+      `${problem}\n` +
+      'Set it to the public origin of the deployment, e.g. https://www.createcvonline.com ' +
+      '(no trailing slash), in the hosting provider\'s environment variables.';
+    if (isDeploymentBuild) {
+      throw new Error(`[env] ${message}`);
+    }
+    console.warn(`\n[env] Warning: ${message}\n`);
+  }
+}
+
 /** True when the browser SDK has everything it needs to talk to Firebase. */
 export const isFirebaseClientConfigured =
   publicEnv.firebase.apiKey.length > 0 &&

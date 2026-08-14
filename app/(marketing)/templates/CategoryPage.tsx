@@ -17,8 +17,16 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { TemplateGrid } from '@/components/marketing/TemplateStrip';
 import { TEMPLATE_CATEGORIES } from '@/lib/cv/template-registry';
 import { pageMetadata } from '@/lib/seo/metadata';
-import { itemListSchema } from '@/lib/seo/schema';
-import type { TemplateCategory } from '@/types/cv';
+import { itemListSchema, webPageSchema } from '@/lib/seo/schema';
+import { absoluteUrl } from '@/lib/site';
+import { hasPreview } from '@/components/cv/TemplateImage';
+import type { TemplateCategory, TemplateDefinition } from '@/types/cv';
+
+/** The first template in the grid that actually has a picture — the page's own image. */
+function firstPreview(templates: TemplateDefinition[]): string | undefined {
+  const withPreview = templates.find((template) => hasPreview(template.slug));
+  return withPreview ? absoluteUrl(`/previews/${withPreview.slug}-card.webp`) : undefined;
+}
 
 /**
  * A template category page.
@@ -223,11 +231,23 @@ export function CategoryPage({ category }: { category: TemplateCategory }) {
 
       <JsonLd
         nodes={[
+          webPageSchema({
+            path: `/templates/${slug}`,
+            name: copy.metaTitle,
+            description: copy.metaDescription,
+            primaryImage: firstPreview(templates),
+            hasBreadcrumb: true,
+            type: 'CollectionPage',
+          }),
           itemListSchema(
             templates.map((template) => ({
               name: template.name,
               path: `/templates/${template.slug}`,
               description: template.tagline,
+              // The same file the grid renders, so the list describes what is on the page.
+              image: hasPreview(template.slug)
+                ? absoluteUrl(`/previews/${template.slug}-card.webp`)
+                : undefined,
             })),
             `${meta?.label ?? category} CV templates`,
           ),

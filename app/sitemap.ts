@@ -3,7 +3,8 @@ import type { MetadataRoute } from 'next';
 import { getAllCategories, getAllPosts } from '@/lib/blog';
 import { getAllExampleSlugs } from '@/lib/cv-examples';
 import { getAllProfessionSlugs } from '@/lib/professions';
-import { TEMPLATES, TEMPLATE_CATEGORIES } from '@/lib/cv/template-registry';
+import { PREVIEW_SLUGS } from '@/lib/cv/previews';
+import { TEMPLATES, TEMPLATE_CATEGORIES, templatesByCategory } from '@/lib/cv/template-registry';
 import { absoluteUrl, isPrivatePath } from '@/lib/site';
 
 /**
@@ -16,7 +17,53 @@ import { absoluteUrl, isPrivatePath } from '@/lib/site';
  * Every entry is filtered through `isPrivatePath`, which is the single definition of
  * "must never be indexed" shared with `robots.ts`. A dashboard or admin URL cannot leak
  * in here by accident.
+ *
+ * ## Why almost nothing here has a `lastmod`
+ *
+ * Every entry used to carry `new Date()` — the moment of the build. That is not a date on
+ * which anything changed; it is a date on which the site was deployed, and it was stamped
+ * identically onto all ~140 URLs whether or not a word of them had moved. Google's
+ * documented behaviour is that it uses `lastmod` "if it's consistently and verifiably (for
+ * example by comparing to the last modification of the page) accurate" — a claim that all
+ * 140 pages changed at 03:14 on Tuesday fails that check the first time it is tested, and
+ * the element is then discounted for the whole site, including the entries where it was
+ * true.
+ *
+ * The mtime of the source file is no better: git does not record mtimes, so a CI checkout
+ * gives every file the timestamp of the clone. That is the same lie with extra steps.
+ *
+ * So `lastmod` appears only where a real editorial date exists — the blog, where posts
+ * carry `publishedAt` and `updatedAt` in their own source. Everywhere else it is omitted.
+ * An absent `lastmod` costs a recrawl hint on pages that change a few times a year; a
+ * wrong one costs the hint on the pages that change weekly. If template and guide pages
+ * ever grow a real "last reviewed" field, this is where it plugs in.
+ *
+ * ## Images
+ *
+ * Entries carry `images`, which Next renders as `<image:image>` nodes in the standard
+ * image-sitemap namespace. This is how a picture of a CV gets into Google Images: the
+ * previews are lazily loaded and several screens down, so image discovery via crawl alone
+ * is slow and partial. Only images that genuinely appear on the page in question are
+ * listed — the card asset on the gallery and category pages, the full-size asset on the
+ * template's own page — because an image sitemap that lists images the page does not show
+ * is exactly the kind of inaccuracy that gets a signal ignored.
  */
+
+const previewSet = new Set(PREVIEW_SLUGS);
+
+/** The 520px asset used in every grid. */
+function cardImage(slug: string): string | null {
+  return previewSet.has(slug) ? absoluteUrl(`/previews/${slug}-card.webp`) : null;
+}
+
+/** The 1000px asset used once, at the top of the template's own page. */
+function fullImage(slug: string): string | null {
+  return previewSet.has(slug) ? absoluteUrl(`/previews/${slug}.webp`) : null;
+}
+
+function imagesFor(templates: { slug: string }[]): string[] {
+  return templates.map((template) => cardImage(template.slug)).filter((url): url is string => url !== null);
+}
 
 interface Entry {
   path: string;
@@ -60,16 +107,16 @@ const STATIC_ROUTES: Entry[] = [
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
   const entries: MetadataRoute.Sitemap = [];
 
   for (const route of STATIC_ROUTES) {
     if (isPrivatePath(route.path)) continue;
     entries.push({
       url: absoluteUrl(route.path),
-      lastModified: now,
       changeFrequency: route.changeFrequency,
       priority: route.priority,
+      // The gallery is the one static route that is a page of pictures.
+      ...(route.path === '/templates' ? { images: imagesFor(TEMPLATES) } : {}),
     });
   }
 
@@ -79,19 +126,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
   for (const category of TEMPLATE_CATEGORIES) {
     entries.push({
       url: absoluteUrl(`/templates/${category.slug}`),
-      lastModified: now,
       changeFrequency: 'monthly',
       priority: 0.75,
+      images: imagesFor(templatesByCategory(category.id)),
     });
   }
 
   // One page per template.
   for (const template of TEMPLATES) {
+    const image = fullImage(template.slug);
     entries.push({
       url: absoluteUrl(`/templates/${template.slug}`),
-      lastModified: now,
       changeFrequency: 'monthly',
       priority: template.premium ? 0.6 : 0.7,
+      ...(image ? { images: [image] } : {}),
     });
   }
 
@@ -99,7 +147,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   for (const slug of getAllProfessionSlugs()) {
     entries.push({
       url: absoluteUrl(`/cv-for/${slug}`),
-      lastModified: now,
       changeFrequency: 'monthly',
       priority: 0.75,
     });
@@ -109,13 +156,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
   for (const slug of getAllExampleSlugs()) {
     entries.push({
       url: absoluteUrl(`/cv-examples/${slug}`),
-      lastModified: now,
       changeFrequency: 'monthly',
       priority: 0.75,
     });
   }
 
-  // Blog.
+  // Blog. The only pages with a real, authored modification date.
   for (const post of getAllPosts()) {
     entries.push({
       url: absoluteUrl(`/blog/${post.slug}`),
@@ -128,7 +174,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   for (const category of getAllCategories()) {
     entries.push({
       url: absoluteUrl(`/blog?category=${category.slug}`),
-      lastModified: now,
       changeFrequency: 'weekly',
       priority: 0.4,
     });

@@ -66,6 +66,26 @@ export const TEMPLATE_CATEGORIES: {
   },
 ];
 
+const CATEGORY_BY_ID = new Map(TEMPLATE_CATEGORIES.map((category) => [category.id, category]));
+
+export function findCategory(category: TemplateCategory) {
+  return CATEGORY_BY_ID.get(category);
+}
+
+/**
+ * The canonical URL of a category.
+ *
+ * `/templates/modern` is a real page — prerendered, in the sitemap, with its own title,
+ * lede, FAQ and copy. `/templates?category=modern` is the gallery filtering itself in the
+ * browser: same URL as far as a crawler is concerned, no copy of its own, and any link
+ * equity it earns is spent on the gallery instead of the page written to rank.
+ *
+ * Every link to a category goes through here so the two can never diverge again.
+ */
+export function categoryPath(category: TemplateCategory): string {
+  return `/templates/${CATEGORY_BY_ID.get(category)?.slug ?? category}`;
+}
+
 /** Never throws: an unknown id falls back to the default template. */
 export function getTemplate(id: string): TemplateDefinition {
   return BY_ID.get(id) ?? BY_ID.get(DEFAULT_TEMPLATE_ID) ?? TEMPLATES[0]!;

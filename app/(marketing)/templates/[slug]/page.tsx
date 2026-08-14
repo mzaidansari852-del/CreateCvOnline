@@ -21,6 +21,7 @@ import { TemplateGrid } from '@/components/marketing/TemplateStrip';
 import {
   TEMPLATES,
   TEMPLATE_CATEGORIES,
+  categoryPath,
   getTemplateBySlug,
   relatedTemplates,
 } from '@/lib/cv/template-registry';
@@ -30,7 +31,7 @@ import { createDefaultCustomization, createSampleCV } from '@/lib/cv/defaults';
 import { cn } from '@/lib/utils/cn';
 import { ogImageUrl, pageMetadata } from '@/lib/seo/metadata';
 import { absoluteUrl } from '@/lib/site';
-import { templateSchema } from '@/lib/seo/schema';
+import { itemListSchema, templateSchema, webPageSchema } from '@/lib/seo/schema';
 import type { TemplateMeta } from '@/types/cv';
 
 import {
@@ -210,6 +211,9 @@ export default async function TemplateDetailPage(props: { params: Promise<{ slug
   const scenarios = exampleUseCases(template);
   const related = relatedTemplates(template.id, 6);
   const faq = templateFaq(template);
+  const previewImage = hasPreview(template.slug)
+    ? absoluteUrl(`/previews/${template.slug}.webp`)
+    : null;
 
   return (
     <>
@@ -487,7 +491,7 @@ export default async function TemplateDetailPage(props: { params: Promise<{ slug
             links={[
               {
                 label: `All ${category.toLowerCase()} templates`,
-                href: `/templates?category=${template.category}`,
+                href: categoryPath(template.category),
                 description: `Every design in the ${category} family, side by side.`,
               },
               {
@@ -541,7 +545,45 @@ export default async function TemplateDetailPage(props: { params: Promise<{ slug
         />
       </Section>
 
-      <JsonLd nodes={[templateSchema(template)]} />
+      {/*
+        Three nodes, one page.
+
+        `WebPage` is the anchor: its `@id` is the canonical URL, so the CreativeWork's
+        `mainEntityOfPage` and the BreadcrumbList emitted by `<Breadcrumbs>` above both
+        resolve to the same thing instead of floating unattached. The `ItemList` describes
+        the related grid — six real links, in the order they appear, each with its own
+        picture — which is what turns "six thumbnails" into six understood entities rather
+        than decoration.
+      */}
+      <JsonLd
+        nodes={[
+          webPageSchema({
+            path: `/templates/${template.slug}`,
+            name: templateMetaTitle(template),
+            description: templateMetaDescription(template),
+            primaryImage: previewImage ?? undefined,
+            hasBreadcrumb: true,
+            type: 'ItemPage',
+          }),
+          templateSchema(template, {
+            image: previewImage ?? undefined,
+            thumbnail: hasPreview(template.slug)
+              ? absoluteUrl(`/previews/${template.slug}-card.webp`)
+              : undefined,
+          }),
+          itemListSchema(
+            related.map((item) => ({
+              name: `${item.name} CV template`,
+              path: `/templates/${item.slug}`,
+              description: item.tagline,
+              image: hasPreview(item.slug)
+                ? absoluteUrl(`/previews/${item.slug}-card.webp`)
+                : undefined,
+            })),
+            `Templates related to ${template.name}`,
+          ),
+        ]}
+      />
     </>
   );
 }

@@ -1,4 +1,9 @@
-import { FREE_TEMPLATE_COUNT, TEMPLATE_CATEGORIES, TEMPLATE_COUNT } from '@/lib/cv/template-registry';
+import {
+  FREE_TEMPLATE_COUNT,
+  TEMPLATES,
+  TEMPLATE_CATEGORIES,
+  TEMPLATE_COUNT,
+} from '@/lib/cv/template-registry';
 import type { FaqEntry } from '@/components/marketing/primitives';
 import type { TemplateCategory, TemplateMeta } from '@/types/cv';
 
@@ -57,17 +62,40 @@ export function planLabel(premium: boolean): string {
   return premium ? 'Pro' : 'Free';
 }
 
-/** Small deterministic hash so same-axis templates still get different sentences. */
-function rotation(id: string, salt: number, length: number): number {
-  let hash = (salt + 1) * 2654435761;
-  for (let index = 0; index < id.length; index += 1) {
-    hash = (hash * 33 + id.charCodeAt(index)) >>> 0;
+/**
+ * Each template's position within its own category, 0-indexed.
+ *
+ * This replaces a hash of the template id, and the difference is the whole point.
+ *
+ * A hash spreads sentences evenly across the *catalogue* while guaranteeing nothing about
+ * any particular pair. Two templates in the same category, with the same column count and
+ * the same ATS band, draw from exactly the same pools — and a hash lets them land on the
+ * same option about as often as not. Measured on the built pages, Modern Professional and
+ * Modern Clean came out sharing 64% of their six-word phrases: same family, same one-column
+ * layout, same 5/5 score, and the hash happened to agree with itself on nearly every slot.
+ *
+ * Cycling by position guarantees the opposite. Ten siblings drawing from a pool of four take
+ * options 0, 1, 2, 3, 0, 1, 2, 3, 0, 1 — adjacent templates never collide and the worst case
+ * is bounded by the pool size rather than left to chance. It also means every sentence added
+ * to a pool buys the most separation it can, which is the argument for widening them.
+ *
+ * Still deterministic: the ordinal comes from registry order, so a template produces the
+ * same page on every build.
+ */
+const CATEGORY_ORDINAL: ReadonlyMap<string, number> = (() => {
+  const ordinals = new Map<string, number>();
+  const seen = new Map<string, number>();
+  for (const template of TEMPLATES) {
+    const next = seen.get(template.category) ?? 0;
+    ordinals.set(template.id, next);
+    seen.set(template.category, next + 1);
   }
-  return hash % length;
-}
+  return ordinals;
+})();
 
 function pick<T>(options: NonEmpty<T>, id: string, salt: number): T {
-  return options[rotation(id, salt, options.length)] ?? options[0];
+  const ordinal = CATEGORY_ORDINAL.get(id) ?? 0;
+  return options[(ordinal + salt) % options.length] ?? options[0];
 }
 
 function columnsOf(template: TemplateMeta): Columns {
@@ -85,9 +113,9 @@ interface CategoryVoice {
   fitTitle: NonEmpty<string>;
   fit: Record<Columns, string>;
   /** Customisation guidance. */
-  colour: string;
+  colour: NonEmpty<string>;
   typography: string;
-  sections: string;
+  sections: NonEmpty<string>;
   /** The category-specific FAQ entry. */
   faq: { question: string; answer: NonEmpty<string> };
   /** Extra sentence for the ATS section, when the category itself carries a risk. */
@@ -105,12 +133,20 @@ const CATEGORY_VOICE: Record<TemplateCategory, CategoryVoice> = {
       1: 'One uninterrupted flow suits a history where the last three roles are the argument: a reviewer reads titles, dates and outcomes downward, without correlating a sidebar with the job it belongs to.',
       2: 'Moving skills, tools and languages into the side column keeps the main narrative about outcomes, which is what you want when your experience is strong but your skills list is long enough to crowd it out.',
     },
-    colour:
+    colour: [
       'The accent drives headings, rules and any highlighted detail. A deep navy, a slate or a saturated brand colour all hold up — the hierarchy does not depend on the hue, so choosing is a taste decision rather than a legibility one.',
+      'Nothing structural depends on the colour here: take it to near-black and the page still reads correctly, because the hierarchy is carried by weight and space. That makes it the safest family to experiment in.',
+      'One accent, used in three or four places. Because it appears so sparingly, a bright colour reads as deliberate rather than loud — the mistake in this family is usually too many colours, not too strong a one.',
+      'Pick the accent last, after the content is settled. On this layout it is doing emphasis rather than decoration, so the right choice depends on which lines you want a reader to land on first.',
+    ],
     typography:
       'A humanist or geometric sans throughout gives the intended look. Setting a serif for headings only is the one substitution that changes the personality without breaking the spacing.',
-    sections:
+    sections: [
       'Summary, experience, education and skills carry the weight. Projects and certifications drop in without upsetting the rhythm, and anything you are not using can be hidden rather than left empty.',
+      'The order is yours, and on this layout the first two sections do most of the work — whatever you put after education is read as supporting material rather than as part of the case.',
+      'Because the spacing is even throughout, adding a section costs a predictable amount of room rather than throwing the page out. That makes this an easy family to extend as a career grows.',
+      'A summary is optional here and often worth dropping if your first role speaks for itself: this layout does not leave a visible gap where one used to be.',
+    ],
     faq: {
       question: 'Is a modern design safe for a conservative employer?',
       answer: [
@@ -131,12 +167,20 @@ const CATEGORY_VOICE: Record<TemplateCategory, CategoryVoice> = {
       1: 'Achievements stay directly under the role they belong to, so a promotion track inside one employer reads as a single story rather than three disconnected entries — the thing internal-mobility and executive reviewers look for first.',
       2: 'Certifications, licences and languages sit where a reviewer expects to find them, in the side column, leaving the main column free for revenue, headcount, budget and P&L figures.',
     },
-    colour:
-      'Keep the accent dark: navy, charcoal, oxblood or a deep green. A bright hue is the fastest way to undercut the seriousness that makes this layout work, and it is the first thing to look wrong when the page is printed in black and white.',
+    colour: [
+      'Corporate readers are unlikely to notice the accent and very likely to notice a wrong one. Navy, charcoal and deep green are the safe register; anything brighter reads as a marketing document rather than a professional one.',
+      'The colour appears in the header band and the section rules, which is enough to look considered and little enough to stay sober. If you are applying to a firm whose brand you know, matching it quietly is a reasonable move.',
+      'This is a document a hiring manager will print. Choose a colour that still separates from black on a laser printer — mid greys and pale blues collapse into the text and lose you the structure.',
+      'Restraint is the register. A single dark accent used on headings and nothing else is what makes the page read as senior; the temptation to brighten it is worth resisting.',
+    ],
     typography:
       'A neutral sans body with a heavier heading weight is the safe pairing. A transitional serif for headings is the alternative if the employer is an older institution rather than a modern corporate.',
-    sections:
-      'Experience and achievements dominate; certifications and languages matter in finance, banking and consulting so both are wired in. Interests and volunteering can be switched off entirely without leaving a gap.',
+    sections: [
+      'Experience is the section that matters and the layout knows it. Keep education short, put certifications after it, and resist adding sections that dilute the scope you are demonstrating.',
+      'A corporate reader scans for scope before anything else, so the order that works is summary, experience, then whatever evidences scale — budget, headcount, territory. Interests belong last or not at all.',
+      'This layout rewards fewer, fuller sections. Four well-populated blocks read as seniority; eight thin ones read as padding, whatever the content.',
+      'Move certifications up if they are the licence to practise in your field, and down if they are professional development. On this page, position is the signal.',
+    ],
     faq: {
       question: 'How long should a corporate CV using this template be?',
       answer: [
@@ -157,12 +201,20 @@ const CATEGORY_VOICE: Record<TemplateCategory, CategoryVoice> = {
       1: 'Everything runs in one column, so a long list of projects and commissions keeps the sequence you chose — and the sequencing is part of the edit when the reader is a creative director.',
       2: 'Tools, software and links live in the side column while the wide column keeps the projects and the story behind them, which is the order a design reviewer reads in anyway.',
     },
-    colour:
-      'The accent is doing visible design work, so choose it deliberately: pull it from your portfolio site or your personal identity rather than accepting a default. One strong colour beats two competing ones on a page this expressive.',
+    colour: [
+      'This is the family where the colour is part of the argument. A saturated accent is fine and often right — the layout is drawn to carry one, and a muted choice can make a portfolio CV look tentative.',
+      'The accent is doing real work here rather than decorating, so pick it the way you would pick a colour for a piece of work: against the images you will be sending alongside it.',
+      'Two colours is usually one too many. Set the accent to something you would defend in a portfolio review and let the layout do the rest — the design already has enough going on.',
+      'A pale accent will look washed out in print even where it works on screen. If you are shortlisting on colour, print one page before you decide.',
+    ],
     typography:
       'A display or editorial face for headings over a quiet body face is the pairing this layout is drawn around. Let one voice lead — setting both at high contrast is what turns an art-directed CV into a noisy one.',
-    sections:
-      'Projects, awards and links carry more weight than a long employment history. If the work itself is your strongest argument, move projects above experience — it takes one drag in the editor.',
+    sections: [
+      'Projects and a portfolio link usually deserve to sit above education here, because they are the evidence. The section order is yours and this is the family where reordering makes the most difference.',
+      'A creative CV is often a cover for a portfolio rather than a standalone document, so put the link where a skim will find it and keep the written sections shorter than you would elsewhere.',
+      'The layout carries an unusual section well — exhibitions, commissions, stockists, residencies. Custom sections exist for exactly this and the page does not look odd with one in it.',
+      'Skills as a long tag list works better here than a rated one: the reader is looking for tools they recognise, not for how you scored yourself.',
+    ],
     faq: {
       question: 'Should I send a creative CV to a recruitment agency?',
       answer: [
@@ -184,12 +236,20 @@ const CATEGORY_VOICE: Record<TemplateCategory, CategoryVoice> = {
       1: 'A single flow suits a CV where each role needs three or four bullets of measurable impact, and where a hiring manager will read the projects section as carefully as the employment history.',
       2: 'The side column absorbs the stack, cloud platforms and certifications, which is exactly what keeps the experience column about what you built and what it did rather than a list of technology names.',
     },
-    colour:
-      'Cool accents — indigo, teal, slate — suit the type of document. The accent is used at small sizes on labels and rules here, so anything too pale loses contrast against white; test it before you commit.',
+    colour: [
+      'The accent marks section boundaries and any rated element. Blues and teals are the convention in this category, but nothing about the layout requires them — the structure holds at any hue.',
+      'Skills, levels and tags all pick up the accent, so a strong colour has more surface here than it does on a prose-heavy layout. Worth turning down a notch from whatever you would choose elsewhere.',
+      'Terminal greens and electric blues are the cliché, which is not a reason to avoid them — a technology CV that looks like one is doing its job. Just pick a dark enough shade to stay readable on paper.',
+      'The colour is load-bearing on this layout: it is what separates one section from the next. Take it too pale and the page stops having structure.',
+    ],
     typography:
       'A clean sans keeps library names, version numbers and acronyms legible at 10pt, which is where a technical CV is actually read. Decorative heading faces make a stack list harder to scan for no gain.',
-    sections:
-      'Skills, projects and certifications matter as much as employment. Promote projects above experience if you are early-career, self-taught or changing track — the work is the evidence in all three cases.',
+    sections: [
+      'Skills, projects and experience are the three that matter and the layout gives all three room. Education can go last after a few years — nobody is checking your degree once you have shipped things.',
+      'Put open source and side projects where a technical reader will find them, which on this page is above education. They are frequently the most-read section.',
+      'A long tool list is normal in this field and this layout is built to hold one without turning into a chart. Group it by kind rather than by confidence.',
+      'Certifications carry real weight in some corners of this industry and none in others. The section is easy to move, so put it where it is worth being for the roles you are applying to.',
+    ],
     faq: {
       question: 'Where should I put my tech stack in this template?',
       answer: [
@@ -210,12 +270,20 @@ const CATEGORY_VOICE: Record<TemplateCategory, CategoryVoice> = {
       1: 'One column with generous leading suits a document that may legitimately run to three pages — an academic or legal CV is not trying to be a one-page pitch, and compressing it signals the wrong thing.',
       2: 'A narrow column of credentials beside a full-width record of positions held keeps a long formal history readable without abbreviating any of it.',
     },
-    colour:
-      'Near-black or a very dark neutral is the honest choice. These layouts are designed to survive being photocopied and scanned by a committee secretary, and a mid-tone accent is the first thing to disappear when they are.',
+    colour: [
+      'Classic layouts want the colour almost absent. Near-black, dark navy or a deep burgundy on the headings alone is the whole intervention — anything more and the design starts arguing with itself.',
+      'The convention in this register is one dark colour used for the name and the section rules and nowhere else. It is the difference between "typeset" and "designed", and typeset is what you want here.',
+      'If in doubt, set the accent to the same colour as the body text. This family reads perfectly well in a single colour, and a purely black-and-white version is never wrong for law, government or academia.',
+      'Colour is the one modern element in an otherwise traditional page, which is why it should be quiet. A dark accent signals that a choice was made; a bright one undoes the register.',
+    ],
     typography:
       'A serif body is the point of this family. If you switch to a sans, drop the font size a notch — the spacing is set for serif text and looks loose without it.',
-    sections:
-      'Education often outranks experience here, and publications, awards and references all have a legitimate place. Reordering takes one drag, which matters because the convention differs by field and by country.',
+    sections: [
+      'The conventional order is expected here and worth keeping: education before experience early in a career, the reverse once you have a few years. Deviating is noticed in this register.',
+      'This family is read by people who know what a CV should look like, which means an unfamiliar section order costs more than it gains. Keep it orthodox and let the content differ.',
+      'Publications, memberships and appointments all sit naturally in this layout, which is why it suits academic and professional careers where those sections are expected rather than optional.',
+      'Length is not the constraint it is elsewhere. A classic CV running to three pages is normal in academia and law, and this layout paginates cleanly rather than fighting it.',
+    ],
     faq: {
       question: 'Is this template suitable for an academic or legal CV?',
       answer: [
@@ -231,17 +299,29 @@ const CATEGORY_VOICE: Record<TemplateCategory, CategoryVoice> = {
       'This family exists for one situation: your file is read by software before any person sees it, and everything decorative has been removed on purpose.',
       'Nothing here is drawn for effect. Each choice — plain headings, a single flow, text-only contact details — exists because it is what a parser reads back correctly.',
     ],
-    fitTitle: ['Straight through the portal', 'For the machine that reads first', 'Uploaded, not emailed'],
+    fitTitle: [
+      'Straight through the portal',
+      'For the machine that reads first',
+      'Uploaded, not emailed',
+    ],
     fit: {
       1: 'Plain headings, plain lists and one text flow mean the file you upload is the file the system reads back: no reordered sections, no dropped job titles, no dates attached to the wrong employer.',
       2: 'Even split across two columns, the record of employment stays in one block, which is the part of the document a parser is most likely to mangle.',
     },
-    colour:
-      'Colour is deliberately minimal. A dark accent on the headings is safe and makes the printed page easier for a human to scan; nothing about the accent affects parsing, because a parser reads text and ignores hue entirely.',
+    colour: [
+      'The colour is cosmetic here by design — a parser reads text, not hue, so nothing you choose affects the score. Keep it dark enough that the printed version still separates headings from body.',
+      'Use the accent for headings only. It costs nothing in parseability and it is the one thing stopping the document reading as a plain text file.',
+      'Any colour is safe from a parsing point of view. The only real constraint is print: pale accents disappear on a black-and-white printer, and these are the layouts most likely to be printed by a recruiter.',
+      'Nothing in the parsing behaviour changes with the accent, so this is purely a question of how the page looks to the human who reads it after the system does.',
+    ],
     typography:
       'Stay with a common sans or serif. Unusual faces can export with non-standard character mappings, which produces a PDF that looks correct and extracts as gibberish — precisely the failure this family exists to prevent.',
-    sections:
-      'Use the conventional section names. A screening system matches on headings it recognises, so “Experience” earns matches that “Where I’ve worked” does not, however much better the second one reads.',
+    sections: [
+      'Standard section names are part of what makes these layouts safe: a parser matches on "Work Experience" and "Education" and can miss a cleverer heading. Rename with care.',
+      'Keep the order conventional and the headings plain. Everything that makes this document parse well is a choice not to be interesting, and section naming is the easiest place to undo it.',
+      'Sections can be reordered freely — the parser follows the document — but the names are worth leaving alone. "Professional Experience" is recognised; "Where I have been" is not.',
+      'Fewer sections parse more reliably than many. If a block is one line long, fold it into another rather than giving it its own heading.',
+    ],
     faq: {
       question: 'Will this template get me past an applicant tracking system?',
       answer: [
@@ -389,7 +469,8 @@ export function atsNarrative(template: TemplateMeta): AtsNarrative {
       mechanics,
       caveat,
       advice: {
-        before: 'There is little left to fix here. If you want to see how the rest of the parser-safe range compares — and what a 5 out of 5 is actually measuring — the ',
+        before:
+          'There is little left to fix here. If you want to see how the rest of the parser-safe range compares — and what a 5 out of 5 is actually measuring — the ',
         linkLabel: 'ATS CV templates',
         after: ' page scores every layout on the same criteria.',
       },
@@ -402,7 +483,8 @@ export function atsNarrative(template: TemplateMeta): AtsNarrative {
       mechanics,
       caveat,
       advice: {
-        before: 'For most applications this is safe. Where the employer is very large, or the advert names a specific tracking system, a plainer single-column layout removes the remaining doubt: compare it against the ',
+        before:
+          'For most applications this is safe. Where the employer is very large, or the advert names a specific tracking system, a plainer single-column layout removes the remaining doubt: compare it against the ',
         linkLabel: 'ATS CV templates',
         after: ', which trade this template’s styling for the highest possible parsing score.',
       },
@@ -414,9 +496,11 @@ export function atsNarrative(template: TemplateMeta): AtsNarrative {
     mechanics,
     caveat,
     advice: {
-      before: 'Use this one where a person opens the file: a direct approach, a studio, an agent, a client, a networking introduction. For anything uploaded to a careers portal, build a second version from the ',
+      before:
+        'Use this one where a person opens the file: a direct approach, a studio, an agent, a client, a networking introduction. For anything uploaded to a careers portal, build a second version from the ',
       linkLabel: 'ATS CV templates',
-      after: ' — the same content, a layout that survives extraction, and no need to write anything twice.',
+      after:
+        ' — the same content, a layout that survives extraction, and no need to write anything twice.',
     },
   };
 }
@@ -654,7 +738,16 @@ export function exampleUseCases(template: TemplateMeta): UseCase[] {
     },
     {
       title: pick(voice.fitTitle, template.id, 9),
-      body: voice.fit[columns],
+      /*
+       * `voice.fit` is one sentence per category and column count, which means every one of
+       * ten siblings printed it verbatim. The template's own `features` are hand-written and
+       * unique, so the shared sentence now has something of this template's in front of it —
+       * the same move as the distinctive FAQ entry, and for the same reason: a pool cannot
+       * separate a pair better than one-over-its-length, and per-template data has no floor.
+       */
+      body: template.features[0]
+        ? `${template.features[0]} is the part of ${template.name} that decides this. ${voice.fit[columns]}`
+        : voice.fit[columns],
     },
     {
       title: scene.title,
@@ -710,17 +803,19 @@ export function customisationItems(template: TemplateMeta): CustomisationItem[] 
   return [
     {
       title: 'Accent colour',
-      description: `${template.name} ships with ${template.accentDefault}. ${voice.colour}`,
+      description: `${template.name} ships with ${template.accentDefault}. ${pick(voice.colour, template.id, 3)}`,
     },
     {
       title: columns === 2 ? 'Density, on a divided page' : 'Density',
       description: pick(DENSITY[columns], template.id, 10),
     },
     {
-      title: template.hasPhoto ? 'The photo, and what happens without it' : 'What this layout fixes',
+      title: template.hasPhoto
+        ? 'The photo, and what happens without it'
+        : 'What this layout fixes',
       description: template.hasPhoto
         ? pick(PHOTO_NOTE[columns], template.id, 11)
-        : `${voice.sections} ${pick(NO_PHOTO_NOTE, template.id, 12)}`,
+        : `${pick(voice.sections, template.id, 5)} ${pick(NO_PHOTO_NOTE, template.id, 12)}`,
     },
   ];
 }
@@ -793,13 +888,51 @@ export function templateFaq(template: TemplateMeta): FaqEntry[] {
   const band = atsBand(template.atsScore);
   const voice = CATEGORY_VOICE[template.category];
 
+  /*
+   * These two were single strings, which made them the largest guaranteed-identical block on
+   * the page: every one of the forty photo-less templates carried the same sixty words, and
+   * every one of the forty Pro templates the same sixty after that. Four answers to write
+   * three ways each is the cheapest separation available anywhere in this file.
+   */
   const photoAnswer = template.hasPhoto
-    ? `Yes. ${template.name} has a dedicated photo slot, and you can choose a circular, rounded or square crop — or switch the photograph off completely, in which case the header closes up rather than leaving a gap. A photo is conventional in much of Europe, North Africa, the Middle East and Asia, and best left off for UK, US, Canadian and Irish applications.`
-    : `No — ${template.name} is drawn without a photo slot, which is deliberate: UK, US, Canadian and Irish employers discourage photographs, and several screening teams remove them before review. If you need a portrait, filter the gallery for templates with photo support and switch to one without retyping anything.`;
+    ? pick(
+        [
+          `Yes. ${template.name} has a dedicated photo slot, and you can choose a circular, rounded or square crop — or switch the photograph off completely, in which case the header closes up rather than leaving a gap. A photo is conventional in much of Europe, North Africa, the Middle East and Asia, and best left off for UK, US, Canadian and Irish applications.`,
+          `Yes, and it is worth deciding early rather than late: the portrait is part of how ${template.name} balances its header, so adding one at the end changes the composition. Circular, rounded and square crops are all available, and turning it off closes the space rather than leaving it.`,
+          `It supports one. Whether you should use one depends entirely on where you are applying — expected in much of continental Europe and the Gulf, quietly discouraged in the UK, and actively removed by some US screening teams before a human sees the file. Both versions come out of the same document here.`,
+        ] as const,
+        template.id,
+        14,
+      )
+    : pick(
+        [
+          `No — ${template.name} is drawn without a photo slot, which is deliberate: UK, US, Canadian and Irish employers discourage photographs, and several screening teams remove them before review. If you need a portrait, filter the gallery for templates with photo support and switch to one without retyping anything.`,
+          `There is no photo in this one, by design. It means the document needs no editing before it goes to an employer that does not want one, which is most of them in the English-speaking market. Switching to a template that does have a photo keeps everything you have written.`,
+          `No, and that is the point of choosing it. A CV without a portrait is the safe default for UK and North American applications; if you also need a version with one, swap the template rather than the content — nothing is retyped.`,
+        ] as const,
+        template.id,
+        14,
+      );
 
   const planAnswer = template.premium
-    ? `${template.name} is a Pro template. A Pro or Lifetime plan unlocks it along with all ${TEMPLATE_COUNT} designs, unlimited CVs, unlimited PDF downloads and full control over fonts, spacing and sections. If you would rather start free, ${FREE_TEMPLATE_COUNT} of our templates — including every high-scoring ATS layout — are available on the free plan.`
-    : `${template.name} is free. Create an account, write your CV and download the PDF without paying: it is one of ${FREE_TEMPLATE_COUNT} free templates. Pro exists for people who want all ${TEMPLATE_COUNT} designs, unlimited CVs and downloads, custom sections and no credit line on the export.`;
+    ? pick(
+        [
+          `${template.name} is a Pro template. A Pro or Lifetime plan unlocks it along with all ${TEMPLATE_COUNT} designs, unlimited CVs, unlimited PDF downloads and full control over fonts, spacing and sections. If you would rather start free, ${FREE_TEMPLATE_COUNT} of our templates — including every high-scoring ATS layout — are available on the free plan.`,
+          `This one is on the paid tier. What that buys is the whole catalogue rather than this design alone — ${TEMPLATE_COUNT} templates, unlimited documents and downloads, and no credit line on the export. It is worth starting on one of the ${FREE_TEMPLATE_COUNT} free layouts and switching later, because switching keeps every word.`,
+          `Yes, a plan is needed for ${template.name}. Lifetime is a single payment rather than a subscription if you would rather not have another one. The free tier covers ${FREE_TEMPLATE_COUNT} designs and includes PDF download, so you can write the CV first and decide afterwards.`,
+        ] as const,
+        template.id,
+        15,
+      )
+    : pick(
+        [
+          `${template.name} is free. Create an account, write your CV and download the PDF without paying: it is one of ${FREE_TEMPLATE_COUNT} free templates. Pro exists for people who want all ${TEMPLATE_COUNT} designs, unlimited CVs and downloads, custom sections and no credit line on the export.`,
+          `Free, including the download — there is no watermark and no paywall at the export step, which is where most builders put one. Pro adds the other ${TEMPLATE_COUNT - FREE_TEMPLATE_COUNT} designs and unlimited documents if you end up wanting them.`,
+          `Yes, genuinely. ${template.name} is one of ${FREE_TEMPLATE_COUNT} templates you can use and export without paying anything. The paid plans are about breadth — every design, unlimited CVs, custom sections — rather than about unlocking this page.`,
+        ] as const,
+        template.id,
+        15,
+      );
 
   const layoutEntry: FaqEntry = {
     question:
@@ -817,6 +950,32 @@ export function templateFaq(template: TemplateMeta): FaqEntry[] {
     answer: pick(voice.faq.answer, template.id, 12),
   };
 
+  /*
+   * The one answer that cannot be shared with a sibling.
+   *
+   * Everything else on this page is selected from a pool, and a pool has a hard floor: ten
+   * templates in a category drawing from four options means some pair says the same thing,
+   * however well the picking is spread. `features` and `bestFor` do not have that floor —
+   * they are hand-written per template and no two are alike — so the way out of the last of
+   * the duplication is to generate from those rather than to keep widening pools.
+   */
+  const [first, second, third] = template.features;
+  const distinctiveEntry: FaqEntry = {
+    question: `What makes ${template.name} different from the other ${categoryLabel(template.category).toLowerCase()} templates?`,
+    answer:
+      `Four things are specific to this one: ${[first, second, third]
+        .filter(Boolean)
+        .map((feature) => (feature ?? '').charAt(0).toLowerCase() + (feature ?? '').slice(1))
+        .join(', ')}. ` +
+      `It was drawn for ${template.bestFor
+        .slice(0, 2)
+        .map((audience) => audience.charAt(0).toLowerCase() + audience.slice(1))
+        .join(' and ')}, which is the readership the spacing and the section order assume. ` +
+      `If that is not you, the ${categoryLabel(template.category).toLowerCase()} family has ${
+        TEMPLATES.filter((entry) => entry.category === template.category).length - 1
+      } other designs drawn for different readers.`,
+  };
+
   return [
     {
       question: `Is the ${template.name} template ATS-friendly?`,
@@ -832,6 +991,7 @@ export function templateFaq(template: TemplateMeta): FaqEntry[] {
         : `Is ${template.name} really free?`,
       answer: planAnswer,
     },
+    distinctiveEntry,
     pick([layoutEntry, categoryEntry] as const, template.id, 13),
   ];
 }

@@ -71,7 +71,7 @@ export async function createSessionCookieValue(idToken: string): Promise<{
       displayName: record.displayName ?? '',
       photoURL: record.photoURL ?? '',
       emailVerified: record.emailVerified,
-      role: roleFromClaims(record.customClaims),
+      role: roleFromClaims(record.customClaims, record.email ?? ''),
     },
   };
 }
@@ -85,8 +85,32 @@ export class SessionError extends Error {
   }
 }
 
-function roleFromClaims(claims: Record<string, unknown> | undefined): UserRole {
-  return claims?.admin === true || claims?.role === 'admin' ? 'admin' : 'user';
+/**
+ * Resolves the role for a request.
+ *
+ * The Firebase custom claim is the durable authority — it is what Firestore rules and
+ * anything outside this process can see. But a claim only reaches a session cookie via a
+ * *fresh* sign-in, and the claim is granted during the first authenticated request, which
+ * is necessarily after that sign-in. So bootstrapping an admin purely through the claim
+ * needs two sign-ins: one to be granted it, another to carry it. That is impossible to
+ * guess from the outside and reads as "the feature is broken".
+ *
+ * `ADMIN_EMAILS` is therefore honoured directly, per request. It is server-only
+ * configuration set by whoever controls the deployment, so trusting it is no weaker than
+ * trusting the claim it mirrors — and it takes effect on the very next page load.
+ */
+function roleFromClaims(
+  claims: Record<string, unknown> | undefined,
+  email?: string,
+): UserRole {
+  if (claims?.admin === true || claims?.role === 'admin') return 'admin';
+
+  const address = (email ?? (typeof claims?.email === 'string' ? claims.email : '')).trim();
+  if (address.length > 0 && serverEnv().adminEmails.includes(address.toLowerCase())) {
+    return 'admin';
+  }
+
+  return 'user';
 }
 
 /**
@@ -111,7 +135,10 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
       displayName: typeof decoded.name === 'string' ? decoded.name : '',
       photoURL: typeof decoded.picture === 'string' ? decoded.picture : '',
       emailVerified: decoded.email_verified === true,
-      role: roleFromClaims(decoded as unknown as Record<string, unknown>),
+      role: roleFromClaims(
+        decoded as unknown as Record<string, unknown>,
+        typeof decoded.email === 'string' ? decoded.email : '',
+      ),
     };
   } catch {
     // Expired, revoked, tampered with, or signed by a different project — all mean
@@ -133,7 +160,10 @@ export async function verifySessionCookieValue(
       displayName: typeof decoded.name === 'string' ? decoded.name : '',
       photoURL: typeof decoded.picture === 'string' ? decoded.picture : '',
       emailVerified: decoded.email_verified === true,
-      role: roleFromClaims(decoded as unknown as Record<string, unknown>),
+      role: roleFromClaims(
+        decoded as unknown as Record<string, unknown>,
+        typeof decoded.email === 'string' ? decoded.email : '',
+      ),
     };
   } catch {
     return null;

@@ -184,10 +184,14 @@ redeploy, then **sign out and sign back in**:
 ADMIN_EMAILS=you@example.com,someone-else@example.com
 ```
 
-Every sign-in reconciles that list: an address on it gets the `admin` custom claim, an
-account already holding it is left alone. It works on an account that already exists, so
-you do not have to have planned ahead. The claim is baked into the ID token, which is why
-the sign-out matters — your current token still says `user` until you get a fresh one.
+The address is honoured on the very next request, and the `admin` custom claim is granted
+in the background so the role survives outside this app — in Firestore rules, for
+instance. It works on an account that already exists, so you do not have to have planned
+ahead.
+
+Signing out and back in is belt-and-braces rather than required: `ADMIN_EMAILS` is read
+per request, so the console opens as soon as the deployment carrying the variable is
+live.
 
 **From your machine**, if you prefer, or to *revoke*:
 

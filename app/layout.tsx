@@ -7,7 +7,6 @@ import { Analytics } from '@/components/analytics/Analytics';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { ToastProvider } from '@/components/ui/toast';
-import { getSessionUser } from '@/lib/auth/session';
 import { CV_DOCUMENT_CSS } from '@/lib/cv/document-css';
 import { rootMetadata } from '@/lib/seo/metadata';
 import { organizationSchema, websiteSchema } from '@/lib/seo/schema';
@@ -36,9 +35,25 @@ const UI_FONTS =
   '&family=Plus+Jakarta+Sans:wght@500..800' +
   '&display=swap';
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const sessionUser = await getSessionUser();
-
+/**
+ * The root layout must not read the session.
+ *
+ * `getSessionUser()` reads `cookies()`, and a cookie read anywhere in the root layout opts
+ * *every route in the application* out of static rendering. That turned all 56 template
+ * pages, the 13 landing pages and the home page into per-request renders — each one
+ * rebuilding eight CV documents through `renderToStaticMarkup` and emitting ~650KB, with
+ * nothing cacheable in front of it. It also embedded the signed-in user's address, uid and
+ * role in the markup of public marketing pages.
+ *
+ * The failure was invisible locally: `getSessionUser()` returns early when Firebase Admin
+ * credentials are absent, so a credential-less build still reported the pages as static.
+ * Production has credentials, so production was fully dynamic.
+ *
+ * `AuthProvider` resolves the user from the Firebase client SDK instead. Server components
+ * that need an authoritative user still call `requireViewer()` / `requireUser()` directly,
+ * which keeps the cookie read inside the private routes where dynamic rendering is correct.
+ */
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" dir="ltr" data-scroll-behavior="smooth">
       <head>
@@ -56,7 +71,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           Skip to main content
         </a>
 
-        <AuthProvider initialUser={sessionUser}>
+        <AuthProvider>
           <ToastProvider>{children}</ToastProvider>
         </AuthProvider>
 

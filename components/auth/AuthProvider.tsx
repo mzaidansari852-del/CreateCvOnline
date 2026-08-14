@@ -30,10 +30,17 @@ import type { SessionUser } from '@/types/user';
  */
 
 export interface AuthContextValue {
-  /** From the server-verified session cookie — authoritative, available on first paint. */
+  /**
+   * The signed-in user, derived from the Firebase client SDK.
+   *
+   * `null` both when signed out *and* while the SDK is still resolving — check `ready`
+   * before rendering anything that depends on the difference. `role` is always `'user'`
+   * here and must never be used to authorise anything; the server decides that.
+   */
   sessionUser: SessionUser | null;
   /** The live Firebase user. `undefined` while the SDK is still resolving. */
   firebaseUser: User | null | undefined;
+  /** `false` until the Firebase SDK has reported once. */
   ready: boolean;
   configured: boolean;
   signIn: (email: string, password: string) => Promise<void>;
@@ -61,35 +68,50 @@ async function postSession(idToken: string): Promise<void> {
   }
 }
 
-export function AuthProvider({
-  children,
-  initialUser,
-}: {
-  children: ReactNode;
-  initialUser: SessionUser | null;
-}) {
+/**
+ * The provider takes no server-rendered user, by design.
+ *
+ * Accepting one meant the root layout had to read `cookies()`, and that single read opted
+ * every route in the application out of static rendering — see the note in `app/layout.tsx`.
+ * The user is resolved from the Firebase client SDK instead, which costs a brief moment of
+ * "not yet known" on first paint and buys back a fully static marketing site.
+ *
+ * Server components that need an authoritative user do not go through this context at all;
+ * they call `requireViewer()` / `requireUser()`, which keeps the cookie read inside the
+ * private routes where per-request rendering is the correct behaviour anyway.
+ */
+export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  // Adjusting state during render (rather than in an effect) is React's documented
-  // pattern for "reset local state when a prop changes": the server is the source of
-  // truth for the session, and signing out clears it locally before the refresh lands.
-  const [session, setSession] = useState<{ user: SessionUser | null; from: SessionUser | null }>({
-    user: initialUser,
-    from: initialUser,
-  });
-  if (session.from !== initialUser) {
-    setSession({ user: initialUser, from: initialUser });
-  }
-  const sessionUser = session.user;
-  const setSessionUser = (next: SessionUser | null) =>
-    setSession((current) => ({ ...current, user: next }));
 
   const [firebaseUser, setFirebaseUser] = useState<User | null | undefined>(undefined);
   const [ready, setReady] = useState(!isFirebaseClientConfigured);
+  /** Set on sign-out so the UI updates before `onIdTokenChanged` reports the change. */
+  const [signedOut, setSignedOut] = useState(false);
+
+  /**
+   * The current user in the shape the rest of the app expects.
+   *
+   * `role` is deliberately fixed at `'user'`: a client-derived value can never authorise
+   * anything, and nothing in the UI may gate on it. Administrator access is decided by
+   * `requireAdmin()` on the server, against the Firebase custom claim.
+   */
+  const sessionUser = useMemo<SessionUser | null>(() => {
+    if (signedOut || !firebaseUser) return null;
+    return {
+      uid: firebaseUser.uid,
+      email: firebaseUser.email ?? '',
+      displayName: firebaseUser.displayName ?? '',
+      photoURL: firebaseUser.photoURL ?? '',
+      emailVerified: firebaseUser.emailVerified,
+      role: 'user',
+    };
+  }, [firebaseUser, signedOut]);
 
   useEffect(() => {
     if (!isFirebaseClientConfigured) return;
     const unsubscribe = onIdTokenChanged(firebaseAuth(), (user) => {
       setFirebaseUser(user);
+      if (user) setSignedOut(false);
       setReady(true);
     });
     return unsubscribe;
@@ -143,7 +165,7 @@ export function AuthProvider({
     // rather than being left in a half-signed-out state.
     await fetch('/api/auth/session', { method: 'DELETE' }).catch(() => undefined);
     if (isFirebaseClientConfigured) await firebaseSignOut(firebaseAuth()).catch(() => undefined);
-    setSessionUser(null);
+    setSignedOut(true);
     router.refresh();
     router.push('/');
   }, [router]);

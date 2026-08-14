@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils/cn';
  */
 export function SiteHeader() {
   const pathname = usePathname();
-  const { sessionUser, signOut } = useAuth();
+  const { sessionUser, ready, signOut } = useAuth();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [lastPath, setLastPath] = useState(pathname);
@@ -151,7 +151,19 @@ export function SiteHeader() {
           </nav>
 
           <div className="hidden items-center gap-2 lg:flex">
-            {sessionUser ? (
+            {!ready ? (
+              /*
+               * The user is unknown for a moment because the marketing pages are static
+               * and the Firebase SDK resolves in the browser. Rendering the signed-out
+               * buttons during that moment would flash "Sign in" at every returning
+               * visitor, which reads as having been logged out. A placeholder of roughly
+               * the right footprint says "not yet known" instead of saying something wrong.
+               */
+              <span aria-hidden className="flex items-center gap-2">
+                <span className="h-8 w-[74px] animate-pulse rounded-lg bg-ink-100" />
+                <span className="h-8 w-[104px] animate-pulse rounded-lg bg-ink-100" />
+              </span>
+            ) : sessionUser ? (
               <>
                 <ButtonLink href="/dashboard" variant="ghost" size="sm">
                   Dashboard

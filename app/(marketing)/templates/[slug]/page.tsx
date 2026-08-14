@@ -27,7 +27,8 @@ import {
 } from '@/lib/cv/template-registry';
 import { CategoryPage, categoryMetadata } from '../CategoryPage';
 import { categoryBySlug } from '../category-copy';
-import { createDefaultCustomization, createSampleCV } from '@/lib/cv/defaults';
+import { createDefaultCustomization } from '@/lib/cv/defaults';
+import { sampleCvFor } from '@/lib/cv/samples';
 import { cn } from '@/lib/utils/cn';
 import { ogImageUrl, pageMetadata } from '@/lib/seo/metadata';
 import { absoluteUrl } from '@/lib/site';
@@ -200,7 +201,7 @@ export default async function TemplateDetailPage(props: { params: Promise<{ slug
   const template = getTemplateBySlug(slug);
   if (!template) notFound();
 
-  const cv = createSampleCV();
+  const cv = sampleCvFor(template.id);
   const customization = createDefaultCustomization({
     templateId: template.id,
     accentColor: template.accentDefault,
@@ -452,17 +453,23 @@ export default async function TemplateDetailPage(props: { params: Promise<{ slug
           as="h2"
           eyebrow="Make it yours"
           title={`Customising ${template.name}`}
+          /*
+            Renaming sections, switching paper size, reordering — those are true of all 56
+            templates, and spelling them out on each one is how a page ends up sharing four
+            fifths of its phrasing with its neighbours. They live on the pages that own them
+            and are linked from here; what stays below is only what changes with this design.
+          */
           description={
             <>
-              The template sets the structure; everything inside it is yours. Colours, fonts,
-              spacing, section order and paper size are all controls in the{' '}
+              Every control — colours, fonts, spacing, section order, paper size — is in the{' '}
               <Link
                 href="/cv-builder"
                 className="font-medium text-brand-700 underline underline-offset-2 hover:text-brand-800"
               >
                 CV builder
               </Link>
-              , and the preview updates as you change them — nothing is applied blind.
+              , with the preview updating as you change them. Three of them behave differently
+              in this layout than in the others.
             </>
           }
         />

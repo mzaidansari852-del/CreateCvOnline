@@ -683,53 +683,68 @@ const DENSITY: Record<Columns, NonEmpty<string>> = {
   ],
 };
 
+/**
+ * What is worth saying about customising *this* template.
+ *
+ * This block used to be five cards and 289 of the page's 1,248 words, and three of those
+ * cards were hardcoded strings: sections can be renamed, the portrait can be circular, A4
+ * or US Letter re-flows rather than scaling. All true, all true of every one of the
+ * fifty-six, and all repeated word for word on fifty-six URLs. Measured on the built HTML,
+ * this section was the single largest contributor to 81.3% of six-word phrases appearing on
+ * two or more template pages.
+ *
+ * The temptation is to widen a pool and generate fifty-six ways of saying "you can rename a
+ * section", which produces fifty-six pages of differently-worded identical information —
+ * thinner, not less duplicated. A universal product fact belongs on one page. `/cv-builder`
+ * and `/features` already carry these, and the page links to them.
+ *
+ * What is left is three cards that could only be written about this template: its own accent
+ * and what that accent is actually driving in this layout, the density control that matters
+ * most at this column count, and the structural decision this design has already made for
+ * you. Roughly 130 words instead of 289, and none of it boilerplate.
+ */
 export function customisationItems(template: TemplateMeta): CustomisationItem[] {
   const voice = CATEGORY_VOICE[template.category];
   const columns = columnsOf(template);
 
-  const items: CustomisationItem[] = [
+  return [
     {
       title: 'Accent colour',
-      description: `${template.name} ships with ${template.accentDefault} as its accent. ${voice.colour}`,
+      description: `${template.name} ships with ${template.accentDefault}. ${voice.colour}`,
     },
     {
-      title: 'Fonts and heading style',
-      description: `${voice.typography} Heading case — uppercase, capitalised or as typed — is a separate switch, and it changes the character of the page more than most people expect.`,
-    },
-    {
-      title: 'Spacing and density',
+      title: columns === 2 ? 'Density, on a divided page' : 'Density',
       description: pick(DENSITY[columns], template.id, 10),
     },
     {
-      title: 'Sections and order',
-      description: `${voice.sections} Every section can be renamed, reordered or hidden, and Pro adds custom sections for anything the standard set does not cover.`,
+      title: template.hasPhoto ? 'The photo, and what happens without it' : 'What this layout fixes',
+      description: template.hasPhoto
+        ? pick(PHOTO_NOTE[columns], template.id, 11)
+        : `${voice.sections} ${pick(NO_PHOTO_NOTE, template.id, 12)}`,
     },
   ];
-
-  items.push(
-    template.hasPhoto
-      ? {
-          title: 'Photo',
-          description:
-            'The portrait can be circular, rounded or square, and it can be switched off entirely — the header reflows rather than leaving a hole, so one CV serves both a market that expects a photograph and one that does not.',
-        }
-      : {
-          title: 'Paper size and export',
-          description:
-            'A4 or US Letter, switched in one control, with the layout re-flowing to the new page rather than being scaled to fit. The PDF is generated from the same code you see in the preview, so what you approve on screen is what downloads.',
-        },
-  );
-
-  if (template.hasPhoto) {
-    items.push({
-      title: 'Paper size and export',
-      description:
-        'Switch between A4 and US Letter and the document re-flows to the new page instead of being scaled into it. The exported PDF is rendered from the same component as the preview, so nothing shifts between the screen and the file.',
-    });
-  }
-
-  return items;
 }
+
+/**
+ * The photo note, which is genuinely template-specific: switching the portrait off changes
+ * the header on a one-column design and the whole sidebar on a two-column one.
+ */
+const PHOTO_NOTE: Record<Columns, NonEmpty<string>> = {
+  1: [
+    'The portrait sits in the header and can be circular, rounded or square. Switch it off and the header reflows around the name rather than leaving a gap, which is what lets one document serve both a market that expects a photograph and one that forbids it.',
+    'Turning the photo off here closes the header up rather than leaving a hole in it, so the same file works for a Casablanca application and a London one without a second version.',
+  ],
+  2: [
+    'The portrait anchors the side column, so switching it off shortens that column rather than emptying it — the sections below simply move up. Worth checking both ways before you commit, because the balance between the columns changes.',
+    'With the photo on, the side column reads as a profile; with it off, as a reference list. Both work in this layout, but they are different documents and it is worth looking at each.',
+  ],
+};
+
+/** For templates with no photo slot, why that is a design decision rather than an omission. */
+const NO_PHOTO_NOTE: NonEmpty<string> = [
+  'There is no photo slot to switch off, which is the point: nothing has to be removed before sending it to an employer that does not want one.',
+  'No portrait is drawn at any setting, so the document does not need a second version for markets where a photograph is discouraged.',
+];
 
 /* -------------------------------------------------------------------------- */
 /* FAQ                                                                         */

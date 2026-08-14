@@ -4,7 +4,8 @@ import type { Metadata } from 'next';
 import { CVDocument } from '@/components/cv/CVDocument';
 import { PAPER } from '@/lib/cv/format';
 import { TEMPLATES, getTemplateBySlug } from '@/lib/cv/template-registry';
-import { createDefaultCustomization, createSampleCV } from '@/lib/cv/defaults';
+import { createDefaultCustomization } from '@/lib/cv/defaults';
+import { sampleCvFor } from '@/lib/cv/samples';
 import { privateMetadata } from '@/lib/seo/metadata';
 
 /**
@@ -43,7 +44,8 @@ export default async function TemplatePreviewPage(props: {
   const template = getTemplateBySlug(slug);
   if (!template) notFound();
 
-  const cv = createSampleCV();
+  // The CV this template is for, not the one every template used to show.
+  const cv = sampleCvFor(template.id);
   const customization = createDefaultCustomization({
     templateId: template.id,
     accentColor: template.accentDefault,

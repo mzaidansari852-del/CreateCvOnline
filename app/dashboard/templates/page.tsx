@@ -7,7 +7,8 @@ import { UpgradeCard } from '@/components/dashboard/UpgradeCard';
 import { UseTemplateButton } from '@/components/dashboard/UseTemplateButton';
 import { Badge } from '@/components/ui/feedback';
 import { requireViewer } from '@/lib/auth/guards';
-import { createDefaultCustomization, createSampleCV } from '@/lib/cv/defaults';
+import { createDefaultCustomization } from '@/lib/cv/defaults';
+import { sampleCvFor } from '@/lib/cv/samples';
 import {
   FREE_TEMPLATE_COUNT,
   TEMPLATES,
@@ -40,7 +41,6 @@ export default async function DashboardTemplatesPage({
       : TEMPLATES.filter((template) => template.category === category);
 
   const canUsePremium = viewer.limits.premiumTemplates;
-  const sample = createSampleCV();
 
   const chips = [
     { id: 'all', label: 'All', count: TEMPLATE_COUNT },
@@ -105,7 +105,7 @@ export default async function DashboardTemplatesPage({
             >
               <div className="overflow-hidden rounded-lg bg-ink-100">
                 <CVThumbnail
-                  cv={sample}
+                  cv={sampleCvFor(template.id)}
                   customization={createDefaultCustomization({
                     templateId: template.id,
                     accentColor: template.accentDefault,

@@ -47,11 +47,13 @@ export function createSampleCV(): CVData {
       email: 'amina.elfassi@example.com',
       phone: '+212 6 12 34 56 78',
       location: 'Casablanca, Morocco',
-      website: 'aminaelfassi.design',
+      // example.com is the domain reserved for exactly this. A plausible-looking real
+      // one on 56 marketing pages is somebody else's website.
+      website: 'aminaelfassi.example.com',
       linkedin: 'linkedin.com/in/aminaelfassi',
       github: 'github.com/aminaelfassi',
       photoUrl: '',
-      links: [{ id: uid(), label: 'Dribbble', url: 'dribbble.com/aminaelfassi' }],
+      links: [{ id: uid(), label: 'Dribbble', url: 'dribbble.example.com/aminaelfassi' }],
     },
     summary:
       'Senior product designer with nine years of experience shaping B2B SaaS products used by more than two million people. I pair rigorous discovery with fast, high-fidelity prototyping, and I am happiest when a design decision can be traced back to a measured user outcome. Previously led the design system that unified four product surfaces at Atlas Cloud, cutting new-feature design time by 40%.',

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 
+import { PhotoField } from './PhotoField';
 import { RepeatableList, StringList } from './RepeatableList';
 import { Checkbox, Field, Input, Select, Textarea } from '@/components/ui/form';
 import { LANGUAGE_LEVELS, SKILL_LEVELS } from '@/lib/cv/format';
@@ -217,12 +218,20 @@ export function PersonalForm({ cv, onChange }: SectionFormProps) {
         placeholder="github.com/you"
       />
 
+      <PhotoField
+        value={personal.photoUrl}
+        onChange={(photoUrl) => set({ photoUrl })}
+        initials={`${personal.firstName.trim()[0] ?? ''}${
+          personal.lastName.trim()[0] ?? ''
+        }`.toUpperCase()}
+      />
+
       <TextField
-        label="Profile photo URL"
+        label="…or paste a photo URL"
         value={personal.photoUrl}
         onChange={(value) => set({ photoUrl: value })}
         placeholder="https://…"
-        hint="Optional. Photos are expected in much of continental Europe and avoided in the UK, Ireland and the US. Templates that support one show your initials when it is empty."
+        hint="Only needed if the image is already hosted somewhere public. Uploading above is easier and produces a smaller PDF."
       />
 
       <div className="rounded-xl border border-ink-200 p-4">

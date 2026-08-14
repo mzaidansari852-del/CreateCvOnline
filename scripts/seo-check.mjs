@@ -22,6 +22,8 @@
 
 import { writeFileSync } from 'node:fs';
 
+import { withServer } from './lib/with-server.mjs';
+
 /* -------------------------------------------------------------------------- */
 /* Arguments                                                                   */
 /* -------------------------------------------------------------------------- */
@@ -38,7 +40,13 @@ function arg(name, fallback) {
   return fallback;
 }
 
-const BASE = (arg('url', process.env.SEO_CHECK_URL || 'http://localhost:3000')).replace(/\/+$/, '');
+/**
+ * `--serve` builds nothing but starts and stops the production server itself, so the
+ * command works the same on Windows as on a Unix shell. Without it, `--url` (or an already
+ * running local server) is used.
+ */
+const SERVE = process.argv.includes('--serve');
+let BASE = (arg('url', process.env.SEO_CHECK_URL || 'http://localhost:3000')).replace(/\/+$/, '');
 /**
  * The origin the site believes it is served from, discovered from its own sitemap.
  *
@@ -422,7 +430,16 @@ async function main() {
   console.log(`✓ SEO check passed${warnings.length ? ` (${warnings.length} warning(s))` : ''}.\n`);
 }
 
-main().catch((error) => {
+const run = SERVE
+  ? () =>
+      withServer(async (baseUrl) => {
+        BASE = baseUrl;
+        canonicalOrigin = BASE;
+        await main();
+      })
+  : main;
+
+run().catch((error) => {
   console.error('\n✗ SEO check could not run:', error instanceof Error ? error.message : error);
   console.error('  Is the server running?  npm run build && npm start\n');
   process.exit(1);

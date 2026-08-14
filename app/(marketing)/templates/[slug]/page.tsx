@@ -15,6 +15,7 @@ import {
 import { Badge } from '@/components/ui/feedback';
 import { ButtonLink } from '@/components/ui/button';
 import { CVPagePreview } from '@/components/cv/CVThumbnail';
+import { TemplateImage, hasPreview } from '@/components/cv/TemplateImage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { TemplateGrid } from '@/components/marketing/TemplateStrip';
 import {
@@ -28,6 +29,7 @@ import { categoryBySlug } from '../category-copy';
 import { createDefaultCustomization, createSampleCV } from '@/lib/cv/defaults';
 import { cn } from '@/lib/utils/cn';
 import { ogImageUrl, pageMetadata } from '@/lib/seo/metadata';
+import { absoluteUrl } from '@/lib/site';
 import { templateSchema } from '@/lib/seo/schema';
 import type { TemplateMeta } from '@/types/cv';
 
@@ -95,7 +97,14 @@ export async function generateMetadata(props: {
     description: templateMetaDescription(template),
     path: `/templates/${template.slug}`,
     keywords: template.keywords,
-    image: ogImageUrl(templateHeading(template), template.tagline),
+    /*
+     * The generated card, not `/api/og`. `robots.txt` disallows `/api/`, so the previous
+     * value was unfetchable by any crawler that respects it — the pages had no social
+     * image at all. This one is a static file under `/previews/`.
+     */
+    image: hasPreview(template.slug)
+      ? absoluteUrl(`/previews/${template.slug}-og.jpg`)
+      : ogImageUrl(templateHeading(template), template.tagline),
   });
 }
 
@@ -230,25 +239,47 @@ export default async function TemplateDetailPage(props: { params: Promise<{ slug
 
         <div className="mt-10 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12">
           <div className="rounded-2xl border border-ink-200 bg-ink-50 p-4 sm:p-8">
-            <p className="sr-only">
-              Live preview of the {template.name} template, rendered at full page size with an
-              example CV. The preview is the same code that generates your PDF.
-            </p>
-            {/* The sample document has its own headings; hide it from assistive tech. */}
-            <div aria-hidden className="flex justify-center">
-              <CVPagePreview
-                cv={cv}
-                customization={customization}
-                maxWidth={280}
-                className="sm:hidden"
-              />
-              <CVPagePreview
-                cv={cv}
-                customization={customization}
-                maxWidth={560}
-                className="hidden sm:block"
-              />
-            </div>
+            {hasPreview(template.slug) ? (
+              /*
+               * A picture, not a live document. It is the same render — the file is a
+               * screenshot of this very page — but as an image it can be indexed by Google
+               * Images, weighs 114KB instead of ~80KB of inline DOM repeated in the RSC
+               * payload, and needs no `aria-hidden` gymnastics to keep the sample CV's
+               * headings out of the page outline.
+               */
+              <div className="flex justify-center">
+                <TemplateImage
+                  template={template}
+                  variant="full"
+                  width={560}
+                  priority
+                  sizes="(max-width: 640px) 280px, 560px"
+                  className="max-w-[280px] rounded-xl shadow-page sm:max-w-[560px]"
+                />
+              </div>
+            ) : (
+              <>
+                <p className="sr-only">
+                  Live preview of the {template.name} template, rendered at full page size with
+                  an example CV. The preview is the same code that generates your PDF.
+                </p>
+                {/* The sample document has its own headings; hide it from assistive tech. */}
+                <div aria-hidden className="flex justify-center">
+                  <CVPagePreview
+                    cv={cv}
+                    customization={customization}
+                    maxWidth={280}
+                    className="sm:hidden"
+                  />
+                  <CVPagePreview
+                    cv={cv}
+                    customization={customization}
+                    maxWidth={560}
+                    className="hidden sm:block"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <aside className="rounded-2xl border border-ink-200 bg-white p-6 shadow-card lg:sticky lg:top-24">

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { CVThumbnail } from '@/components/cv/CVThumbnail';
+import { TemplateImage, hasPreview } from '@/components/cv/TemplateImage';
 import { Badge } from '@/components/ui/feedback';
 import { createDefaultCustomization, createSampleCV } from '@/lib/cv/defaults';
 import { cn } from '@/lib/utils/cn';
@@ -11,7 +12,12 @@ import type { TemplateDefinition } from '@/types/cv';
  *
  * Shared by the homepage, the gallery, the SEO landing pages and every template detail
  * page's "related templates" block, so a design change to a template card lands in one
- * place. Server component — 56 live CV previews and zero client JavaScript.
+ * place. Server component — zero client JavaScript.
+ *
+ * Cards show the pre-rendered preview image rather than a live CV. A grid of twenty live
+ * previews is twenty full CV documents of inline DOM — several hundred kilobytes that an
+ * image crawler cannot read anyway. The live path stays as the fallback for a template
+ * whose image has not been generated yet, so adding one never leaves a hole in the grid.
  */
 export function TemplateCard({
   template,
@@ -41,15 +47,24 @@ export function TemplateCard({
       )}
     >
       <div className="relative overflow-hidden rounded-lg bg-ink-100">
-        <CVThumbnail
-          cv={cv}
-          customization={customization}
-          width={width}
-          crop={crop}
-          rounded={false}
-          shadow={false}
-          className="w-full"
-        />
+        {hasPreview(template.slug) ? (
+          <TemplateImage
+            template={template}
+            width={width}
+            sizes={`(max-width: 640px) 45vw, ${width}px`}
+            className={crop ? 'object-cover' : undefined}
+          />
+        ) : (
+          <CVThumbnail
+            cv={cv}
+            customization={customization}
+            width={width}
+            crop={crop}
+            rounded={false}
+            shadow={false}
+            className="w-full"
+          />
+        )}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-950/55 via-transparent to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100"

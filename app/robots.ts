@@ -25,6 +25,10 @@ export default function robots(): MetadataRoute.Robots {
           // Query-string permutations of the gallery add nothing beyond the
           // category views that are listed explicitly in the sitemap.
           '/templates?*q=',
+          // The render target for `npm run previews`: one bare CV per template, with no
+          // heading, no copy and no links. Harmless to reach, worthless to index, and it
+          // would duplicate the sample document 56 more times.
+          '/template-preview/',
         ],
       },
       {

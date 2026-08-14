@@ -18,11 +18,13 @@
     "test:watch": "vitest",
     "seo:check": "node scripts/seo-check.mjs",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run build",
-    "verify:seo": "npm run build && (npm start & SERVER=$! ; sleep 8 ; node scripts/seo-check.mjs ; STATUS=$? ; kill $SERVER ; exit $STATUS)",
+    "verify:seo": "npm run build && node scripts/seo-check.mjs --serve",
     "generate:templates": "node scripts/generate-template-registry.mjs",
     "seed": "node --experimental-strip-types scripts/seed-firestore.ts",
     "set-admin": "node --experimental-strip-types scripts/set-admin-claim.ts",
-    "firebase:rules": "firebase deploy --only firestore:rules,firestore:indexes,storage"
+    "firebase:rules": "firebase deploy --only firestore:rules,firestore:indexes,storage",
+    "generate:previews": "node scripts/generate-previews.mjs",
+    "previews": "npm run build && node scripts/generate-previews.mjs --serve"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -56,6 +58,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
     "jsdom": "^30.0.1",
+    "sharp": "^0.35.3",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vite-tsconfig-paths": "^6.1.1",

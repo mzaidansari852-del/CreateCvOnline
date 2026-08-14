@@ -1,5 +1,5 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -47,6 +47,7 @@ const GUTTER_HALF = 1.2;
  */
 export default function ModernClean({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const name = fullName(cv);
   const hairline = tint(accent, 0.7);
@@ -62,7 +63,14 @@ export default function ModernClean({ cv, customization: c }: CVTemplateProps) {
           borderBottom: `1px solid ${tint(accent, 0.82)}`,
         }}
       >
-        <Photo cv={cv} c={c} size={88} border={hairline} borderWidth={2} fallbackBackground={accent} />
+        <Photo
+          cv={cv}
+          c={c}
+          size={88}
+          border={hairline}
+          borderWidth={2}
+          fallbackBackground={accent}
+        />
         <div style={{ minWidth: 0, flex: 1 }}>
           <h1
             style={{
@@ -79,7 +87,7 @@ export default function ModernClean({ cv, customization: c }: CVTemplateProps) {
             <p
               style={{
                 fontSize: '1.05em',
-                color: accent,
+                color: accentText,
                 fontWeight: 600,
                 marginTop: '0.18em',
               }}
@@ -101,7 +109,7 @@ export default function ModernClean({ cv, customization: c }: CVTemplateProps) {
         </div>
       </header>
 
-      <main
+      <div
         style={{
           padding: `${c.pageMargin * 0.7}px ${c.pageMargin}px ${c.pageMargin}px`,
           flex: 1,
@@ -170,7 +178,7 @@ export default function ModernClean({ cv, customization: c }: CVTemplateProps) {
             </section>
           ))}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

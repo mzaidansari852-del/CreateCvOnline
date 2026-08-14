@@ -1,5 +1,5 @@
 import { ContactIcon, SectionContent, contactEntries } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform } from '@/lib/cv/format';
+import { accentOn, fullName, headingTracking, headingTransform } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVData, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -44,6 +44,7 @@ export const meta: TemplateMeta = {
  */
 export default function BusinessProfessional({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
 
   return (
@@ -81,7 +82,7 @@ export default function BusinessProfessional({ cv, customization: c }: CVTemplat
                 marginTop: '0.2em',
                 fontSize: '1.05em',
                 fontWeight: 600,
-                color: accent,
+                color: accentText,
               }}
             >
               {cv.personal.title}
@@ -93,7 +94,7 @@ export default function BusinessProfessional({ cv, customization: c }: CVTemplat
 
       <div aria-hidden style={{ height: 4, background: accent, marginTop: '0.75em' }} />
 
-      <main style={{ marginTop: `${c.pageMargin * 0.6}px`, flex: 1 }}>
+      <div style={{ marginTop: `${c.pageMargin * 0.6}px`, flex: 1 }}>
         {sections.map((section, index) => (
           <section
             key={section.id}
@@ -105,7 +106,7 @@ export default function BusinessProfessional({ cv, customization: c }: CVTemplat
               style={{
                 fontSize: '0.95em',
                 fontWeight: 700,
-                color: accent,
+                color: accentText,
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),
                 marginBottom: '0.45em',
@@ -132,7 +133,7 @@ export default function BusinessProfessional({ cv, customization: c }: CVTemplat
             />
           </section>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

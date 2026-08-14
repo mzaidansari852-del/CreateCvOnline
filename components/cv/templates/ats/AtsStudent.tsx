@@ -1,43 +1,37 @@
-import { ContactList, SectionContent } from "@/components/cv/parts";
-import {
-  fullName,
-  headingTracking,
-  headingTransform,
-  tint,
-} from "@/lib/cv/format";
-import { visibleSections } from "@/lib/cv/sections";
-import type { CVTemplateProps, TemplateMeta } from "@/types/cv";
+import { ContactList, SectionContent } from '@/components/cv/parts';
+import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { visibleSections } from '@/lib/cv/sections';
+import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
 export const meta: TemplateMeta = {
-  id: "ats-04",
-  slug: "student-cv",
-  name: "Student CV",
-  category: "ats",
+  id: 'ats-04',
+  slug: 'student-cv',
+  name: 'Student CV',
+  category: 'ats',
   premium: false,
   atsScore: 5,
   columns: 1,
   hasPhoto: false,
-  accentDefault: "#1d4ed8",
-  tagline:
-    "Education sits on a soft tinted panel in larger type, wherever you place it.",
+  accentDefault: '#1d4ed8',
+  tagline: 'Education sits on a soft tinted panel in larger type, wherever you place it.',
   description:
-    "Student CV is built for a first application, where a degree and a couple of modules carry more weight than two summer jobs. The education section is set on a very light tinted panel in slightly larger type so it anchors the page, and the summary is italicised to read as a short objective statement — the section order itself stays entirely under your control. Spacing is generous, which stops a genuinely short CV from looking like an unfinished one.",
+    'Student CV is built for a first application, where a degree and a couple of modules carry more weight than two summer jobs. The education section is set on a very light tinted panel in slightly larger type so it anchors the page, and the summary is italicised to read as a short objective statement — the section order itself stays entirely under your control. Spacing is generous, which stops a genuinely short CV from looking like an unfinished one.',
   bestFor: [
-    "University students and recent graduates",
-    "Internship and placement applications",
-    "First jobs with little paid experience",
+    'University students and recent graduates',
+    'Internship and placement applications',
+    'First jobs with little paid experience',
   ],
   features: [
-    "Tinted emphasis panel behind the education section",
-    "Italic objective-style summary",
-    "Generous spacing tuned for a one-page student CV",
-    "Single column, no icons, photo or graphics",
+    'Tinted emphasis panel behind the education section',
+    'Italic objective-style summary',
+    'Generous spacing tuned for a one-page student CV',
+    'Single column, no icons, photo or graphics',
   ],
   keywords: [
-    "student cv template",
-    "graduate cv template",
-    "first cv template",
-    "internship cv template",
+    'student cv template',
+    'graduate cv template',
+    'first cv template',
+    'internship cv template',
   ],
 };
 
@@ -52,6 +46,7 @@ export default function AtsStudent({ cv, customization: c }: CVTemplateProps) {
   const ink = c.textColor;
   const metaInk = tint(ink, 0.22);
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const spacing = c.sectionSpacing * 1.2;
   const name = fullName(cv);
@@ -61,27 +56,27 @@ export default function AtsStudent({ cv, customization: c }: CVTemplateProps) {
       <header>
         <h1
           style={{
-            fontSize: "2.05em",
+            fontSize: '2.05em',
             lineHeight: 1.12,
             fontWeight: 700,
             color: ink,
           }}
         >
-          {name || "Your Name"}
+          {name || 'Your Name'}
         </h1>
         {cv.personal.title ? (
           <p
             style={{
-              fontSize: "1.08em",
-              marginTop: "0.14em",
-              color: accent,
+              fontSize: '1.08em',
+              marginTop: '0.14em',
+              color: accentText,
               fontWeight: 600,
             }}
           >
             {cv.personal.title}
           </p>
         ) : null}
-        <div style={{ marginTop: "0.5em" }}>
+        <div style={{ marginTop: '0.5em' }}>
           <ContactList
             cv={cv}
             accent={accent}
@@ -95,8 +90,8 @@ export default function AtsStudent({ cv, customization: c }: CVTemplateProps) {
       </header>
 
       {sections.map((section) => {
-        const emphasised = section.id === "education";
-        const isSummary = section.id === "summary";
+        const emphasised = section.id === 'education';
+        const isSummary = section.id === 'summary';
 
         return (
           <section
@@ -107,8 +102,8 @@ export default function AtsStudent({ cv, customization: c }: CVTemplateProps) {
               ...(emphasised
                 ? {
                     background: tint(accent, 0.94),
-                    padding: "0.85em 1em 0.95em",
-                    fontSize: "1.05em",
+                    padding: '0.85em 1em 0.95em',
+                    fontSize: '1.05em',
                   }
                 : {}),
             }}
@@ -116,17 +111,17 @@ export default function AtsStudent({ cv, customization: c }: CVTemplateProps) {
             <h2
               className="cv-section-title"
               style={{
-                fontSize: emphasised ? "1.06em" : "1.02em",
+                fontSize: emphasised ? '1.06em' : '1.02em',
                 fontWeight: 700,
-                color: accent,
+                color: accentText,
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),
-                marginBottom: "0.5em",
+                marginBottom: '0.5em',
               }}
             >
               {section.label}
             </h2>
-            <div style={isSummary ? { fontStyle: "italic" } : undefined}>
+            <div style={isSummary ? { fontStyle: 'italic' } : undefined}>
               <SectionContent
                 sectionId={section.id}
                 showTags={false}
@@ -137,16 +132,16 @@ export default function AtsStudent({ cv, customization: c }: CVTemplateProps) {
                 muted={isSummary ? ink : metaInk}
                 gap={1.05}
                 variants={{
-                  education: "stack",
-                  experience: "stack",
-                  projects: "compact",
-                  certifications: "stack",
-                  awards: "stack",
-                  volunteer: "stack",
-                  publications: "stack",
-                  languages: "stack",
-                  interests: "inline",
-                  references: "stack",
+                  education: 'stack',
+                  experience: 'stack',
+                  projects: 'compact',
+                  certifications: 'stack',
+                  awards: 'stack',
+                  volunteer: 'stack',
+                  publications: 'stack',
+                  languages: 'stack',
+                  interests: 'inline',
+                  references: 'stack',
                 }}
                 skillDisplay="text"
                 skillColumns={1}

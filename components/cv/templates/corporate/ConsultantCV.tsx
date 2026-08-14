@@ -1,5 +1,5 @@
 import { ContactIcon, SectionContent, contactEntries } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVData, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -47,6 +47,7 @@ const LABEL_WIDTH = '8.5em';
  */
 export default function ConsultantCV({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const labelInk = tint(c.textColor, 0.35);
   const rule = tint(accent, 0.62);
@@ -86,7 +87,7 @@ export default function ConsultantCV({ cv, customization: c }: CVTemplateProps) 
                 marginTop: '0.32em',
                 fontSize: '1.05em',
                 fontWeight: 600,
-                color: accent,
+                color: accentText,
               }}
             >
               {cv.personal.title}
@@ -98,7 +99,7 @@ export default function ConsultantCV({ cv, customization: c }: CVTemplateProps) 
 
       <div aria-hidden style={{ height: 1, background: rule, marginTop: '1em' }} />
 
-      <main style={{ marginTop: `${c.pageMargin * 0.55}px`, flex: 1 }}>
+      <div style={{ marginTop: `${c.pageMargin * 0.55}px`, flex: 1 }}>
         {sections.map((section, index) => (
           <section
             key={section.id}
@@ -149,7 +150,7 @@ export default function ConsultantCV({ cv, customization: c }: CVTemplateProps) 
             </div>
           </section>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

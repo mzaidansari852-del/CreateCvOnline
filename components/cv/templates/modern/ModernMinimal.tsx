@@ -1,5 +1,11 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  centredTracking,
+  mutedOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -44,7 +50,7 @@ export const meta: TemplateMeta = {
  */
 export default function ModernMinimal({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
-  const muted = tint(c.textColor, 0.45);
+  const muted = mutedOn(c.textColor, 0.45);
   const sections = visibleSections(cv);
   const name = fullName(cv);
 
@@ -56,7 +62,7 @@ export default function ModernMinimal({ cv, customization: c }: CVTemplateProps)
             fontSize: '2.5em',
             lineHeight: 1.18,
             fontWeight: 300,
-            letterSpacing: '0.15em',
+            ...centredTracking('0.15em'),
             color: c.textColor,
           }}
         >

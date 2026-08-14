@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
 import { splitSections, visibleSections } from '@/lib/cv/sections';
 import type { CVCustomization, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -15,7 +15,8 @@ export const meta: TemplateMeta = {
   columns: 2,
   hasPhoto: false,
   accentDefault: '#9333ea',
-  tagline: 'A gradient rail down the page edge, with research and shipped work given equal billing.',
+  tagline:
+    'A gradient rail down the page edge, with research and shipped work given equal billing.',
   description:
     'AI Engineer runs a two-column body under a full-width header so papers, models and production systems all get room without pushing your employment history onto a second page. Projects and publications sit in tinted panels a reviewer can find at a glance, while the narrow right-hand column carries your stack, certifications and languages. The gradient rail is painted as a page background, so it continues down the edge of page three of a long research CV.',
   bestFor: [
@@ -59,6 +60,9 @@ const FEATURED_SECTIONS = new Set(['projects', 'publications']);
  */
 export default function AiEngineer({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  // Featured sections paint this behind their content; every part inside one is told so.
+  const featuredPanel = tint(accent, 0.94);
+  const accentText = accentOn(accent, featuredPanel);
   const sections = visibleSections(cv);
   const { main, aside } = splitSections(sections, ASIDE_SECTIONS);
   const name = fullName(cv);
@@ -91,7 +95,7 @@ export default function AiEngineer({ cv, customization: c }: CVTemplateProps) {
           {name || 'Your Name'}
         </h1>
         {cv.personal.title ? (
-          <p style={{ fontSize: '1.1em', fontWeight: 600, color: accent, marginTop: '0.18em' }}>
+          <p style={{ fontSize: '1.1em', fontWeight: 600, color: accentText, marginTop: '0.18em' }}>
             {cv.personal.title}
           </p>
         ) : null}
@@ -121,7 +125,7 @@ export default function AiEngineer({ cv, customization: c }: CVTemplateProps) {
             const featured = FEATURED_SECTIONS.has(section.id);
             const panel: CSSProperties = featured
               ? {
-                  background: tint(accent, 0.94),
+                  background: featuredPanel,
                   borderLeft: `2px solid ${tint(accent, 0.4)}`,
                   borderRadius: 3,
                   padding: '0.7em 0.85em 0.75em',
@@ -140,6 +144,7 @@ export default function AiEngineer({ cv, customization: c }: CVTemplateProps) {
                   cv={cv}
                   c={c}
                   accent={accent}
+                  surface={featured ? featuredPanel : undefined}
                   color={c.textColor}
                   variants={{
                     experience: 'two-col',

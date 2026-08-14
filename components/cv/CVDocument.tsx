@@ -29,7 +29,7 @@ export function CVDocument({
   const template = getTemplate(customization.templateId);
   const Template = template.component;
   const paper = PAPER[customization.paperSize];
-  const background = template.pageBackground?.(customization);
+  const background = template.pageBackground?.(customization, cv);
 
   const cssVars = {
     '--cv-page-width': `${paper.width}px`,
@@ -61,6 +61,9 @@ export function CVDocument({
 }
 
 /** The `background` value the print route must copy onto `<body>` for multi-page fidelity. */
-export function documentPageBackground(customization: CVCustomization): string | undefined {
-  return getTemplate(customization.templateId).pageBackground?.(customization);
+export function documentPageBackground(
+  customization: CVCustomization,
+  cv: CVData,
+): string | undefined {
+  return getTemplate(customization.templateId).pageBackground?.(customization, cv);
 }

@@ -1,5 +1,5 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -46,6 +46,7 @@ const CARD_RADIUS = 6;
  */
 export default function HumanResourcesCV({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const border = tint(accent, 0.74);
   const strip = tint(accent, 0.93);
   const sections = visibleSections(cv);
@@ -54,7 +55,14 @@ export default function HumanResourcesCV({ cv, customization: c }: CVTemplatePro
   return (
     <div style={{ padding: c.pageMargin }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: '1.3em' }}>
-        <Photo cv={cv} c={c} size={96} border={border} borderWidth={3} fallbackBackground={accent} />
+        <Photo
+          cv={cv}
+          c={c}
+          size={96}
+          border={border}
+          borderWidth={3}
+          fallbackBackground={accent}
+        />
         <div style={{ minWidth: 0, flex: 1 }}>
           <h1
             style={{
@@ -68,7 +76,14 @@ export default function HumanResourcesCV({ cv, customization: c }: CVTemplatePro
             {name || 'Your Name'}
           </h1>
           {cv.personal.title ? (
-            <p style={{ marginTop: '0.15em', fontSize: '1.05em', fontWeight: 600, color: accent }}>
+            <p
+              style={{
+                marginTop: '0.15em',
+                fontSize: '1.05em',
+                fontWeight: 600,
+                color: accentText,
+              }}
+            >
               {cv.personal.title}
             </p>
           ) : null}
@@ -85,7 +100,7 @@ export default function HumanResourcesCV({ cv, customization: c }: CVTemplatePro
         </div>
       </header>
 
-      <main>
+      <div>
         {sections.map((section) => (
           <section
             key={section.id}
@@ -137,7 +152,7 @@ export default function HumanResourcesCV({ cv, customization: c }: CVTemplatePro
             </div>
           </section>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

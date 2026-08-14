@@ -1,5 +1,7 @@
 import { ContactIcon, SectionContent, type ContactIconKey } from '@/components/cv/parts';
 import {
+  accentOn,
+  mutedOn,
   ensureProtocol,
   fullName,
   headingTracking,
@@ -57,7 +59,13 @@ function contactRows(cv: CVData): ContactRow[] {
   const rows: ContactRow[] = [];
 
   if (p.email)
-    rows.push({ id: 'email', key: 'email', value: p.email, href: `mailto:${p.email}`, icon: 'mail' });
+    rows.push({
+      id: 'email',
+      key: 'email',
+      value: p.email,
+      href: `mailto:${p.email}`,
+      icon: 'mail',
+    });
   if (p.phone)
     rows.push({
       id: 'phone',
@@ -115,7 +123,14 @@ function contactRows(cv: CVData): ContactRow[] {
  */
 export default function ModernTech({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
-  const muted = tint(c.textColor, 0.4);
+  /*
+   * The lightest surface the document paints on is not paper — it is this panel. Text
+   * clamped against it is legible here and, being darker still, legible on white too, so a
+   * single declaration covers every section instead of one per background.
+   */
+  const panel = tint(accent, 0.94);
+  const accentText = accentOn(accent, panel);
+  const muted = mutedOn(c.textColor, 0.4, panel);
   const dashed = tint(c.textColor, 0.7);
   const sections = visibleSections(cv);
   const rows = contactRows(cv);
@@ -132,11 +147,15 @@ export default function ModernTech({ cv, customization: c }: CVTemplateProps) {
           padding: '0.95em 1.15em',
         }}
       >
-        <h1 style={{ fontSize: '1.95em', lineHeight: 1.12, fontWeight: 700, color: c.secondaryColor }}>
+        <h1
+          style={{ fontSize: '1.95em', lineHeight: 1.12, fontWeight: 700, color: c.secondaryColor }}
+        >
           {name || 'Your Name'}
         </h1>
         {cv.personal.title ? (
-          <p style={{ marginTop: '0.12em', fontSize: '1.02em', fontWeight: 600, color: accent }}>
+          <p
+            style={{ marginTop: '0.12em', fontSize: '1.02em', fontWeight: 600, color: accentText }}
+          >
             {cv.personal.title}
           </p>
         ) : null}
@@ -164,7 +183,7 @@ export default function ModernTech({ cv, customization: c }: CVTemplateProps) {
                 }}
               >
                 {c.showIcons ? <ContactIcon name={row.icon} size="0.95em" color={accent} /> : null}
-                <span style={{ color: accent, fontWeight: 600 }}>{row.key}:</span>
+                <span style={{ color: accentText, fontWeight: 600 }}>{row.key}:</span>
                 {row.href ? (
                   <a href={row.href} style={{ color: c.textColor, minWidth: 0 }}>
                     {row.value}
@@ -178,7 +197,7 @@ export default function ModernTech({ cv, customization: c }: CVTemplateProps) {
         ) : null}
       </header>
 
-      <main>
+      <div>
         {sections.map((section, index) => (
           <section
             key={section.id}
@@ -200,7 +219,10 @@ export default function ModernTech({ cv, customization: c }: CVTemplateProps) {
                 marginBottom: '0.55em',
               }}
             >
-              <span aria-hidden style={{ color: accent, marginRight: '0.4em', fontWeight: 700 }}>
+              <span
+                aria-hidden
+                style={{ color: accentText, marginRight: '0.4em', fontWeight: 700 }}
+              >
                 {'//'}
               </span>
               {section.label}
@@ -228,7 +250,7 @@ export default function ModernTech({ cv, customization: c }: CVTemplateProps) {
             />
           </section>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

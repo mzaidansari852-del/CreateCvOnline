@@ -1,5 +1,5 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { mutedOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -44,7 +44,7 @@ export const meta: TemplateMeta = {
  */
 export default function ModernAts({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
-  const muted = tint(c.textColor, 0.35);
+  const muted = mutedOn(c.textColor, 0.35);
   const rule = tint(c.textColor, 0.68);
   const sections = visibleSections(cv);
   const name = fullName(cv);

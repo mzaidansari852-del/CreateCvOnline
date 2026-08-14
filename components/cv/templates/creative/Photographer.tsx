@@ -1,5 +1,5 @@
 import { contactEntries, ContactIcon, Photo, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { mutedOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -48,7 +48,7 @@ export default function Photographer({ cv, customization: c }: CVTemplateProps) 
   const sections = visibleSections(cv);
   const contacts = contactEntries(cv);
   const hairline = tint(c.textColor, 0.74);
-  const muted = tint(c.textColor, 0.35);
+  const muted = mutedOn(c.textColor, 0.35);
   const tracking = headingTransform(c) === 'uppercase' ? '0.24em' : headingTracking(c);
 
   return (
@@ -138,7 +138,12 @@ export default function Photographer({ cv, customization: c }: CVTemplateProps) 
               {contacts.map((entry) => (
                 <span
                   key={entry.key}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4em', minWidth: 0 }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4em',
+                    minWidth: 0,
+                  }}
                 >
                   {c.showIcons ? <ContactIcon name={entry.icon} size="1em" color={accent} /> : null}
                   {entry.href ? (

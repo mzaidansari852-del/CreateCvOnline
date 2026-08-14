@@ -1,5 +1,6 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
+  accentOn,
   fullName,
   headingTracking,
   headingTransform,
@@ -51,6 +52,7 @@ const CARD_SECTIONS = ['skills', 'languages', 'certifications', 'interests'];
  */
 export default function ContentCreator({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const { main, aside } = splitSections(sections, CARD_SECTIONS);
   const cardBorder = tint(accent, 0.7);
@@ -95,8 +97,17 @@ export default function ContentCreator({ cv, customization: c }: CVTemplateProps
               {fullName(cv) || 'Your Name'}
             </h1>
             {cv.personal.title ? (
-              <p style={{ marginTop: '0.15em', fontSize: '0.98em', fontWeight: 600, color: accent }}>
-                <span aria-hidden style={{ opacity: 0.75 }}>@</span>
+              <p
+                style={{
+                  marginTop: '0.15em',
+                  fontSize: '0.98em',
+                  fontWeight: 600,
+                  color: accentText,
+                }}
+              >
+                <span aria-hidden style={{ opacity: 0.75 }}>
+                  @
+                </span>
                 {cv.personal.title}
               </p>
             ) : null}
@@ -119,13 +130,18 @@ export default function ContentCreator({ cv, customization: c }: CVTemplateProps
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(0, 68fr) minmax(0, 32fr)',
+          /*
+           * The card column carries the scannable sections.
+           * Turn off skills, languages, certifications and interests and there is nothing
+           * to put here — reserving the column anyway leaves a third of every page blank.
+           */
+          gridTemplateColumns: aside.length > 0 ? 'minmax(0, 68fr) minmax(0, 32fr)' : '1fr',
           columnGap: '1.4em',
           alignItems: 'start',
           padding: `${c.sectionSpacing * 1.2}px ${c.pageMargin}px ${c.pageMargin}px`,
         }}
       >
-        <main>
+        <div>
           {main.map((section, index) => (
             <section
               key={section.id}
@@ -163,56 +179,60 @@ export default function ContentCreator({ cv, customization: c }: CVTemplateProps
               />
             </section>
           ))}
-        </main>
+        </div>
 
-        <aside>
-          {aside.map((section, index) => (
-            <section
-              key={section.id}
-              className="cv-section"
-              style={{ marginTop: index === 0 ? 0 : '0.8em' }}
-            >
-              <div
-                className="cv-block"
-                style={{
-                  border: `1px solid ${cardBorder}`,
-                  borderRadius: 12,
-                  padding: '0.8em 0.85em',
-                  background: tint(accent, 0.96),
-                }}
+        {/* Rendered only when it has content: an empty landmark is noise for a screen
+            reader and an empty column is a third of the page. */}
+        {aside.length > 0 ? (
+          <aside>
+            {aside.map((section, index) => (
+              <section
+                key={section.id}
+                className="cv-section"
+                style={{ marginTop: index === 0 ? 0 : '0.8em' }}
               >
-                <h2
-                  className="cv-section-title"
+                <div
+                  className="cv-block"
                   style={{
-                    fontSize: '0.78em',
-                    fontWeight: 800,
-                    color: cardInk,
-                    marginBottom: '0.5em',
-                    textTransform: headingTransform(c),
-                    letterSpacing: headingTracking(c),
+                    border: `1px solid ${cardBorder}`,
+                    borderRadius: 12,
+                    padding: '0.8em 0.85em',
+                    background: tint(accent, 0.96),
                   }}
                 >
-                  {section.label}
-                </h2>
-                <SectionContent
-                  sectionId={section.id}
-                  cv={cv}
-                  c={c}
-                  accent={accent}
-                  color={c.textColor}
-                  rule={cardBorder}
-                  variants={{
-                    languages: 'dots',
-                    certifications: 'compact',
-                    interests: 'tags',
-                  }}
-                  skillDisplay="tags"
-                  skillColumns={1}
-                />
-              </div>
-            </section>
-          ))}
-        </aside>
+                  <h2
+                    className="cv-section-title"
+                    style={{
+                      fontSize: '0.78em',
+                      fontWeight: 800,
+                      color: cardInk,
+                      marginBottom: '0.5em',
+                      textTransform: headingTransform(c),
+                      letterSpacing: headingTracking(c),
+                    }}
+                  >
+                    {section.label}
+                  </h2>
+                  <SectionContent
+                    sectionId={section.id}
+                    cv={cv}
+                    c={c}
+                    accent={accent}
+                    color={c.textColor}
+                    rule={cardBorder}
+                    variants={{
+                      languages: 'dots',
+                      certifications: 'compact',
+                      interests: 'tags',
+                    }}
+                    skillDisplay="tags"
+                    skillColumns={1}
+                  />
+                </div>
+              </section>
+            ))}
+          </aside>
+        ) : null}
       </div>
     </div>
   );

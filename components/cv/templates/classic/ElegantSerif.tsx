@@ -1,5 +1,13 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, shade, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  mutedOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  shade,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -46,15 +54,20 @@ export const meta: TemplateMeta = {
  */
 export default function ElegantSerif({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const frame = tint(accent, 0.5);
   const hair = tint(accent, 0.45);
-  const muted = tint(c.textColor, 0.34);
+  const muted = mutedOn(c.textColor, 0.34);
   const tracking = c.headingCase === 'uppercase' ? '0.24em' : headingTracking(c);
   const sections = visibleSections(cv);
   const name = fullName(cv);
 
   return (
-    <div style={{ padding: `${Math.round(c.pageMargin * 1.05)}px ${c.pageMargin}px ${c.pageMargin}px` }}>
+    <div
+      style={{
+        padding: `${Math.round(c.pageMargin * 1.05)}px ${c.pageMargin}px ${c.pageMargin}px`,
+      }}
+    >
       <header className="cv-block" style={{ border: `1px solid ${frame}`, padding: '0.25em' }}>
         <div
           style={{
@@ -96,7 +109,7 @@ export default function ElegantSerif({ cv, customization: c }: CVTemplateProps) 
                 marginTop: '0.35em',
                 fontSize: '1.06em',
                 fontStyle: 'italic',
-                color: accent,
+                color: accentText,
               }}
             >
               {cv.personal.title}

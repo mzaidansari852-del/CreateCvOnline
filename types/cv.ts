@@ -426,5 +426,13 @@ export interface TemplateDefinition extends TemplateMeta {
    * Applied to the page element *and* to `<body>` in the print route, which is what
    * makes a sidebar continue onto pages 2, 3 … in the exported PDF.
    */
-  pageBackground?: (customization: CVCustomization) => string | undefined;
+  /**
+   * The page background a template needs painted on every sheet, not just the first.
+   *
+   * Takes the CV as well as the customization because whether the band should exist at all
+   * is a question about content: a template that reserves a third of the page for skills,
+   * languages and certifications must not paint that band when the user has turned all
+   * three off. Returning `undefined` leaves the page white.
+   */
+  pageBackground?: (customization: CVCustomization, cv: CVData) => string | undefined;
 }

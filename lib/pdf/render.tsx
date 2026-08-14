@@ -55,7 +55,7 @@ export async function renderCVHtml({
   const markup = renderToStaticMarkup(<CVDocument cv={cv} customization={customization} />);
   const paper = PAPER[customization.paperSize];
   const fontsHref = googleFontsHref([customization.bodyFont, customization.headingFont]);
-  const background = documentPageBackground(customization);
+  const background = documentPageBackground(customization, cv);
   const name = fullName(cv) || 'Curriculum Vitae';
 
   const brandingMarkup = branding

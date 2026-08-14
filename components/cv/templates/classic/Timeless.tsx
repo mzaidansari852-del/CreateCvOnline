@@ -1,5 +1,12 @@
 import { contactEntries, ContactIcon, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  mutedOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -46,7 +53,8 @@ export const meta: TemplateMeta = {
  */
 export default function Timeless({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
-  const muted = tint(c.textColor, 0.32);
+  const accentText = accentOn(accent);
+  const muted = mutedOn(c.textColor, 0.32);
   const rule = tint(c.textColor, 0.72);
   const tracking = c.headingCase === 'uppercase' ? '0.17em' : headingTracking(c);
   const sections = visibleSections(cv);
@@ -83,7 +91,7 @@ export default function Timeless({ cv, customization: c }: CVTemplateProps) {
                 fontWeight: 600,
                 textTransform: 'uppercase',
                 letterSpacing: '0.12em',
-                color: accent,
+                color: accentText,
               }}
             >
               {cv.personal.title}
@@ -112,7 +120,9 @@ export default function Timeless({ cv, customization: c }: CVTemplateProps) {
                 ) : (
                   <span>{entry.label}</span>
                 )}
-                {c.showIcons ? <ContactIcon name={entry.icon} size="0.95em" color={accent} /> : null}
+                {c.showIcons ? (
+                  <ContactIcon name={entry.icon} size="0.95em" color={accent} />
+                ) : null}
               </div>
             ))}
           </div>

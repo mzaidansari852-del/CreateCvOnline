@@ -1,5 +1,5 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -44,6 +44,7 @@ export const meta: TemplateMeta = {
  */
 export default function ModernProfessional({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const name = fullName(cv);
 
@@ -76,7 +77,7 @@ export default function ModernProfessional({ cv, customization: c }: CVTemplateP
             <p
               style={{
                 fontSize: '1.14em',
-                color: accent,
+                color: accentText,
                 fontWeight: 600,
                 marginTop: '0.15em',
               }}
@@ -97,7 +98,7 @@ export default function ModernProfessional({ cv, customization: c }: CVTemplateP
         </div>
       </header>
 
-      <main
+      <div
         style={{
           padding: `${c.pageMargin * 0.78}px ${c.pageMargin}px ${c.pageMargin}px`,
           flex: 1,
@@ -147,7 +148,7 @@ export default function ModernProfessional({ cv, customization: c }: CVTemplateP
             />
           </section>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

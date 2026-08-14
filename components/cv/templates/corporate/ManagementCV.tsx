@@ -1,7 +1,14 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, shade, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  shade,
+  tint,
+} from '@/lib/cv/format';
 import { splitSections, visibleSections } from '@/lib/cv/sections';
-import type { CVCustomization, CVTemplateProps, TemplateMeta } from '@/types/cv';
+import type { CVData, CVCustomization, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
 export const meta: TemplateMeta = {
   id: 'corporate-03',
@@ -46,6 +53,7 @@ const SIDEBAR_SECTIONS = ['skills', 'languages', 'certifications', 'interests'];
  */
 export default function ManagementCV({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const { main, aside } = splitSections(sections, SIDEBAR_SECTIONS);
   const pad = c.pageMargin * 0.7;
@@ -81,7 +89,7 @@ export default function ManagementCV({ cv, customization: c }: CVTemplateProps) 
                 marginTop: '0.18em',
                 fontSize: '1.05em',
                 fontWeight: 600,
-                color: accent,
+                color: accentText,
               }}
             >
               {cv.personal.title}
@@ -112,13 +120,16 @@ export default function ManagementCV({ cv, customization: c }: CVTemplateProps) 
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: `${MAIN_PERCENT}% ${100 - MAIN_PERCENT}%`,
+          /*
+           * The band is the template, and an empty band is not a design.
+           * Turn off skills, languages, certifications and interests and there is nothing
+           * to put here — reserving the column anyway leaves a third of every page blank.
+           */
+          gridTemplateColumns: aside.length > 0 ? `${MAIN_PERCENT}% ${100 - MAIN_PERCENT}%` : '1fr',
           flex: 1,
         }}
       >
-        <main
-          style={{ padding: `${pad}px ${pad * 0.9}px ${c.pageMargin}px ${c.pageMargin}px` }}
-        >
+        <div style={{ padding: `${pad}px ${pad * 0.9}px ${c.pageMargin}px ${c.pageMargin}px` }}>
           {main.map((section, index) => (
             <section
               key={section.id}
@@ -158,59 +169,66 @@ export default function ManagementCV({ cv, customization: c }: CVTemplateProps) 
               />
             </section>
           ))}
-        </main>
+        </div>
 
-        <aside
-          style={{
-            background: 'transparent',
-            padding: `${pad}px ${c.pageMargin}px ${c.pageMargin}px ${pad * 0.8}px`,
-          }}
-        >
-          {aside.map((section, index) => (
-            <section
-              key={section.id}
-              className="cv-section"
-              style={{ marginTop: index === 0 ? 0 : `${c.sectionSpacing}px` }}
-            >
-              <h2
-                className="cv-section-title"
-                style={{
-                  fontSize: '0.85em',
-                  fontWeight: 800,
-                  color: sidebarInk,
-                  textTransform: headingTransform(c),
-                  letterSpacing: headingTracking(c),
-                  paddingBottom: '0.3em',
-                  borderBottom: `1px solid ${tint(accent, 0.55)}`,
-                  marginBottom: '0.5em',
-                }}
+        {/* Rendered only when it has content: an empty landmark is noise for a screen
+            reader and an empty column is a third of the page. */}
+        {aside.length > 0 ? (
+          <aside
+            style={{
+              background: 'transparent',
+              padding: `${pad}px ${c.pageMargin}px ${c.pageMargin}px ${pad * 0.8}px`,
+            }}
+          >
+            {aside.map((section, index) => (
+              <section
+                key={section.id}
+                className="cv-section"
+                style={{ marginTop: index === 0 ? 0 : `${c.sectionSpacing}px` }}
               >
-                {section.label}
-              </h2>
-              <SectionContent
-                sectionId={section.id}
-                cv={cv}
-                c={c}
-                accent={sidebarInk}
-                color={c.textColor}
-                rule={tint(accent, 0.55)}
-                skillColumns={1}
-                variants={{
-                  languages: 'stack',
-                  certifications: 'compact',
-                  interests: 'stack',
-                }}
-              />
-            </section>
-          ))}
-        </aside>
+                <h2
+                  className="cv-section-title"
+                  style={{
+                    fontSize: '0.85em',
+                    fontWeight: 800,
+                    color: sidebarInk,
+                    textTransform: headingTransform(c),
+                    letterSpacing: headingTracking(c),
+                    paddingBottom: '0.3em',
+                    borderBottom: `1px solid ${tint(accent, 0.55)}`,
+                    marginBottom: '0.5em',
+                  }}
+                >
+                  {section.label}
+                </h2>
+                <SectionContent
+                  sectionId={section.id}
+                  cv={cv}
+                  c={c}
+                  accent={sidebarInk}
+                  color={c.textColor}
+                  rule={tint(accent, 0.55)}
+                  skillColumns={1}
+                  variants={{
+                    languages: 'stack',
+                    certifications: 'compact',
+                    interests: 'stack',
+                  }}
+                />
+              </section>
+            ))}
+          </aside>
+        ) : null}
       </div>
     </div>
   );
 }
 
 /** Tinted band down the right-hand edge — also applied to `<body>` when printing. */
-export function pageBackground(c: CVCustomization): string {
+export function pageBackground(c: CVCustomization, cv: CVData): string | undefined {
+  // Painted on every sheet, so an unguarded band would tint a third of a two-page CV
+  // with nothing in it. No sidebar sections, no band.
+  if (splitSections(visibleSections(cv), SIDEBAR_SECTIONS).aside.length === 0) return undefined;
   return `linear-gradient(to right, #ffffff 0 ${MAIN_PERCENT}%, ${tint(
     c.accentColor,
     0.9,

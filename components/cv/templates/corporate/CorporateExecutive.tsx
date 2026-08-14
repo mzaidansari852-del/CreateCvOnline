@@ -1,5 +1,12 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  centredTracking,
+  accentOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -44,6 +51,7 @@ export const meta: TemplateMeta = {
  */
 export default function CorporateExecutive({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const innerRule = tint(accent, 0.45);
 
@@ -70,7 +78,7 @@ export default function CorporateExecutive({ cv, customization: c }: CVTemplateP
               lineHeight: 1.2,
               fontWeight: 700,
               textTransform: 'uppercase',
-              letterSpacing: '0.16em',
+              ...centredTracking('0.16em'),
               color: c.secondaryColor,
             }}
           >
@@ -84,17 +92,14 @@ export default function CorporateExecutive({ cv, customization: c }: CVTemplateP
                 fontWeight: 600,
                 textTransform: 'uppercase',
                 letterSpacing: '0.2em',
-                color: accent,
+                color: accentText,
               }}
             >
               {cv.personal.title}
             </p>
           ) : null}
 
-          <div
-            aria-hidden
-            style={{ height: 1, background: innerRule, margin: '0.85em 0 0.7em' }}
-          />
+          <div aria-hidden style={{ height: 1, background: innerRule, margin: '0.85em 0 0.7em' }} />
 
           <div style={{ display: 'flex', justifyContent: 'center', textAlign: 'center' }}>
             <ContactList
@@ -111,7 +116,7 @@ export default function CorporateExecutive({ cv, customization: c }: CVTemplateP
         </div>
       </header>
 
-      <main style={{ marginTop: `${c.pageMargin * 0.72}px`, flex: 1 }}>
+      <div style={{ marginTop: `${c.pageMargin * 0.72}px`, flex: 1 }}>
         {sections.map((section, index) => (
           <section
             key={section.id}
@@ -125,7 +130,7 @@ export default function CorporateExecutive({ cv, customization: c }: CVTemplateP
                 fontWeight: 700,
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),
-                color: accent,
+                color: accentText,
                 paddingBottom: '0.3em',
                 borderBottom: `1px solid ${innerRule}`,
                 marginBottom: '0.6em',
@@ -152,7 +157,7 @@ export default function CorporateExecutive({ cv, customization: c }: CVTemplateP
             />
           </section>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

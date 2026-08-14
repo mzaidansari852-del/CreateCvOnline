@@ -1,5 +1,12 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  mutedOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -44,7 +51,8 @@ export const meta: TemplateMeta = {
  */
 export default function ItProfessional({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
-  const muted = tint(c.textColor, 0.38);
+  const accentText = accentOn(accent);
+  const muted = mutedOn(c.textColor, 0.38);
   const sections = visibleSections(cv);
   const name = fullName(cv);
 
@@ -77,7 +85,7 @@ export default function ItProfessional({ cv, customization: c }: CVTemplateProps
                 marginTop: '0.25em',
                 fontSize: '1.05em',
                 fontWeight: 600,
-                color: accent,
+                color: accentText,
               }}
             >
               {cv.personal.title}
@@ -114,7 +122,7 @@ export default function ItProfessional({ cv, customization: c }: CVTemplateProps
         />
       </div>
 
-      <main
+      <div
         style={{
           flex: 1,
           padding: `${c.pageMargin * 0.8}px ${c.pageMargin}px ${c.pageMargin}px`,
@@ -153,10 +161,7 @@ export default function ItProfessional({ cv, customization: c }: CVTemplateProps
                 }}
               />
               {section.label}
-              <span
-                aria-hidden
-                style={{ flex: 1, height: 1, background: tint(accent, 0.6) }}
-              />
+              <span aria-hidden style={{ flex: 1, height: 1, background: tint(accent, 0.6) }} />
             </h2>
             <SectionContent
               sectionId={section.id}
@@ -181,7 +186,7 @@ export default function ItProfessional({ cv, customization: c }: CVTemplateProps
             />
           </section>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

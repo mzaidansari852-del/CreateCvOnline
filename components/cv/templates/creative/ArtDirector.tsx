@@ -1,5 +1,7 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
+  mutedOn,
+  accentOn,
   fullName,
   headingTracking,
   headingTransform,
@@ -49,8 +51,11 @@ export const meta: TemplateMeta = {
  */
 export default function ArtDirector({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const onBand = readableOn(accent);
-  const bandMuted = onBand === '#ffffff' ? 'rgba(255,255,255,0.74)' : 'rgba(0,0,0,0.62)';
+  // Dimmed toward the band and then measured, rather than a fixed alpha over whatever
+  // colour the user picked — see `mutedOn`.
+  const bandMuted = mutedOn(onBand, 0.32, accent);
   const hairline = tint(c.textColor, 0.8);
   const sections = visibleSections(cv);
 
@@ -104,6 +109,7 @@ export default function ArtDirector({ cv, customization: c }: CVTemplateProps) {
             <ContactList
               cv={cv}
               accent={onBand}
+              surface={accent}
               color={bandMuted}
               icons={c.showIcons}
               layout="inline"
@@ -127,7 +133,7 @@ export default function ArtDirector({ cv, customization: c }: CVTemplateProps) {
         ) : null}
       </header>
 
-      <main
+      <div
         style={{
           padding: `${c.pageMargin * 0.95}px ${c.pageMargin}px ${c.pageMargin}px`,
         }}
@@ -152,7 +158,7 @@ export default function ArtDirector({ cv, customization: c }: CVTemplateProps) {
                 fontSize: '0.72em',
                 fontWeight: 700,
                 lineHeight: 1.45,
-                color: accent,
+                color: accentText,
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),
                 paddingTop: '0.35em',
@@ -187,7 +193,7 @@ export default function ArtDirector({ cv, customization: c }: CVTemplateProps) {
             </div>
           </section>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

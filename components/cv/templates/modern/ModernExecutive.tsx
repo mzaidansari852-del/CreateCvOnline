@@ -1,5 +1,7 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
+  mutedOn,
+  accentOn,
   fullName,
   headingTracking,
   headingTransform,
@@ -56,8 +58,16 @@ const SIDEBAR_SECTIONS = ['skills', 'languages', 'certifications', 'interests', 
 export default function ModernExecutive({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
   const dark = shade(c.secondaryColor, 0.05);
+  /*
+   * Two surfaces, so two accents. The sidebar is near-black, and the default accent on it
+   * was 2.75:1 — the job title directly under the name, unreadable, on the template this
+   * project holds up as the reference for two-column layouts.
+   */
+  const accentOnDark = accentOn(accent, dark);
   const onDark = readableOn(dark);
-  const sidebarMuted = onDark === '#ffffff' ? 'rgba(255,255,255,0.72)' : 'rgba(0,0,0,0.6)';
+  // Dimmed toward the band and then measured, rather than a fixed alpha over whatever
+  // colour the user picked — see `mutedOn`.
+  const sidebarMuted = mutedOn(onDark, 0.3, dark);
   const sections = visibleSections(cv);
   const { main, aside } = splitSections(sections, SIDEBAR_SECTIONS);
   const pad = c.pageMargin * 0.72;
@@ -100,7 +110,7 @@ export default function ModernExecutive({ cv, customization: c }: CVTemplateProp
           <p
             style={{
               textAlign: 'center',
-              color: accent,
+              color: accentOnDark,
               fontWeight: 600,
               marginTop: '0.3em',
               fontSize: '0.98em',
@@ -115,6 +125,7 @@ export default function ModernExecutive({ cv, customization: c }: CVTemplateProp
           <ContactList
             cv={cv}
             accent={accent}
+            surface={dark}
             color={onDark}
             icons={c.showIcons}
             layout="stack"
@@ -131,6 +142,7 @@ export default function ModernExecutive({ cv, customization: c }: CVTemplateProp
               cv={cv}
               c={c}
               accent={accent}
+              surface={dark}
               color={onDark}
               muted={sidebarMuted}
               rule={sidebarMuted}
@@ -148,7 +160,7 @@ export default function ModernExecutive({ cv, customization: c }: CVTemplateProp
       </aside>
 
       {/* ----------------------------------------------------------------- main */}
-      <main style={{ padding: `${pad}px ${c.pageMargin}px ${c.pageMargin}px ${pad}px` }}>
+      <div style={{ padding: `${pad}px ${c.pageMargin}px ${c.pageMargin}px ${pad}px` }}>
         {main.map((section, index) => (
           <section
             key={section.id}
@@ -180,7 +192,7 @@ export default function ModernExecutive({ cv, customization: c }: CVTemplateProp
             />
           </section>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

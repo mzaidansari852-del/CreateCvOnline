@@ -1,5 +1,5 @@
 import { contactEntries, SectionContent, type ContactIconKey } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, shade, tint } from '@/lib/cv/format';
+import { mutedOn, fullName, headingTracking, headingTransform, shade, tint } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -61,7 +61,7 @@ export default function Government({ cv, customization: c }: CVTemplateProps) {
   const hair = tint(accent, 0.8);
   const bar = tint(accent, 0.9);
   const ink = shade(accent, 0.12);
-  const muted = tint(c.textColor, 0.3);
+  const muted = mutedOn(c.textColor, 0.3);
   const sections = visibleSections(cv);
   const fields = contactEntries(cv);
   const name = fullName(cv);

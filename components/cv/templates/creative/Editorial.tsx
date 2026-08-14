@@ -1,5 +1,13 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  centredTracking,
+  accentOn,
+  mutedOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  tint,
+} from '@/lib/cv/format';
 import { type ResolvedSection, visibleSections } from '@/lib/cv/sections';
 import type { CVCustomization, CVData, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -45,13 +53,14 @@ export const meta: TemplateMeta = {
  */
 export default function Editorial({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const summary = sections.find((section) => section.id === 'summary');
   const rest = sections.filter((section) => section.id !== 'summary');
   const left = rest.filter((_, index) => index % 2 === 0);
   const right = rest.filter((_, index) => index % 2 === 1);
   const name = fullName(cv);
-  const muted = tint(c.textColor, 0.34);
+  const muted = mutedOn(c.textColor, 0.34);
   const hairline = tint(c.textColor, 0.72);
 
   return (
@@ -90,7 +99,7 @@ export default function Editorial({ cv, customization: c }: CVTemplateProps) {
               fontWeight: 600,
               textTransform: 'uppercase',
               letterSpacing: '0.18em',
-              color: accent,
+              color: accentText,
             }}
           >
             {cv.personal.title}
@@ -123,7 +132,7 @@ export default function Editorial({ cv, customization: c }: CVTemplateProps) {
               fontWeight: 700,
               textAlign: 'center',
               textTransform: 'uppercase',
-              letterSpacing: '0.22em',
+              ...centredTracking('0.22em'),
               color: muted,
               marginBottom: '0.5em',
             }}
@@ -131,7 +140,13 @@ export default function Editorial({ cv, customization: c }: CVTemplateProps) {
             {summary.label}
           </h2>
           <div style={{ fontSize: '1.22em', lineHeight: 1.45, textAlign: 'center' }}>
-            <SectionContent sectionId={summary.id} cv={cv} c={c} accent={accent} color={c.textColor} />
+            <SectionContent
+              sectionId={summary.id}
+              cv={cv}
+              c={c}
+              accent={accent}
+              color={c.textColor}
+            />
           </div>
         </section>
       ) : null}
@@ -167,6 +182,7 @@ function Column({
   accent: string;
   muted: string;
 }) {
+  const accentText = accentOn(accent);
   return (
     <>
       {sections.map((section, index) => {
@@ -193,7 +209,9 @@ function Column({
                 marginBottom: '0.45em',
               }}
             >
-              <span style={{ fontSize: '2em', lineHeight: 0.85, color: accent }}>{initial}</span>
+              <span style={{ fontSize: '2em', lineHeight: 0.85, color: accentText }}>
+                {initial}
+              </span>
               <span>{remainder}</span>
             </h2>
             <SectionContent

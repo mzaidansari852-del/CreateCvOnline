@@ -1,5 +1,13 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, shade, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  mutedOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  shade,
+  tint,
+} from '@/lib/cv/format';
 import { splitSections, visibleSections } from '@/lib/cv/sections';
 import type { CVCustomization, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -48,16 +56,22 @@ const SIDEBAR_SECTIONS = ['skills', 'languages', 'interests', 'certifications'];
  */
 export default function VisualResume({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const { main, aside } = splitSections(sections, SIDEBAR_SECTIONS);
   const pad = c.pageMargin * 0.78;
-  const muted = tint(c.textColor, 0.34);
+  const muted = mutedOn(c.textColor, 0.34);
 
   return (
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: `${SIDEBAR_PERCENT}% 1fr`,
+        /*
+         * The gradient rail down the edge stays either way — it is page furniture, not the
+         * sidebar. The 34% column is the sidebar, and it only earns its space when something
+         * is in it.
+         */
+        gridTemplateColumns: aside.length > 0 ? `${SIDEBAR_PERCENT}% 1fr` : '1fr',
         minHeight: 'inherit',
         paddingLeft: RAIL_WIDTH,
       }}
@@ -127,7 +141,7 @@ export default function VisualResume({ cv, customization: c }: CVTemplateProps) 
       </aside>
 
       {/* ----------------------------------------------------------------- main */}
-      <main style={{ padding: `${pad}px ${c.pageMargin}px ${c.pageMargin}px ${pad * 0.75}px` }}>
+      <div style={{ padding: `${pad}px ${c.pageMargin}px ${c.pageMargin}px ${pad * 0.75}px` }}>
         <header style={{ marginBottom: `${c.sectionSpacing}px` }}>
           <h1
             style={{
@@ -141,7 +155,9 @@ export default function VisualResume({ cv, customization: c }: CVTemplateProps) 
             {fullName(cv) || 'Your Name'}
           </h1>
           {cv.personal.title ? (
-            <p style={{ marginTop: '0.2em', fontSize: '1.08em', fontWeight: 600, color: accent }}>
+            <p
+              style={{ marginTop: '0.2em', fontSize: '1.08em', fontWeight: 600, color: accentText }}
+            >
               {cv.personal.title}
             </p>
           ) : null}
@@ -204,7 +220,7 @@ export default function VisualResume({ cv, customization: c }: CVTemplateProps) 
             />
           </section>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

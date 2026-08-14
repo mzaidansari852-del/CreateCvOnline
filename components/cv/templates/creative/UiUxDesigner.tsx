@@ -68,10 +68,7 @@ export default function UiUxDesigner({ cv, customization: c }: CVTemplateProps) 
           }}
         >
           <div style={{ minWidth: 0 }}>
-            <span
-              aria-hidden
-              style={{ display: 'flex', gap: '0.3em', marginBottom: '0.55em' }}
-            >
+            <span aria-hidden style={{ display: 'flex', gap: '0.3em', marginBottom: '0.55em' }}>
               <span
                 style={{
                   width: '0.42em',
@@ -147,13 +144,18 @@ export default function UiUxDesigner({ cv, customization: c }: CVTemplateProps) 
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(0, 65fr) minmax(0, 35fr)',
+          /*
+           * 35% of the page is reserved for the sidebar.
+           * Turn off skills, languages, certifications and interests and there is nothing
+           * to put here — reserving the column anyway leaves a third of every page blank.
+           */
+          gridTemplateColumns: aside.length > 0 ? 'minmax(0, 65fr) minmax(0, 35fr)' : '1fr',
           columnGap: '1.7em',
           alignItems: 'start',
           marginTop: `${c.sectionSpacing * 1.15}px`,
         }}
       >
-        <main>
+        <div>
           {main.map((section, index) => (
             <section
               key={section.id}
@@ -179,48 +181,44 @@ export default function UiUxDesigner({ cv, customization: c }: CVTemplateProps) 
               />
             </section>
           ))}
-        </main>
+        </div>
 
-        <aside>
-          {aside.map((section, index) => (
-            <section
-              key={section.id}
-              className="cv-section"
-              style={{ marginTop: index === 0 ? 0 : `${c.sectionSpacing}px` }}
-            >
-              <ChipHeading label={section.label} accent={accent} c={c} />
-              <SectionContent
-                sectionId={section.id}
-                cv={cv}
-                c={c}
-                accent={accent}
-                color={c.textColor}
-                rule={border}
-                variants={{
-                  languages: 'stack',
-                  certifications: 'compact',
-                  interests: 'tags',
-                }}
-                skillDisplay="tags"
-                skillColumns={1}
-              />
-            </section>
-          ))}
-        </aside>
+        {/* Rendered only when it has content: an empty landmark is noise for a screen
+            reader and an empty column is a third of the page. */}
+        {aside.length > 0 ? (
+          <aside>
+            {aside.map((section, index) => (
+              <section
+                key={section.id}
+                className="cv-section"
+                style={{ marginTop: index === 0 ? 0 : `${c.sectionSpacing}px` }}
+              >
+                <ChipHeading label={section.label} accent={accent} c={c} />
+                <SectionContent
+                  sectionId={section.id}
+                  cv={cv}
+                  c={c}
+                  accent={accent}
+                  color={c.textColor}
+                  rule={border}
+                  variants={{
+                    languages: 'stack',
+                    certifications: 'compact',
+                    interests: 'tags',
+                  }}
+                  skillDisplay="tags"
+                  skillColumns={1}
+                />
+              </section>
+            ))}
+          </aside>
+        ) : null}
       </div>
     </div>
   );
 }
 
-function ChipHeading({
-  label,
-  accent,
-  c,
-}: {
-  label: string;
-  accent: string;
-  c: CVCustomization;
-}) {
+function ChipHeading({ label, accent, c }: { label: string; accent: string; c: CVCustomization }) {
   return (
     <h2
       className="cv-section-title"

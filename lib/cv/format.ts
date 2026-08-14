@@ -434,9 +434,59 @@ export function headingTracking(customization: CVCustomization): string {
   return customization.headingCase === 'uppercase' ? '0.09em' : '0.01em';
 }
 
-/** Mixes a hex colour with white — used for tinted section backgrounds in templates. */
-export function tint(hex: string, amount: number): string {
-  const normalised = hex.replace('#', '');
+/**
+ * Letter-spacing for centred text, with the trailing space taken back out.
+ *
+ * CSS puts the spacing *after* every character including the last, so a centred line carries
+ * one extra gap on its right. The browser then centres a box that is one space too wide and
+ * the text lands left of true centre — up to about 1.3px of visible asymmetry on a masthead
+ * that exists to be symmetrical, and it is the kind of wrongness people notice without being
+ * able to name.
+ *
+ * `textIndent` of the same size pushes the line back by exactly the width of that phantom
+ * gap. `creative/Photographer` had worked this out; the other eight centred headings in the
+ * set had not, so it lives here now instead of in one file.
+ */
+export function centredTracking(spacing: string): {
+  letterSpacing: string;
+  textIndent: string;
+} {
+  return { letterSpacing: spacing, textIndent: spacing };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Colour                                                                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Colour maths, in one place.
+ *
+ * These used to be three functions that each re-parsed a hex string by hand, and the one
+ * that mattered got the threshold wrong. `readableOn` switched to dark ink above relative
+ * luminance 0.45, but white text needs a background at or below **0.179** to reach 4.5:1 —
+ * so every accent between 0.18 and 0.45 was given white text at somewhere between 2.1:1 and
+ * 4.5:1. A mid-tone teal produced a masthead that looked fine on a good monitor and was
+ * unreadable in print or on a phone in daylight.
+ *
+ * Nothing here guesses. `contrastRatio` is the WCAG 2.x formula, and every decision is made
+ * by measuring rather than by comparing a number to a threshold somebody picked by eye.
+ */
+
+/** WCAG AA for normal text. CV body copy is ~14px, so the large-text 3:1 exemption never applies. */
+export const AA_CONTRAST = 4.5;
+
+export const INK = '#111827';
+/** Named to avoid colliding with `PAPER`, the paper-*size* table above. */
+export const WHITE = '#ffffff';
+
+interface Rgb {
+  r: number;
+  g: number;
+  b: number;
+}
+
+function parseHex(hex: string): Rgb | null {
+  const normalised = hex.trim().replace('#', '');
   const full =
     normalised.length === 3
       ? normalised
@@ -444,54 +494,175 @@ export function tint(hex: string, amount: number): string {
           .map((char) => char + char)
           .join('')
       : normalised;
+  if (!/^[0-9a-f]{6}$/i.test(full)) return null;
   const value = Number.parseInt(full, 16);
-  if (Number.isNaN(value)) return hex;
-  const r = (value >> 16) & 255;
-  const g = (value >> 8) & 255;
-  const b = value & 255;
-  const mix = (channel: number) => Math.round(channel + (255 - channel) * amount);
-  return `#${[mix(r), mix(g), mix(b)]
-    .map((channel) => channel.toString(16).padStart(2, '0'))
+  return { r: (value >> 16) & 255, g: (value >> 8) & 255, b: value & 255 };
+}
+
+function toHex({ r, g, b }: Rgb): string {
+  return `#${[r, g, b]
+    .map((channel) => Math.max(0, Math.min(255, Math.round(channel))).toString(16).padStart(2, '0'))
     .join('')}`;
+}
+
+/** WCAG relative luminance, 0 (black) to 1 (white). */
+export function relativeLuminance(hex: string): number {
+  const rgb = parseHex(hex);
+  if (!rgb) return 1;
+  const channel = (value: number) => {
+    const c = value / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(rgb.r) + 0.7152 * channel(rgb.g) + 0.0722 * channel(rgb.b);
+}
+
+/** WCAG contrast ratio between two colours, 1 (identical) to 21 (black on white). */
+export function contrastRatio(a: string, b: string): number {
+  const first = relativeLuminance(a);
+  const second = relativeLuminance(b);
+  const lighter = Math.max(first, second);
+  const darker = Math.min(first, second);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/** Mixes a hex colour with white — used for tinted section backgrounds in templates. */
+export function tint(hex: string, amount: number): string {
+  const rgb = parseHex(hex);
+  if (!rgb) return hex;
+  const mix = (channel: number) => channel + (255 - channel) * amount;
+  return toHex({ r: mix(rgb.r), g: mix(rgb.g), b: mix(rgb.b) });
 }
 
 /** Darkens a hex colour — used for gradients and rules. */
 export function shade(hex: string, amount: number): string {
-  const normalised = hex.replace('#', '');
-  const full =
-    normalised.length === 3
-      ? normalised
-          .split('')
-          .map((char) => char + char)
-          .join('')
-      : normalised;
-  const value = Number.parseInt(full, 16);
-  if (Number.isNaN(value)) return hex;
-  const r = (value >> 16) & 255;
-  const g = (value >> 8) & 255;
-  const b = value & 255;
-  const mix = (channel: number) => Math.round(channel * (1 - amount));
-  return `#${[mix(r), mix(g), mix(b)]
-    .map((channel) => channel.toString(16).padStart(2, '0'))
-    .join('')}`;
+  const rgb = parseHex(hex);
+  if (!rgb) return hex;
+  const mix = (channel: number) => channel * (1 - amount);
+  return toHex({ r: mix(rgb.r), g: mix(rgb.g), b: mix(rgb.b) });
 }
 
-/** Returns `#ffffff` or a dark ink depending on contrast against `hex`. */
+/**
+ * Blends `hex` toward `target` — `tint` and `shade` generalised to any pair.
+ *
+ * The reason this exists rather than another `tint` call: a progress track has to be the
+ * *less prominent* of the two colours, and "less prominent" means closer to whatever the
+ * component is sitting on, not closer to white. Tinting toward white is correct on paper
+ * and exactly backwards on a near-black sidebar, which is why Modern Executive's skill bars
+ * shipped reading inverted — a bright empty track behind a dark fill, showing the opposite
+ * of the quantity they encode.
+ */
+export function mix(hex: string, target: string, amount: number): string {
+  const from = parseHex(hex);
+  const to = parseHex(target);
+  if (!from || !to) return hex;
+  const blend = (a: number, b: number) => a + (b - a) * amount;
+  return toHex({
+    r: blend(from.r, to.r),
+    g: blend(from.g, to.g),
+    b: blend(from.b, to.b),
+  });
+}
+
+/**
+ * The better of white or dark ink on `hex`.
+ *
+ * Measured, not thresholded: whichever actually scores higher wins, so there is no band of
+ * accents that silently get the wrong one.
+ *
+ * The soft ink is `#111827` rather than black, which leaves a narrow gap. Where the two
+ * curves cross — background luminance ≈ 0.205, a mid-grey or a strong mid-tone — both land
+ * at about 4.12:1 and neither clears AA. Pure black does (4.67:1 and rising), so that band
+ * falls through to it. It is a handful of accent values, but they are exactly the values a
+ * user picks when they want "a proper colour", so they are worth the extra branch.
+ */
 export function readableOn(hex: string): string {
-  const normalised = hex.replace('#', '');
-  const full =
-    normalised.length === 3
-      ? normalised
-          .split('')
-          .map((char) => char + char)
-          .join('')
-      : normalised;
-  const value = Number.parseInt(full, 16);
-  if (Number.isNaN(value)) return '#ffffff';
-  const r = ((value >> 16) & 255) / 255;
-  const g = ((value >> 8) & 255) / 255;
-  const b = (value & 255) / 255;
-  const channel = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-  const luminance = 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
-  return luminance > 0.45 ? '#111827' : '#ffffff';
+  const onPaper = contrastRatio(hex, WHITE);
+  const onInk = contrastRatio(hex, INK);
+  if (onPaper >= AA_CONTRAST || onInk >= AA_CONTRAST) return onPaper >= onInk ? WHITE : INK;
+  return '#000000';
+}
+
+/** WCAG AA for graphical objects — the bar you have to see to read the level it encodes. */
+export const AA_GRAPHIC = 3;
+
+/**
+ * The accent, adjusted only as far as a *shape* on `surface` needs.
+ *
+ * A skill bar is not text, so 4.5:1 would be the wrong bar to hold it to — it would drag
+ * every accent toward black and flatten the thing the template is for. But it is not
+ * decoration either: the filled portion is the entire content of the control. On Modern
+ * Executive's near-black sidebar the default accent sat at 2.75:1, which is a bar you have
+ * to hunt for.
+ */
+export function graphicOn(accent: string, surface: string = WHITE): string {
+  return contrastAgainst(accent, surface, AA_GRAPHIC);
+}
+
+/**
+ * The accent, safe to set as text on `surface`.
+ *
+ * Templates keep two accents deliberately: `c.accentColor` for anything filled — rules,
+ * bars, bands, markers, the ring round a photo — and this one for anything read. Amber at
+ * full saturation is a fine 3px rule and a 2.15:1 job title.
+ */
+export function accentOn(accent: string, surface: string = WHITE): string {
+  return contrastAgainst(accent, surface);
+}
+
+/**
+ * A dimmed version of `text`, never below AA on `surface`.
+ *
+ * Every template dims its metadata the same way — by moving the text colour toward the
+ * background — and two different bugs came out of the two ways it was written.
+ *
+ * On paper it was `tint(textColor, 0.38–0.45)`: a move toward white, which is a move toward
+ * the background only because the background happens to be white. Eleven templates tinted
+ * far enough to land under 4.5:1, at worst 3.60:1, for the dates and locations on every
+ * entry.
+ *
+ * On a coloured band it was `onBand === '#ffffff' ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.66)'`
+ * — a fixed alpha over an accent the user chooses. Whatever ratio that lands on is an
+ * accident of their colour picker, and on Marketing's pink it landed on 3.73:1.
+ *
+ * Both are the same operation once it is written as "move toward the surface", and both are
+ * safe once the result is measured. The dimming still happens; it stops where legibility
+ * does. On white this is exactly the old `tint`, so nothing that was already fine moves.
+ */
+export function mutedOn(text: string, amount: number, surface: string = WHITE): string {
+  return contrastAgainst(mix(text, surface, amount), surface);
+}
+
+/**
+ * `colour`, walked toward black or white until it is legible on `background`.
+ *
+ * This is what fixes the eleven templates whose accent printed employer names at 2.15:1 on
+ * white. The alternative — refusing light accents — would have meant telling a graphic
+ * designer they cannot use amber, when the real problem is only amber *as small text*. The
+ * accent still paints rules, bars and panels at full saturation; only text moves.
+ *
+ * Hue is preserved: `tint` and `shade` scale all three channels together, so a 2.15:1 amber
+ * becomes a darker amber rather than a brown or a grey. Direction is chosen by measurement,
+ * so this darkens on white and lightens on a near-black sidebar without being told which.
+ * Returns `colour` untouched when it already passes, which is the common case.
+ */
+export function contrastAgainst(
+  colour: string,
+  background: string,
+  minimum: number = AA_CONTRAST,
+): string {
+  if (!parseHex(colour) || !parseHex(background)) return colour;
+  if (contrastRatio(colour, background) >= minimum) return colour;
+
+  // Whichever extreme is further from the background is the direction with headroom.
+  const darken = contrastRatio(background, INK) > contrastRatio(background, WHITE);
+
+  // 1% steps: fine enough that the shift is invisible next to the original, coarse enough
+  // to stay cheap. The loop is bounded and deterministic, so pages remain cacheable.
+  for (let amount = 0.01; amount <= 1; amount += 0.01) {
+    const candidate = darken ? shade(colour, amount) : tint(colour, amount);
+    if (contrastRatio(candidate, background) >= minimum) return candidate;
+  }
+
+  // Unreachable for any real pair, but never return something worse than the endpoint.
+  return darken ? INK : WHITE;
 }

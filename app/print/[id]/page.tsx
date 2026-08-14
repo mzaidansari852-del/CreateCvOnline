@@ -38,7 +38,7 @@ export default async function PrintCVPage(props: {
 
   const paper = PAPER[cv.customization.paperSize];
   const fontsHref = googleFontsHref([cv.customization.bodyFont, cv.customization.headingFont]);
-  const background = documentPageBackground(cv.customization);
+  const background = documentPageBackground(cv.customization, cv.data);
 
   return (
     <>

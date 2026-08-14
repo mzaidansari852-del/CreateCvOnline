@@ -1,5 +1,12 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  mutedOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  tint,
+} from '@/lib/cv/format';
 import { splitSections, visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,7 +20,8 @@ export const meta: TemplateMeta = {
   columns: 2,
   hasPhoto: false,
   accentDefault: '#16a34a',
-  tagline: 'A tinted, bordered sidebar box beside your experience — structure without a colour band.',
+  tagline:
+    'A tinted, bordered sidebar box beside your experience — structure without a colour band.',
   description:
     'Developer keeps the stack, certifications and languages in a bordered, lightly tinted box that floats inside the page margin, so the reference material is visibly separated from your experience without a full-height colour band bleeding off the page. The header runs the full width above both columns, and roles in the main column use a dated left rail that makes a long sequence of short contracts easy to follow. Section headings are marked with a small accent chevron; sidebar headings are set in small caps so the two columns never compete.',
   bestFor: [
@@ -45,16 +53,19 @@ const SIDEBAR_SECTIONS = ['skills', 'languages', 'certifications', 'interests', 
  */
 export default function Developer({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const { main, aside } = splitSections(sections, SIDEBAR_SECTIONS);
   const name = fullName(cv);
-  const muted = tint(c.textColor, 0.32);
+  const muted = mutedOn(c.textColor, 0.32);
   const hairline = tint(c.textColor, 0.7);
 
   return (
     <div style={{ padding: c.pageMargin, minHeight: 'inherit' }}>
       <header style={{ paddingBottom: '0.8em', borderBottom: `1px solid ${hairline}` }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '0.15em 0.5em' }}>
+        <div
+          style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '0.15em 0.5em' }}
+        >
           <h1
             style={{
               fontSize: '2.05em',
@@ -68,10 +79,10 @@ export default function Developer({ cv, customization: c }: CVTemplateProps) {
           </h1>
           {cv.personal.title ? (
             <>
-              <span aria-hidden style={{ color: accent, fontWeight: 700, fontSize: '1.2em' }}>
+              <span aria-hidden style={{ color: accentText, fontWeight: 700, fontSize: '1.2em' }}>
                 /
               </span>
-              <p style={{ fontSize: '1.04em', fontWeight: 600, color: accent }}>
+              <p style={{ fontSize: '1.04em', fontWeight: 600, color: accentText }}>
                 {cv.personal.title}
               </p>
             </>
@@ -93,65 +104,74 @@ export default function Developer({ cv, customization: c }: CVTemplateProps) {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: '32% 1fr',
+          /*
+           * The boxed sidebar has no box to draw.
+           * Turn off skills, languages, certifications and interests and there is nothing
+           * to put here — reserving the column anyway leaves a third of every page blank.
+           */
+          gridTemplateColumns: aside.length > 0 ? '32% 1fr' : '1fr',
           columnGap: '1.5em',
           marginTop: `${c.sectionSpacing}px`,
         }}
       >
         {/* -------------------------------------------------------------- aside */}
-        <aside
-          style={{
-            alignSelf: 'start',
-            border: `1px solid ${tint(accent, 0.68)}`,
-            borderRadius: 10,
-            background: tint(accent, 0.955),
-            padding: '0.95em 1.05em',
-          }}
-        >
-          {aside.map((section, index) => (
-            <section
-              key={section.id}
-              className="cv-section"
-              style={{ marginTop: index === 0 ? 0 : `${c.sectionSpacing}px` }}
-            >
-              <h2
-                className="cv-section-title"
-                style={{
-                  fontSize: '0.96em',
-                  fontWeight: 700,
-                  // Small caps keep the sidebar quieter than the chevroned main headings
-                  // while still reading as a heading at any heading-case setting.
-                  fontVariantCaps: 'all-small-caps',
-                  color: c.secondaryColor,
-                  textTransform: headingTransform(c),
-                  letterSpacing: headingTracking(c),
-                  marginBottom: '0.4em',
-                }}
+        {/* Rendered only when it has content: an empty landmark is noise for a screen
+            reader and an empty column is a third of the page. */}
+        {aside.length > 0 ? (
+          <aside
+            style={{
+              alignSelf: 'start',
+              border: `1px solid ${tint(accent, 0.68)}`,
+              borderRadius: 10,
+              background: tint(accent, 0.955),
+              padding: '0.95em 1.05em',
+            }}
+          >
+            {aside.map((section, index) => (
+              <section
+                key={section.id}
+                className="cv-section"
+                style={{ marginTop: index === 0 ? 0 : `${c.sectionSpacing}px` }}
               >
-                {section.label}
-              </h2>
-              <SectionContent
-                sectionId={section.id}
-                cv={cv}
-                c={c}
-                accent={accent}
-                color={c.textColor}
-                muted={muted}
-                rule={tint(accent, 0.72)}
-                variants={{
-                  languages: 'stack',
-                  certifications: 'compact',
-                  interests: 'tags',
-                  references: 'stack',
-                }}
-                skillColumns={1}
-              />
-            </section>
-          ))}
-        </aside>
+                <h2
+                  className="cv-section-title"
+                  style={{
+                    fontSize: '0.96em',
+                    fontWeight: 700,
+                    // Small caps keep the sidebar quieter than the chevroned main headings
+                    // while still reading as a heading at any heading-case setting.
+                    fontVariantCaps: 'all-small-caps',
+                    color: c.secondaryColor,
+                    textTransform: headingTransform(c),
+                    letterSpacing: headingTracking(c),
+                    marginBottom: '0.4em',
+                  }}
+                >
+                  {section.label}
+                </h2>
+                <SectionContent
+                  sectionId={section.id}
+                  cv={cv}
+                  c={c}
+                  accent={accent}
+                  color={c.textColor}
+                  muted={muted}
+                  rule={tint(accent, 0.72)}
+                  variants={{
+                    languages: 'stack',
+                    certifications: 'compact',
+                    interests: 'tags',
+                    references: 'stack',
+                  }}
+                  skillColumns={1}
+                />
+              </section>
+            ))}
+          </aside>
+        ) : null}
 
         {/* --------------------------------------------------------------- main */}
-        <main>
+        <div>
           {main.map((section, index) => (
             <section
               key={section.id}
@@ -169,7 +189,7 @@ export default function Developer({ cv, customization: c }: CVTemplateProps) {
                   marginBottom: '0.55em',
                 }}
               >
-                <span aria-hidden style={{ color: accent, marginRight: '0.35em' }}>
+                <span aria-hidden style={{ color: accentText, marginRight: '0.35em' }}>
                   ▸
                 </span>
                 {section.label}
@@ -191,7 +211,7 @@ export default function Developer({ cv, customization: c }: CVTemplateProps) {
               />
             </section>
           ))}
-        </main>
+        </div>
       </div>
     </div>
   );

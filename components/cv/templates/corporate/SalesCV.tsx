@@ -1,5 +1,5 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -46,6 +46,7 @@ const MAX_HIGHLIGHTS = 3;
  */
 export default function SalesCV({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const name = fullName(cv);
 
@@ -79,7 +80,7 @@ export default function SalesCV({ cv, customization: c }: CVTemplateProps) {
               marginTop: '0.2em',
               fontSize: '1.02em',
               fontWeight: 700,
-              color: accent,
+              color: accentText,
               textTransform: 'uppercase',
               letterSpacing: '0.1em',
             }}
@@ -126,7 +127,7 @@ export default function SalesCV({ cv, customization: c }: CVTemplateProps) {
                 style={{
                   fontSize: '0.72em',
                   fontWeight: 800,
-                  color: accent,
+                  color: accentText,
                   textTransform: 'uppercase',
                   letterSpacing: '0.13em',
                 }}
@@ -141,7 +142,7 @@ export default function SalesCV({ cv, customization: c }: CVTemplateProps) {
         </div>
       ) : null}
 
-      <main
+      <div
         style={{
           padding: `${c.pageMargin * 0.72}px ${c.pageMargin}px ${c.pageMargin}px`,
         }}
@@ -200,7 +201,7 @@ export default function SalesCV({ cv, customization: c }: CVTemplateProps) {
             />
           </section>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

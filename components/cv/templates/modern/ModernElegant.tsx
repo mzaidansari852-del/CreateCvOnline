@@ -1,5 +1,12 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  mutedOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -44,7 +51,8 @@ export const meta: TemplateMeta = {
  */
 export default function ModernElegant({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
-  const muted = tint(c.textColor, 0.38);
+  const accentText = accentOn(accent);
+  const muted = mutedOn(c.textColor, 0.38);
   const frame = tint(accent, 0.45);
   const sections = visibleSections(cv);
   const name = fullName(cv);
@@ -54,7 +62,14 @@ export default function ModernElegant({ cv, customization: c }: CVTemplateProps)
       <header style={{ textAlign: 'center' }}>
         {c.showPhoto ? (
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1em' }}>
-            <Photo cv={cv} c={c} size={104} border={frame} borderWidth={2} fallbackBackground={accent} />
+            <Photo
+              cv={cv}
+              c={c}
+              size={104}
+              border={frame}
+              borderWidth={2}
+              fallbackBackground={accent}
+            />
           </div>
         ) : null}
 
@@ -84,7 +99,7 @@ export default function ModernElegant({ cv, customization: c }: CVTemplateProps)
                 fontWeight: 600,
                 letterSpacing: '0.28em',
                 textTransform: 'uppercase',
-                color: accent,
+                color: accentText,
               }}
             >
               {cv.personal.title}
@@ -127,9 +142,15 @@ export default function ModernElegant({ cv, customization: c }: CVTemplateProps)
               marginBottom: '0.7em',
             }}
           >
-            <span aria-hidden style={{ width: '2.4em', height: 1, background: frame, flexShrink: 0 }} />
+            <span
+              aria-hidden
+              style={{ width: '2.4em', height: 1, background: frame, flexShrink: 0 }}
+            />
             {section.label}
-            <span aria-hidden style={{ width: '2.4em', height: 1, background: frame, flexShrink: 0 }} />
+            <span
+              aria-hidden
+              style={{ width: '2.4em', height: 1, background: frame, flexShrink: 0 }}
+            />
           </h2>
 
           <SectionContent

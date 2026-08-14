@@ -1,5 +1,5 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -45,6 +45,7 @@ export const meta: TemplateMeta = {
  */
 export default function PortfolioStyle({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const name = fullName(cv);
 
@@ -80,7 +81,7 @@ export default function PortfolioStyle({ cv, customization: c }: CVTemplateProps
               {name || 'Your Name'}
             </h1>
             {cv.personal.title ? (
-              <p style={{ fontWeight: 600, color: accent }}>{cv.personal.title}</p>
+              <p style={{ fontWeight: 600, color: accentText }}>{cv.personal.title}</p>
             ) : null}
           </div>
           <div style={{ marginTop: '0.25em' }}>
@@ -97,7 +98,7 @@ export default function PortfolioStyle({ cv, customization: c }: CVTemplateProps
         </div>
       </header>
 
-      <main style={{ marginTop: `${c.sectionSpacing}px` }}>
+      <div style={{ marginTop: `${c.sectionSpacing}px` }}>
         {sections.map((section, index) => {
           const promoted = section.id === 'projects';
           // The heading is inline-block so the swipe stops at the end of the text, which
@@ -175,7 +176,7 @@ export default function PortfolioStyle({ cv, customization: c }: CVTemplateProps
             </section>
           );
         })}
-      </main>
+      </div>
     </div>
   );
 }

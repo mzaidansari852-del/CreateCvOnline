@@ -1,5 +1,5 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
 import { splitSections, visibleSections } from '@/lib/cv/sections';
 import type { CVCustomization, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -47,6 +47,13 @@ const SIDEBAR_TINT = 0.9;
  */
 export default function CreativeDesigner({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  /*
+   * The band is painted by `pageBackground` onto the page rather than by the `<aside>`,
+   * which is what makes it continue onto page 2 — and also why nothing inside the column
+   * knew it was sitting on a tint. Naming it here is what lets the text be measured.
+   */
+  const band = tint(accent, SIDEBAR_TINT);
+  const accentText = accentOn(accent, band);
   const sections = visibleSections(cv);
   const { main, aside } = splitSections(sections, SIDEBAR_SECTIONS);
   const pad = c.pageMargin * 0.78;
@@ -91,17 +98,13 @@ export default function CreativeDesigner({ cv, customization: c }: CVTemplatePro
             className="cv-section"
             style={{ marginTop: `${c.sectionSpacing}px` }}
           >
-            <DotHeading
-              label={section.label}
-              accent={accent}
-              c={c}
-              color={c.secondaryColor}
-            />
+            <DotHeading label={section.label} accent={accent} c={c} color={c.secondaryColor} />
             <SectionContent
               sectionId={section.id}
               cv={cv}
               c={c}
               accent={accent}
+              surface={band}
               color={c.textColor}
               variants={{ languages: 'bars', interests: 'stack' }}
               skillColumns={1}
@@ -111,7 +114,7 @@ export default function CreativeDesigner({ cv, customization: c }: CVTemplatePro
       </aside>
 
       {/* ----------------------------------------------------------------- main */}
-      <main style={{ padding: `${pad}px ${c.pageMargin}px ${c.pageMargin}px ${pad * 0.9}px` }}>
+      <div style={{ padding: `${pad}px ${c.pageMargin}px ${c.pageMargin}px ${pad * 0.9}px` }}>
         <header style={{ marginBottom: `${c.sectionSpacing * 1.1}px` }}>
           <h1
             style={{
@@ -132,7 +135,7 @@ export default function CreativeDesigner({ cv, customization: c }: CVTemplatePro
                 fontWeight: 700,
                 letterSpacing: '0.2em',
                 textTransform: 'uppercase',
-                color: accent,
+                color: accentText,
               }}
             >
               {cv.personal.title}
@@ -180,7 +183,7 @@ export default function CreativeDesigner({ cv, customization: c }: CVTemplatePro
             />
           </section>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

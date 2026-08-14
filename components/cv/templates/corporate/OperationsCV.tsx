@@ -1,5 +1,6 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
+  accentOn,
   fullName,
   headingTracking,
   headingTransform,
@@ -51,6 +52,7 @@ export const meta: TemplateMeta = {
  */
 export default function OperationsCV({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const onAccent = readableOn(accent);
   const sections = visibleSections(cv);
   const name = fullName(cv);
@@ -63,7 +65,7 @@ export default function OperationsCV({ cv, customization: c }: CVTemplateProps) 
             style={{
               fontSize: '0.78em',
               fontWeight: 700,
-              color: accent,
+              color: accentText,
               textTransform: 'uppercase',
               letterSpacing: '0.18em',
               marginBottom: '0.35em',
@@ -104,7 +106,7 @@ export default function OperationsCV({ cv, customization: c }: CVTemplateProps) 
         />
       </header>
 
-      <main>
+      <div>
         {sections.map((section, index) => (
           <section
             key={section.id}
@@ -148,9 +150,7 @@ export default function OperationsCV({ cv, customization: c }: CVTemplateProps) 
             </h2>
 
             <div
-              style={
-                section.id === 'skills' ? { columnCount: 3, columnGap: '1.5em' } : undefined
-              }
+              style={section.id === 'skills' ? { columnCount: 3, columnGap: '1.5em' } : undefined}
             >
               <SectionContent
                 sectionId={section.id}
@@ -175,7 +175,7 @@ export default function OperationsCV({ cv, customization: c }: CVTemplateProps) 
             </div>
           </section>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

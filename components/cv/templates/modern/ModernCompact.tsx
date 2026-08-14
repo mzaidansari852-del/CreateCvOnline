@@ -1,5 +1,5 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
 import { splitSections, visibleSections } from '@/lib/cv/sections';
 import type { CVCustomization, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -49,6 +49,7 @@ const DENSITY = 0.6;
  */
 export default function ModernCompact({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const { main, aside } = splitSections(sections, SIDEBAR_SECTIONS);
   const spacing = c.sectionSpacing * DENSITY;
@@ -86,7 +87,7 @@ export default function ModernCompact({ cv, customization: c }: CVTemplateProps)
             {fullName(cv) || 'Your Name'}
           </h1>
           {cv.personal.title ? (
-            <p style={{ fontSize: '1em', fontWeight: 600, color: accent, marginTop: '0.08em' }}>
+            <p style={{ fontSize: '1em', fontWeight: 600, color: accentText, marginTop: '0.08em' }}>
               {cv.personal.title}
             </p>
           ) : null}
@@ -112,7 +113,7 @@ export default function ModernCompact({ cv, customization: c }: CVTemplateProps)
           flex: 1,
         }}
       >
-        <main>
+        <div>
           {main.map((section, index) => (
             <section
               key={section.id}
@@ -138,7 +139,7 @@ export default function ModernCompact({ cv, customization: c }: CVTemplateProps)
               />
             </section>
           ))}
-        </main>
+        </div>
 
         <aside style={{ borderLeft: `1px solid ${divider}`, paddingLeft: '1.1em' }}>
           {aside.map((section, index) => (

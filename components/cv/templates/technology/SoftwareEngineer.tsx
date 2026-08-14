@@ -1,5 +1,5 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -44,6 +44,7 @@ export const meta: TemplateMeta = {
  */
 export default function SoftwareEngineer({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const name = fullName(cv);
   const hairline = tint(c.textColor, 0.7);
@@ -73,7 +74,14 @@ export default function SoftwareEngineer({ cv, customization: c }: CVTemplatePro
             {name || 'Your Name'}
           </h1>
           {cv.personal.title ? (
-            <p style={{ marginTop: '0.15em', fontSize: '1.05em', fontWeight: 600, color: accent }}>
+            <p
+              style={{
+                marginTop: '0.15em',
+                fontSize: '1.05em',
+                fontWeight: 600,
+                color: accentText,
+              }}
+            >
               {cv.personal.title}
             </p>
           ) : null}
@@ -103,7 +111,7 @@ export default function SoftwareEngineer({ cv, customization: c }: CVTemplatePro
         </div>
       </header>
 
-      <main style={{ marginTop: `${c.sectionSpacing}px` }}>
+      <div style={{ marginTop: `${c.sectionSpacing}px` }}>
         {sections.map((section, index) => (
           <section
             key={section.id}
@@ -145,7 +153,7 @@ export default function SoftwareEngineer({ cv, customization: c }: CVTemplatePro
             />
           </section>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

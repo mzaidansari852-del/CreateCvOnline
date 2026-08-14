@@ -1,5 +1,12 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, readableOn, tint } from '@/lib/cv/format';
+import {
+  mutedOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  readableOn,
+  tint,
+} from '@/lib/cv/format';
 import { splitSections, visibleSections } from '@/lib/cv/sections';
 import type { CVCustomization, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -47,7 +54,9 @@ const SIDEBAR_SECTIONS = ['skills', 'certifications', 'languages'];
 export default function BankingCV({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
   const onBand = readableOn(accent);
-  const bandMuted = onBand === '#ffffff' ? 'rgba(255,255,255,0.82)' : 'rgba(0,0,0,0.66)';
+  // Dimmed toward the band and then measured, rather than a fixed alpha over whatever
+  // colour the user picked — see `mutedOn`.
+  const bandMuted = mutedOn(onBand, 0.3, accent);
   const hairline = tint(c.secondaryColor, 0.82);
   const sections = visibleSections(cv);
   const { main, aside } = splitSections(sections, SIDEBAR_SECTIONS);
@@ -93,6 +102,7 @@ export default function BankingCV({ cv, customization: c }: CVTemplateProps) {
           <ContactList
             cv={cv}
             accent={accent}
+            surface={accent}
             color={bandMuted}
             icons={c.showIcons}
             layout="inline"
@@ -103,7 +113,7 @@ export default function BankingCV({ cv, customization: c }: CVTemplateProps) {
         </div>
       </header>
 
-      <main
+      <div
         style={{
           flex: 1,
           display: 'grid',
@@ -171,7 +181,7 @@ export default function BankingCV({ cv, customization: c }: CVTemplateProps) {
             ))}
           </div>
         ) : null}
-      </main>
+      </div>
     </div>
   );
 }

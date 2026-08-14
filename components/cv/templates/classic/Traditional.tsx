@@ -1,5 +1,5 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -51,6 +51,7 @@ const GUTTER = '6.7em';
  */
 export default function Traditional({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const name = fullName(cv);
 
@@ -75,7 +76,7 @@ export default function Traditional({ cv, customization: c }: CVTemplateProps) {
           {name || 'Your Name'}
         </h1>
         {cv.personal.title ? (
-          <p style={{ fontSize: '1.02em', marginTop: '0.12em', color: accent }}>
+          <p style={{ fontSize: '1.02em', marginTop: '0.12em', color: accentText }}>
             {cv.personal.title}
           </p>
         ) : null}

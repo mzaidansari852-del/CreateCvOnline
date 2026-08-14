@@ -1,5 +1,12 @@
 import { contactEntries, ContactIcon, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  centredTracking,
+  accentOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVData, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -44,6 +51,7 @@ export const meta: TemplateMeta = {
  */
 export default function Legal({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const rule = tint(accent, 0.4);
   const sections = visibleSections(cv);
   const name = fullName(cv);
@@ -59,14 +67,21 @@ export default function Legal({ cv, customization: c }: CVTemplateProps) {
               lineHeight: 1.2,
               fontWeight: 700,
               textTransform: 'uppercase',
-              letterSpacing: '0.2em',
+              ...centredTracking('0.2em'),
               color: c.secondaryColor,
             }}
           >
             {name || 'Your Name'}
           </h1>
           {cv.personal.title ? (
-            <p style={{ marginTop: '0.25em', fontSize: '1em', letterSpacing: '0.05em', color: accent }}>
+            <p
+              style={{
+                marginTop: '0.25em',
+                fontSize: '1em',
+                letterSpacing: '0.05em',
+                color: accentText,
+              }}
+            >
               {cv.personal.title}
             </p>
           ) : null}

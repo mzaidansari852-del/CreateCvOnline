@@ -1,5 +1,13 @@
 import { ContactIcon, SectionContent, contactEntries } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, readableOn, shade, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  mutedOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  readableOn,
+  shade,
+} from '@/lib/cv/format';
 import { splitSections, visibleSections } from '@/lib/cv/sections';
 import type { CVCustomization, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -61,8 +69,11 @@ export default function Cybersecurity({ cv, customization: c }: CVTemplateProps)
   const accent = c.accentColor;
   const banner = shade(c.secondaryColor, 0.2);
   const onBanner = readableOn(banner);
-  const bannerMuted = onBanner === '#ffffff' ? 'rgba(255,255,255,0.62)' : 'rgba(0,0,0,0.55)';
-  const muted = tint(c.textColor, 0.4);
+  const accentOnBanner = accentOn(accent, banner);
+  // Dimmed toward the band and then measured, rather than a fixed alpha over whatever
+  // colour the user picked — see `mutedOn`.
+  const bannerMuted = mutedOn(onBanner, 0.34, banner);
+  const muted = mutedOn(c.textColor, 0.4);
 
   const sections = visibleSections(cv);
   const { main, aside } = splitSections(sections, ASIDE_SECTIONS);
@@ -104,7 +115,7 @@ export default function Cybersecurity({ cv, customization: c }: CVTemplateProps)
               fontFamily: MONO,
               fontSize: '0.92em',
               letterSpacing: '0.04em',
-              color: accent,
+              color: accentOnBanner,
             }}
           >
             {cv.personal.title}
@@ -167,7 +178,7 @@ export default function Cybersecurity({ cv, customization: c }: CVTemplateProps)
         ) : null}
       </header>
 
-      <main
+      <div
         style={{
           flex: 1,
           padding: `${c.pageMargin * 0.85}px ${c.pageMargin}px ${c.pageMargin}px`,
@@ -233,7 +244,7 @@ export default function Cybersecurity({ cv, customization: c }: CVTemplateProps)
             ))}
           </div>
         ) : null}
-      </main>
+      </div>
     </div>
   );
 }

@@ -1,5 +1,13 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, readableOn, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  mutedOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  readableOn,
+  tint,
+} from '@/lib/cv/format';
 import { splitSections, visibleSections } from '@/lib/cv/sections';
 import type { CVCustomization, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -50,7 +58,8 @@ const STACK_RAIL_LIMIT = 8;
  */
 export default function FullStackDeveloper({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
-  const muted = tint(c.textColor, 0.4);
+  const accentText = accentOn(accent);
+  const muted = mutedOn(c.textColor, 0.4);
   const sections = visibleSections(cv);
   const { main: right, aside: left } = splitSections(sections, LEFT_COLUMN_SECTIONS);
   const stack = cv.skills.filter((skill) => skill.name).slice(0, STACK_RAIL_LIMIT);
@@ -82,7 +91,7 @@ export default function FullStackDeveloper({ cv, customization: c }: CVTemplateP
               marginTop: '0.2em',
               fontSize: '1.08em',
               fontWeight: 600,
-              color: accent,
+              color: accentText,
             }}
           >
             {cv.personal.title}
@@ -125,7 +134,7 @@ export default function FullStackDeveloper({ cv, customization: c }: CVTemplateP
                 borderRadius: 3,
                 background: '#ffffff',
                 border: `1px solid ${tint(accent, 0.55)}`,
-                color: accent,
+                color: accentText,
                 whiteSpace: 'nowrap',
               }}
             >
@@ -135,7 +144,7 @@ export default function FullStackDeveloper({ cv, customization: c }: CVTemplateP
         </div>
       ) : null}
 
-      <main
+      <div
         style={{
           flex: 1,
           padding: `${c.pageMargin * 0.8}px ${c.pageMargin}px ${c.pageMargin}px`,
@@ -208,7 +217,7 @@ export default function FullStackDeveloper({ cv, customization: c }: CVTemplateP
             ))}
           </div>
         ) : null}
-      </main>
+      </div>
     </div>
   );
 }
@@ -243,7 +252,9 @@ function SectionTab({
         marginBottom: '0.7em',
         background: filled ? accent : 'transparent',
         border: `1.5px solid ${filled ? accent : tint(accent, 0.45)}`,
-        color: filled ? readableOn(accent) : accent,
+        // Filled: measured against the accent itself. Unfilled: against the page, where a
+        // mid-tone cyan was setting every section heading at 3.68:1.
+        color: filled ? readableOn(accent) : accentOn(accent),
       }}
     >
       {label}

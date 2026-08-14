@@ -431,17 +431,56 @@ costs the hint on the pages that change weekly. If template or guide pages ever 
 
 These are defects a paying customer will hit.
 
-| # | Task |
-| --- | --- |
-| 1.1 | Fix `readableOn()` — threshold to ~0.18, or pick whichever of white/ink scores higher |
-| 1.2 | Add an `onWhite(accent)` guard in `EntryHead` so light accents darken. Fixes eleven templates. |
-| 1.3 | Clamp `muted` at `tint(text, 0.32)` maximum — body prose must not print at 3.6:1 |
-| 1.4 | Replace the two absolutely positioned rails with `border-left` on a flowing wrapper |
-| 1.5 | Pass an explicit `track` colour to `LevelBar`/`LevelDots` on dark sidebars |
-| 1.6 | Guard the seven unguarded two-column templates against an empty aside |
-| 1.7 | Add an empty-CV **layout** assertion to `tests/cv/templates.test.tsx` — it currently only asserts "does not throw" |
-| 1.8 | Fix the ten uncompensated letterspaced headings with `textIndent`, as Photographer does |
-| 1.9 | Remove `<main>` from the 32 template components — use `<div>` |
+| # | Task | Status |
+| --- | --- | --- |
+| 1.1 | Fix `readableOn()` — threshold to ~0.18, or pick whichever of white/ink scores higher | Done — measured, plus a pure-black fallback ↓ |
+| 1.2 | Add an `onWhite(accent)` guard in `EntryHead` so light accents darken. Fixes eleven templates. | Done, generalised ↓ |
+| 1.3 | Clamp `muted` at `tint(text, 0.32)` maximum — body prose must not print at 3.6:1 | Done — measured rather than capped ↓ |
+| 1.4 | Replace the two absolutely positioned rails with `border-left` on a flowing wrapper | Done |
+| 1.5 | Pass an explicit `track` colour to `LevelBar`/`LevelDots` on dark sidebars | Done centrally ↓ |
+| 1.6 | Guard the seven unguarded two-column templates against an empty aside | Done — five needed it; the grid collapses and the `<aside>` is not rendered |
+| 1.7 | Add an empty-CV **layout** assertion to `tests/cv/templates.test.tsx` — it currently only asserts "does not throw" | Done, and a new `tests/cv/contrast.test.tsx` ↓ |
+| 1.8 | Fix the ten uncompensated letterspaced headings with `textIndent`, as Photographer does | Done — eight found, via `centredTracking()` |
+| 1.9 | Remove `<main>` from the 32 template components — use `<div>` | Done — 31 of them |
+
+**The shape of the fix.** 1.1, 1.2, 1.3 and 1.5 all had the same cause and got the same
+answer, which is worth more than any of them individually: **contrast is a property of a
+pair, and the code only ever held one half of it.** A template chose a colour; what was
+painted behind it was somebody else's business. The parts now take a `surface`, and `color`,
+`muted` and the accent-as-text are all resolved against it in one place — so a template that
+declares its panel gets a legible section without having to remember anything else.
+
+Three consequences worth knowing:
+
+- **The accent is split in two.** `c.accentColor` still paints rules, bars, bands, markers
+  and photo rings at full saturation; only text moves, and only as far as it must. A designer
+  can still choose amber. They cannot get amber employer names at 2.15:1.
+- **`readableOn` has a third answer.** White and the soft `#111827` ink cross at background
+  luminance ≈ 0.205, where both land at about 4.12:1 and neither clears AA. That band falls
+  through to pure black. Verified exhaustively: zero failures across all 256 greys and 20,000
+  sampled colours.
+- **The `rgba(255,255,255,0.8)` idiom is gone** from all six templates that used it. A fixed
+  alpha over a colour the user picks lands on whatever ratio it lands on; on Marketing's pink
+  that was 3.73:1.
+
+**1.7 is the part that matters long-term.** `tests/cv/contrast.test.tsx` walks the rendered
+DOM — resolving inheritance, gradient stops, layered backgrounds and `rgba` compositing —
+rather than reading the source, because a template that computes its colours correctly and
+then renders a part on a panel it forgot to declare looks perfect in source and wrong on
+screen. Nine of these were found that way and could not have been found any other way. It
+runs every template at its default accent and one per category against six accents a user
+might actually pick, including the pale yellow and the mid grey.
+
+Two false positives are handled deliberately rather than by allowlist: a background layer
+with an explicit size is a rail rather than a field, and a gradient with hard stops is two
+regions whose boundary this walk cannot see.
+
+**Also fixed, not in the original list:** the photo fallback. Four templates fill the circle
+with the accent and never said what colour the initials should be, so they got white — "AE"
+at 2.15:1 on amber, and it is the first thing on the page for anyone who never uploads a
+photo. And the level-bar *fill* is now held to the 3:1 non-text bar, not left at whatever the
+accent happened to be (2.75:1 on Modern Executive's sidebar). Not 4.5:1 — a bar is a shape,
+and holding shapes to the text threshold would drag every accent toward black.
 
 ### Phase 2 — Ship images · 3–5 days · **highest traffic impact**
 
@@ -515,7 +554,7 @@ Ordered by demand:
 
 ## What to do first
 
-Phase 0 and Phase 2 are done and deployed. What is left of them is not code:
+Phases 0, 1 and 2 are done. What is left of them is not code:
 
 1. **0.1 — view-source a live template page** and confirm `<link rel="canonical">` says
    `https://www.createcvonline.com/…` and not `localhost`. Nothing else in this document
@@ -527,8 +566,14 @@ Phase 0 and Phase 2 are done and deployed. What is left of them is not code:
    images appear in Google Images over the following fortnight. That is the measurement
    that tells you whether Phase 2 worked.
 
-Then **Phase 1** — the contrast and layout defects. Those are the ones a paying customer
-hits, and unlike everything above, they are visible in the product rather than in a crawler.
+Then **Phase 3** — the pages are still largely the same words and the same picture 56 times
+over, which is the largest remaining SEO problem and the one that takes real writing rather
+than a fix.
+
+Two things outside this document are still blocking working features, and both are console
+clicks rather than code: **Firebase Storage** is not enabled, so photo upload fails; and
+there is no **PayPal webhook**, so a payment can complete without the database hearing
+about it.
 
 The canonical check takes thirty seconds and invalidates everything else if it is wrong.
 The images are the difference between competing for image search and not appearing in it.

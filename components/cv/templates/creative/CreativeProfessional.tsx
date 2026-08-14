@@ -1,5 +1,5 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -44,6 +44,7 @@ export const meta: TemplateMeta = {
  */
 export default function CreativeProfessional({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const name = fullName(cv);
   // The rounded square frame is structural here — a circle would collide with the
@@ -88,7 +89,7 @@ export default function CreativeProfessional({ cv, customization: c }: CVTemplat
                 marginTop: '0.25em',
                 fontSize: '1.02em',
                 fontWeight: 600,
-                color: accent,
+                color: accentText,
                 letterSpacing: '0.03em',
               }}
             >
@@ -109,7 +110,7 @@ export default function CreativeProfessional({ cv, customization: c }: CVTemplat
         </div>
       </header>
 
-      <main style={{ marginTop: `${c.sectionSpacing}px` }}>
+      <div style={{ marginTop: `${c.sectionSpacing}px` }}>
         {sections.map((section, index) => (
           <section
             key={section.id}
@@ -159,7 +160,7 @@ export default function CreativeProfessional({ cv, customization: c }: CVTemplat
             />
           </section>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

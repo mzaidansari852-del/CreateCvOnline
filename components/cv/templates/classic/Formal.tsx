@@ -1,5 +1,5 @@
 import { contactEntries, ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { mutedOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
 import { splitSections, visibleSections } from '@/lib/cv/sections';
 import type { CVCustomization, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -49,7 +49,7 @@ const ASIDE_PERCENT = 30;
 export default function Formal({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
   const rule = tint(c.textColor, 0.7);
-  const muted = tint(c.textColor, 0.34);
+  const muted = mutedOn(c.textColor, 0.34);
   const sections = visibleSections(cv);
   const { main, aside } = splitSections(sections, ASIDE_SECTIONS);
   const hasContact = contactEntries(cv).length > 0;
@@ -129,7 +129,7 @@ export default function Formal({ cv, customization: c }: CVTemplateProps) {
           ))}
         </aside>
 
-        <main style={{ paddingLeft: '1.4em' }}>
+        <div style={{ paddingLeft: '1.4em' }}>
           {main.map((section, index) => (
             <section
               key={section.id}
@@ -158,22 +158,14 @@ export default function Formal({ cv, customization: c }: CVTemplateProps) {
               />
             </section>
           ))}
-        </main>
+        </div>
       </div>
     </div>
   );
 }
 
 /** One heading treatment, used on both sides of the dividing rule. */
-function FormalHeading({
-  label,
-  c,
-  color,
-}: {
-  label: string;
-  c: CVCustomization;
-  color: string;
-}) {
+function FormalHeading({ label, c, color }: { label: string; c: CVCustomization; color: string }) {
   return (
     <h2
       className="cv-section-title"

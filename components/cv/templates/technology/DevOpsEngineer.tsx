@@ -1,5 +1,12 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  mutedOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -43,13 +50,21 @@ const NODE_SIZE = '0.62em';
 /**
  * DevOps Engineer — pipeline layout.
  *
- * The rail is a single absolutely positioned bar spanning the body, with each section
- * heading carrying its own node. Nodes are siblings of the `h2` rather than children so the
- * offsets stay in base `em` units and do not drift when the heading size changes.
+ * The rail is a `border-left` on the body wrapper, so it is redrawn on every page fragment
+ * rather than stopping at the first page break. Each section heading carries its own node.
+ * Nodes are siblings of the `h2` rather than children so the offsets stay in base `em` units
+ * and do not drift when the heading size changes.
  */
 export default function DevOpsEngineer({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
-  const muted = tint(c.textColor, 0.4);
+  /*
+   * The lightest surface the document paints on is not paper — it is this panel. Text
+   * clamped against it is legible here and, being darker still, legible on white too, so a
+   * single declaration covers every section instead of one per background.
+   */
+  const panel = tint(accent, 0.92);
+  const accentText = accentOn(accent, panel);
+  const muted = mutedOn(c.textColor, 0.4, panel);
   const sections = visibleSections(cv);
   const name = fullName(cv);
 
@@ -81,7 +96,7 @@ export default function DevOpsEngineer({ cv, customization: c }: CVTemplateProps
             {name || 'Your Name'}
           </h1>
           {cv.personal.title ? (
-            <p style={{ marginTop: '0.1em', fontWeight: 600, color: accent }}>
+            <p style={{ marginTop: '0.1em', fontWeight: 600, color: accentText }}>
               {cv.personal.title}
             </p>
           ) : null}
@@ -98,26 +113,19 @@ export default function DevOpsEngineer({ cv, customization: c }: CVTemplateProps
         />
       </header>
 
-      <main
+      {/*
+        The rail is the whole idea of this template — a deployment pipeline running down the
+        page — and it was an absolutely positioned span, which means it stopped dead at the
+        first page break and page 2 lost it entirely. A `border-left` is part of the box and
+        is redrawn on every fragment, so the pipeline survives the fold.
+      */}
+      <div
         style={{
-          position: 'relative',
           marginTop: `${c.sectionSpacing * 1.2}px`,
           paddingLeft: RAIL_GUTTER,
+          borderLeft: `3px solid ${tint(accent, 0.45)}`,
         }}
       >
-        <span
-          aria-hidden
-          style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 3,
-            borderRadius: 2,
-            background: tint(accent, 0.45),
-          }}
-        />
-
         {sections.map((section, index) => (
           <section
             key={section.id}
@@ -176,7 +184,7 @@ export default function DevOpsEngineer({ cv, customization: c }: CVTemplateProps
             />
           </section>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

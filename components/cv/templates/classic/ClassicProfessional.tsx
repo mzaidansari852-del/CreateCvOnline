@@ -1,5 +1,12 @@
 import { contactEntries, ContactIcon, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  centredTracking,
+  accentOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVData, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,7 +20,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#1f2937',
-  tagline: 'Centred capitals and ruled headings — the CV shape employers have expected for decades.',
+  tagline:
+    'Centred capitals and ruled headings — the CV shape employers have expected for decades.',
   description:
     'Classic Professional is the document most hiring managers picture when they ask for a CV: your name centred in spaced capitals, one line of contact details beneath it, and every section heading centred between two hairline rules. The body stays a plain single column with dates set to the right of each entry, so nothing competes with the writing and nothing confuses a parser. Choose it when the employer is conservative and the safest possible design is the point.',
   bestFor: [
@@ -44,6 +52,7 @@ export const meta: TemplateMeta = {
  */
 export default function ClassicProfessional({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const rule = tint(accent, 0.35);
   const sections = visibleSections(cv);
   const name = fullName(cv);
@@ -57,7 +66,7 @@ export default function ClassicProfessional({ cv, customization: c }: CVTemplate
             lineHeight: 1.16,
             fontWeight: 700,
             textTransform: 'uppercase',
-            letterSpacing: '0.15em',
+            ...centredTracking('0.15em'),
             color: c.secondaryColor,
           }}
         >
@@ -69,7 +78,7 @@ export default function ClassicProfessional({ cv, customization: c }: CVTemplate
               marginTop: '0.28em',
               fontSize: '1.02em',
               letterSpacing: '0.06em',
-              color: accent,
+              color: accentText,
             }}
           >
             {cv.personal.title}
@@ -93,7 +102,7 @@ export default function ClassicProfessional({ cv, customization: c }: CVTemplate
               fontSize: '0.95em',
               fontWeight: 700,
               textTransform: headingTransform(c),
-              letterSpacing: headingTracking(c),
+              ...centredTracking(headingTracking(c)),
               color: c.secondaryColor,
               borderTop: `1px solid ${rule}`,
               borderBottom: `1px solid ${rule}`,

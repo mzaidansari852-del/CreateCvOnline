@@ -1,5 +1,6 @@
 import { contactEntries, ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
+  mutedOn,
   fullName,
   headingTracking,
   headingTransform,
@@ -51,7 +52,9 @@ export const meta: TemplateMeta = {
 export default function MarketingCV({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
   const onAccent = readableOn(accent);
-  const panelMuted = onAccent === '#ffffff' ? 'rgba(255,255,255,0.86)' : 'rgba(0,0,0,0.68)';
+  // Dimmed toward the band and then measured, rather than a fixed alpha over whatever
+  // colour the user picked — see `mutedOn`.
+  const panelMuted = mutedOn(onAccent, 0.3, accent);
   const sections = visibleSections(cv);
   const name = fullName(cv);
   // Without a photo or a single contact row the accent panel would be a bare colour block,
@@ -130,6 +133,7 @@ export default function MarketingCV({ cv, customization: c }: CVTemplateProps) {
             <ContactList
               cv={cv}
               accent={accent}
+              surface={accent}
               color={panelMuted}
               icons={c.showIcons}
               layout="stack"
@@ -140,7 +144,7 @@ export default function MarketingCV({ cv, customization: c }: CVTemplateProps) {
         ) : null}
       </header>
 
-      <main
+      <div
         style={{
           padding: `${c.pageMargin * 0.82}px ${c.pageMargin}px ${c.pageMargin}px`,
         }}
@@ -189,7 +193,7 @@ export default function MarketingCV({ cv, customization: c }: CVTemplateProps) {
             />
           </section>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

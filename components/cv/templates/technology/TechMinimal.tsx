@@ -1,5 +1,5 @@
 import { ContactIcon, contactEntries, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform } from '@/lib/cv/format';
+import { accentOn, fullName, headingTracking, headingTransform } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,7 +13,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#111827',
-  tagline: 'Type and space only — left-aligned, tightly set, and impossible for a parser to misread.',
+  tagline:
+    'Type and space only — left-aligned, tightly set, and impossible for a parser to misread.',
   description:
     'Tech Minimal strips a CV back to typography: no rules, no boxes, no coloured bands, so the only thing a reader ranks is what you have shipped. Contact details run as one dot-separated line under your name, skills read as plain comma-separated text, and roles are set compactly enough that a decade of work still fits in two pages. Because the document is a single linear column, what an applicant tracking system extracts is exactly what a person sees.',
   bestFor: [
@@ -44,6 +45,7 @@ export const meta: TemplateMeta = {
  */
 export default function TechMinimal({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const contacts = contactEntries(cv);
   const name = fullName(cv);
@@ -63,7 +65,7 @@ export default function TechMinimal({ cv, customization: c }: CVTemplateProps) {
           {name || 'Your Name'}
         </h1>
         {cv.personal.title ? (
-          <p style={{ fontSize: '1.02em', marginTop: '0.1em', color: accent }}>
+          <p style={{ fontSize: '1.02em', marginTop: '0.1em', color: accentText }}>
             {cv.personal.title}
           </p>
         ) : null}

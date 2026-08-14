@@ -1,5 +1,5 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { accentOn, headingTracking, headingTransform, tint } from '@/lib/cv/format';
 import { visibleSections, type ResolvedSection } from '@/lib/cv/sections';
 import type { CVCustomization, CVData, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -46,6 +46,7 @@ export const meta: TemplateMeta = {
  */
 export default function GraphicDesigner({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const left = sections.filter((_, index) => index % 2 === 0);
   const right = sections.filter((_, index) => index % 2 === 1);
@@ -106,7 +107,7 @@ export default function GraphicDesigner({ cv, customization: c }: CVTemplateProp
                   fontWeight: 700,
                   letterSpacing: '0.3em',
                   textTransform: 'uppercase',
-                  color: accent,
+                  color: accentText,
                 }}
               >
                 {word}
@@ -137,7 +138,7 @@ export default function GraphicDesigner({ cv, customization: c }: CVTemplateProp
         />
       </div>
 
-      <main
+      <div
         style={{
           display: 'grid',
           gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
@@ -148,7 +149,7 @@ export default function GraphicDesigner({ cv, customization: c }: CVTemplateProp
       >
         <PosterColumn sections={left} cv={cv} c={c} accent={accent} />
         <PosterColumn sections={right} cv={cv} c={c} accent={accent} />
-      </main>
+      </div>
     </div>
   );
 }

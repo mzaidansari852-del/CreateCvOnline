@@ -1,5 +1,6 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
+  mutedOn,
   fullName,
   headingTracking,
   headingTransform,
@@ -58,7 +59,9 @@ export default function ModernCorporate({ cv, customization: c }: CVTemplateProp
   const onBand = readableOn(band);
   const reversed = onBand === '#ffffff';
   const bandAccent = reversed ? tint(accent, 0.55) : shade(accent, 0.2);
-  const bandMuted = reversed ? 'rgba(255,255,255,0.78)' : 'rgba(0,0,0,0.62)';
+  // Dimmed toward the band and then measured, rather than a fixed alpha over whatever
+  // colour the user picked — see `mutedOn`.
+  const bandMuted = mutedOn(onBand, 0.28, band);
   const hairline = tint(c.textColor, 0.78);
   const gutter = c.pageMargin * 0.6;
   const topPad = c.pageMargin * 0.72;
@@ -110,6 +113,7 @@ export default function ModernCorporate({ cv, customization: c }: CVTemplateProp
             <ContactList
               cv={cv}
               accent={bandAccent}
+              surface={band}
               color={bandMuted}
               icons={c.showIcons}
               iconColor={bandAccent}
@@ -119,12 +123,19 @@ export default function ModernCorporate({ cv, customization: c }: CVTemplateProp
           </div>
         </div>
 
-        <Photo cv={cv} c={c} size={98} border={bandAccent} borderWidth={2} fallbackBackground={accent} />
+        <Photo
+          cv={cv}
+          c={c}
+          size={98}
+          border={bandAccent}
+          borderWidth={2}
+          fallbackBackground={accent}
+        />
       </header>
 
       {/* ---------------------------------------------------------------- body */}
       <div style={{ display: 'grid', gridTemplateColumns: '63% 37%', flex: 1 }}>
-        <main
+        <div
           style={{
             padding: `${topPad}px ${gutter}px ${c.pageMargin}px ${c.pageMargin}px`,
             minWidth: 0,
@@ -136,7 +147,12 @@ export default function ModernCorporate({ cv, customization: c }: CVTemplateProp
               className="cv-section"
               style={{ marginTop: index === 0 ? 0 : `${c.sectionSpacing}px` }}
             >
-              <SectionHeading label={section.label} accent={accent} color={c.secondaryColor} c={c} />
+              <SectionHeading
+                label={section.label}
+                accent={accent}
+                color={c.secondaryColor}
+                c={c}
+              />
               <SectionContent
                 sectionId={section.id}
                 cv={cv}
@@ -156,7 +172,7 @@ export default function ModernCorporate({ cv, customization: c }: CVTemplateProp
               />
             </section>
           ))}
-        </main>
+        </div>
 
         <aside
           style={{
@@ -171,7 +187,12 @@ export default function ModernCorporate({ cv, customization: c }: CVTemplateProp
               className="cv-section"
               style={{ marginTop: index === 0 ? 0 : `${c.sectionSpacing}px` }}
             >
-              <SectionHeading label={section.label} accent={accent} color={c.secondaryColor} c={c} />
+              <SectionHeading
+                label={section.label}
+                accent={accent}
+                color={c.secondaryColor}
+                c={c}
+              />
               <SectionContent
                 sectionId={section.id}
                 cv={cv}

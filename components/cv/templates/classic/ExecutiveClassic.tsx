@@ -1,5 +1,13 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  centredTracking,
+  accentOn,
+  mutedOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -46,9 +54,10 @@ export const meta: TemplateMeta = {
  */
 export default function ExecutiveClassic({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const rule = tint(c.textColor, 0.62);
   const hairline = tint(c.textColor, 0.72);
-  const muted = tint(c.textColor, 0.34);
+  const muted = mutedOn(c.textColor, 0.34);
   const sections = visibleSections(cv);
   const name = fullName(cv);
 
@@ -84,7 +93,7 @@ export default function ExecutiveClassic({ cv, customization: c }: CVTemplatePro
                 fontWeight: 600,
                 letterSpacing: '0.14em',
                 textTransform: 'uppercase',
-                color: accent,
+                color: accentText,
                 minWidth: 0,
               }}
             >
@@ -128,7 +137,7 @@ export default function ExecutiveClassic({ cv, customization: c }: CVTemplatePro
                   textAlign: 'center',
                   fontSize: '0.76em',
                   fontWeight: 600,
-                  letterSpacing: '0.3em',
+                  ...centredTracking('0.3em'),
                   textTransform: headingTransform(c),
                   color: muted,
                 }}
@@ -172,7 +181,13 @@ export default function ExecutiveClassic({ cv, customization: c }: CVTemplatePro
               <span style={{ display: 'block' }}>{section.label}</span>
               <span
                 aria-hidden
-                style={{ display: 'block', width: '60%', height: 1, background: hairline, marginTop: '0.3em' }}
+                style={{
+                  display: 'block',
+                  width: '60%',
+                  height: 1,
+                  background: hairline,
+                  marginTop: '0.3em',
+                }}
               />
             </h2>
             <SectionContent

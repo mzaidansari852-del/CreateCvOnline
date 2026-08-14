@@ -14,7 +14,11 @@
 import type { CSSProperties, ReactNode } from 'react';
 
 import {
+  WHITE,
   bulletLines,
+  contrastAgainst,
+  graphicOn,
+  readableOn,
   ensureProtocol,
   formatDateRange,
   formatDuration,
@@ -23,12 +27,12 @@ import {
   languageLabel,
   languagePercent,
   languageShort,
+  mix,
   paragraphs,
   prettyUrl,
   skillDots,
   skillLabel,
   skillPercent,
-  tint,
 } from '@/lib/cv/format';
 import { customSectionKey, isCustomSectionId } from '@/lib/cv/sections';
 import type { BuiltInSectionId, CVCustomization, CVData } from '@/types/cv';
@@ -42,6 +46,19 @@ export interface PartProps {
   c: CVCustomization;
   /** Resolved accent colour for this document. */
   accent: string;
+  /**
+   * The colour this part is painted on.
+   *
+   * Text legibility is a property of a *pair*, and until this existed the parts only knew
+   * one half of it. Every accent-coloured employer name was emitted at whatever the user
+   * picked, on whatever the template happened to paint behind it — which is how eleven
+   * templates shipped printing job history at between 2.15:1 and 3.8:1 on white.
+   *
+   * Defaults to paper. Any template that renders a part on a tinted panel or a dark sidebar
+   * must say so; `tests/cv/templates.test.tsx` walks the rendered DOM and fails if a part
+   * ends up on a background it was not told about.
+   */
+  surface?: string;
   /** Body text colour. Defaults to `inherit` so sidebars can invert. */
   color?: string;
   /** Secondary/metadata colour. */
@@ -66,10 +83,37 @@ export interface PartProps {
 const DEFAULT_MUTED = '#5b6472';
 const DEFAULT_RULE = '#d8dce4';
 
+/**
+ * Resolves every colour a part draws with, against the surface it is drawn on.
+ *
+ * Everything legibility depends on is clamped here and nowhere else, so no individual part
+ * \u2014 and no individual template \u2014 can forget one.
+ *
+ * `color` inherits on paper, which is what a single-column template wants. On a declared
+ * panel it cannot: inheritance would carry the page's dark ink onto a purple band. So a
+ * surface that is not paper resolves its own readable default, and an explicit colour is
+ * still measured against the panel rather than trusted. The upshot is that a template
+ * declaring `surface` gets a legible section for free; before this, it had to remember to
+ * pass `color` *and* `muted`, and nine of them didn't.
+ *
+ * `muted` is not decoration. `ExperienceBody` renders every line of every job description
+ * in it, and eleven templates override it to `tint(text, 0.38\u20130.45)` \u2014 as low as 3.60:1.
+ * Modern Minimal's whole pitch is that hierarchy is carried by space rather than weight;
+ * what it actually did was make the body copy too light to read on paper.
+ *
+ * `accentText` is the accent, darkened only as far as legibility requires. The accent
+ * itself is left alone for rules, bars, panels and markers, where saturation is the point
+ * and 4.5:1 is not the applicable bar. Splitting the two means a designer can still pick
+ * amber and get amber \u2014 just not amber employer names at 2.15:1.
+ */
 function useTone(props: PartProps) {
+  const surface = props.surface ?? WHITE;
+  const inherited = surface === WHITE ? 'inherit' : readableOn(surface);
   return {
-    color: props.color ?? 'inherit',
-    muted: props.muted ?? DEFAULT_MUTED,
+    surface,
+    color: props.color ? contrastAgainst(props.color, surface) : inherited,
+    muted: contrastAgainst(props.muted ?? DEFAULT_MUTED, surface),
+    accentText: contrastAgainst(props.accent, surface),
     rule: props.rule ?? DEFAULT_RULE,
     gap: props.gap ?? 0.95,
     marker: props.marker ?? '\u2022',
@@ -171,11 +215,13 @@ export function Tags({
   accent,
   variant = 'pill',
   color,
+  surface = WHITE,
 }: {
   items: string[];
   accent: string;
   variant?: 'pill' | 'outline' | 'plain' | 'square';
   color?: string;
+  surface?: string;
 }) {
   if (items.length === 0) return null;
 
@@ -184,6 +230,11 @@ export function Tags({
       <span style={{ color: color ?? 'inherit', fontSize: '0.92em' }}>{items.join(' · ')}</span>
     );
   }
+
+  // A pill paints its own background, so the text inside it is measured against *that*,
+  // not against the page. The two were computed from the same accent and never compared:
+  // an amber pill put amber text on a 14%-amber wash, which is a little under 1.8:1.
+  const chipBackground = variant === 'outline' ? surface : mix(accent, surface, 0.86);
 
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3em', marginTop: '0.35em' }}>
@@ -195,9 +246,15 @@ export function Tags({
             lineHeight: 1.5,
             padding: '0.12em 0.55em',
             borderRadius: variant === 'square' ? 2 : 999,
-            background: variant === 'outline' ? 'transparent' : tint(accent, 0.86),
-            border: variant === 'outline' ? `1px solid ${tint(accent, 0.55)}` : '1px solid transparent',
-            color: variant === 'outline' ? color ?? 'inherit' : accent,
+            background: variant === 'outline' ? 'transparent' : chipBackground,
+            border:
+              variant === 'outline'
+                ? `1px solid ${mix(accent, surface, 0.55)}`
+                : '1px solid transparent',
+            color:
+              variant === 'outline'
+                ? (color ?? 'inherit')
+                : contrastAgainst(accent, chipBackground),
             whiteSpace: 'nowrap',
           }}
         >
@@ -208,25 +265,37 @@ export function Tags({
   );
 }
 
+/**
+ * A filled proportion bar.
+ *
+ * The track defaults to the accent blended most of the way into the surface, not into
+ * white. On paper those are the same thing; on Modern Executive's near-black sidebar they
+ * are opposites, and the old default produced a bright empty track behind a dark fill —
+ * bars that read as the inverse of the level they encode, in the reference implementation
+ * for two-column templates.
+ */
 export function LevelBar({
   percent,
   accent,
   track,
+  surface = WHITE,
   height = 5,
   radius = 999,
 }: {
   percent: number;
   accent: string;
   track?: string;
+  surface?: string;
   height?: number;
   radius?: number;
 }) {
+  const fill = graphicOn(accent, surface);
   return (
     <div
       style={{
         height,
         borderRadius: radius,
-        background: track ?? tint(accent, 0.8),
+        background: track ?? mix(fill, surface, 0.8),
         overflow: 'hidden',
         width: '100%',
       }}
@@ -235,7 +304,7 @@ export function LevelBar({
         style={{
           height: '100%',
           width: `${Math.max(0, Math.min(100, percent))}%`,
-          background: accent,
+          background: fill,
           borderRadius: radius,
         }}
       />
@@ -248,14 +317,18 @@ export function LevelDots({
   total = 5,
   accent,
   empty,
+  surface = WHITE,
   size = 6,
 }: {
   filled: number;
   total?: number;
   accent: string;
   empty?: string;
+  /** See `LevelBar`: unfilled dots blend toward the surface, not toward white. */
+  surface?: string;
   size?: number;
 }) {
+  const fill = graphicOn(accent, surface);
   return (
     <div style={{ display: 'flex', gap: size * 0.55, alignItems: 'center' }}>
       {Array.from({ length: total }, (_, index) => (
@@ -265,7 +338,7 @@ export function LevelDots({
             width: size,
             height: size,
             borderRadius: '50%',
-            background: index < filled ? accent : (empty ?? tint(accent, 0.78)),
+            background: index < filled ? fill : (empty ?? mix(fill, surface, 0.78)),
             display: 'inline-block',
           }}
         />
@@ -283,6 +356,7 @@ export function EntryHead({
   color,
   muted,
   accent,
+  surface = WHITE,
   layout = 'split',
   primarySize = 1.06,
   secondaryWeight = 600,
@@ -295,13 +369,22 @@ export function EntryHead({
   color?: string;
   muted?: string;
   accent: string;
+  /** The background behind this head. The accent is darkened against it if it has to be. */
+  surface?: string;
   layout?: 'split' | 'stacked' | 'inline';
   primarySize?: number;
   secondaryWeight?: number;
   accentTarget?: 'primary' | 'secondary' | 'none';
 }) {
-  const primaryColor = accentTarget === 'primary' ? accent : color;
-  const secondaryColor = accentTarget === 'secondary' ? accent : (muted ?? color);
+  /*
+   * This one line is the single most-repeated piece of text on the site: every employer
+   * name, every institution, every certification issuer, on all 56 templates. It printed
+   * in the raw accent, and for eleven of the defaults that meant somewhere between 2.15:1
+   * and 3.8:1 — a job history you cannot read.
+   */
+  const accentText = contrastAgainst(accent, surface);
+  const primaryColor = accentTarget === 'primary' ? accentText : color;
+  const secondaryColor = accentTarget === 'secondary' ? accentText : (muted ?? color);
 
   const titleBlock = (
     <div style={{ minWidth: 0 }}>
@@ -378,24 +461,32 @@ export function EntryHead({
 
 export function ExperienceContent(props: PartProps & { showDuration?: boolean }) {
   const { cv, c, accent, variant = 'stack', showDuration = false } = props;
-  const { color, muted, rule, gap, marker, showTags, secondaryWeight } = useTone(props);
+  const { surface, accentText, color, muted, rule, gap, marker, showTags, secondaryWeight } =
+    useTone(props);
   const items = cv.experience.filter((item) => item.role || item.company || item.description);
   if (items.length === 0) return null;
 
   if (variant === 'timeline') {
+    /*
+     * The line is a `border-left` on a flowing wrapper, not an absolutely positioned span.
+     *
+     * An absolute element is laid out against its containing block, and a containing block
+     * does not exist twice — when the timeline runs past the bottom of page 1 the line stops
+     * at the page break and page 2 gets dots with nothing joining them. A border belongs to
+     * the box itself and is redrawn on each fragment, so it continues. `ModernClean` already
+     * documented this pattern; it had simply never been applied here.
+     *
+     * The dots stay absolute because each one sits inside a single entry, and an entry
+     * carries `cv-block` so it never splits across a page in the first place.
+     */
     return (
-      <div style={{ position: 'relative', paddingLeft: '1.35em' }}>
-        <span
-          aria-hidden
-          style={{
-            position: 'absolute',
-            left: '0.31em',
-            top: '0.45em',
-            bottom: '0.3em',
-            width: 1.5,
-            background: tint(accent, 0.6),
-          }}
-        />
+      <div
+        style={{
+          paddingLeft: '1.35em',
+          borderLeft: `1.5px solid ${mix(accent, surface, 0.6)}`,
+          marginLeft: '0.31em',
+        }}
+      >
         {items.map((item, index) => (
           <div
             key={item.id}
@@ -406,27 +497,31 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
               aria-hidden
               style={{
                 position: 'absolute',
-                left: '-1.35em',
+                left: '-1.66em',
                 top: '0.38em',
                 width: '0.62em',
                 height: '0.62em',
                 borderRadius: '50%',
                 background: accent,
-                boxShadow: `0 0 0 2px #ffffff`,
+                boxShadow: `0 0 0 2px ${surface}`,
               }}
             />
             <EntryHead
+              surface={surface}
               primary={item.role}
               secondary={[item.company, item.location].filter(Boolean).join(' · ')}
               meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}
               metaSecondary={
-                showDuration ? formatDuration(item.startDate, item.endDate, item.current) : undefined
+                showDuration
+                  ? formatDuration(item.startDate, item.endDate, item.current)
+                  : undefined
               }
               color={color}
               muted={muted}
               accent={accent}
             />
             <ExperienceBody
+              surface={surface}
               item={item}
               color={color}
               accent={accent}
@@ -463,11 +558,12 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: '1.06em', fontWeight: 700, color }}>{item.role}</div>
               {item.company ? (
-                <div style={{ fontWeight: 600, color: accent, marginTop: '0.05em' }}>
+                <div style={{ fontWeight: 600, color: accentText, marginTop: '0.05em' }}>
                   {item.company}
                 </div>
               ) : null}
               <ExperienceBody
+                surface={surface}
                 item={item}
                 color={color}
                 accent={accent}
@@ -496,6 +592,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
             }}
           >
             <EntryHead
+              surface={surface}
               primary={item.role}
               secondary={item.company}
               meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}
@@ -512,7 +609,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
               <Bullets
                 items={item.achievements}
                 color={color}
-                markerColor={accent}
+                markerColor={accentText}
                 marker={props.marker ?? '\u2013'}
                 style={{ marginTop: '0.25em' }}
               />
@@ -545,6 +642,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
                 .join(' | ')}
             </div>
             <ExperienceBody
+              surface={surface}
               item={item}
               color={color}
               accent={accent}
@@ -564,6 +662,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
       {items.map((item, index) => (
         <div key={item.id} className="cv-block" style={{ marginTop: index === 0 ? 0 : `${gap}em` }}>
           <EntryHead
+            surface={surface}
             primary={item.role}
             secondary={item.company}
             meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}
@@ -574,6 +673,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
             secondaryWeight={secondaryWeight}
           />
           <ExperienceBody
+            surface={surface}
             item={item}
             color={color}
             accent={accent}
@@ -587,11 +687,19 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
   );
 }
 
+/**
+ * The body of one job entry: description, achievements, tags.
+ *
+ * `muted` arrives already clamped from `useTone` \u2014 this is the component the clamp exists
+ * for. Every line of every job description on the site renders through here, and eleven
+ * templates were handing it a grey at 3.6:1.
+ */
 function ExperienceBody({
   item,
   color,
   accent,
   muted,
+  surface = WHITE,
   marker = '\u2022',
   showTags = true,
 }: {
@@ -599,9 +707,11 @@ function ExperienceBody({
   color?: string;
   accent: string;
   muted?: string;
+  surface?: string;
   marker?: string;
   showTags?: boolean;
 }) {
+  const accentText = contrastAgainst(accent, surface);
   const hasDescription = item.description.trim().length > 0;
   const hasAchievements = item.achievements.filter(Boolean).length > 0;
   const hasTags = showTags && item.tags.filter(Boolean).length > 0;
@@ -611,7 +721,7 @@ function ExperienceBody({
     <div style={{ marginTop: '0.32em' }}>
       {hasDescription ? (
         <div style={{ color: muted }}>
-          <RichText text={item.description} marker={marker} markerColor={accent} />
+          <RichText text={item.description} marker={marker} markerColor={accentText} />
         </div>
       ) : null}
       {hasAchievements ? (
@@ -619,11 +729,13 @@ function ExperienceBody({
           items={item.achievements.filter(Boolean)}
           color={color}
           marker={marker}
-          markerColor={accent}
+          markerColor={accentText}
           style={{ marginTop: hasDescription ? '0.3em' : 0 }}
         />
       ) : null}
-      {hasTags ? <Tags items={item.tags.filter(Boolean)} accent={accent} color={color} /> : null}
+      {hasTags ? (
+        <Tags surface={surface} items={item.tags.filter(Boolean)} accent={accent} color={color} />
+      ) : null}
     </div>
   );
 }
@@ -634,7 +746,7 @@ function ExperienceBody({
 
 export function EducationContent(props: PartProps) {
   const { cv, c, accent, variant = 'stack' } = props;
-  const { color, muted, gap } = useTone(props);
+  const { surface, accentText, color, muted, gap } = useTone(props);
   const items = cv.education.filter((item) => item.degree || item.institution || item.field);
   if (items.length === 0) return null;
 
@@ -651,7 +763,7 @@ export function EducationContent(props: PartProps) {
             style={{ marginTop: index === 0 ? 0 : `${gap * 0.7}em` }}
           >
             <div style={{ fontWeight: 700, color }}>{degreeLine(item)}</div>
-            <div style={{ color: accent, fontWeight: 600 }}>{item.institution}</div>
+            <div style={{ color: accentText, fontWeight: 600 }}>{item.institution}</div>
             <div style={{ color: muted, fontSize: '0.9em', marginTop: '0.05em' }}>
               {[
                 formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat),
@@ -685,7 +797,7 @@ export function EducationContent(props: PartProps) {
             </div>
             <div>
               <div style={{ fontWeight: 700, color }}>{degreeLine(item)}</div>
-              <div style={{ color: accent, fontWeight: 600 }}>
+              <div style={{ color: accentText, fontWeight: 600 }}>
                 {[item.institution, item.location].filter(Boolean).join(' · ')}
               </div>
               {item.grade ? (
@@ -693,7 +805,7 @@ export function EducationContent(props: PartProps) {
               ) : null}
               {item.description ? (
                 <div style={{ color: muted, marginTop: '0.2em' }}>
-                  <RichText text={item.description} markerColor={accent} />
+                  <RichText text={item.description} markerColor={accentText} />
                 </div>
               ) : null}
             </div>
@@ -729,6 +841,7 @@ export function EducationContent(props: PartProps) {
       {items.map((item, index) => (
         <div key={item.id} className="cv-block" style={{ marginTop: index === 0 ? 0 : `${gap}em` }}>
           <EntryHead
+            surface={surface}
             primary={degreeLine(item)}
             secondary={item.institution}
             meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}
@@ -742,7 +855,7 @@ export function EducationContent(props: PartProps) {
           ) : null}
           {item.description ? (
             <div style={{ color: muted, marginTop: '0.2em' }}>
-              <RichText text={item.description} markerColor={accent} />
+              <RichText text={item.description} markerColor={accentText} />
             </div>
           ) : null}
         </div>
@@ -757,7 +870,7 @@ export function EducationContent(props: PartProps) {
 
 export function SkillsContent(props: PartProps & { columns?: number; display?: string }) {
   const { cv, c, accent, columns = 2 } = props;
-  const { color, muted, gap } = useTone(props);
+  const { surface, color, muted, gap } = useTone(props);
   const display = props.display ?? c.skillDisplay;
   const items = cv.skills.filter((item) => item.name);
   if (items.length === 0) return null;
@@ -778,13 +891,25 @@ export function SkillsContent(props: PartProps & { columns?: number; display?: s
               <div style={{ fontWeight: 700, color, fontSize: '0.92em', marginBottom: '0.15em' }}>
                 {group.category}
               </div>
-              <Tags items={group.items.map((skill) => skill.name)} accent={accent} color={color} />
+              <Tags
+                surface={surface}
+                items={group.items.map((skill) => skill.name)}
+                accent={accent}
+                color={color}
+              />
             </div>
           ))}
         </div>
       );
     }
-    return <Tags items={items.map((skill) => skill.name)} accent={accent} color={color} />;
+    return (
+      <Tags
+        surface={surface}
+        items={items.map((skill) => skill.name)}
+        accent={accent}
+        color={color}
+      />
+    );
   }
 
   if (display === 'text') {
@@ -823,14 +948,14 @@ export function SkillsContent(props: PartProps & { columns?: number; display?: s
       >
         <span style={{ color }}>{skill.name}</span>
         {display === 'dots' ? (
-          <LevelDots filled={skillDots(skill.level)} accent={accent} />
+          <LevelDots surface={surface} filled={skillDots(skill.level)} accent={accent} />
         ) : (
           <span style={{ color: muted, fontSize: '0.82em' }}>{skillLabel(skill.level)}</span>
         )}
       </div>
       {display === 'bars' ? (
         <div style={{ marginTop: '0.22em' }}>
-          <LevelBar percent={skillPercent(skill.level)} accent={accent} />
+          <LevelBar surface={surface} percent={skillPercent(skill.level)} accent={accent} />
         </div>
       ) : null}
     </div>
@@ -870,7 +995,7 @@ export function SkillsContent(props: PartProps & { columns?: number; display?: s
 
 export function LanguagesContent(props: PartProps) {
   const { cv, accent, variant = 'stack' } = props;
-  const { color, muted } = useTone(props);
+  const { surface, color, muted } = useTone(props);
   const items = cv.languages.filter((item) => item.name);
   if (items.length === 0) return null;
 
@@ -892,7 +1017,7 @@ export function LanguagesContent(props: PartProps) {
               <span style={{ color: muted, fontSize: '0.82em' }}>{languageLabel(item.level)}</span>
             </div>
             <div style={{ marginTop: '0.2em' }}>
-              <LevelBar percent={languagePercent(item.level)} accent={accent} />
+              <LevelBar surface={surface} percent={languagePercent(item.level)} accent={accent} />
             </div>
           </div>
         ))}
@@ -910,7 +1035,11 @@ export function LanguagesContent(props: PartProps) {
             style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
           >
             <span style={{ color }}>{item.name}</span>
-            <LevelDots filled={Math.round(languagePercent(item.level) / 20)} accent={accent} />
+            <LevelDots
+              surface={surface}
+              filled={Math.round(languagePercent(item.level) / 20)}
+              accent={accent}
+            />
           </div>
         ))}
       </div>
@@ -959,7 +1088,7 @@ export function LanguagesContent(props: PartProps) {
 
 export function ProjectsContent(props: PartProps) {
   const { cv, c, accent, variant = 'stack' } = props;
-  const { color, muted, gap, rule, marker, showTags } = useTone(props);
+  const { surface, accentText, color, muted, gap, rule, marker, showTags } = useTone(props);
   const items = cv.projects.filter((item) => item.name || item.description);
   if (items.length === 0) return null;
 
@@ -984,13 +1113,19 @@ export function ProjectsContent(props: PartProps) {
           >
             <div style={{ fontWeight: 700, color }}>{item.name}</div>
             {item.role ? (
-              <div style={{ color: accent, fontSize: '0.9em' }}>{item.role}</div>
+              <div style={{ color: accentText, fontSize: '0.9em' }}>{item.role}</div>
             ) : null}
             {item.description ? (
               <p style={{ color: muted, marginTop: '0.25em' }}>{item.description}</p>
             ) : null}
             {showTags && item.tags.length > 0 ? (
-              <Tags items={item.tags} accent={accent} variant="outline" color={muted} />
+              <Tags
+                surface={surface}
+                items={item.tags}
+                accent={accent}
+                variant="outline"
+                color={muted}
+              />
             ) : null}
           </div>
         ))}
@@ -1008,7 +1143,7 @@ export function ProjectsContent(props: PartProps) {
             style={{ marginTop: index === 0 ? 0 : `${gap * 0.6}em` }}
           >
             <span style={{ fontWeight: 700, color }}>{item.name}</span>
-            {item.url ? <span style={{ color: accent }}> · {prettyUrl(item.url)}</span> : null}
+            {item.url ? <span style={{ color: accentText }}> · {prettyUrl(item.url)}</span> : null}
             {item.description ? (
               <div style={{ color: muted, marginTop: '0.1em' }}>{item.description}</div>
             ) : null}
@@ -1023,6 +1158,7 @@ export function ProjectsContent(props: PartProps) {
       {items.map((item, index) => (
         <div key={item.id} className="cv-block" style={{ marginTop: index === 0 ? 0 : `${gap}em` }}>
           <EntryHead
+            surface={surface}
             primary={item.name}
             secondary={item.role || undefined}
             meta={
@@ -1035,7 +1171,7 @@ export function ProjectsContent(props: PartProps) {
           />
           {item.description ? (
             <div style={{ color: muted, marginTop: '0.25em' }}>
-              <RichText text={item.description} marker={marker} markerColor={accent} />
+              <RichText text={item.description} marker={marker} markerColor={accentText} />
             </div>
           ) : null}
           {item.highlights.filter(Boolean).length > 0 ? (
@@ -1043,12 +1179,17 @@ export function ProjectsContent(props: PartProps) {
               items={item.highlights.filter(Boolean)}
               color={color}
               marker={marker}
-              markerColor={accent}
+              markerColor={accentText}
               style={{ marginTop: '0.25em' }}
             />
           ) : null}
           {showTags && item.tags.filter(Boolean).length > 0 ? (
-            <Tags items={item.tags.filter(Boolean)} accent={accent} color={color} />
+            <Tags
+              surface={surface}
+              items={item.tags.filter(Boolean)}
+              accent={accent}
+              color={color}
+            />
           ) : null}
         </div>
       ))}
@@ -1062,7 +1203,7 @@ export function ProjectsContent(props: PartProps) {
 
 export function CertificationsContent(props: PartProps) {
   const { cv, c, accent, variant = 'stack' } = props;
-  const { color, muted, gap, secondaryWeight } = useTone(props);
+  const { surface, color, muted, gap, secondaryWeight } = useTone(props);
   const items = cv.certifications.filter((item) => item.name);
   if (items.length === 0) return null;
 
@@ -1073,7 +1214,9 @@ export function CertificationsContent(props: PartProps) {
           <div key={item.id} className="cv-block">
             <div style={{ fontWeight: 700, color }}>{item.name}</div>
             <div style={{ color: muted, fontSize: '0.9em', fontWeight: secondaryWeight }}>
-              {[item.issuer, formatPartialDate(item.date, c.dateFormat)].filter(Boolean).join(' · ')}
+              {[item.issuer, formatPartialDate(item.date, c.dateFormat)]
+                .filter(Boolean)
+                .join(' · ')}
             </div>
           </div>
         ))}
@@ -1090,6 +1233,7 @@ export function CertificationsContent(props: PartProps) {
           style={{ marginTop: index === 0 ? 0 : `${gap * 0.65}em` }}
         >
           <EntryHead
+            surface={surface}
             primary={item.name}
             secondary={item.issuer || undefined}
             meta={formatPartialDate(item.date, c.dateFormat)}
@@ -1112,7 +1256,7 @@ export function CertificationsContent(props: PartProps) {
 
 export function AwardsContent(props: PartProps) {
   const { cv, c, accent, variant = 'stack' } = props;
-  const { color, muted, gap } = useTone(props);
+  const { surface, color, muted, gap } = useTone(props);
   const items = cv.awards.filter((item) => item.title);
   if (items.length === 0) return null;
 
@@ -1142,6 +1286,7 @@ export function AwardsContent(props: PartProps) {
           style={{ marginTop: index === 0 ? 0 : `${gap * 0.65}em` }}
         >
           <EntryHead
+            surface={surface}
             primary={item.title}
             secondary={item.issuer || undefined}
             meta={formatPartialDate(item.date, c.dateFormat)}
@@ -1161,7 +1306,7 @@ export function AwardsContent(props: PartProps) {
 
 export function VolunteerContent(props: PartProps) {
   const { cv, c, accent, variant = 'stack' } = props;
-  const { color, muted, gap } = useTone(props);
+  const { surface, accentText, color, muted, gap } = useTone(props);
   const items = cv.volunteer.filter((item) => item.role || item.organization);
   if (items.length === 0) return null;
 
@@ -1174,6 +1319,7 @@ export function VolunteerContent(props: PartProps) {
           style={{ marginTop: index === 0 ? 0 : `${gap * (variant === 'compact' ? 0.6 : 1)}em` }}
         >
           <EntryHead
+            surface={surface}
             primary={item.role}
             secondary={[item.organization, item.location].filter(Boolean).join(' · ')}
             meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}
@@ -1185,7 +1331,7 @@ export function VolunteerContent(props: PartProps) {
           />
           {item.description ? (
             <div style={{ color: muted, marginTop: '0.2em' }}>
-              <RichText text={item.description} marker={props.marker} markerColor={accent} />
+              <RichText text={item.description} marker={props.marker} markerColor={accentText} />
             </div>
           ) : null}
         </div>
@@ -1195,8 +1341,8 @@ export function VolunteerContent(props: PartProps) {
 }
 
 export function PublicationsContent(props: PartProps) {
-  const { cv, c, accent, variant = 'stack' } = props;
-  const { color, muted, gap } = useTone(props);
+  const { cv, c, variant = 'stack' } = props;
+  const { accentText, color, muted, gap } = useTone(props);
   const items = cv.publications.filter((item) => item.title);
   if (items.length === 0) return null;
 
@@ -1213,7 +1359,7 @@ export function PublicationsContent(props: PartProps) {
               marginTop: index === 0 ? 0 : `${gap * 0.6}em`,
             }}
           >
-            <span style={{ color: accent, fontWeight: 700 }}>{index + 1}.</span>
+            <span style={{ color: accentText, fontWeight: 700 }}>{index + 1}.</span>
             <span>
               <span style={{ fontWeight: 700, color }}>{item.title}</span>
               <span style={{ color: muted }}>
@@ -1250,7 +1396,7 @@ export function PublicationsContent(props: PartProps) {
             <p style={{ color: muted, marginTop: '0.15em' }}>{item.description}</p>
           ) : null}
           {item.url ? (
-            <div style={{ color: accent, fontSize: '0.9em', marginTop: '0.1em' }}>
+            <div style={{ color: accentText, fontSize: '0.9em', marginTop: '0.1em' }}>
               {prettyUrl(item.url)}
             </div>
           ) : null}
@@ -1262,12 +1408,19 @@ export function PublicationsContent(props: PartProps) {
 
 export function InterestsContent(props: PartProps) {
   const { cv, accent, variant = 'inline' } = props;
-  const { color, muted } = useTone(props);
+  const { surface, color, muted } = useTone(props);
   const items = cv.interests.filter((item) => item.name);
   if (items.length === 0) return null;
 
   if (variant === 'tags') {
-    return <Tags items={items.map((item) => item.name)} accent={accent} color={color} />;
+    return (
+      <Tags
+        surface={surface}
+        items={items.map((item) => item.name)}
+        accent={accent}
+        color={color}
+      />
+    );
   }
 
   if (variant === 'stack') {
@@ -1287,8 +1440,8 @@ export function InterestsContent(props: PartProps) {
 }
 
 export function ReferencesContent(props: PartProps) {
-  const { cv, accent, variant = 'stack' } = props;
-  const { color, muted, gap } = useTone(props);
+  const { cv, variant = 'stack' } = props;
+  const { accentText, color, muted, gap } = useTone(props);
   const items = cv.references.filter((item) => item.name);
   if (items.length === 0) return null;
 
@@ -1307,7 +1460,7 @@ export function ReferencesContent(props: PartProps) {
             <div style={{ color: muted, fontSize: '0.92em' }}>
               {[item.role, item.company].filter(Boolean).join(', ')}
             </div>
-            <div style={{ color: accent, fontSize: '0.9em' }}>
+            <div style={{ color: accentText, fontSize: '0.9em' }}>
               {[item.email, item.phone].filter(Boolean).join(' · ')}
             </div>
           </div>
@@ -1339,7 +1492,7 @@ export function ReferencesContent(props: PartProps) {
 
 export function CustomSectionContent(props: PartProps & { sectionId: string }) {
   const { cv, accent, sectionId } = props;
-  const { color, muted, gap } = useTone(props);
+  const { surface, accentText, color, muted, gap } = useTone(props);
   const section = cv.customSections.find((entry) => entry.id === customSectionKey(sectionId));
   const items = section?.items.filter((item) => item.heading || item.description) ?? [];
   if (items.length === 0) return null;
@@ -1349,6 +1502,7 @@ export function CustomSectionContent(props: PartProps & { sectionId: string }) {
       {items.map((item, index) => (
         <div key={item.id} className="cv-block" style={{ marginTop: index === 0 ? 0 : `${gap}em` }}>
           <EntryHead
+            surface={surface}
             primary={item.heading}
             secondary={item.subheading || undefined}
             meta={item.date || undefined}
@@ -1359,7 +1513,7 @@ export function CustomSectionContent(props: PartProps & { sectionId: string }) {
           />
           {item.description ? (
             <div style={{ color: muted, marginTop: '0.2em' }}>
-              <RichText text={item.description} markerColor={accent} />
+              <RichText text={item.description} markerColor={accentText} />
             </div>
           ) : null}
         </div>
@@ -1373,12 +1527,12 @@ export function CustomSectionContent(props: PartProps & { sectionId: string }) {
 /* -------------------------------------------------------------------------- */
 
 export function SummaryContent(props: PartProps & { align?: 'left' | 'justify' | 'center' }) {
-  const { cv, align = 'left', accent } = props;
-  const { color, muted, marker } = useTone(props);
+  const { cv, align = 'left' } = props;
+  const { accentText, color, muted, marker } = useTone(props);
   if (!cv.summary.trim()) return null;
   return (
     <div style={{ color: muted === DEFAULT_MUTED ? color : muted, textAlign: align }}>
-      <RichText text={cv.summary} marker={marker} markerColor={accent} />
+      <RichText text={cv.summary} marker={marker} markerColor={accentText} />
     </div>
   );
 }
@@ -1404,7 +1558,11 @@ export function SectionContent(props: SectionContentProps): ReactNode {
 
   if (isCustomSectionId(sectionId)) {
     return (
-      <CustomSectionContent {...rest} sectionId={sectionId} variant={variants?.custom ?? rest.variant} />
+      <CustomSectionContent
+        {...rest}
+        sectionId={sectionId}
+        variant={variants?.custom ?? rest.variant}
+      />
     );
   }
 
@@ -1454,14 +1612,7 @@ export interface ContactEntry {
   icon: ContactIconKey;
 }
 
-export type ContactIconKey =
-  | 'mail'
-  | 'phone'
-  | 'pin'
-  | 'globe'
-  | 'linkedin'
-  | 'github'
-  | 'link';
+export type ContactIconKey = 'mail' | 'phone' | 'pin' | 'globe' | 'linkedin' | 'github' | 'link';
 
 /** Ordered, de-duplicated contact rows. Empty fields are dropped. */
 export function contactEntries(cv: CVData): ContactEntry[] {
@@ -1604,6 +1755,7 @@ export function ContactList({
   cv,
   accent,
   color,
+  surface = WHITE,
   icons = true,
   layout = 'inline',
   separator = '  •  ',
@@ -1614,6 +1766,8 @@ export function ContactList({
   cv: CVData;
   accent: string;
   color?: string;
+  /** The panel or band behind the list; `color` is measured against it. */
+  surface?: string;
   icons?: boolean;
   layout?: 'inline' | 'stack' | 'grid';
   separator?: string;
@@ -1623,12 +1777,11 @@ export function ContactList({
 }) {
   const entries = contactEntries(cv);
   if (entries.length === 0) return null;
+  color = color ? contrastAgainst(color, surface) : color;
 
   if (!icons && layout === 'inline') {
     return (
-      <div style={{ color, fontSize }}>
-        {entries.map((entry) => entry.label).join(separator)}
-      </div>
+      <div style={{ color, fontSize }}>{entries.map((entry) => entry.label).join(separator)}</div>
     );
   }
 
@@ -1651,9 +1804,7 @@ export function ContactList({
           key={entry.key}
           style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4em', minWidth: 0 }}
         >
-          {icons ? (
-            <ContactIcon name={entry.icon} size="1em" color={iconColor ?? accent} />
-          ) : null}
+          {icons ? <ContactIcon name={entry.icon} size="1em" color={iconColor ?? accent} /> : null}
           {entry.href ? (
             <a href={entry.href} style={{ color: 'inherit' }}>
               {entry.label}
@@ -1675,7 +1826,7 @@ export function Photo({
   border,
   borderWidth = 3,
   fallbackBackground,
-  fallbackColor = '#ffffff',
+  fallbackColor,
 }: {
   cv: CVData;
   c: CVCustomization;
@@ -1683,12 +1834,21 @@ export function Photo({
   border?: string;
   borderWidth?: number;
   fallbackBackground?: string;
+  /** Defaults to whichever of white or ink is legible on `fallbackBackground`. */
   fallbackColor?: string;
 }) {
   if (!c.showPhoto) return null;
 
   const radius = c.photoShape === 'circle' ? '50%' : c.photoShape === 'rounded' ? 8 : 0;
   const name = `${cv.personal.firstName} ${cv.personal.lastName}`.trim();
+  /*
+   * Four templates fill this circle with the accent and never said what colour the initials
+   * should be, so they got white — "AE" at 2.15:1 on amber. The initials are the fallback a
+   * user sees before they upload a photo, which makes them the first thing on the page for
+   * anyone who never does.
+   */
+  const plate = fallbackBackground ?? '#e6e9ef';
+  const initialsColour = fallbackColor ?? readableOn(plate);
 
   const frameStyle: CSSProperties = {
     width: size,
@@ -1697,7 +1857,7 @@ export function Photo({
     overflow: 'hidden',
     flexShrink: 0,
     border: border ? `${borderWidth}px solid ${border}` : undefined,
-    background: fallbackBackground ?? '#e6e9ef',
+    background: plate,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1712,7 +1872,7 @@ export function Photo({
           style={{
             fontSize: size * 0.34,
             fontWeight: 700,
-            color: fallbackColor,
+            color: initialsColour,
             letterSpacing: '0.02em',
           }}
         >

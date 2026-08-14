@@ -1,5 +1,5 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { accentOn, mutedOn, headingTracking, headingTransform, tint } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -43,7 +43,14 @@ export const meta: TemplateMeta = {
  */
 export default function ModernCreative({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
-  const muted = tint(c.textColor, 0.42);
+  /*
+   * The lightest surface the document paints on is not paper — it is this panel. Text
+   * clamped against it is legible here and, being darker still, legible on white too, so a
+   * single declaration covers every section instead of one per background.
+   */
+  const panel = tint(accent, 0.88);
+  const accentText = accentOn(accent, panel);
+  const muted = mutedOn(c.textColor, 0.42, panel);
   const sections = visibleSections(cv);
   const first = cv.personal.firstName.trim();
   const last = cv.personal.lastName.trim();
@@ -61,16 +68,20 @@ export default function ModernCreative({ cv, customization: c }: CVTemplateProps
         }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ fontSize: '3em', lineHeight: 1.02, fontWeight: 800, letterSpacing: '-0.02em' }}>
+          <h1
+            style={{ fontSize: '3em', lineHeight: 1.02, fontWeight: 800, letterSpacing: '-0.02em' }}
+          >
             {first || last ? (
               <>
-                {first ? <span style={{ display: 'block', color: c.textColor }}>{first}</span> : null}
-                {last ? <span style={{ display: 'block', color: accent }}>{last}</span> : null}
+                {first ? (
+                  <span style={{ display: 'block', color: c.textColor }}>{first}</span>
+                ) : null}
+                {last ? <span style={{ display: 'block', color: accentText }}>{last}</span> : null}
               </>
             ) : (
               <>
                 <span style={{ display: 'block', color: c.textColor }}>Your</span>
-                <span style={{ display: 'block', color: accent }}>Name</span>
+                <span style={{ display: 'block', color: accentText }}>Name</span>
               </>
             )}
           </h1>
@@ -102,10 +113,17 @@ export default function ModernCreative({ cv, customization: c }: CVTemplateProps
           </div>
         </div>
 
-        <Photo cv={cv} c={c} size={128} border="#ffffff" borderWidth={4} fallbackBackground={accent} />
+        <Photo
+          cv={cv}
+          c={c}
+          size={128}
+          border="#ffffff"
+          borderWidth={4}
+          fallbackBackground={accent}
+        />
       </header>
 
-      <main
+      <div
         style={{
           padding: `${c.pageMargin * 0.85}px ${c.pageMargin}px ${c.pageMargin}px`,
           flex: 1,
@@ -173,7 +191,7 @@ export default function ModernCreative({ cv, customization: c }: CVTemplateProps
             />
           </section>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

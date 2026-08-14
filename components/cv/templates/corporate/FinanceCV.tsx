@@ -1,5 +1,5 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -50,6 +50,7 @@ const GUTTER = '0.62em';
  */
 export default function FinanceCV({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const name = fullName(cv);
 
@@ -83,7 +84,7 @@ export default function FinanceCV({ cv, customization: c }: CVTemplateProps) {
                 marginTop: '0.22em',
                 fontSize: '0.9em',
                 fontWeight: 600,
-                color: accent,
+                color: accentText,
                 textTransform: 'uppercase',
                 letterSpacing: '0.12em',
               }}
@@ -104,7 +105,7 @@ export default function FinanceCV({ cv, customization: c }: CVTemplateProps) {
         </div>
       </header>
 
-      <main>
+      <div>
         {sections.map((section, index) => (
           <section
             key={section.id}
@@ -159,7 +160,7 @@ export default function FinanceCV({ cv, customization: c }: CVTemplateProps) {
             </div>
           </section>
         ))}
-      </main>
+      </div>
     </div>
   );
 }

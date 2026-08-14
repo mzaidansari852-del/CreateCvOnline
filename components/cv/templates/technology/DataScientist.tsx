@@ -1,5 +1,12 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  mutedOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -47,13 +54,20 @@ const MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 
  */
 export default function DataScientist({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
-  const muted = tint(c.textColor, 0.42);
+  /*
+   * The lightest surface the document paints on is not paper — it is this panel. Text
+   * clamped against it is legible here and, being darker still, legible on white too, so a
+   * single declaration covers every section instead of one per background.
+   */
+  const panel = tint(accent, 0.95);
+  const accentText = accentOn(accent, panel);
+  const muted = mutedOn(c.textColor, 0.42, panel);
   const sections = visibleSections(cv);
   const name = fullName(cv);
   const publicationCount = cv.publications.filter((item) => item.title).length;
 
   const bracket = {
-    color: accent,
+    color: accentText,
     fontWeight: 400,
     fontSize: '1.5em',
     lineHeight: 1,
@@ -90,7 +104,7 @@ export default function DataScientist({ cv, customization: c }: CVTemplateProps)
                 fontFamily: MONO,
                 fontSize: '0.92em',
                 letterSpacing: '0.02em',
-                color: accent,
+                color: accentText,
               }}
             >
               {cv.personal.title}
@@ -114,7 +128,9 @@ export default function DataScientist({ cv, customization: c }: CVTemplateProps)
           <section
             key={section.id}
             className="cv-section"
-            style={{ marginTop: index === 0 ? `${c.sectionSpacing * 0.9}px` : `${c.sectionSpacing}px` }}
+            style={{
+              marginTop: index === 0 ? `${c.sectionSpacing * 0.9}px` : `${c.sectionSpacing}px`,
+            }}
           >
             <h2
               className="cv-section-title"
@@ -145,7 +161,7 @@ export default function DataScientist({ cv, customization: c }: CVTemplateProps)
                     fontSize: '0.8em',
                     fontWeight: 500,
                     letterSpacing: '0.02em',
-                    color: accent,
+                    color: accentText,
                     textTransform: 'none',
                   }}
                 >

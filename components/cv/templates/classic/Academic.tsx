@@ -1,5 +1,12 @@
 import { contactEntries, ContactIcon, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  centredTracking,
+  accentOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVData, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -45,6 +52,7 @@ export const meta: TemplateMeta = {
  */
 export default function Academic({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
+  const accentText = accentOn(accent);
   const rule = tint(accent, 0.42);
   const sections = visibleSections(cv);
   const name = fullName(cv);
@@ -58,14 +66,14 @@ export default function Academic({ cv, customization: c }: CVTemplateProps) {
             fontSize: '1.82em',
             lineHeight: 1.14,
             fontWeight: 600,
-            letterSpacing: '0.05em',
+            ...centredTracking('0.05em'),
             color: c.secondaryColor,
           }}
         >
           {name || 'Your Name'}
         </h1>
         {cv.personal.title ? (
-          <p style={{ marginTop: '0.2em', fontSize: '1.04em', color: accent }}>
+          <p style={{ marginTop: '0.2em', fontSize: '1.04em', color: accentText }}>
             {cv.personal.title}
           </p>
         ) : null}
@@ -94,7 +102,7 @@ export default function Academic({ cv, customization: c }: CVTemplateProps) {
               marginBottom: '0.45em',
             }}
           >
-            <span aria-hidden style={{ color: accent, marginRight: '0.45em' }}>
+            <span aria-hidden style={{ color: accentText, marginRight: '0.45em' }}>
               {index + 1}.
             </span>
             {section.label}

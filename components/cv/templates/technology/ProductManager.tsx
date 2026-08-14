@@ -1,5 +1,12 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  mutedOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -48,7 +55,8 @@ const IMPACT_CELLS = 3;
  */
 export default function ProductManager({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
-  const muted = tint(c.textColor, 0.4);
+  const accentText = accentOn(accent);
+  const muted = mutedOn(c.textColor, 0.4);
   const sections = visibleSections(cv);
   const name = fullName(cv);
 
@@ -79,7 +87,9 @@ export default function ProductManager({ cv, customization: c }: CVTemplateProps
             {name || 'Your Name'}
           </h1>
           {cv.personal.title ? (
-            <p style={{ marginTop: '0.2em', fontSize: '1.08em', fontWeight: 600, color: accent }}>
+            <p
+              style={{ marginTop: '0.2em', fontSize: '1.08em', fontWeight: 600, color: accentText }}
+            >
               {cv.personal.title}
             </p>
           ) : null}
@@ -121,7 +131,7 @@ export default function ProductManager({ cv, customization: c }: CVTemplateProps
                   fontSize: '0.72em',
                   fontWeight: 700,
                   letterSpacing: '0.14em',
-                  color: accent,
+                  color: accentText,
                 }}
               >
                 {String(index + 1).padStart(2, '0')}

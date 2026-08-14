@@ -2,7 +2,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import { CVDocument } from '@/components/cv/CVDocument';
-import { createDefaultCustomization, createEmptyCV, createMinimalCV, createSampleCV } from '@/lib/cv/defaults';
+import {
+  createDefaultCustomization,
+  createEmptyCV,
+  createMinimalCV,
+  createSampleCV,
+} from '@/lib/cv/defaults';
 import { TEMPLATES, TEMPLATE_CATEGORIES } from '@/lib/cv/template-registry';
 import { cvCustomizationSchema } from '@/types/cv';
 import type { CVCustomization, CVData } from '@/types/cv';
@@ -41,6 +46,24 @@ function render(cv: CVData, customization: CVCustomization): string {
   return renderToStaticMarkup(<CVDocument cv={cv} customization={customization} />);
 }
 
+/**
+ * A CV with a full career and nothing that belongs in a sidebar.
+ *
+ * Not the same as an empty CV, which is the easy case every template already survives. This
+ * is the realistic one: someone who wrote their experience and education and left the
+ * optional lists alone.
+ */
+function withoutSidebarSections(cv: CVData): CVData {
+  return {
+    ...cv,
+    skills: [],
+    languages: [],
+    certifications: [],
+    interests: [],
+    references: [],
+  };
+}
+
 describe('template registry', () => {
   it('contains more than fifty templates', () => {
     expect(TEMPLATES.length).toBeGreaterThanOrEqual(50);
@@ -62,7 +85,9 @@ describe('template registry', () => {
 
   it('uses URL-safe slugs', () => {
     for (const template of TEMPLATES) {
-      expect(template.slug, `${template.id} has an unsafe slug`).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
+      expect(template.slug, `${template.id} has an unsafe slug`).toMatch(
+        /^[a-z0-9]+(-[a-z0-9]+)*$/,
+      );
     }
   });
 
@@ -127,6 +152,75 @@ describe.each(TEMPLATES.map((template) => [template.name, template] as const))(
       },
     );
 
+    /**
+     * "Does not throw" is what let this ship.
+     *
+     * Skills, languages, certifications and interests are all optional, and a user who turns
+     * them off is not doing anything unusual — a one-page engineering CV often has none of
+     * them. Seven of the thirteen two-column templates reserved the sidebar column anyway:
+     * `ManagementCV` painted a full-height tinted band, on every page of the PDF, containing
+     * nothing. The old test rendered exactly this and passed.
+     */
+    it('does not reserve a sidebar column with nothing in it', () => {
+      const customization = createDefaultCustomization({
+        templateId: template.id,
+        accentColor: template.accentDefault,
+      });
+      const html = render(withoutSidebarSections(createSampleCV()), customization);
+      const root = document.createElement('div');
+      root.innerHTML = html;
+
+      for (const element of Array.from(root.querySelectorAll<HTMLElement>('*'))) {
+        const columns = /grid-template-columns:\s*([^;"]+)/.exec(
+          element.getAttribute('style') ?? '',
+        )?.[1];
+        if (!columns) continue;
+
+        /*
+         * Only proportional grids — the ones that divide the page. A grid with a fixed track
+         * (`minmax(0, 1fr) 6.5em`) is a date rail or a label/value pair, and an empty cell in
+         * one of those is an entry without a date, not a wasted column.
+         */
+        if (/\d\s*(em|px|rem|ch)/.test(columns)) continue;
+
+        // A two-track grid whose second track is empty is the failure. One track is the
+        // collapsed state we want; a grid whose tracks all have content is fine.
+        const tracks = Array.from(element.children);
+        if (tracks.length < 2) continue;
+        const empty = tracks.filter((track) => (track.textContent ?? '').trim().length === 0);
+        expect(
+          empty.length,
+          `${template.name} keeps ${empty.length} empty column(s) in "${columns.trim()}" ` +
+            'when the sidebar sections are all switched off',
+        ).toBe(0);
+      }
+    });
+
+    it('paints no page-wide band behind an empty sidebar', () => {
+      const customization = createDefaultCustomization({
+        templateId: template.id,
+        accentColor: template.accentDefault,
+      });
+      const bare = withoutSidebarSections(createSampleCV());
+      const background = template.pageBackground?.(customization, bare);
+      if (!background) return;
+
+      // A rail is page furniture and stays; a band is the sidebar and must not outlive it.
+      const isRail = background.includes('/');
+      const html = render(bare, customization);
+      const root = document.createElement('div');
+      root.innerHTML = html;
+      const aside = root.querySelector('aside');
+      const asideIsEmpty = !aside || (aside.textContent ?? '').trim().length === 0;
+
+      if (asideIsEmpty && !isRail) {
+        expect(
+          background,
+          `${template.name} still paints "${background}" with an empty sidebar`,
+        ).toBeUndefined();
+      }
+    });
+
     it.each(VARIANTS.map((variant) => [variant.name, variant.customization] as const))(
       'survives customization: %s',
       (_label, overrides) => {
@@ -162,13 +256,19 @@ describe.each(TEMPLATES.map((template) => [template.name, template] as const))(
     });
 
     it('renders the candidate name and headline', () => {
-      const html = render(createSampleCV(), createDefaultCustomization({ templateId: template.id }));
+      const html = render(
+        createSampleCV(),
+        createDefaultCustomization({ templateId: template.id }),
+      );
       expect(html).toContain('Amina');
       expect(html).toContain('Senior Product Designer');
     });
 
     it('marks entries as unbreakable so pagination cannot split them', () => {
-      const html = render(createSampleCV(), createDefaultCustomization({ templateId: template.id }));
+      const html = render(
+        createSampleCV(),
+        createDefaultCustomization({ templateId: template.id }),
+      );
       expect(html).toContain('cv-block');
       expect(html).toContain('cv-section');
     });
@@ -183,7 +283,10 @@ describe.each(TEMPLATES.map((template) => [template.name, template] as const))(
     });
 
     it('uses no viewport units or fixed positioning', () => {
-      const html = render(createSampleCV(), createDefaultCustomization({ templateId: template.id }));
+      const html = render(
+        createSampleCV(),
+        createDefaultCustomization({ templateId: template.id }),
+      );
       expect(html).not.toMatch(/\d(vh|vw|dvh|svh)\b/);
       expect(html).not.toMatch(/position:\s*fixed/);
     });
@@ -223,4 +326,31 @@ describe('switching template', () => {
       render(createSampleCV(), createDefaultCustomization({ templateId: 'does-not-exist' })),
     ).not.toThrow();
   });
+});
+
+/**
+ * Document structure the templates must not break.
+ *
+ * A CV is rendered *inside* the page — inside `<main id="main">` on the marketing pages,
+ * inside the editor's preview pane, inside the print route. Thirty-one templates opened a
+ * second `<main>` for their content column, which puts two main landmarks in one document:
+ * a screen-reader user navigating by landmark lands in the sample CV instead of the page,
+ * and "skip to main content" becomes ambiguous. The columns are `<div>` now; `<aside>` is
+ * kept, because a complementary landmark inside a document is correct.
+ */
+describe('document structure', () => {
+  it.each(TEMPLATES.map((template) => [template.name, template] as const))(
+    '%s opens no landmark that belongs to the page',
+    (_name, template) => {
+      const html = render(
+        createSampleCV(),
+        createDefaultCustomization({
+          templateId: template.id,
+          accentColor: template.accentDefault,
+        }),
+      );
+      expect(html, `${template.name} renders its own <main>`).not.toMatch(/<main[\s>]/);
+      expect(html, `${template.name} renders its own <header id>`).not.toMatch(/<body[\s>]/);
+    },
+  );
 });

@@ -156,6 +156,35 @@ export default async function AdminSettingsPage() {
               <Env>NEXT_PUBLIC_PAYPAL_CLIENT_ID</Env>, which is currently{' '}
               {publicEnv.paypalClientId ? 'present' : 'missing'}. Store currency:{' '}
               <span className="font-medium">{publicEnv.paypalCurrency}</span>.
+              {paypal ? (
+                <>
+                  {' '}
+                  <span className="mt-2 block">
+                    <strong className="font-semibold">What this deployment received.</strong>{' '}
+                    A 401 from PayPal on credentials that work elsewhere means the hosting
+                    dashboard delivered something other than what you pasted — a duplicate
+                    variable at a narrower scope, a stale value from before the last build, or
+                    a truncated paste. Compare these against the console rather than
+                    redeploying and hoping. No secret is shown: the client id is public, and
+                    the secret is only measured.
+                  </span>
+                  <span className="mt-2 block font-mono text-2xs">
+                    client id — {paypal.clientId.length} chars, {paypal.clientId.slice(0, 8)}…
+                    {paypal.clientId.slice(-6)}
+                    <br />
+                    secret — {paypal.clientSecret.length} chars
+                    <br />
+                    webhook id — {paypal.webhookId ? `${paypal.webhookId.length} chars` : 'not set'}
+                    <br />
+                    browser copy —{' '}
+                    {publicEnv.paypalClientId
+                      ? publicEnv.paypalClientId === paypal.clientId
+                        ? 'matches the server value'
+                        : 'DIFFERS from the server value'
+                      : 'not set'}
+                  </span>
+                </>
+              ) : null}
             </>
           }
         />

@@ -126,6 +126,28 @@ function readServiceAccount(): {
   };
 }
 
+/**
+ * Reads an opaque credential — a PayPal client id, secret or webhook id.
+ *
+ * These are base64url-ish tokens: letters, digits, `-`, `_`, `.`. They never legitimately
+ * contain whitespace or quotes, and both get introduced by hand in a hosting dashboard:
+ *
+ *  - PayPal's console wraps a long client id across two lines, so select-and-copy yields
+ *    a value with a newline in the middle. `trim()` does not touch that.
+ *  - Anyone who has just pasted `FIREBASE_PRIVATE_KEY` — which *must* keep its wrapping
+ *    quotes — tends to quote the next value too, out of habit.
+ *
+ * Either produces a 401 from PayPal's token endpoint and an afternoon spent re-reading
+ * credentials that were correct all along. Both are unambiguously mistakes, so repair
+ * them here rather than reporting them.
+ */
+function readOpaqueToken(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const unquoted = raw.trim().replace(/^["']|["']$/g, '');
+  const compact = unquoted.replace(/\s+/g, '');
+  return compact.length > 0 ? compact : undefined;
+}
+
 export interface ServerEnv {
   firebaseAdmin: { projectId: string; clientEmail: string; privateKey: string } | null;
   storageBucket: string | undefined;
@@ -153,9 +175,11 @@ export function serverEnv(): ServerEnv {
 
   const firebaseAdmin = readServiceAccount();
 
-  const paypalClientId = process.env.PAYPAL_CLIENT_ID?.trim();
-  const paypalClientSecret = process.env.PAYPAL_CLIENT_SECRET?.trim();
-  const paypalEnvironment = (process.env.PAYPAL_ENVIRONMENT?.trim() || 'sandbox').toLowerCase();
+  const paypalClientId = readOpaqueToken(process.env.PAYPAL_CLIENT_ID);
+  const paypalClientSecret = readOpaqueToken(process.env.PAYPAL_CLIENT_SECRET);
+  const paypalEnvironment = (
+    readOpaqueToken(process.env.PAYPAL_ENVIRONMENT) || 'sandbox'
+  ).toLowerCase();
 
   cached = {
     firebaseAdmin,
@@ -169,7 +193,7 @@ export function serverEnv(): ServerEnv {
             clientId: paypalClientId,
             clientSecret: paypalClientSecret,
             environment: paypalEnvironment === 'live' ? 'live' : 'sandbox',
-            webhookId: process.env.PAYPAL_WEBHOOK_ID?.trim() || undefined,
+            webhookId: readOpaqueToken(process.env.PAYPAL_WEBHOOK_ID),
           }
         : null,
     pdf: {

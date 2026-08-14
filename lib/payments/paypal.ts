@@ -56,9 +56,19 @@ async function accessToken(): Promise<string> {
   });
 
   if (!response.ok) {
+    const { environment } = requirePayPalEnv();
+    // A bare "401" sends you back to the PayPal console to re-read credentials that are
+    // usually correct — the real fault is nearly always a mangled paste. The shape of the
+    // values narrows it down without putting a secret in the log: the client id's prefix
+    // is public, and only the *length* of the secret is reported.
     throw new PayPalError(
       response.status,
-      `PayPal rejected the API credentials (${response.status}). Check PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET and that they belong to the "${requirePayPalEnv().environment}" environment.`,
+      `PayPal rejected the API credentials (${response.status}) in the "${environment}" environment. ` +
+        `Client id: ${clientId.length} chars, starts "${clientId.slice(0, 8)}". ` +
+        `Secret: ${clientSecret.length} chars. ` +
+        'Sandbox ids are typically 80-82 chars and secrets 80. If a length looks short the ' +
+        'value was truncated on paste; if this followed a key rotation, the deployment is ' +
+        'still holding the old secret and needs a redeploy.',
     );
   }
 

@@ -57,6 +57,9 @@ async function accessToken(): Promise<string> {
 
   if (!response.ok) {
     const { environment } = requirePayPalEnv();
+    const detail = (await response.json().catch(() => null)) as
+      | { error?: string; error_description?: string }
+      | null;
     // A bare "401" sends you back to the PayPal console to re-read credentials that are
     // usually correct — the real fault is nearly always a mangled paste. The shape of the
     // values narrows it down without putting a secret in the log: the client id's prefix
@@ -68,7 +71,10 @@ async function accessToken(): Promise<string> {
         `Secret: ${clientSecret.length} chars. ` +
         'Sandbox ids are typically 80-82 chars and secrets 80. If a length looks short the ' +
         'value was truncated on paste; if this followed a key rotation, the deployment is ' +
-        'still holding the old secret and needs a redeploy.',
+        'still holding the old secret and needs a redeploy.' +
+        (detail?.error_description ? ` PayPal said: ${detail.error_description}.` : ''),
+      undefined,
+      detail?.error ?? `oauth_${response.status}`,
     );
   }
 
@@ -83,12 +89,23 @@ async function accessToken(): Promise<string> {
 export class PayPalError extends Error {
   readonly status: number;
   readonly debugId?: string;
+  /**
+   * PayPal's machine-readable cause — `invalid_client`, `CURRENCY_NOT_SUPPORTED`,
+   * `PAYEE_ACCOUNT_RESTRICTED`, and so on.
+   *
+   * Worth carrying separately from the message because it is the one part of a payment
+   * failure that is both safe to show a user and precise enough to act on. Without it
+   * every provider fault collapses into "please try again", and diagnosing one means
+   * reading server logs — which the person who hit the error cannot do.
+   */
+  readonly issue?: string;
 
-  constructor(status: number, message: string, debugId?: string) {
+  constructor(status: number, message: string, debugId?: string, issue?: string) {
     super(message);
     this.name = 'PayPalError';
     this.status = status;
     this.debugId = debugId;
+    this.issue = issue;
   }
 }
 
@@ -124,6 +141,8 @@ async function call<T>(
       first?.description ??
         (typeof payload.message === 'string' ? payload.message : `PayPal request failed (${response.status})`),
       typeof payload.debug_id === 'string' ? payload.debug_id : undefined,
+      // `details[0].issue` for Orders v2 faults, `name` for the envelope-level ones.
+      first?.issue ?? (typeof payload.name === 'string' ? payload.name : undefined),
     );
   }
 

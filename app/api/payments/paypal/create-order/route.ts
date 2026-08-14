@@ -54,8 +54,23 @@ export const POST = authedRoute(
       });
     } catch (error) {
       if (error instanceof PayPalError) {
-        console.error('[paypal] create order failed', error.message, error.debugId);
-        return apiError(502, 'payment-provider-error', 'PayPal could not start this payment. Please try again.');
+        console.error(
+          '[paypal] create order failed',
+          `status=${error.status}`,
+          `issue=${error.issue ?? 'none'}`,
+          `debugId=${error.debugId ?? 'none'}`,
+          error.message,
+        );
+        // The issue code and debug id go back to the browser. Neither is a secret —
+        // `debug_id` is the reference PayPal's own support asks for — and without them a
+        // payment failure is unactionable for the person it happened to, who has no way
+        // to read a server log. The prose message stays generic.
+        return apiError(
+          502,
+          'payment-provider-error',
+          'PayPal could not start this payment. Please try again.',
+          { issue: error.issue ?? null, reference: error.debugId ?? null },
+        );
       }
       throw error;
     }

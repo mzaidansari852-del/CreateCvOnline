@@ -24,7 +24,11 @@ import type { PlanId } from '@/types/user';
 interface CreateOrderResponse {
   orderId?: string;
   approveUrl?: string | null;
-  error?: { code?: string; message?: string };
+  error?: {
+    code?: string;
+    message?: string;
+    details?: { issue?: string | null; reference?: string | null };
+  };
 }
 
 /** Only ever send the payer to PayPal itself. */
@@ -52,10 +56,13 @@ export function CheckoutButton({
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** PayPal's machine-readable cause plus its support reference, when it gave one. */
+  const [diagnostic, setDiagnostic] = useState<string | null>(null);
 
   const start = useCallback(async () => {
     setPending(true);
     setError(null);
+    setDiagnostic(null);
     trackEvent('checkout_started', { plan: planId });
 
     try {
@@ -76,6 +83,13 @@ export function CheckoutButton({
         setError(
           payload?.error?.message ??
             'PayPal could not start this payment. Please try again in a moment.',
+        );
+        const issue = payload?.error?.details?.issue;
+        const reference = payload?.error?.details?.reference;
+        setDiagnostic(
+          [issue ? `Cause: ${issue}` : null, reference ? `Reference: ${reference}` : null]
+            .filter(Boolean)
+            .join(' · ') || null,
         );
         setPending(false);
         return;
@@ -117,6 +131,11 @@ export function CheckoutButton({
       {error ? (
         <Alert tone="danger" title="Checkout could not start">
           {error}
+          {diagnostic ? (
+            <span className="mt-2 block font-mono text-2xs break-all opacity-80">
+              {diagnostic}
+            </span>
+          ) : null}
         </Alert>
       ) : null}
 

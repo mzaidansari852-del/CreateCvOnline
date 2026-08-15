@@ -480,6 +480,8 @@ export interface DashboardCopy {
   checkout: {
     noTransactionTitle: string;
     noTransactionBody: string;
+    unconfiguredTitle: string;
+    unconfiguredBody: string;
     openFailedTitle: string;
     openFailedBody: string;
     openingCheckout: string;
@@ -950,6 +952,9 @@ const EN: DashboardCopy = {
     noTransactionTitle: 'This link is missing its payment reference',
     noTransactionBody:
       'Payment links expire and can only be opened once. Start again from the pricing page, or reply to the email you received and we will send a new one.',
+    unconfiguredTitle: 'Card payments are not available right now',
+    unconfiguredBody:
+      'This is a problem on our side, not with your payment — nothing has been charged. Please try again shortly, or contact us and we will send you a working link.',
     openFailedTitle: 'We could not open the payment window',
     openFailedBody:
       'Nothing has been charged. Refresh the page to try again — if it keeps failing, contact us and quote the link you followed.',
@@ -1465,6 +1470,9 @@ const FR: DashboardCopy = {
     noTransactionTitle: 'Il manque la référence de paiement dans ce lien',
     noTransactionBody:
       'Les liens de paiement expirent et ne peuvent être ouverts qu’une seule fois. Recommencez depuis la page des tarifs, ou répondez à l’e-mail reçu et nous vous en enverrons un nouveau.',
+    unconfiguredTitle: 'Le paiement par carte est indisponible pour le moment',
+    unconfiguredBody:
+      'Le problème vient de chez nous, pas de votre paiement — aucun montant n’a été débité. Réessayez dans quelques instants, ou contactez-nous et nous vous enverrons un lien fonctionnel.',
     openFailedTitle: 'Impossible d’ouvrir la fenêtre de paiement',
     openFailedBody:
       'Aucun montant n’a été débité. Actualisez la page pour réessayer — si le problème persiste, contactez-nous en indiquant le lien que vous avez suivi.',
@@ -1972,6 +1980,9 @@ const DE: DashboardCopy = {
     noTransactionTitle: 'Diesem Link fehlt die Zahlungsreferenz',
     noTransactionBody:
       'Zahlungslinks laufen ab und lassen sich nur einmal öffnen. Beginnen Sie erneut auf der Preisseite, oder antworten Sie auf die erhaltene E-Mail — wir senden Ihnen dann einen neuen Link.',
+    unconfiguredTitle: 'Kartenzahlung ist derzeit nicht verfügbar',
+    unconfiguredBody:
+      'Das liegt an uns und nicht an Ihrer Zahlung — es wurde nichts abgebucht. Bitte versuchen Sie es in Kürze erneut, oder kontaktieren Sie uns; wir senden Ihnen dann einen funktionierenden Link.',
     openFailedTitle: 'Das Zahlungsfenster konnte nicht geöffnet werden',
     openFailedBody:
       'Es wurde nichts abgebucht. Laden Sie die Seite neu, um es erneut zu versuchen — falls es weiterhin fehlschlägt, kontaktieren Sie uns und nennen Sie den verwendeten Link.',

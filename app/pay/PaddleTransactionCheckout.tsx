@@ -50,6 +50,16 @@ export function PaddleTransactionCheckout() {
     transactionId ? 'opening' : 'idle',
   );
 
+  /*
+   * Why the overlay did not open, when it did not.
+   *
+   * The first version of this page showed one message for two unrelated failures — "the
+   * site has no Paddle client token" and "Paddle.js was loaded and refused" — which are
+   * fixed in completely different places. Telling someone to refresh when the real problem
+   * is an unset environment variable wastes their time and mine.
+   */
+  const [reason, setReason] = useState<string | null>(null);
+
   useEffect(() => {
     if (!transactionId || !publicEnv.paddleClientToken) return;
 
@@ -89,8 +99,16 @@ export function PaddleTransactionCheckout() {
         if (cancelled || !paddle) return;
         paddle.Checkout.open({ transactionId });
         setState('open');
-      } catch {
-        if (!cancelled) setState('error');
+      } catch (cause) {
+        if (cancelled) return;
+        /*
+         * Always logged, never shown verbatim. The message is Paddle's and can name
+         * internals; the console is where whoever is configuring the site will look, and
+         * a customer should not be reading a stack trace on a payment page.
+         */
+        console.error('[paddle] could not open the checkout overlay', cause);
+        setReason(cause instanceof Error ? cause.message : String(cause));
+        setState('error');
       }
     })();
 
@@ -111,10 +129,35 @@ export function PaddleTransactionCheckout() {
     );
   }
 
-  if (state === 'error' || !publicEnv.paddleClientToken) {
+  /*
+   * Missing configuration is not a payment failure, and saying "refresh to try again"
+   * about it is actively misleading — no amount of refreshing sets an environment
+   * variable. This branch is what a misconfigured deployment looks like; the one below is
+   * what a genuine runtime failure looks like.
+   */
+  if (!publicEnv.paddleClientToken) {
+    if (typeof window !== 'undefined') {
+      console.error(
+        '[paddle] NEXT_PUBLIC_PADDLE_CLIENT_TOKEN is empty in this build. It is inlined at ' +
+          'build time, so setting it after a deploy has no effect until the site is rebuilt.',
+      );
+    }
+    return (
+      <Alert tone="danger" title={copy.checkout.unconfiguredTitle}>
+        <p>{copy.checkout.unconfiguredBody}</p>
+      </Alert>
+    );
+  }
+
+  if (state === 'error') {
     return (
       <Alert tone="danger" title={copy.checkout.openFailedTitle}>
         <p>{copy.checkout.openFailedBody}</p>
+        {reason ? (
+          // Shown small and last: useless to a customer, decisive for whoever is debugging,
+          // and far better than making them open the console to learn anything at all.
+          <p className="mt-2 font-mono text-xs break-words text-ink-500">{reason}</p>
+        ) : null}
       </Alert>
     );
   }

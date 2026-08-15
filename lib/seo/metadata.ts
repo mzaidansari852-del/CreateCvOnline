@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 
 import { TEMPLATE_COUNT } from '@/lib/cv/template-registry';
+import { DEFAULT_LOCALE, LOCALES, LOCALE_META, alternatesFor } from '@/lib/i18n/locales';
+import type { Locale } from '@/lib/i18n/locales';
 import { absoluteUrl, site } from '@/lib/site';
 import { publicEnv } from '@/lib/env';
 
@@ -27,6 +29,14 @@ export interface PageMetaInput {
   publishedTime?: string;
   modifiedTime?: string;
   authors?: string[];
+  /**
+   * The language this page is written in. Defaults to English.
+   *
+   * Setting it does three things at once: `og:locale`, the `hreflang` block, and the
+   * `x-default`. They are one input because they are one fact, and splitting them is how
+   * a page ends up announcing `fr_FR` to Facebook and `en` to Google.
+   */
+  locale?: Locale;
 }
 
 /** Title template: `Page title | CreateCVOnline`, with the home page using the raw title. */
@@ -44,6 +54,28 @@ export function pageMetadata(input: PageMetaInput): Metadata {
   const url = absoluteUrl(input.path);
   const title = pageTitle(input.title);
   const image = input.image ?? ogImageUrl(input.title, site.tagline);
+  const locale = input.locale ?? DEFAULT_LOCALE;
+
+  /*
+   * `hreflang`, built from the path map rather than from anything this page knows.
+   *
+   * Google requires the annotations to be reciprocal — if the English page names a French
+   * alternate, the French page must name the English one back, or the whole cluster is
+   * discarded. Deriving both sides from one table is the only version of that guarantee
+   * that survives someone adding a page in a hurry.
+   *
+   * `x-default` points at English: it is the fallback for a searcher whose language we do
+   * not publish, which is most of them.
+   */
+  const group = alternatesFor(input.path);
+  const languages = group
+    ? {
+        ...Object.fromEntries(
+          LOCALES.map((code) => [LOCALE_META[code].tag, absoluteUrl(group[code])]),
+        ),
+        'x-default': absoluteUrl(group[DEFAULT_LOCALE]),
+      }
+    : undefined;
 
   return {
     // `absolute` bypasses the root layout's `%s | CreateCVOnline` template. Without it
@@ -51,7 +83,7 @@ export function pageMetadata(input: PageMetaInput): Metadata {
     title: { absolute: title },
     description: input.description,
     keywords: input.keywords?.length ? input.keywords : undefined,
-    alternates: { canonical: url },
+    alternates: { canonical: url, languages },
     robots: input.noindex
       ? { index: false, follow: false, nocache: true }
       : {
@@ -71,7 +103,7 @@ export function pageMetadata(input: PageMetaInput): Metadata {
       siteName: site.name,
       title,
       description: input.description,
-      locale: 'en_US',
+      locale: LOCALE_META[locale].ogLocale,
       images: [{ url: image, width: 1200, height: 630, alt: input.title }],
       ...(input.type === 'article'
         ? {

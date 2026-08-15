@@ -5,6 +5,7 @@ import { getAllExampleSlugs } from '@/lib/cv-examples';
 import { getAllProfessionSlugs } from '@/lib/professions';
 import { PREVIEW_SLUGS } from '@/lib/cv/previews';
 import { TEMPLATES, TEMPLATE_CATEGORIES, templatesByCategory } from '@/lib/cv/template-registry';
+import { LOCALES, LOCALE_META, TRANSLATED_PATHS } from '@/lib/i18n/locales';
 import { absoluteUrl, isPrivatePath } from '@/lib/site';
 
 /**
@@ -140,6 +141,32 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: template.premium ? 0.6 : 0.7,
       ...(image ? { images: [image] } : {}),
+    });
+  }
+
+  /*
+   * The French pages.
+   *
+   * Eight, not seventy-four. The template detail pages are deliberately *not* translated
+   * yet: audit item 3.5 records a first-party case where publishing ~284 pages at once on
+   * a new domain cut impressions 75%, and this domain already shipped ~118 in one go. The
+   * eight pages here are the ones that carry the terms the audit found unclaimed —
+   * `modèle de CV`, `modèle de CV gratuit`, and the six style variants. Once those index,
+   * the sixty-one detail pages are a known-good follow-up rather than a gamble.
+   *
+   * Each carries `alternates.languages`, which is how Google associates the French page
+   * with its English counterpart rather than reading the two as duplicates.
+   */
+  for (const [path, group] of Object.entries(TRANSLATED_PATHS)) {
+    entries.push({
+      url: absoluteUrl(group.fr),
+      changeFrequency: 'weekly',
+      priority: path === '/fr' || path === '/' ? 0.9 : 0.75,
+      alternates: {
+        languages: Object.fromEntries(
+          LOCALES.map((locale) => [LOCALE_META[locale].tag, absoluteUrl(group[locale])]),
+        ),
+      },
     });
   }
 

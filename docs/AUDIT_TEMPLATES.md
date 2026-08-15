@@ -845,3 +845,64 @@ nothing on the first, and scores 5.
 - 3.4, deferred: `/templates` is still dynamically rendered.
 - Of the six gaps in 1.6, the remainder are infographic beyond bars, monospace/terminal,
   dark page, US Federal, and the German Lebenslauf conventions — which belong with 6.2.
+
+---
+
+## Record — 6.1 French, and a correction to the audit
+
+### The audit was wrong about the starting point
+
+6.1 says "the i18n architecture already exists". It does not, and did not. What existed was
+a `locale` field on the user profile that nothing reading it ever rendered, and `lang="en"`
+hardcoded in the root layout. No locale routing, no dictionaries, no `hreflang`, no
+`next.config` i18n block. This was built from nothing, and the estimate in the audit should
+be read with that in mind.
+
+### Paths, not prefixes
+
+The cheap way to add a language is `/fr/templates`. It is also self-defeating here: the
+entire reason to build a French site is that `modèle de CV` is a term with demand and no
+strong incumbent, and a URL that says `templates` to a French searcher throws away the one
+part of the address they read. So each page declares its own French path — `moderne`,
+`entreprise`, `creatif`, `informatique`, `classique` — and `lib/i18n/locales.ts` holds the
+pairing.
+
+That pairing is what makes `hreflang` reciprocal **by construction**. Google discards a
+cluster whose annotations disagree, which is indistinguishable from having none except that
+it looks like the work was done. Both sides are generated from one table, so a page cannot
+name a translation that does not name it back. Verified against the served HTML, not the
+metadata objects: `/templates/modern` and `/fr/modeles-de-cv/moderne` each carry all three
+annotations, and `/pricing` correctly carries none.
+
+### Eight pages, not seventy-four
+
+The template detail pages are deliberately not translated yet. Audit 3.5 records a
+first-party case where ~284 pages published at once on a new domain cut impressions 75%,
+and this domain already shipped ~118 in one go. The eight pages here — the home page, the
+gallery and the six category pages — carry exactly the terms the audit found unclaimed.
+Once those index, the sixty-one detail pages are a known-good follow-up rather than a
+repeat of a documented bad outcome. `tests/lib/i18n.test.ts` pins the count so the decision
+stays deliberate.
+
+### Written in French, not translated
+
+The home page has a section with no English counterpart, on what a French CV expects: the
+photograph is normal where UK and US advice says avoid it, one page is the convention,
+languages are stated in CECRL, and Europass is a format some employers ask for by name.
+None of that is true on the English site, and it is the part a French reader will recognise
+as written for them rather than run through a translator. A test asserts the headlines are
+actually French and that the copy says `modèle` rather than `template` — the second is the
+query with the demand behind it.
+
+### Two things this increment does not fix
+
+- **`<html lang>` is still `en` on the French pages.** Next.js only allows a per-locale
+  `<html>` with multiple root layouts, which requires there to be no `app/layout.tsx` — and
+  there is one, shared by the dashboard, editor, auth and print routes. The French subtree
+  sets `lang="fr"` on a wrapping element instead, which is valid and is what assistive
+  technology and Google use for the content inside it. The inaccuracy is confined to the
+  attribute above it.
+- **The header and footer are still English**, as are `/register` and `/pricing`. The page
+  *content* is French, which is what gets indexed and read, but a French visitor meets
+  English chrome. Translating the shared shell is the obvious next step and is a larger
+  change than the eight pages were.

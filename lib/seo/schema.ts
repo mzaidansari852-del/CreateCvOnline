@@ -124,6 +124,8 @@ export function webPageSchema(input: {
   /** Set when the page renders `<Breadcrumbs>`, which emits its own node. */
   hasBreadcrumb?: boolean;
   type?: 'WebPage' | 'CollectionPage' | 'ItemPage';
+  /** BCP-47. Defaults to English; the French pages say so. */
+  inLanguage?: string;
 }): JsonLd {
   const url = absoluteUrl(input.path);
   return {
@@ -133,7 +135,7 @@ export function webPageSchema(input: {
     name: input.name,
     description: input.description,
     isPartOf: { '@id': WEBSITE_ID },
-    inLanguage: 'en',
+    inLanguage: input.inLanguage ?? 'en',
     primaryImageOfPage: input.primaryImage
       ? { '@type': 'ImageObject', url: input.primaryImage }
       : undefined,
@@ -157,9 +159,13 @@ export function breadcrumbSchema(items: { name: string; path: string }[]): JsonL
   };
 }
 
-export function faqSchema(entries: { question: string; answer: string }[]): JsonLd {
+export function faqSchema(
+  entries: { question: string; answer: string }[],
+  options: { inLanguage?: string } = {},
+): JsonLd {
   return {
     '@type': 'FAQPage',
+    inLanguage: options.inLanguage,
     mainEntity: entries.map((entry) => ({
       '@type': 'Question',
       name: entry.question,

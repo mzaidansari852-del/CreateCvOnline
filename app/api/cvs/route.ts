@@ -6,6 +6,7 @@ import { createCV, listCVs } from '@/lib/db/cvs';
 import { assertCanCreateCV, assertCanUseTemplate, sanitizeCustomization } from '@/lib/entitlements';
 import { createDefaultCustomization, createSampleCV } from '@/lib/cv/defaults';
 import { DEFAULT_TEMPLATE_ID, findTemplate } from '@/lib/cv/template-registry';
+import { setCvLanguage } from '@/lib/i18n/cv-labels';
 import { cvDataSchema } from '@/types/cv';
 
 export const runtime = 'nodejs';
@@ -44,10 +45,25 @@ export const POST = authedRoute(
       }),
     );
 
+    /*
+     * A new CV is written in the language the account is using, so a French user gets
+     * "Expérience professionnelle" rather than "Work Experience" — in the editor and,
+     * more to the point, in the PDF they send to an employer. Taken from the profile
+     * rather than from the request: the client should not be able to choose what language
+     * somebody else's document is created in.
+     *
+     * The worked example is a separate case. It is written in English, so it is retitled
+     * rather than merely stamped — otherwise the headings and the `language` field would
+     * disagree with each other from the moment the document exists.
+     */
+    const language = profile.locale;
+    const sample = body.starter === 'sample' ? setCvLanguage(createSampleCV(), language) : undefined;
+
     const cv = await createCV(profile.uid, {
       title: body.title,
       templateId,
-      data: body.data ?? (body.starter === 'sample' ? createSampleCV() : undefined),
+      data: body.data ?? sample,
+      language,
       customization,
     });
 

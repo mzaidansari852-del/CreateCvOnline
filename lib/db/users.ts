@@ -5,7 +5,13 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { adminAuth, adminDb, COLLECTIONS, toIso, userDoc } from '@/lib/firebase/admin';
 import { serverEnv } from '@/lib/env';
 import { defaultEntitlement, downloadPeriodKey } from '@/lib/plans';
-import { userProfileSchema, type SessionUser, type UserEntitlement, type UserProfile } from '@/types/user';
+import {
+  userProfileSchema,
+  type SessionUser,
+  type UserEntitlement,
+  type UserProfile,
+} from '@/types/user';
+import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/locales';
 
 /**
  * User profile repository.
@@ -57,7 +63,15 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
 }
 
 /** Creates the profile document on first sign-in, or refreshes it on subsequent ones. */
-export async function ensureUserProfile(user: SessionUser): Promise<UserProfile> {
+export async function ensureUserProfile(
+  user: SessionUser,
+  /**
+   * The language the visitor signed up in, carried across the sign-up boundary by the
+   * `cvo_locale` cookie. Only used when the profile is being created — a returning user's
+   * saved preference must never be overwritten by whichever page they happened to land on.
+   */
+  signupLocale?: Locale,
+): Promise<UserProfile> {
   const ref = userDoc(user.uid);
   const snapshot = await ref.get();
   const now = new Date().toISOString();
@@ -81,7 +95,7 @@ export async function ensureUserProfile(user: SessionUser): Promise<UserProfile>
       downloadsThisMonth: 0,
       downloadsPeriod: downloadPeriodKey(),
       marketingOptIn: false,
-      locale: 'en',
+      locale: signupLocale ?? DEFAULT_LOCALE,
     });
 
     await ref.set(profile);

@@ -1,5 +1,5 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, headingWeight } from '@/lib/cv/format';
+import { displayName, headingTracking, headingTransform, headingWeight } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -47,7 +47,6 @@ export const meta: TemplateMeta = {
 export default function AtsClassic({ cv, customization: c }: CVTemplateProps) {
   const ink = c.textColor;
   const sections = visibleSections(cv);
-  const name = fullName(cv);
 
   return (
     <div style={{ padding: c.pageMargin }}>
@@ -60,7 +59,7 @@ export default function AtsClassic({ cv, customization: c }: CVTemplateProps) {
             color: ink,
           }}
         >
-          {name || 'Your Name'}
+          {displayName(cv)}
         </h1>
         {cv.personal.title ? (
           <p style={{ fontSize: '1.06em', marginTop: '0.12em', color: ink }}>{cv.personal.title}</p>

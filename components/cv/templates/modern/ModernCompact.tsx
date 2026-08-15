@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -94,7 +94,7 @@ export default function ModernCompact({ cv, customization: c }: CVTemplateProps)
               letterSpacing: '-0.02em',
             }}
           >
-            {fullName(cv) || 'Your Name'}
+            {displayName(cv)}
           </h1>
           {cv.personal.title ? (
             <p style={{ fontSize: '1em', fontWeight: bodyWeight(c, 600), color: accentText, marginTop: '0.08em' }}>

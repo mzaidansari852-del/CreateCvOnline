@@ -1,7 +1,7 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -58,7 +58,6 @@ export default function AtsEntryLevel({ cv, customization: c }: CVTemplateProps)
   const sections = visibleSections(cv);
   const spacing = c.sectionSpacing * 0.75;
   const tracking = c.headingCase === 'uppercase' ? '0.18em' : headingTracking(c);
-  const name = fullName(cv);
 
   return (
     <div style={{ padding: c.pageMargin }}>
@@ -80,7 +79,7 @@ export default function AtsEntryLevel({ cv, customization: c }: CVTemplateProps)
               color: ink,
             }}
           >
-            {name || 'Your Name'}
+            {displayName(cv)}
           </h1>
           {cv.personal.title ? (
             <p style={{ fontSize: '1em', color: metaInk, fontWeight: bodyWeight(c, 600) }}>{cv.personal.title}</p>

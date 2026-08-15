@@ -1,7 +1,7 @@
 import { contactEntries, ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -60,7 +60,6 @@ export default function MarketingCV({ cv, customization: c }: CVTemplateProps) {
   // colour the user picked — see `mutedOn`.
   const panelMuted = mutedOn(onAccent, 0.3, accent);
   const sections = visibleSections(cv);
-  const name = fullName(cv);
   // Without a photo or a single contact row the accent panel would be a bare colour block,
   // so the header collapses to the tinted panel alone.
   const hasAccentPanel = c.showPhoto || contactEntries(cv).length > 0;
@@ -94,7 +93,7 @@ export default function MarketingCV({ cv, customization: c }: CVTemplateProps) {
               letterSpacing: '-0.02em',
             }}
           >
-            {name || 'Your Name'}
+            {displayName(cv)}
           </h1>
           {cv.personal.title ? (
             <p

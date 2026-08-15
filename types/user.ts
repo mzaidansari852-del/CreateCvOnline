@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { DEFAULT_LOCALE, LOCALES } from '@/lib/i18n/locales';
+
 export const planIdSchema = z.enum(['free', 'pro', 'lifetime']);
 export type PlanId = z.infer<typeof planIdSchema>;
 
@@ -42,7 +44,19 @@ export const userProfileSchema = z.object({
   downloadsThisMonth: z.number().int().min(0).default(0),
   downloadsPeriod: z.string().default(''),
   marketingOptIn: z.boolean().default(false),
-  locale: z.string().default('en'),
+  /**
+   * The language of the *interface*, which is not the language of any CV.
+   *
+   * This field existed from the beginning and nothing rendered from it. It is now the
+   * dashboard's and the editor's language, set from the site language a visitor signed up
+   * under and changeable in the header or in Settings. A CV carries its own `language`,
+   * so browsing in French while writing a German Lebenslauf is a supported thing to do.
+   *
+   * `catch` rather than a bare default: a profile written when this was a free-form
+   * string may hold anything, and an unknown language should degrade to English rather
+   * than fail the whole profile parse and lock the user out.
+   */
+  locale: z.enum(LOCALES).catch(DEFAULT_LOCALE).default(DEFAULT_LOCALE),
 });
 export type UserProfile = z.infer<typeof userProfileSchema>;
 

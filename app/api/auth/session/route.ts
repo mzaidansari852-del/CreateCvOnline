@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
+
+import { LOCALE_COOKIE, parseLocale } from '@/lib/i18n/resolve';
 import { z } from 'zod';
 
 import { apiError, publicRoute, readJson, toErrorResponse } from '@/lib/api/handler';
@@ -44,8 +46,16 @@ export const POST = publicRoute(
       const store = await cookies();
       store.set({ ...sessionCookieOptions(maxAgeSeconds), value });
 
-      // First sign-in creates the profile document; later ones refresh it.
-      await ensureUserProfile(user);
+      /*
+       * First sign-in creates the profile document; later ones refresh it.
+       *
+       * The cookie is only consulted on creation, and only as the initial value: someone
+       * who signed up from the French pages gets a French dashboard without having to
+       * find the switcher, while a returning user's saved preference is never overwritten
+       * by whichever page they happened to sign in from.
+       */
+      const signupLocale = parseLocale(store.get(LOCALE_COOKIE)?.value) ?? undefined;
+      await ensureUserProfile(user, signupLocale);
 
       return NextResponse.json({
         user: {
@@ -66,7 +76,11 @@ export const POST = publicRoute(
           ? String((error as { code: unknown }).code)
           : '';
       if (code.startsWith('auth/')) {
-        return apiError(401, 'invalid-token', 'That sign-in attempt could not be verified. Please try again.');
+        return apiError(
+          401,
+          'invalid-token',
+          'That sign-in attempt could not be verified. Please try again.',
+        );
       }
       return toErrorResponse(error);
     }

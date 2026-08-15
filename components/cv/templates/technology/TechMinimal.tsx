@@ -1,11 +1,5 @@
 import { ContactIcon, contactEntries, SectionContent } from '@/components/cv/parts';
-import {
-  accentOn,
-  fullName,
-  headingTracking,
-  headingTransform,
-  headingWeight,
-} from '@/lib/cv/format';
+import { accentOn, displayName, headingTracking, headingTransform, headingWeight } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -56,7 +50,6 @@ export default function TechMinimal({ cv, customization: c }: CVTemplateProps) {
   const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const contacts = contactEntries(cv);
-  const name = fullName(cv);
 
   return (
     <div style={{ padding: c.pageMargin }}>
@@ -70,7 +63,7 @@ export default function TechMinimal({ cv, customization: c }: CVTemplateProps) {
             color: c.secondaryColor,
           }}
         >
-          {name || 'Your Name'}
+          {displayName(cv)}
         </h1>
         {cv.personal.title ? (
           <p style={{ fontSize: '1.02em', marginTop: '0.1em', color: accentText }}>

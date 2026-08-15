@@ -4,10 +4,17 @@ import {
   type CVData,
   type SectionConfig,
 } from '@/types/cv';
+import { defaultSectionLabels } from '@/lib/i18n/cv-labels';
+import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/locales';
 
 export interface SectionMeta {
   id: BuiltInSectionId;
-  defaultLabel: string;
+  /*
+   * No `defaultLabel` here. The English headings live in `cv-labels.ts` alongside the
+   * French and German ones, because a CV can be written in any of the three and the
+   * heading for a section is one fact with three spellings, not an English constant with
+   * translations bolted on.
+   */
   /** Copy shown in the editor's section list and the "add section" sheet. */
   hint: string;
   icon: SectionIconName;
@@ -36,7 +43,6 @@ export type SectionIconName =
 export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
   summary: {
     id: 'summary',
-    defaultLabel: 'Professional Summary',
     hint: 'Three or four lines that frame who you are and the value you bring.',
     icon: 'file-text',
     defaultEnabled: true,
@@ -44,7 +50,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
   },
   competencies: {
     id: 'competencies',
-    defaultLabel: 'Core Competencies',
     hint: 'Three to six areas of expertise, each with the achievements that prove it. This is what makes a functional CV functional — lead with it and the work history can stay short.',
     icon: 'layers',
     defaultEnabled: false,
@@ -52,7 +57,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
   },
   experience: {
     id: 'experience',
-    defaultLabel: 'Work Experience',
     hint: 'Roles, companies, dates and the results you delivered.',
     icon: 'briefcase',
     defaultEnabled: true,
@@ -60,7 +64,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
   },
   education: {
     id: 'education',
-    defaultLabel: 'Education',
     hint: 'Degrees, institutions and relevant coursework.',
     icon: 'graduation-cap',
     defaultEnabled: true,
@@ -68,7 +71,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
   },
   skills: {
     id: 'skills',
-    defaultLabel: 'Skills',
     hint: 'Hard and soft skills, optionally grouped into categories.',
     icon: 'sparkles',
     defaultEnabled: true,
@@ -76,7 +78,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
   },
   languages: {
     id: 'languages',
-    defaultLabel: 'Languages',
     hint: 'Languages you speak and your proficiency in each.',
     icon: 'languages',
     defaultEnabled: true,
@@ -84,7 +85,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
   },
   projects: {
     id: 'projects',
-    defaultLabel: 'Projects',
     hint: 'Side projects, open-source work or client deliverables.',
     icon: 'folder-git-2',
     defaultEnabled: false,
@@ -92,7 +92,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
   },
   certifications: {
     id: 'certifications',
-    defaultLabel: 'Certifications',
     hint: 'Professional certifications, licences and credentials.',
     icon: 'badge-check',
     defaultEnabled: false,
@@ -100,7 +99,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
   },
   awards: {
     id: 'awards',
-    defaultLabel: 'Awards',
     hint: 'Recognition, prizes and honours.',
     icon: 'trophy',
     defaultEnabled: false,
@@ -108,7 +106,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
   },
   volunteer: {
     id: 'volunteer',
-    defaultLabel: 'Volunteer Experience',
     hint: 'Unpaid work that demonstrates initiative and values.',
     icon: 'heart-handshake',
     defaultEnabled: false,
@@ -116,7 +113,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
   },
   publications: {
     id: 'publications',
-    defaultLabel: 'Publications',
     hint: 'Papers, articles, books and conference talks.',
     icon: 'book-open',
     defaultEnabled: false,
@@ -124,7 +120,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
   },
   interests: {
     id: 'interests',
-    defaultLabel: 'Interests',
     hint: 'A short, human line at the end of the document.',
     icon: 'palette',
     defaultEnabled: false,
@@ -132,7 +127,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
   },
   references: {
     id: 'references',
-    defaultLabel: 'References',
     hint: 'Referees, or a single "available on request" line.',
     icon: 'quote',
     defaultEnabled: false,
@@ -145,10 +139,19 @@ export const ORDERED_SECTION_META: SectionMeta[] = BUILT_IN_SECTION_IDS.map(
 );
 
 /** Default section order for a brand-new CV. */
-export function defaultSectionConfigs(): SectionConfig[] {
+/**
+ * The sections a fresh CV starts with, headed in `locale`.
+ *
+ * A French user signing up used to get a document headed "Work Experience", "Education",
+ * "Skills" — and that is what printed in the PDF they sent to employers, which is a worse
+ * failure than any untranslated button. The labels already existed; nothing passed them a
+ * language.
+ */
+export function defaultSectionConfigs(locale: Locale = DEFAULT_LOCALE): SectionConfig[] {
+  const labels = defaultSectionLabels(locale);
   return BUILT_IN_SECTION_IDS.map((id) => ({
     id,
-    label: SECTION_META[id].defaultLabel,
+    label: labels[id],
     enabled: SECTION_META[id].defaultEnabled,
   }));
 }

@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -67,7 +67,6 @@ export default function FullStackDeveloper({ cv, customization: c }: CVTemplateP
   const sections = visibleSections(cv);
   const { main: right, aside: left } = splitSections(sections, LEFT_COLUMN_SECTIONS);
   const stack = cv.skills.filter((skill) => skill.name).slice(0, STACK_RAIL_LIMIT);
-  const name = fullName(cv);
   const twoColumns = left.length > 0 && right.length > 0;
 
   return (
@@ -86,7 +85,7 @@ export default function FullStackDeveloper({ cv, customization: c }: CVTemplateP
             color: c.secondaryColor,
           }}
         >
-          {name || 'Your Name'}
+          {displayName(cv)}
         </h1>
 
         {cv.personal.title ? (

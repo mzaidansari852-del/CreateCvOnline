@@ -1,7 +1,7 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -57,13 +57,12 @@ export default function ModernAts({ cv, customization: c }: CVTemplateProps) {
   const muted = mutedOn(c.textColor, 0.35);
   const rule = tint(c.textColor, 0.68);
   const sections = visibleSections(cv);
-  const name = fullName(cv);
 
   return (
     <div style={{ padding: c.pageMargin }}>
       <header>
         <h1 style={{ fontSize: '2.05em', lineHeight: 1.12, fontWeight: headingWeight(c, 700), color: c.textColor }}>
-          {name || 'Your Name'}
+          {displayName(cv)}
         </h1>
         {cv.personal.title ? (
           <p style={{ marginTop: '0.15em', fontSize: '1.05em', fontWeight: bodyWeight(c, 600), color: muted }}>

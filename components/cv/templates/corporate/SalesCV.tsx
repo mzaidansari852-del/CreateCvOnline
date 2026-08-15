@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -58,7 +58,6 @@ export default function SalesCV({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
   const accentText = accentOn(accent);
   const sections = visibleSections(cv);
-  const name = fullName(cv);
 
   const latestRole = cv.experience[0];
   const highlights = (latestRole?.achievements ?? [])
@@ -82,7 +81,7 @@ export default function SalesCV({ cv, customization: c }: CVTemplateProps) {
             letterSpacing: '-0.018em',
           }}
         >
-          {name || 'Your Name'}
+          {displayName(cv)}
         </h1>
         {cv.personal.title ? (
           <p

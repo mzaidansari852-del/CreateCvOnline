@@ -1,14 +1,7 @@
 import { Photo, SectionContent, contactEntries } from '@/components/cv/parts';
-import {
-  accentOn,
-  bodyWeight,
-  fullName,
-  headingWeight,
-  languageShort,
-  mutedOn,
-  tint,
-} from '@/lib/cv/format';
+import { accentOn, bodyWeight, displayName, headingWeight, languageShort, mutedOn, tint } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
+import type { Locale } from '@/lib/i18n/locales';
 import type { CVData, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
 export const meta: TemplateMeta = {
@@ -53,13 +46,38 @@ const GUTTER = '9.2em';
  * The Europass form names each contact row rather than showing an icon, and the names it
  * uses are part of what makes the document recognisable as a Europass.
  */
-const CONTACT_LABEL: Record<string, string> = {
-  email: 'Email',
-  phone: 'Telephone',
-  location: 'Address',
-  website: 'Website',
-  linkedin: 'LinkedIn',
-  github: 'GitHub',
+const CONTACT_LABEL: Record<Locale, Record<string, string>> = {
+  en: {
+    email: 'Email',
+    phone: 'Telephone',
+    location: 'Address',
+    website: 'Website',
+    linkedin: 'LinkedIn',
+    github: 'GitHub',
+  },
+  fr: {
+    email: 'Courriel',
+    phone: 'Téléphone',
+    location: 'Adresse',
+    website: 'Site web',
+    linkedin: 'LinkedIn',
+    github: 'GitHub',
+  },
+  de: {
+    email: 'E-Mail',
+    phone: 'Telefon',
+    location: 'Anschrift',
+    website: 'Website',
+    linkedin: 'LinkedIn',
+    github: 'GitHub',
+  },
+};
+
+/** The words the form itself supplies, in the language the document is written in. */
+const FORM_COPY: Record<Locale, { link: string; motherTongue: string; personal: string }> = {
+  en: { link: 'Link', motherTongue: 'Mother tongue: ', personal: 'Personal information' },
+  fr: { link: 'Lien', motherTongue: 'Langue maternelle : ', personal: 'Informations personnelles' },
+  de: { link: 'Link', motherTongue: 'Muttersprache: ', personal: 'Angaben zur Person' },
 };
 
 /**
@@ -70,8 +88,17 @@ const CONTACT_LABEL: Record<string, string> = {
  * from one would be fabricating a self-assessment on the candidate's behalf. Three columns
  * with the recorded level in each is the honest version of the same grid: it says what the
  * user actually told us, in the vocabulary the reader is expecting.
+ *
+ * The column headings are the European Commission's own, not a translation of the English
+ * ones — the published French grid says "Comprendre / Parler / Écrire" and the German one
+ * "Verstehen / Sprechen / Schreiben". Using anything else on a document whose entire value
+ * is being recognisable as a Europass would defeat the point of picking this template.
  */
-const COMPETENCES = ['Understanding', 'Speaking', 'Writing'] as const;
+const COMPETENCES: Record<Locale, readonly [string, string, string]> = {
+  en: ['Understanding', 'Speaking', 'Writing'],
+  fr: ['Comprendre', 'Parler', 'Écrire'],
+  de: ['Verstehen', 'Sprechen', 'Schreiben'],
+};
 
 function motherTongues(cv: CVData) {
   return cv.languages.filter((language) => language.name && language.level === 'native');
@@ -148,7 +175,6 @@ export default function Europass({ cv, customization: c }: CVTemplateProps) {
   const rule = tint(accent, 0.78);
   const sections = visibleSections(cv).filter((section) => section.id !== 'languages');
   const languageSection = visibleSections(cv).find((section) => section.id === 'languages');
-  const name = fullName(cv);
   const contacts = contactEntries(cv);
 
   return (
@@ -169,7 +195,7 @@ export default function Europass({ cv, customization: c }: CVTemplateProps) {
             lineHeight: 1.35,
           }}
         >
-          Personal information
+          {FORM_COPY[cv.language].personal}
         </div>
         <div style={{ display: 'flex', gap: '1.2em', alignItems: 'flex-start', minWidth: 0 }}>
           <div style={{ minWidth: 0, flex: 1 }}>
@@ -181,7 +207,7 @@ export default function Europass({ cv, customization: c }: CVTemplateProps) {
                 color: c.secondaryColor,
               }}
             >
-              {name || 'Your Name'}
+              {displayName(cv)}
             </h1>
             {cv.personal.title ? (
               <p style={{ marginTop: '0.1em', color: muted }}>{cv.personal.title}</p>
@@ -199,7 +225,7 @@ export default function Europass({ cv, customization: c }: CVTemplateProps) {
                 {contacts.map((entry) => (
                   <div key={entry.key} style={{ display: 'contents' }}>
                     <dt style={{ color: muted, whiteSpace: 'nowrap' }}>
-                      {CONTACT_LABEL[entry.key] ?? 'Link'}
+                      {CONTACT_LABEL[cv.language][entry.key] ?? FORM_COPY[cv.language].link}
                     </dt>
                     <dd style={{ color: c.textColor, minWidth: 0, overflowWrap: 'anywhere' }}>
                       {entry.label}
@@ -258,7 +284,7 @@ export default function Europass({ cv, customization: c }: CVTemplateProps) {
         >
           {motherTongues(cv).length > 0 ? (
             <p style={{ marginBottom: otherLanguages(cv).length > 0 ? '0.6em' : 0 }}>
-              <span style={{ color: muted }}>Mother tongue: </span>
+              <span style={{ color: muted }}>{FORM_COPY[cv.language].motherTongue}</span>
               <span style={{ fontWeight: bodyWeight(c, 700) }}>
                 {motherTongues(cv)
                   .map((language) => language.name)
@@ -301,7 +327,7 @@ export default function Europass({ cv, customization: c }: CVTemplateProps) {
                   >
                     Language
                   </th>
-                  {COMPETENCES.map((competence) => (
+                  {COMPETENCES[cv.language].map((competence) => (
                     <th
                       key={competence}
                       scope="col"
@@ -333,7 +359,7 @@ export default function Europass({ cv, customization: c }: CVTemplateProps) {
                     >
                       {language.name}
                     </th>
-                    {COMPETENCES.map((competence) => (
+                    {COMPETENCES[cv.language].map((competence) => (
                       <td
                         key={competence}
                         style={{

@@ -1,7 +1,7 @@
 import { contactEntries, ContactList, SectionContent } from '@/components/cv/parts';
 import {
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -63,7 +63,6 @@ export default function Formal({ cv, customization: c }: CVTemplateProps) {
   const sections = visibleSections(cv);
   const { main, aside } = splitSections(sections, ASIDE_SECTIONS);
   const hasContact = contactEntries(cv).length > 0;
-  const name = fullName(cv);
 
   return (
     <div
@@ -84,7 +83,7 @@ export default function Formal({ cv, customization: c }: CVTemplateProps) {
             color: c.secondaryColor,
           }}
         >
-          {name || 'Your Name'}
+          {displayName(cv)}
         </h1>
         {cv.personal.title ? (
           <p style={{ marginTop: '0.15em', fontSize: '1.02em', fontWeight: bodyWeight(c, 600), color: muted }}>

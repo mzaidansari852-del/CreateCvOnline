@@ -3,7 +3,7 @@ import {
   accentOn,
   bodyWeight,
   centredTracking,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -63,7 +63,6 @@ export default function Editorial({ cv, customization: c }: CVTemplateProps) {
   const rest = sections.filter((section) => section.id !== 'summary');
   const left = rest.filter((_, index) => index % 2 === 0);
   const right = rest.filter((_, index) => index % 2 === 1);
-  const name = fullName(cv);
   const muted = mutedOn(c.textColor, 0.34);
   const hairline = tint(c.textColor, 0.72);
 
@@ -80,7 +79,7 @@ export default function Editorial({ cv, customization: c }: CVTemplateProps) {
             color: c.secondaryColor,
           }}
         >
-          {name || 'Your Name'}
+          {displayName(cv)}
         </h1>
       </header>
 

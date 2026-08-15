@@ -2,7 +2,7 @@ import { contactEntries, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
   centredTracking,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -63,7 +63,6 @@ export default function FunctionalCV({ cv, customization: c }: CVTemplateProps) 
   const accentText = accentOn(accent);
   const muted = mutedOn(c.textColor, 0.34);
   const sections = visibleSections(cv);
-  const name = fullName(cv);
   const contacts = contactEntries(cv).map((entry) => entry.label);
 
   return (
@@ -77,7 +76,7 @@ export default function FunctionalCV({ cv, customization: c }: CVTemplateProps) 
             color: c.secondaryColor,
           }}
         >
-          {name || 'Your Name'}
+          {displayName(cv)}
         </h1>
         {cv.personal.title ? (
           <p

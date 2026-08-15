@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
   bodyWeight,
   centredTracking,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -56,7 +56,6 @@ export default function ModernMinimal({ cv, customization: c }: CVTemplateProps)
   const accent = c.accentColor;
   const muted = mutedOn(c.textColor, 0.45);
   const sections = visibleSections(cv);
-  const name = fullName(cv);
 
   return (
     <div style={{ padding: `${c.pageMargin * 1.15}px ${c.pageMargin}px ${c.pageMargin}px` }}>
@@ -70,7 +69,7 @@ export default function ModernMinimal({ cv, customization: c }: CVTemplateProps)
             color: c.textColor,
           }}
         >
-          {name || 'Your Name'}
+          {displayName(cv)}
         </h1>
 
         {cv.personal.title ? (

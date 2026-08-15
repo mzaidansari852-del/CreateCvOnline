@@ -53,6 +53,17 @@ export function CVDocument({
         ...style,
       }}
       data-template={template.id}
+      /*
+       * The document's own language, which is not the page's.
+       *
+       * The editor is a French interface wrapping an English CV as readily as the reverse,
+       * so `lang` has to sit on the document rather than be inherited from the app shell.
+       * It is what tells the browser which hyphenation dictionary to use when a template
+       * justifies text, and it is what a screen reader switches voice on. In the exported
+       * PDF it becomes the language metadata that makes the file reach PDF/UA — which some
+       * public-sector employers check for.
+       */
+      lang={cv.language}
     >
       <Template cv={cv} customization={customization} />
       {overlay}

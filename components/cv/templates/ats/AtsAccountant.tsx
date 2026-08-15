@@ -2,7 +2,7 @@ import { contactEntries, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -75,7 +75,6 @@ export default function AtsAccountant({ cv, customization: c }: CVTemplateProps)
   const accent = c.accentColor;
   const accentText = accentOn(accent);
   const sections = visibleSections(cv);
-  const name = fullName(cv);
   const lines = contactLines(cv);
 
   return (
@@ -94,7 +93,7 @@ export default function AtsAccountant({ cv, customization: c }: CVTemplateProps)
             color: ink,
           }}
         >
-          {name || 'Your Name'}
+          {displayName(cv)}
         </h1>
         {cv.personal.title ? (
           <p

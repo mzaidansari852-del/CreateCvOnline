@@ -4,7 +4,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -75,7 +75,6 @@ export default function AiEngineer({ cv, customization: c }: CVTemplateProps) {
   const accentText = accentOn(accent, featuredPanel);
   const sections = visibleSections(cv);
   const { main, aside } = splitSections(sections, ASIDE_SECTIONS);
-  const name = fullName(cv);
 
   return (
     <div
@@ -102,7 +101,7 @@ export default function AiEngineer({ cv, customization: c }: CVTemplateProps) {
             color: c.secondaryColor,
           }}
         >
-          {name || 'Your Name'}
+          {displayName(cv)}
         </h1>
         {cv.personal.title ? (
           <p style={{ fontSize: '1.1em', fontWeight: bodyWeight(c, 600), color: accentText, marginTop: '0.18em' }}>

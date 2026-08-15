@@ -3,7 +3,7 @@ import {
   accentOn,
   bodyWeight,
   centredTracking,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -86,7 +86,7 @@ export default function CorporateExecutive({ cv, customization: c }: CVTemplateP
               color: c.secondaryColor,
             }}
           >
-            {fullName(cv) || 'Your Name'}
+            {displayName(cv)}
           </h1>
           {cv.personal.title ? (
             <p

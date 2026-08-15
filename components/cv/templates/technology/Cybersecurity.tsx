@@ -1,7 +1,7 @@
 import { ContactIcon, SectionContent, contactEntries } from '@/components/cv/parts';
 import {
   accentOn,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -87,7 +87,6 @@ export default function Cybersecurity({ cv, customization: c }: CVTemplateProps)
   const asideOrdered = [...aside].sort((a, b) => asideRank(a.id) - asideRank(b.id));
 
   const entries = contactEntries(cv);
-  const name = fullName(cv);
   const twoColumns = main.length > 0 && asideOrdered.length > 0;
 
   return (
@@ -108,7 +107,7 @@ export default function Cybersecurity({ cv, customization: c }: CVTemplateProps)
             color: onBanner,
           }}
         >
-          {name || 'Your Name'}
+          {displayName(cv)}
         </h1>
 
         {cv.personal.title ? (

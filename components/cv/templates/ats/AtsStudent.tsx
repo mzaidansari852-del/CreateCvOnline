@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -59,7 +59,6 @@ export default function AtsStudent({ cv, customization: c }: CVTemplateProps) {
   const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const spacing = c.sectionSpacing * 1.2;
-  const name = fullName(cv);
 
   return (
     <div style={{ padding: c.pageMargin }}>
@@ -72,7 +71,7 @@ export default function AtsStudent({ cv, customization: c }: CVTemplateProps) {
             color: ink,
           }}
         >
-          {name || 'Your Name'}
+          {displayName(cv)}
         </h1>
         {cv.personal.title ? (
           <p

@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -105,7 +105,6 @@ export default function CascadeSidebar({ cv, customization: c }: CVTemplateProps
   const sections = visibleSections(cv);
   const { main, aside } = splitSections(sections, BAND_SECTIONS);
   const muted = mutedOn(c.textColor, 0.36);
-  const name = fullName(cv);
 
   return (
     <div
@@ -200,7 +199,7 @@ export default function CascadeSidebar({ cv, customization: c }: CVTemplateProps
               color: c.secondaryColor,
             }}
           >
-            {name || 'Your Name'}
+            {displayName(cv)}
           </h1>
           {cv.personal.title ? (
             <p

@@ -525,7 +525,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
               surface={surface}
               primary={item.role}
               secondary={[item.company, item.location].filter(Boolean).join(' · ')}
-              meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}
+              meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language)}
               metaSecondary={
                 showDuration
                   ? formatDuration(item.startDate, item.endDate, item.current)
@@ -565,7 +565,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
             }}
           >
             <div style={{ color: muted, fontSize: '0.9em', paddingTop: '0.15em' }}>
-              <div>{formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}</div>
+              <div>{formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language)}</div>
               {item.location ? (
                 <div style={{ marginTop: '0.2em', opacity: 0.85 }}>{item.location}</div>
               ) : null}
@@ -611,7 +611,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
               surface={surface}
               primary={item.role}
               secondary={item.company}
-              meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}
+              meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language)}
               color={color}
               muted={muted}
               accent={accent}
@@ -668,7 +668,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
             </div>
             <div style={{ color: muted, fontSize: '0.92em', whiteSpace: 'nowrap' }}>
               {[
-                formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat),
+                formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language),
                 item.location,
               ]
                 .filter(Boolean)
@@ -695,7 +695,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
             </div>
             <div style={{ color: muted, fontSize: '0.92em', marginTop: '0.1em' }}>
               {[
-                formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat),
+                formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language),
                 item.location,
               ]
                 .filter(Boolean)
@@ -726,7 +726,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
             surface={surface}
             primary={item.role}
             secondary={item.company}
-            meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}
+            meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language)}
             metaSecondary={item.location || undefined}
             color={color}
             muted={muted}
@@ -827,7 +827,7 @@ export function EducationContent(props: PartProps) {
             <div style={{ color: accentText, fontWeight: secondaryWeight }}>{item.institution}</div>
             <div style={{ color: muted, fontSize: '0.9em', marginTop: '0.05em' }}>
               {[
-                formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat),
+                formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language),
                 item.location,
               ]
                 .filter(Boolean)
@@ -854,7 +854,7 @@ export function EducationContent(props: PartProps) {
             }}
           >
             <div style={{ color: muted, fontSize: '0.9em', paddingTop: '0.15em' }}>
-              {formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}
+              {formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language)}
             </div>
             <div>
               <div style={{ fontWeight: strong, color }}>{degreeLine(item)}</div>
@@ -906,7 +906,7 @@ export function EducationContent(props: PartProps) {
             surface={surface}
             primary={degreeLine(item)}
             secondary={item.institution}
-            meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}
+            meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language)}
             metaSecondary={item.location || undefined}
             color={color}
             muted={muted}
@@ -1340,7 +1340,7 @@ export function ProjectsContent(props: PartProps) {
             primary={item.name}
             secondary={item.role || undefined}
             meta={
-              formatDateRange(item.startDate, item.endDate, false, c.dateFormat) ||
+              formatDateRange(item.startDate, item.endDate, false, c.dateFormat, cv.language) ||
               (item.url ? prettyUrl(item.url) : undefined)
             }
             color={color}
@@ -1392,7 +1392,7 @@ export function CertificationsContent(props: PartProps) {
           <div key={item.id} className="cv-block">
             <div style={{ fontWeight: strong, color }}>{item.name}</div>
             <div style={{ color: muted, fontSize: '0.9em', fontWeight: secondaryWeight }}>
-              {[item.issuer, formatPartialDate(item.date, c.dateFormat)]
+              {[item.issuer, formatPartialDate(item.date, c.dateFormat, cv.language)]
                 .filter(Boolean)
                 .join(' · ')}
             </div>
@@ -1415,7 +1415,7 @@ export function CertificationsContent(props: PartProps) {
             surface={surface}
             primary={item.name}
             secondary={item.issuer || undefined}
-            meta={formatPartialDate(item.date, c.dateFormat)}
+            meta={formatPartialDate(item.date, c.dateFormat, cv.language)}
             color={color}
             muted={muted}
             accent={accent}
@@ -1469,7 +1469,7 @@ export function AwardsContent(props: PartProps) {
             surface={surface}
             primary={item.title}
             secondary={item.issuer || undefined}
-            meta={formatPartialDate(item.date, c.dateFormat)}
+            meta={formatPartialDate(item.date, c.dateFormat, cv.language)}
             color={color}
             muted={muted}
             accent={accent}
@@ -1503,7 +1503,7 @@ export function VolunteerContent(props: PartProps) {
             surface={surface}
             primary={item.role}
             secondary={[item.organization, item.location].filter(Boolean).join(' · ')}
-            meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}
+            meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language)}
             color={color}
             muted={muted}
             accent={accent}
@@ -1544,7 +1544,7 @@ export function PublicationsContent(props: PartProps) {
             <span>
               <span style={{ fontWeight: strong, color }}>{item.title}</span>
               <span style={{ color: muted }}>
-                {[item.authors, item.publisher, formatPartialDate(item.date, c.dateFormat)]
+                {[item.authors, item.publisher, formatPartialDate(item.date, c.dateFormat, cv.language)]
                   .filter(Boolean)
                   .map((part) => ` · ${part}`)
                   .join('')}
@@ -1569,7 +1569,7 @@ export function PublicationsContent(props: PartProps) {
         >
           <div style={{ fontWeight: strong, color }}>{item.title}</div>
           <div style={{ color: muted, fontSize: '0.92em' }}>
-            {[item.authors, item.publisher, formatPartialDate(item.date, c.dateFormat)]
+            {[item.authors, item.publisher, formatPartialDate(item.date, c.dateFormat, cv.language)]
               .filter(Boolean)
               .join(' · ')}
           </div>

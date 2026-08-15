@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -62,7 +62,6 @@ export default function ProductManager({ cv, customization: c }: CVTemplateProps
   const accentText = accentOn(accent);
   const muted = mutedOn(c.textColor, 0.4);
   const sections = visibleSections(cv);
-  const name = fullName(cv);
 
   const leadRole = cv.experience.find((item) => item.role || item.company || item.description);
   const impact = (leadRole?.achievements ?? []).filter(Boolean).slice(0, IMPACT_CELLS);
@@ -88,7 +87,7 @@ export default function ProductManager({ cv, customization: c }: CVTemplateProps
               color: c.secondaryColor,
             }}
           >
-            {name || 'Your Name'}
+            {displayName(cv)}
           </h1>
           {cv.personal.title ? (
             <p

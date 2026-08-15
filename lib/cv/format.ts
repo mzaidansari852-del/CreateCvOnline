@@ -7,6 +7,7 @@ import type {
   PaperSize,
   SkillLevel,
 } from '@/types/cv';
+import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/locales';
 
 /* -------------------------------------------------------------------------- */
 /* Fonts                                                                       */
@@ -247,41 +248,115 @@ export const PAPER: Record<PaperSize, PaperGeometry> = {
 /* Dates                                                                       */
 /* -------------------------------------------------------------------------- */
 
-const MONTHS_SHORT = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
+/**
+ * Month names, written out rather than taken from `Intl`.
+ *
+ * `toLocaleDateString` would be the obvious source and is the wrong one here. These strings
+ * are printed into a PDF rendered by headless Chromium, and ICU data differs between the
+ * local Chromium, the one on Vercel and the Lambda build — so the same CV could come out
+ * with different month names depending on where it was exported. A CV is a document
+ * somebody archives and re-downloads a year later; it has to be byte-stable.
+ *
+ * French and German lower-case their months. That is correct, not an oversight: only
+ * German nouns are capitalised and month names in running text follow the sentence, while
+ * French never capitalises them. Getting this wrong is a visible tell that a document was
+ * translated by someone who did not speak the language.
+ */
+const MONTHS_SHORT: Record<Locale, string[]> = {
+  en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  fr: ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'],
+  de: ['Jan.', 'Feb.', 'März', 'Apr.', 'Mai', 'Juni', 'Juli', 'Aug.', 'Sep.', 'Okt.', 'Nov.', 'Dez.'],
+};
 
-const MONTHS_LONG = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
+const MONTHS_LONG: Record<Locale, string[]> = {
+  en: [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ],
+  fr: [
+    'janvier',
+    'février',
+    'mars',
+    'avril',
+    'mai',
+    'juin',
+    'juillet',
+    'août',
+    'septembre',
+    'octobre',
+    'novembre',
+    'décembre',
+  ],
+  de: [
+    'Januar',
+    'Februar',
+    'März',
+    'April',
+    'Mai',
+    'Juni',
+    'Juli',
+    'August',
+    'September',
+    'Oktober',
+    'November',
+    'Dezember',
+  ],
+};
+
+/**
+ * What an ongoing role is called.
+ *
+ * `heute` rather than a literal rendering of "present" — that is what a Lebenslauf says.
+ * French uses `aujourd'hui` with a typographic apostrophe, matching the rest of the app.
+ */
+const PRESENT_LABEL: Record<Locale, string> = {
+  en: 'Present',
+  fr: 'aujourd’hui',
+  de: 'heute',
+};
+
+/**
+ * What the masthead shows before a name has been typed.
+ *
+ * Fifty-nine of the sixty-one templates carried the string `'Your Name'` inline. On an
+ * empty French CV that is the single largest piece of text on the page, set at 30-odd
+ * points — the first thing anyone sees, in the wrong language.
+ */
+const PLACEHOLDER_NAME: Record<Locale, string> = {
+  en: 'Your Name',
+  fr: 'Votre nom',
+  de: 'Ihr Name',
+};
+
+/** The name to print: the applicant's, or the placeholder in the document's language. */
+export function displayName(cv: CVData): string {
+  return fullName(cv) || PLACEHOLDER_NAME[cv.language];
+}
+
+/** The long month name in `locale` — `''` for an index outside 0–11. */
+export function monthName(index: number, locale: Locale = DEFAULT_LOCALE): string {
+  return MONTHS_LONG[locale][index] ?? '';
+}
 
 /**
  * Formats a partial `YYYY[-MM[-DD]]` value.
  * Returns `''` for empty input so templates can decide what to render.
  */
-export function formatPartialDate(value: string, format: DateFormatKey = 'month-year-short'): string {
+export function formatPartialDate(
+  value: string,
+  format: DateFormatKey = 'month-year-short',
+  locale: Locale = DEFAULT_LOCALE,
+): string {
   const trimmedValue = value?.trim();
   if (!trimmedValue) return '';
 
@@ -299,24 +374,31 @@ export function formatPartialDate(value: string, format: DateFormatKey = 'month-
     case 'numeric':
       return `${monthRaw}/${year}`;
     case 'month-year-long':
-      return `${MONTHS_LONG[monthIndex]} ${year}`;
+      return `${MONTHS_LONG[locale][monthIndex]} ${year}`;
     case 'month-year-short':
     default:
-      return `${MONTHS_SHORT[monthIndex]} ${year}`;
+      return `${MONTHS_SHORT[locale][monthIndex]} ${year}`;
   }
 }
 
-/** `Jan 2021 — Present`, `2019 — 2021`, or a single value when only one side exists. */
+/**
+ * `Jan 2021 – Present`, `janv. 2021 – aujourd’hui`, `2019 – 2021`.
+ *
+ * Takes the document's language rather than a `presentLabel` string, which is what it used
+ * to take. Every caller passed the default, so nothing was choosing a label — and a caller
+ * that translated "Present" while the month names stayed English would have produced a
+ * half-translated date, which is worse than a consistently English one.
+ */
 export function formatDateRange(
   start: string,
   end: string,
   current: boolean,
   format: DateFormatKey = 'month-year-short',
-  presentLabel = 'Present',
+  locale: Locale = DEFAULT_LOCALE,
   separator = ' – ',
 ): string {
-  const from = formatPartialDate(start, format);
-  const to = current ? presentLabel : formatPartialDate(end, format);
+  const from = formatPartialDate(start, format, locale);
+  const to = current ? PRESENT_LABEL[locale] : formatPartialDate(end, format, locale);
   if (from && to) return `${from}${separator}${to}`;
   return from || to || '';
 }

@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -62,7 +62,6 @@ export default function FinanceCV({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
   const accentText = accentOn(accent);
   const sections = visibleSections(cv);
-  const name = fullName(cv);
 
   return (
     <div style={{ padding: c.pageMargin }}>
@@ -86,7 +85,7 @@ export default function FinanceCV({ cv, customization: c }: CVTemplateProps) {
               letterSpacing: '-0.012em',
             }}
           >
-            {name || 'Your Name'}
+            {displayName(cv)}
           </h1>
           {cv.personal.title ? (
             <p

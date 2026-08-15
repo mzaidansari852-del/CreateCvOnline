@@ -2,8 +2,8 @@ import { ContactIcon, SectionContent, type ContactIconKey } from '@/components/c
 import {
   accentOn,
   bodyWeight,
+  displayName,
   ensureProtocol,
-  fullName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -138,7 +138,6 @@ export default function ModernTech({ cv, customization: c }: CVTemplateProps) {
   const dashed = tint(c.textColor, 0.7);
   const sections = visibleSections(cv);
   const rows = contactRows(cv);
-  const name = fullName(cv);
 
   return (
     <div style={{ padding: c.pageMargin }}>
@@ -154,7 +153,7 @@ export default function ModernTech({ cv, customization: c }: CVTemplateProps) {
         <h1
           style={{ fontSize: '2.1em', lineHeight: 1.12, fontWeight: headingWeight(c, 600), color: c.secondaryColor }}
         >
-          {name || 'Your Name'}
+          {displayName(cv)}
         </h1>
         {cv.personal.title ? (
           <p

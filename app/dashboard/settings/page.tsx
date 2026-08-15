@@ -9,6 +9,7 @@ import {
   NewCVDefaultsForm,
   type TemplateChoice,
 } from '@/components/dashboard/SettingsPanels';
+import { LanguagePanel } from '@/components/i18n/LanguagePanel';
 import { Panel } from '@/components/ui/card';
 import { Badge } from '@/components/ui/feedback';
 import { requireViewer } from '@/lib/auth/guards';
@@ -47,6 +48,13 @@ export default async function SettingsPage() {
       description="Only the things that genuinely do something are switchable here. Everything else says so."
     >
       <div className="flex flex-col gap-5">
+        {/*
+          Language first, because it changes everything below it. A user who has just
+          worked out that this page exists in order to find the language setting should
+          not have to scroll past four panels of English to reach it.
+        */}
+        <LanguagePanel />
+
         <Panel
           title="New CV defaults"
           description="Applied the next time you create a CV from this browser."
@@ -85,9 +93,8 @@ export default async function SettingsPage() {
           <div className="mt-4 flex items-start gap-2.5 rounded-lg bg-ink-50 p-3 text-xs leading-relaxed text-ink-600">
             <Lock size={14} aria-hidden className="mt-0.5 shrink-0 text-ink-400" />
             <p>
-              {site.name} has no endpoint for changing this yet, so there is no switch here
-              that would pretend to work. Every marketing e-mail carries a one-click
-              unsubscribe link, or{' '}
+              {site.name} has no endpoint for changing this yet, so there is no switch here that
+              would pretend to work. Every marketing e-mail carries a one-click unsubscribe link, or{' '}
               <Link href="/contact" className="font-semibold text-brand-700 underline">
                 ask us
               </Link>{' '}
@@ -102,9 +109,9 @@ export default async function SettingsPage() {
         >
           <ExportDataButton />
           <p className="mt-3 text-xs leading-relaxed text-ink-500">
-            The file contains every CV in full — personal details, sections, and the design
-            settings for each one — as JSON. It is built in your browser from your own
-            account, so nothing is stored or sent anywhere else.
+            The file contains every CV in full — personal details, sections, and the design settings
+            for each one — as JSON. It is built in your browser from your own account, so nothing is
+            stored or sent anywhere else.
           </p>
         </Panel>
 

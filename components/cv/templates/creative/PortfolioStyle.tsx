@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -57,7 +57,6 @@ export default function PortfolioStyle({ cv, customization: c }: CVTemplateProps
   const accent = c.accentColor;
   const accentText = accentOn(accent);
   const sections = visibleSections(cv);
-  const name = fullName(cv);
 
   // Lowercase headings are this template's signature and the heading-case control has no
   // lowercase option, so the default (uppercase) maps to it; an explicit capitalise/none
@@ -88,7 +87,7 @@ export default function PortfolioStyle({ cv, customization: c }: CVTemplateProps
                 letterSpacing: '-0.015em',
               }}
             >
-              {name || 'Your Name'}
+              {displayName(cv)}
             </h1>
             {cv.personal.title ? (
               <p style={{ fontWeight: bodyWeight(c, 600), color: accentText }}>{cv.personal.title}</p>

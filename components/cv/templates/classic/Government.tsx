@@ -1,7 +1,7 @@
 import { contactEntries, SectionContent, type ContactIconKey } from '@/components/cv/parts';
 import {
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -10,6 +10,7 @@ import {
   tint,
 } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
+import type { Locale } from '@/lib/i18n/locales';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
 export const meta: TemplateMeta = {
@@ -46,15 +47,41 @@ export const meta: TemplateMeta = {
   ],
 };
 
-/** Field names for the header grid, keyed by the kind of contact detail. */
-const FIELD_LABELS: Record<ContactIconKey, string> = {
-  mail: 'Email',
-  phone: 'Telephone',
-  pin: 'Address',
-  globe: 'Website',
-  linkedin: 'LinkedIn',
-  github: 'GitHub',
-  link: 'Profile',
+/**
+ * Field names for the header grid, keyed by the kind of contact detail.
+ *
+ * This template prints its labels, which most do not — the field rows are the whole point
+ * of the form archetype — so they are the one place a public-sector CV would otherwise
+ * show English on an otherwise French or German page.
+ */
+const FIELD_LABELS: Record<Locale, Record<ContactIconKey, string>> = {
+  en: {
+    mail: 'Email',
+    phone: 'Telephone',
+    pin: 'Address',
+    globe: 'Website',
+    linkedin: 'LinkedIn',
+    github: 'GitHub',
+    link: 'Profile',
+  },
+  fr: {
+    mail: 'Courriel',
+    phone: 'Téléphone',
+    pin: 'Adresse',
+    globe: 'Site web',
+    linkedin: 'LinkedIn',
+    github: 'GitHub',
+    link: 'Profil',
+  },
+  de: {
+    mail: 'E-Mail',
+    phone: 'Telefon',
+    pin: 'Anschrift',
+    globe: 'Website',
+    linkedin: 'LinkedIn',
+    github: 'GitHub',
+    link: 'Profil',
+  },
 };
 
 /**
@@ -75,7 +102,6 @@ export default function Government({ cv, customization: c }: CVTemplateProps) {
   const muted = mutedOn(c.textColor, 0.3);
   const sections = visibleSections(cv);
   const fields = contactEntries(cv);
-  const name = fullName(cv);
 
   return (
     <div style={{ padding: c.pageMargin }}>
@@ -90,7 +116,7 @@ export default function Government({ cv, customization: c }: CVTemplateProps) {
               color: c.secondaryColor,
             }}
           >
-            {name || 'Your Name'}
+            {displayName(cv)}
           </h1>
           {cv.personal.title ? (
             <p style={{ marginTop: '0.2em', fontSize: '1.02em', fontWeight: bodyWeight(c, 600), color: ink }}>
@@ -120,7 +146,7 @@ export default function Government({ cv, customization: c }: CVTemplateProps) {
                 color: muted,
               }}
             >
-              {FIELD_LABELS[field.icon]}
+              {FIELD_LABELS[cv.language][field.icon]}
             </div>
             <div style={{ padding: '0.32em 1em', color: c.textColor }}>
               {field.href ? (

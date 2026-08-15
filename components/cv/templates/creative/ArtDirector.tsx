@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -93,7 +93,7 @@ export default function ArtDirector({ cv, customization: c }: CVTemplateProps) {
               color: onBand,
             }}
           >
-            {fullName(cv) || 'Your Name'}
+            {displayName(cv)}
           </h1>
           {cv.personal.title ? (
             <p

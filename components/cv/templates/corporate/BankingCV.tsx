@@ -1,7 +1,7 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -65,7 +65,6 @@ export default function BankingCV({ cv, customization: c }: CVTemplateProps) {
   const sections = visibleSections(cv);
   const { main, aside } = splitSections(sections, SIDEBAR_SECTIONS);
   const hasAside = aside.length > 0;
-  const name = fullName(cv);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 'inherit' }}>
@@ -86,7 +85,7 @@ export default function BankingCV({ cv, customization: c }: CVTemplateProps) {
             letterSpacing: '0.02em',
           }}
         >
-          {name || 'Your Name'}
+          {displayName(cv)}
         </h1>
         {cv.personal.title ? (
           <p

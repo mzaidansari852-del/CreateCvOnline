@@ -6,16 +6,51 @@ import {
   accentOn,
   bodyWeight,
   fontStack,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
   mutedOn,
   paragraphs,
+  monthName,
 } from '@/lib/cv/format';
 import { getTemplate } from '@/lib/cv/template-registry';
+import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/locales';
 import { cn } from '@/lib/utils/cn';
 import type { CVCustomization, CVData } from '@/types/cv';
+
+/**
+ * The words the letter supplies itself, as opposed to the ones the applicant writes.
+ *
+ * The subject line is the one worth reading twice. English fronts the noun — "Application
+ * for Senior Designer" — while German names the role directly, "Bewerbung als Senior
+ * Designer", and French uses "au poste de". Interpolating a role into an English-shaped
+ * sentence produces something no native reader would write.
+ */
+const LETTER_COPY: Record<Locale, {
+  application: (vacancy: string) => string;
+  reference: (ref: string) => string;
+  placeholder: string;
+}> = {
+  en: {
+    application: (vacancy) => `Application for ${vacancy}`,
+    reference: (ref) => `Ref ${ref}`,
+    placeholder:
+      'Your letter goes here. Three or four short paragraphs: why this role, what you bring to it, and one piece of evidence they will not find on the CV.',
+  },
+  fr: {
+    application: (vacancy) => `Candidature au poste de ${vacancy}`,
+    reference: (ref) => `Réf. ${ref}`,
+    placeholder:
+      'Votre lettre ici. Trois ou quatre paragraphes courts : pourquoi ce poste, ce que vous apportez, et un élément que votre CV ne montre pas.',
+  },
+  de: {
+    application: (vacancy) => `Bewerbung als ${vacancy}`,
+    reference: (ref) => `Ref. ${ref}`,
+    placeholder:
+      'Hier steht Ihr Anschreiben. Drei oder vier kurze Absätze: warum diese Stelle, was Sie mitbringen, und ein Beleg, der nicht im Lebenslauf steht.',
+  },
+};
 
 /**
  * The cover letter that matches the CV.
@@ -24,9 +59,9 @@ import type { CVCustomization, CVData } from '@/types/cv';
  * thing being sold is a *pair* — two documents that arrive in the same inbox looking like
  * they came from the same person — and the reliable way to build that is to give the letter
  * no design of its own at all. It takes the CV's typefaces, its accent, its page margin,
- * its heading case and its date format, so the pair cannot drift apart when the CV is
- * restyled. Sixty-one letter templates would look like more product and would guarantee the
- * opposite.
+ * its heading case, its date format and its language, so the pair cannot drift apart when
+ * the CV is restyled. Sixty-one letter templates would look like more product and would
+ * guarantee the opposite.
  *
  * What the letter does not inherit is the CV's *structure*. A two-column CV with a coloured
  * band is a scanning document; a letter is read top to bottom in one column, and putting a
@@ -57,7 +92,8 @@ export function CoverLetterDocument({
   const accent = c.accentColor;
   const accentText = accentOn(accent);
   const muted = mutedOn(c.textColor, 0.34);
-  const name = fullName(cv) || 'Your Name';
+  const copy = LETTER_COPY[cv.language];
+  const name = displayName(cv);
 
   const cssVars = {
     '--cv-page-width': `${paper.width}px`,
@@ -74,9 +110,15 @@ export function CoverLetterDocument({
     '--cv-secondary': c.secondaryColor,
   } as CSSProperties;
 
-  const dateLine = formatLetterDate(letter.date || today || '');
-  const salutation = letter.salutation || defaultSalutation(letter.recipientName);
-  const signOff = letter.signOff || defaultSignOff(letter.recipientName);
+  /*
+   * The letter follows the CV it is paired with. They are printed together and read
+   * together, so a French CV with an English "Dear Hiring Manager," would be the most
+   * visible possible seam.
+   */
+  const locale = cv.language;
+  const dateLine = formatLetterDate(letter.date || today || '', locale);
+  const salutation = letter.salutation || defaultSalutation(letter.recipientName, locale);
+  const signOff = letter.signOff || defaultSignOff(letter.recipientName, locale);
   const signature = letter.signature || name;
   const blocks = paragraphs(letter.body);
 
@@ -90,8 +132,8 @@ export function CoverLetterDocument({
     .filter(Boolean);
 
   const subject = [
-    letter.vacancy ? `Application for ${letter.vacancy}` : '',
-    letter.reference ? `Ref ${letter.reference}` : '',
+    letter.vacancy ? copy.application(letter.vacancy) : '',
+    letter.reference ? copy.reference(letter.reference) : '',
   ]
     .filter(Boolean)
     .join(' · ');
@@ -198,10 +240,7 @@ export function CoverLetterDocument({
           {blocks.length > 0 ? (
             blocks.map((block, index) => <p key={index}>{block}</p>)
           ) : (
-            <p style={{ color: muted }}>
-              Your letter goes here. Three or four short paragraphs: why this role, what you bring
-              to it, and one piece of evidence they will not find on the CV.
-            </p>
+            <p style={{ color: muted }}>{copy.placeholder}</p>
           )}
         </div>
 
@@ -224,47 +263,60 @@ export function CoverLetterDocument({
 }
 
 /**
- * "Dear Ms Okafor," or "Dear Hiring Manager,".
+ * "Dear Ms Okafor," / "Madame, Monsieur," / "Sehr geehrte Damen und Herren,".
  *
  * A letter opening with "Dear ," because the recipient was left blank is worse than one
  * that never tried to be personal, so the fallback is the neutral form rather than an
  * empty slot.
+ *
+ * The neutral forms are not translations of each other and should not be made into one.
+ * English addresses the role, French addresses two honorifics, German addresses the whole
+ * company. Each is what a letter in that country actually opens with.
  */
-function defaultSalutation(recipientName: string): string {
+function defaultSalutation(recipientName: string, locale: Locale): string {
   const trimmed = recipientName.trim();
+  if (locale === 'fr') return trimmed ? `Madame, Monsieur ${trimmed},` : 'Madame, Monsieur,';
+  if (locale === 'de') {
+    return trimmed ? `Sehr geehrte(r) ${trimmed},` : 'Sehr geehrte Damen und Herren,';
+  }
   return trimmed ? `Dear ${trimmed},` : 'Dear Hiring Manager,';
 }
 
 /**
- * The British convention, which is also the one most likely to be wrong by accident:
- * "Yours sincerely" when the letter is addressed to a named person, "Yours faithfully"
- * when it opens "Dear Sir/Madam" or "Dear Hiring Manager". Getting this backwards is a
- * small thing that a certain kind of reader notices immediately.
+ * The sign-off, which is where letter conventions diverge most.
+ *
+ * English follows the British rule — "Yours sincerely" to a named person, "Yours
+ * faithfully" to an unnamed one — which is the one most likely to be wrong by accident.
+ *
+ * French has no such distinction but does have a formula: the long
+ * "Je vous prie d’agréer…" is still the standard close on an application letter, and a
+ * bare "Cordialement" reads as an email rather than a letter. German uses one line
+ * regardless of whether the recipient is named.
  */
-function defaultSignOff(recipientName: string): string {
+function defaultSignOff(recipientName: string, locale: Locale): string {
+  if (locale === 'fr') {
+    return 'Je vous prie d’agréer, Madame, Monsieur, l’expression de mes salutations distinguées.';
+  }
+  if (locale === 'de') return 'Mit freundlichen Grüßen';
   return recipientName.trim() ? 'Yours sincerely,' : 'Yours faithfully,';
 }
 
-/** "14 August 2026" — the form a letter uses, which is not the form a CV date uses. */
-export function formatLetterDate(value: string): string {
+/**
+ * "14 August 2026" / "le 14 août 2026" / "14. August 2026".
+ *
+ * The form a letter uses, which is not the form a CV date uses. French prefixes `le` and
+ * German takes an ordinal point after the day — both are part of the convention rather
+ * than decoration, and a date without them marks the letter as translated.
+ */
+export function formatLetterDate(value: string, locale: Locale = DEFAULT_LOCALE): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
   if (!match) return '';
   const [, year, month, day] = match;
-  const months = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-  const label = months[Number(month) - 1];
+
+  const label = monthName(Number(month) - 1, locale);
   if (!label) return '';
+
+  if (locale === 'fr') return `le ${Number(day)} ${label} ${year}`;
+  if (locale === 'de') return `${Number(day)}. ${label} ${year}`;
   return `${Number(day)} ${label} ${year}`;
 }

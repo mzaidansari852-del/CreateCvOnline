@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { SESSION_COOKIE } from '@/lib/auth/session';
+import { alternatesFor, localeOf, normalisePath } from '@/lib/i18n/locales';
+import { LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE } from '@/lib/i18n/resolve';
 
 /**
  * Edge-of-app routing rules.
@@ -74,6 +76,54 @@ export function proxy(request: NextRequest): NextResponse {
   const response = NextResponse.next();
   // Lets server components render canonical/redirect URLs without re-deriving the path.
   response.headers.set('x-pathname', pathname);
+
+  /*
+   * Remember the language the *site* is being read in, so it survives into the app.
+   *
+   * The marketing pages get their language from the URL. `/register`, `/login` and the
+   * dashboard cannot: they are one route each, shared by everybody. Without this, a
+   * visitor who read every French page and clicked "Créer mon CV" would land on an English
+   * sign-up form and then an English dashboard, having given no indication whatsoever that
+   * they wanted English.
+   *
+   * Only paths that *express* a language may write it, which is narrower than it first
+   * looks and has to be. The obvious version — write `localeOf(pathname)` on every request
+   * — is wrong in a way that would have been maddening to debug: `localeOf('/dashboard')`
+   * is `'en'`, because the dashboard has no locale prefix, so every visit to the dashboard
+   * would silently reset a French user's preference to English. A path counts as
+   * expressing a language only when it belongs to a translated cluster, which `/dashboard`
+   * and `/login` do not.
+   *
+   * Written only on change, so the great majority of requests carry no `Set-Cookie`.
+   */
+  /*
+   * ...and only on a real navigation.
+   *
+   * Next.js prefetches every link in the viewport, and those prefetches go through this
+   * proxy like any other request. Without this guard a French page that links to an
+   * English one — the pricing page, a blog post — silently rewrote the visitor's language
+   * to English before they clicked anything, and the dashboard's own prefetches undid a
+   * preference the moment it was set. Caught in a browser; `curl` never reproduced it,
+   * because `curl` does not prefetch.
+   *
+   * `sec-fetch-dest: document` is the precise test: it is set by the browser, cannot be
+   * spoofed by page script, and is `empty` for the RSC fetches that caused this.
+   */
+  const isNavigation = request.headers.get('sec-fetch-dest') === 'document';
+  const localised = isNavigation && alternatesFor(normalisePath(pathname));
+  if (localised) {
+    const pathLocale = localeOf(pathname);
+    if (request.cookies.get(LOCALE_COOKIE)?.value !== pathLocale) {
+      response.cookies.set(LOCALE_COOKIE, pathLocale, {
+        maxAge: LOCALE_COOKIE_MAX_AGE,
+        path: '/',
+        sameSite: 'lax',
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+      });
+    }
+  }
+
   return response;
 }
 

@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -56,7 +56,6 @@ export default function CreativeProfessional({ cv, customization: c }: CVTemplat
   const accent = c.accentColor;
   const accentText = accentOn(accent);
   const sections = visibleSections(cv);
-  const name = fullName(cv);
   // The rounded square frame is structural here — a circle would collide with the
   // squared-off marker bars used throughout the document.
   const photoCustomization = { ...c, photoShape: 'rounded' as const };
@@ -91,7 +90,7 @@ export default function CreativeProfessional({ cv, customization: c }: CVTemplat
               letterSpacing: '-0.012em',
             }}
           >
-            {name || 'Your Name'}
+            {displayName(cv)}
           </h1>
           {cv.personal.title ? (
             <p

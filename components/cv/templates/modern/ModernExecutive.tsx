@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -108,7 +108,7 @@ export default function ModernExecutive({ cv, customization: c }: CVTemplateProp
             textAlign: 'center',
           }}
         >
-          {fullName(cv) || 'Your Name'}
+          {displayName(cv)}
         </h1>
         {cv.personal.title ? (
           <p

@@ -1,5 +1,5 @@
 import { BUILT_IN_SECTION_IDS, type BuiltInSectionId, type CVData } from '@/types/cv';
-import type { Locale } from './locales';
+import { LOCALES, type Locale } from './locales';
 
 /**
  * The section headings a CV prints, per language.
@@ -59,10 +59,86 @@ const DE_LABELS: Record<BuiltInSectionId, string> = {
   references: 'Referenzen',
 };
 
-const LABELS: Partial<Record<Locale, Record<BuiltInSectionId, string>>> = {
+/**
+ * The English headings — the source of truth, not a copy of one.
+ *
+ * `localiseCv` could get away with "no entry means leave it alone", because it only ever
+ * ran on marketing samples written in English to begin with. `retitleSections` cannot:
+ * switching a CV *back* to English has to know what English looks like, and recognising a
+ * heading as untouched means comparing it against every language, including this one.
+ *
+ * `SECTION_META` used to carry its own `defaultLabel` for each section. Two tables of the
+ * same thirteen strings is a drift waiting to happen — and it had already happened, by one
+ * word, before a test caught it. `sections.ts` now reads these.
+ */
+const EN_LABELS: Record<BuiltInSectionId, string> = {
+  summary: 'Professional Summary',
+  competencies: 'Core Competencies',
+  experience: 'Work Experience',
+  education: 'Education',
+  skills: 'Skills',
+  languages: 'Languages',
+  projects: 'Projects',
+  certifications: 'Certifications',
+  awards: 'Awards',
+  volunteer: 'Volunteer Experience',
+  publications: 'Publications',
+  interests: 'Interests',
+  references: 'References',
+};
+
+const LABELS: Record<Locale, Record<BuiltInSectionId, string>> = {
+  en: EN_LABELS,
   fr: FR_LABELS,
   de: DE_LABELS,
 };
+
+/** Every heading this section is known to print, in any language. */
+function knownLabels(id: BuiltInSectionId): string[] {
+  return LOCALES.map((locale) => LABELS[locale][id]);
+}
+
+/** The default headings for a CV written in `locale`. */
+export function defaultSectionLabels(locale: Locale): Record<BuiltInSectionId, string> {
+  return LABELS[locale];
+}
+
+/**
+ * The same CV with its built-in headings switched to `locale` — but only the ones the
+ * user has not renamed.
+ *
+ * This is the difference between this and `localiseCv`, and it matters because this runs
+ * on documents people have written. Someone who renamed "Work Experience" to "Selected
+ * Engagements" and then switches the CV to French must keep their wording; silently
+ * reverting it would destroy work with no undo.
+ *
+ * A heading counts as untouched when it matches that section's default in *any* language.
+ * That reads oddly at first — why check French when leaving French? — but it is the only
+ * way to recognise a heading that arrived from a previous switch. The alternative is
+ * storing a "renamed" flag, which every CV written before this feature would lack.
+ *
+ * A user who deliberately renames their section to the exact French default and then
+ * switches to German will see it translate. That is the acknowledged false positive, and
+ * it is the harmless direction to be wrong in.
+ */
+export function retitleSections(cv: CVData, locale: Locale): CVData {
+  const labels = LABELS[locale];
+
+  return {
+    ...cv,
+    sections: cv.sections.map((section) => {
+      if (!(BUILT_IN_SECTION_IDS as readonly string[]).includes(section.id)) return section;
+      const id = section.id as BuiltInSectionId;
+      const renamed = !knownLabels(id).includes(section.label);
+      return renamed ? section : { ...section, label: labels[id] };
+    }),
+  };
+}
+
+/** The same CV, retitled and stamped with its new language. */
+export function setCvLanguage(cv: CVData, locale: Locale): CVData {
+  return { ...retitleSections(cv, locale), language: locale };
+}
 
 /** The heading this section prints in `locale`, or `undefined` to leave it alone. */
 export function sectionLabel(id: string, locale: Locale): string | undefined {
@@ -77,8 +153,7 @@ export function sectionLabel(id: string, locale: Locale): string | undefined {
  * React sees the identical reference.
  */
 export function localiseCv(cv: CVData, locale: Locale): CVData {
-  const labels = LABELS[locale];
-  if (!labels) return cv;
+  if (locale === 'en') return cv;
 
   return {
     ...cv,

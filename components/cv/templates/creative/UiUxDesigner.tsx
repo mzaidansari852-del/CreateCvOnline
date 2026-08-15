@@ -1,7 +1,7 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -113,7 +113,7 @@ export default function UiUxDesigner({ cv, customization: c }: CVTemplateProps) 
                 color: c.secondaryColor,
               }}
             >
-              {fullName(cv) || 'Your Name'}
+              {displayName(cv)}
             </h1>
           </div>
 

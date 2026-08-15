@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -59,7 +59,6 @@ export default function ModernElegant({ cv, customization: c }: CVTemplateProps)
   const muted = mutedOn(c.textColor, 0.38);
   const frame = tint(accent, 0.45);
   const sections = visibleSections(cv);
-  const name = fullName(cv);
 
   return (
     <div style={{ padding: `${c.pageMargin * 1.05}px ${c.pageMargin}px ${c.pageMargin}px` }}>
@@ -93,7 +92,7 @@ export default function ModernElegant({ cv, customization: c }: CVTemplateProps)
               color: c.secondaryColor,
             }}
           >
-            {name || 'Your Name'}
+            {displayName(cv)}
           </h1>
           {cv.personal.title ? (
             <p

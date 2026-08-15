@@ -2,7 +2,7 @@ import { contactEntries, ContactIcon, SectionContent } from '@/components/cv/par
 import {
   accentOn,
   centredTracking,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -58,7 +58,6 @@ export default function ClassicProfessional({ cv, customization: c }: CVTemplate
   const accentText = accentOn(accent);
   const rule = tint(accent, 0.35);
   const sections = visibleSections(cv);
-  const name = fullName(cv);
 
   return (
     <div style={{ padding: c.pageMargin }}>
@@ -73,7 +72,7 @@ export default function ClassicProfessional({ cv, customization: c }: CVTemplate
             color: c.secondaryColor,
           }}
         >
-          {name || 'Your Name'}
+          {displayName(cv)}
         </h1>
         {cv.personal.title ? (
           <p

@@ -1,12 +1,5 @@
 import { contactEntries, ContactIcon, Photo, SectionContent } from '@/components/cv/parts';
-import {
-  fullName,
-  headingTracking,
-  headingTransform,
-  headingWeight,
-  mutedOn,
-  tint,
-} from '@/lib/cv/format';
+import { displayName, headingTracking, headingTransform, headingWeight, mutedOn, tint } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -104,7 +97,7 @@ export default function Photographer({ cv, customization: c }: CVTemplateProps) 
               color: c.secondaryColor,
             }}
           >
-            {fullName(cv) || 'Your Name'}
+            {displayName(cv)}
           </h1>
 
           {cv.personal.title ? (

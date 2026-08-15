@@ -2,7 +2,7 @@ import { contactEntries, ContactIcon, SectionContent } from '@/components/cv/par
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -63,7 +63,6 @@ export default function Timeless({ cv, customization: c }: CVTemplateProps) {
   const tracking = c.headingCase === 'uppercase' ? '0.17em' : headingTracking(c);
   const sections = visibleSections(cv);
   const contacts = contactEntries(cv);
-  const name = fullName(cv);
 
   return (
     <div style={{ padding: `${c.pageMargin}px ${Math.round(c.pageMargin * 1.3)}px` }}>
@@ -85,7 +84,7 @@ export default function Timeless({ cv, customization: c }: CVTemplateProps) {
               color: c.secondaryColor,
             }}
           >
-            {name || 'Your Name'}
+            {displayName(cv)}
           </h1>
           {cv.personal.title ? (
             <p

@@ -1,10 +1,19 @@
 import { uid } from '@/lib/utils/id';
+import { DEFAULT_LOCALE } from '@/lib/i18n/locales';
 import { defaultSectionConfigs } from './sections';
 import { cvCustomizationSchema, cvDataSchema, type CVCustomization, type CVData } from '@/types/cv';
 
-/** A blank but structurally valid CV. */
+/**
+ * A blank but structurally valid CV, written in `language`.
+ *
+ * The language is read off the overrides rather than taken as a second argument, so the
+ * one place that knows it — whichever caller is creating the document for a signed-in
+ * user — passes it the same way it passes everything else.
+ */
 export function createEmptyCV(overrides: Partial<CVData> = {}): CVData {
+  const language = overrides.language ?? DEFAULT_LOCALE;
   const base = cvDataSchema.parse({
+    language,
     personal: {},
     summary: '',
     experience: [],
@@ -19,7 +28,7 @@ export function createEmptyCV(overrides: Partial<CVData> = {}): CVData {
     interests: [],
     references: [],
     customSections: [],
-    sections: defaultSectionConfigs(),
+    sections: defaultSectionConfigs(language),
   });
   return { ...base, ...overrides };
 }

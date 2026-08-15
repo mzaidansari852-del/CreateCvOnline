@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -58,7 +58,6 @@ export default function ItProfessional({ cv, customization: c }: CVTemplateProps
   const accentText = accentOn(accent);
   const muted = mutedOn(c.textColor, 0.38);
   const sections = visibleSections(cv);
-  const name = fullName(cv);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 'inherit' }}>
@@ -81,7 +80,7 @@ export default function ItProfessional({ cv, customization: c }: CVTemplateProps
               color: c.secondaryColor,
             }}
           >
-            {name || 'Your Name'}
+            {displayName(cv)}
           </h1>
           {cv.personal.title ? (
             <p

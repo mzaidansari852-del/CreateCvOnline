@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -67,7 +67,6 @@ export default function DataScientist({ cv, customization: c }: CVTemplateProps)
   const accentText = accentOn(accent, panel);
   const muted = mutedOn(c.textColor, 0.42, panel);
   const sections = visibleSections(cv);
-  const name = fullName(cv);
   const publicationCount = cv.publications.filter((item) => item.title).length;
 
   const bracket = {
@@ -99,7 +98,7 @@ export default function DataScientist({ cv, customization: c }: CVTemplateProps)
               color: c.secondaryColor,
             }}
           >
-            {name || 'Your Name'}
+            {displayName(cv)}
           </h1>
           {cv.personal.title ? (
             <p

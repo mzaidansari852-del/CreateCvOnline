@@ -3,7 +3,7 @@ import {
   accentOn,
   bodyWeight,
   centredTracking,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -63,7 +63,6 @@ export default function ExecutiveClassic({ cv, customization: c }: CVTemplatePro
   const hairline = tint(c.textColor, 0.72);
   const muted = mutedOn(c.textColor, 0.34);
   const sections = visibleSections(cv);
-  const name = fullName(cv);
 
   return (
     <div style={{ padding: `${c.pageMargin}px ${Math.round(c.pageMargin * 1.1)}px` }}>
@@ -88,7 +87,7 @@ export default function ExecutiveClassic({ cv, customization: c }: CVTemplatePro
               minWidth: 0,
             }}
           >
-            {name || 'Your Name'}
+            {displayName(cv)}
           </h1>
           {cv.personal.title ? (
             <p

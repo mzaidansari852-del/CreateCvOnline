@@ -5,6 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb, COLLECTIONS, cvCollection, toIso } from '@/lib/firebase/admin';
 import { adjustCvCount } from './users';
 import { createDefaultCustomization, createEmptyCV } from '@/lib/cv/defaults';
+import type { Locale } from '@/lib/i18n/locales';
 import { completenessScore } from '@/lib/cv/sections';
 import { DEFAULT_TEMPLATE_ID, findTemplate } from '@/lib/cv/template-registry';
 import { shareId as makeShareId } from '@/lib/utils/id';
@@ -125,6 +126,13 @@ export async function createCV(
     templateId?: string;
     data?: CVData;
     customization?: Partial<CVCustomization>;
+    /**
+     * The document's language, normally the creator's interface language.
+     *
+     * Only consulted when no `data` is supplied — an imported or duplicated CV already
+     * carries its own, and overriding it here would silently retitle someone's document.
+     */
+    language?: Locale;
   } = {},
 ): Promise<CVDocument> {
   const template = findTemplate(input.templateId ?? DEFAULT_TEMPLATE_ID);
@@ -139,7 +147,7 @@ export async function createCV(
   const document: Omit<CVDocument, 'id'> = {
     ownerId: uid,
     title: input.title?.trim() || 'Untitled CV',
-    data: input.data ? cvDataSchema.parse(input.data) : createEmptyCV(),
+    data: input.data ? cvDataSchema.parse(input.data) : createEmptyCV({ language: input.language }),
     customization,
     createdAt: now,
     updatedAt: now,

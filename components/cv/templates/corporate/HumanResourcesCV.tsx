@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -60,7 +60,6 @@ export default function HumanResourcesCV({ cv, customization: c }: CVTemplatePro
   const border = tint(accent, 0.74);
   const strip = tint(accent, 0.93);
   const sections = visibleSections(cv);
-  const name = fullName(cv);
 
   return (
     <div style={{ padding: c.pageMargin }}>
@@ -83,7 +82,7 @@ export default function HumanResourcesCV({ cv, customization: c }: CVTemplatePro
               letterSpacing: '-0.01em',
             }}
           >
-            {name || 'Your Name'}
+            {displayName(cv)}
           </h1>
           {cv.personal.title ? (
             <p

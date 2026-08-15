@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
+// A leaf module — no imports of its own, so this cannot create a cycle back through the
+// i18n layer, which does depend on these types.
+import { DEFAULT_LOCALE, LOCALES } from '@/lib/i18n/locales';
+
 /**
  * The single normalised CV document shape.
  *
@@ -412,6 +416,17 @@ export const cvDataSchema = z.object({
   /** Ordered. Array position *is* the render order. */
   sections: z.array(sectionConfigSchema).default([]),
   coverLetter: coverLetterSchema.default(() => coverLetterSchema.parse({})),
+  /**
+   * The language of the *document*, which is not the language of the interface.
+   *
+   * Someone applying in Paris and Berlin from one account needs a French CV and a German
+   * Lebenslauf side by side, so this belongs to the CV rather than to the user. It drives
+   * the section headings and the date formatting the templates print — not the content,
+   * which is the applicant's own words in whatever language they choose to write them.
+   *
+   * Defaults to English so every CV written before this field existed parses unchanged.
+   */
+  language: z.enum(LOCALES).default(DEFAULT_LOCALE),
 });
 export type CVData = z.infer<typeof cvDataSchema>;
 

@@ -2,7 +2,7 @@ import { ContactIcon, SectionContent, contactEntries } from '@/components/cv/par
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -89,7 +89,7 @@ export default function ConsultantCV({ cv, customization: c }: CVTemplateProps) 
               letterSpacing: '-0.022em',
             }}
           >
-            {fullName(cv) || 'Your Name'}
+            {displayName(cv)}
           </h1>
           {cv.personal.title ? (
             <p

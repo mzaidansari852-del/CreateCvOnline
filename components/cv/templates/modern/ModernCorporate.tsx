@@ -1,7 +1,7 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -72,7 +72,6 @@ export default function ModernCorporate({ cv, customization: c }: CVTemplateProp
 
   const sections = visibleSections(cv);
   const { main, aside } = splitSections(sections, ASIDE_SECTIONS);
-  const name = fullName(cv);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 'inherit' }}>
@@ -97,7 +96,7 @@ export default function ModernCorporate({ cv, customization: c }: CVTemplateProp
               color: onBand,
             }}
           >
-            {name || 'Your Name'}
+            {displayName(cv)}
           </h1>
           {cv.personal.title ? (
             <p

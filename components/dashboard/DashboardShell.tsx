@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '@/components/auth/AuthProvider';
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Logo, LogoMark } from '@/components/brand/Logo';
 import { ButtonLink } from '@/components/ui/button';
 import { Badge } from '@/components/ui/feedback';
@@ -72,13 +74,34 @@ export function DashboardShell({
 }: DashboardShellProps) {
   const pathname = usePathname();
   const { signOut } = useAuth();
+  const copy = useCopy();
+
+  /*
+   * The rail labels come from the copy table keyed by href, not from `dashboardNav`'s
+   * own `label`. `lib/site.ts` is shared with the marketing chrome and the sitemap, where
+   * the English label is the right thing; translating it there would change what those
+   * emit. Keyed by href so a route added to the nav without a translation is a type error.
+   */
+  const NAV_LABEL: Record<string, string> = {
+    '/dashboard': copy.nav.dashboard,
+    '/dashboard/cvs': copy.nav.myCvs,
+    '/dashboard/templates': copy.nav.templates,
+    '/dashboard/account': copy.nav.account,
+    '/dashboard/settings': copy.nav.settings,
+  };
 
   const isActive = (href: string) =>
-    href === '/dashboard' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+    href === '/dashboard'
+      ? pathname === href
+      : pathname === href || pathname.startsWith(`${href}/`);
 
   const menuItems: MenuItem[] = [
-    { label: 'Account', href: '/dashboard/account', icon: <User size={16} aria-hidden /> },
-    { label: 'Settings', href: '/dashboard/settings', icon: <Settings size={16} aria-hidden /> },
+    { label: copy.nav.account, href: '/dashboard/account', icon: <User size={16} aria-hidden /> },
+    {
+      label: copy.nav.settings,
+      href: '/dashboard/settings',
+      icon: <Settings size={16} aria-hidden />,
+    },
     ...(viewer.isAdmin
       ? [
           {
@@ -90,7 +113,7 @@ export function DashboardShell({
         ]
       : []),
     {
-      label: 'Sign out',
+      label: copy.nav.signOut,
       onSelect: () => void signOut(),
       icon: <LogOut size={16} aria-hidden />,
       tone: 'danger',
@@ -105,7 +128,7 @@ export function DashboardShell({
           <Logo href="/dashboard" className="hidden sm:inline-flex" />
           <Link
             href="/dashboard"
-            aria-label="Dashboard home"
+            aria-label={copy.nav.dashboard}
             className="inline-flex rounded-lg sm:hidden"
           >
             <LogoMark size={28} />
@@ -117,17 +140,25 @@ export function DashboardShell({
           </Badge>
 
           <div className="ml-auto flex items-center gap-2">
+            {/*
+              In the header rather than only in Settings, because "where do I change the
+              language?" was a question a user had to ask — the marketing header has had
+              this control since the French release and the dashboard renders no marketing
+              header, so signing in used to remove the only way to change language.
+            */}
+            <LanguageSwitcher className="hidden sm:flex" />
+
             <ButtonLink
               href="/dashboard/cvs/new"
               size="sm"
               leadingIcon={<Plus size={16} aria-hidden />}
             >
-              <span className="hidden sm:inline">New CV</span>
-              <span className="sm:hidden">New</span>
+              <span className="hidden sm:inline">{copy.nav.newCv}</span>
+              <span className="sm:hidden">{copy.nav.newCvShort}</span>
             </ButtonLink>
 
             <DropdownMenu
-              ariaLabel="Account menu"
+              ariaLabel={copy.nav.account}
               items={menuItems}
               trigger={() => (
                 <span className="flex items-center gap-2 rounded-full p-0.5 pr-1 transition-colors hover:bg-ink-100">
@@ -164,7 +195,7 @@ export function DashboardShell({
                       )}
                     >
                       <Icon size={17} aria-hidden className="shrink-0" />
-                      {link.label}
+                      {NAV_LABEL[link.href] ?? link.label}
                     </Link>
                   </li>
                 );
@@ -174,13 +205,15 @@ export function DashboardShell({
 
           {!viewer.isPremium ? (
             <div className="mt-6 rounded-xl border border-brand-200 bg-brand-50 p-3.5">
-              <p className="text-sm font-semibold text-brand-900">You are on Free</p>
+              <p className="text-sm font-semibold text-brand-900">{copy.dashboard.onFreePlan}</p>
               <p className="mt-1 text-xs leading-relaxed text-brand-800/80">
-                {viewer.limits.maxCvs} CVs and {viewer.limits.maxDownloadsPerMonth} downloads a
-                month.
+                {copy.dashboard.freePlanLimits(
+                  viewer.limits.maxCvs,
+                  viewer.limits.maxDownloadsPerMonth,
+                )}
               </p>
               <ButtonLink href="/pricing" size="sm" fullWidth className="mt-3">
-                Compare plans
+                {copy.dashboard.comparePlans}
               </ButtonLink>
             </div>
           ) : null}
@@ -224,7 +257,7 @@ export function DashboardShell({
                   )}
                 >
                   <Icon size={19} aria-hidden />
-                  <span className="max-w-full truncate">{link.label}</span>
+                  <span className="max-w-full truncate">{NAV_LABEL[link.href] ?? link.label}</span>
                 </Link>
               </li>
             );

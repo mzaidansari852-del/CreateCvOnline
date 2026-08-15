@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
   bodyWeight,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -60,7 +60,6 @@ export default function Developer({ cv, customization: c }: CVTemplateProps) {
   const accentText = accentOn(accent);
   const sections = visibleSections(cv);
   const { main, aside } = splitSections(sections, SIDEBAR_SECTIONS);
-  const name = fullName(cv);
   const muted = mutedOn(c.textColor, 0.32);
   const hairline = tint(c.textColor, 0.7);
 
@@ -79,7 +78,7 @@ export default function Developer({ cv, customization: c }: CVTemplateProps) {
               letterSpacing: '-0.015em',
             }}
           >
-            {name || 'Your Name'}
+            {displayName(cv)}
           </h1>
           {cv.personal.title ? (
             <>

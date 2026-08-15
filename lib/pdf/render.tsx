@@ -8,6 +8,7 @@ import { CV_DOCUMENT_CSS, printPageCss } from '@/lib/cv/document-css';
 import { googleFontsHref, PAPER } from '@/lib/cv/format';
 import { fullName } from '@/lib/cv/format';
 import { serverEnv } from '@/lib/env';
+import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/locales';
 import type { CVCustomization, CVData } from '@/types/cv';
 
 /**
@@ -252,15 +253,30 @@ const FOOTER_MARGIN = '11mm';
  * margin would be legible on some templates and invisible on others, so the footer carries
  * its own background and reads as a deliberate page tab on all of them.
  */
-function footerTemplate(name: string): string {
+/**
+ * "Page 1 of 2" / "Page 1 sur 2" / "Seite 1 von 2".
+ *
+ * Split around the two counters rather than interpolated, because Chromium replaces the
+ * contents of `.pageNumber` and `.totalPages` itself — the words have to sit outside those
+ * spans, and the three languages put them in different places.
+ */
+const PAGE_LABEL: Record<Locale, { lead: string; between: string }> = {
+  en: { lead: 'Page ', between: ' of ' },
+  fr: { lead: 'Page ', between: ' sur ' },
+  de: { lead: 'Seite ', between: ' von ' },
+};
+
+function footerTemplate(name: string, locale: Locale): string {
   const pill =
     'background:#ffffff;border:1px solid #e5e7eb;border-radius:3px;padding:1.5px 5px;' +
     'color:#4b5563;white-space:nowrap';
+  const page = PAGE_LABEL[locale] ?? PAGE_LABEL[DEFAULT_LOCALE];
   return (
     `<div style="width:100%;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:7.5px;` +
     `padding:0 12mm;display:flex;align-items:center;justify-content:space-between;">` +
     `<span style="${pill}">${escapeHtml(name)}</span>` +
-    `<span style="${pill}">Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>` +
+    `<span style="${pill}">${escapeHtml(page.lead)}<span class="pageNumber"></span>` +
+    `${escapeHtml(page.between)}<span class="totalPages"></span></span>` +
     `</div>`
   );
 }
@@ -314,8 +330,10 @@ export async function renderCVPdf(options: RenderOptions): Promise<PdfResult> {
       return { buffer: first, pageCount: 1, bytes: first.byteLength };
     }
 
+    // "Curriculum Vitae" happens to be the same in all three, which is why it survives as a
+    // literal — but the page counter beside it does not, so the footer takes the language.
     const name = fullName(options.cv) || 'Curriculum Vitae';
-    const second = Buffer.from(await print(footerTemplate(name)));
+    const second = Buffer.from(await print(footerTemplate(name, options.cv.language)));
     return { buffer: second, pageCount: countPdfPages(second), bytes: second.byteLength };
   } finally {
     // `disconnect` for a remote browser; `close` for one we launched.

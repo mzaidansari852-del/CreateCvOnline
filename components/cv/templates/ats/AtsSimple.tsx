@@ -1,12 +1,5 @@
 import { contactEntries, SectionContent } from '@/components/cv/parts';
-import {
-  accentOn,
-  fullName,
-  headingTracking,
-  headingTransform,
-  headingWeight,
-  tint,
-} from '@/lib/cv/format';
+import { accentOn, displayName, headingTracking, headingTransform, headingWeight, tint } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVData, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -74,7 +67,6 @@ export default function AtsSimple({ cv, customization: c }: CVTemplateProps) {
   const accent = c.accentColor;
   const accentText = accentOn(accent);
   const sections = visibleSections(cv);
-  const name = fullName(cv);
   const lines = contactLines(cv);
 
   return (
@@ -88,7 +80,7 @@ export default function AtsSimple({ cv, customization: c }: CVTemplateProps) {
             color: ink,
           }}
         >
-          {name || 'Your Name'}
+          {displayName(cv)}
         </h1>
         {cv.personal.title ? (
           <p style={{ fontSize: '1.05em', marginTop: '0.12em', color: ink }}>{cv.personal.title}</p>

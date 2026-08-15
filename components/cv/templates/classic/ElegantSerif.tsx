@@ -1,7 +1,7 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
-  fullName,
+  displayName,
   headingTracking,
   headingTransform,
   headingWeight,
@@ -63,7 +63,6 @@ export default function ElegantSerif({ cv, customization: c }: CVTemplateProps) 
   const muted = mutedOn(c.textColor, 0.34);
   const tracking = c.headingCase === 'uppercase' ? '0.24em' : headingTracking(c);
   const sections = visibleSections(cv);
-  const name = fullName(cv);
 
   return (
     <div
@@ -103,7 +102,7 @@ export default function ElegantSerif({ cv, customization: c }: CVTemplateProps) 
               color: c.secondaryColor,
             }}
           >
-            {name || 'Your Name'}
+            {displayName(cv)}
           </h1>
 
           {cv.personal.title ? (

@@ -1,0 +1,1836 @@
+import type { Locale } from '../locales';
+import type { Plan } from '@/lib/plans';
+import type { TemplateCategory } from '@/types/cv';
+import type { PaymentStatus } from '@/types/payment';
+import type { SubscriptionStatus } from '@/types/user';
+
+/**
+ * Dashboard strings, in all three languages.
+ *
+ * Split out of the single `app-copy.ts` so that the areas of the product can be worked on
+ * independently. `appCopy(locale)` still composes them into one object, so nothing that
+ * reads a string has to know which file it came from.
+ *
+ * The rule for the translations is unchanged: write what a native speaker would write on
+ * that screen, not what the English says, and where a convention differs rather than a
+ * word, follow the convention.
+ */
+
+/**
+ * The completeness checks, named where their sentences live.
+ *
+ * The union is declared here rather than beside the checks in
+ * `components/dashboard/completeness.ts` so the dependency runs components → lib and not
+ * both ways. Keying `checkTodo` and `checkDone` by it is what makes a thirteenth check
+ * impossible to ship without a sentence in all three languages.
+ */
+export type CompletenessCheckId =
+  | 'name'
+  | 'headline'
+  | 'email'
+  | 'phone'
+  | 'location'
+  | 'summary'
+  | 'experience'
+  | 'achievements'
+  | 'education'
+  | 'skills'
+  | 'languages'
+  | 'extras';
+
+export interface DashboardCopy {
+  dashboard: {
+    title: string;
+    /**
+     * The account menu's link to the admin area, which only an admin sees. Not in `nav`:
+     * that holds the five destinations the rail and the tab bar both render, and this is
+     * neither of those.
+     */
+    adminConsole: string;
+    /**
+     * The landmark name for the bottom tab bar. Deliberately not `nav.dashboard`, which
+     * names the sidebar: two navigations announced identically are two navigations a
+     * screen-reader user cannot tell apart.
+     */
+    tabBarAria: string;
+    greeting: (name: string) => string;
+    /** The overview heading for an account with nothing in it yet, where "back" would be a lie. */
+    greetingNew: (name: string) => string;
+    subtitle: string;
+    cvCount: (n: number) => string;
+    downloadsLeft: (n: number) => string;
+    unlimited: string;
+    onFreePlan: string;
+    /** Both may be `null`, which the plan model uses for "no limit". */
+    freePlanLimits: (cvs: number | null, downloads: number | null) => string;
+    comparePlans: string;
+    completeness: string;
+    emptyTitle: string;
+    emptyBody: string;
+    createFirst: string;
+    recentCvs: string;
+    viewAll: string;
+    lastEdited: (when: string) => string;
+    untitled: string;
+    overviewLedeEmpty: string;
+    overviewLede: (n: number) => string;
+    viewAllCvs: string;
+    planUsage: string;
+    statCvsSaved: string;
+    statDownloads: string;
+    statPlan: string;
+    statCompleteness: string;
+    unlimitedOnPlan: string;
+    atCvLimitHint: string;
+    /** `plan` is a plan name — "Free", "Pro" — which is a product name and stays as it is. */
+    cvsLeftOnPlan: (n: number, plan: string) => string;
+    unlimitedExports: string;
+    resetsOn: (date: string) => string;
+    renewsOn: (date: string) => string;
+    permanentAccess: string;
+    freeForever: string;
+    completenessNoData: string;
+    completenessAcrossCvs: string;
+    downloadLimitTitle: string;
+    downloadLimitBody: (date: string) => string;
+    seePlans: string;
+    finishHeading: (title: string) => string;
+    finishLede: (percent: number) => string;
+    continueEditing: string;
+    recentlyEdited: string;
+    allCvsCount: (n: number) => string;
+    noCvsYet: string;
+    noCvsBody: string;
+    browseTemplates: string;
+    startNewCv: string;
+    cvLimitTitle: (limit: number, plan: string) => string;
+    /**
+     * Written around the link to My CVs, which sits mid-sentence. The tail carries its own
+     * leading space or comma, because German needs a comma where English needs a space and
+     * putting the separator in the markup would force one of them to be wrong.
+     */
+    cvLimitBodyLead: string;
+    cvLimitBodyTail: string;
+    errorTitle: string;
+    errorBody: string;
+    /** The digest, not the message: the message may be internal, the digest is what support needs. */
+    errorBodyWithRef: (reference: string) => string;
+    backToDashboard: string;
+    errorSupport: (email: string) => string;
+    /**
+     * The free-plan upsell card. Every figure in it is read from `lib/plans.ts` and the
+     * template registry, so the strings take them as arguments rather than naming them —
+     * that is what stops the card promising a limit the plans no longer grant.
+     */
+    upgradeHeading: (plan: string, price: string, interval: string) => string;
+    /** Keyed by the plan's own cadence, so a new billing interval cannot ship unlabelled. */
+    billingInterval: Record<Plan['interval'], string>;
+    getPlan: (plan: string) => string;
+    gainUnlimitedCvs: (freeLimit: number) => string;
+    gainUnlimitedDownloads: (freeLimit: number) => string;
+    gainAllTemplates: (total: number, free: number) => string;
+    gainCustomisation: string;
+    /** Written around two links. The join carries its own leading punctuation. */
+    upgradeAltLead: string;
+    upgradeLifetime: (plan: string, price: string) => string;
+    upgradeAltJoin: string;
+    comparePlansLink: string;
+    /**
+     * What a failed request says when the server's own sentence is missing or is not
+     * something a person can read. `ApiRequestError.message` itself stays in whatever
+     * language the server sent, because callers match on it and it is logged.
+     */
+    planLimitTitle: string;
+    planLimitBody: string;
+    networkError: string;
+    requestRefused: (status: number) => string;
+    pleaseTryAgain: string;
+  };
+  cvs: {
+    title: string;
+    subtitle: string;
+    newCv: string;
+    startBlank: string;
+    startBlankHint: string;
+    startExample: string;
+    startExampleHint: string;
+    chooseTemplate: string;
+    deleteTitle: string;
+    deleteBody: (title: string) => string;
+    deleteConfirm: string;
+    duplicated: string;
+    shareTitle: string;
+    shareBody: string;
+    shareCopy: string;
+    shareCopied: string;
+    shareStop: string;
+    downloads: (n: number) => string;
+    documentLanguage: string;
+    documentLanguageHint: string;
+    /** `limit` is `null` on a plan with no cap. */
+    savedSummary: (saved: number, limit: number | null, plan: string) => string;
+    nothingSavedYet: string;
+    sortName: string;
+    sortAria: string;
+    layoutAria: string;
+    gridView: string;
+    listView: string;
+    gridViewAria: string;
+    listViewAria: string;
+    slotsFullTitle: (limit: number, plan: string) => string;
+    slotsFullBody: string;
+    noneTitle: string;
+    noneBody: string;
+    createOne: string;
+    createTitle: string;
+    createLede: string;
+
+    /* The toast after a create. Raised alike by the overview panel, the full new-CV flow
+       and the in-app template browser, which is why it is not filed under any of them. */
+    createdTitle: string;
+    /** The body differs by starter: an example needs a warning, a blank page does not. */
+    createdExampleBody: string;
+    createdBlankBody: string;
+    createFailed: string;
+
+    backToMyCvs: string;
+    premiumTemplateTitle: (name: string) => string;
+    premiumTemplateBody: (count: number) => string;
+    unknownTemplateTitle: string;
+    unknownTemplateBody: string;
+    detailLede: (template: string, percent: number, when: string) => string;
+    previewAria: string;
+    detailsHeading: string;
+    factTemplate: string;
+    factCreated: string;
+    factLastEdited: string;
+    factDownloads: string;
+    factVisibility: string;
+    neverDownloaded: string;
+    downloadsWithLast: (n: number, when: string) => string;
+    unknownTime: string;
+    publicLinkOn: string;
+    privateLabel: string;
+    publicLinkHeading: string;
+    publicLinkHint: string;
+    overall: string;
+    /**
+     * The completeness checklist — the "biggest gaps" list on the overview and the full
+     * list on a CV's own page.
+     *
+     * `checkTodo` is advice and reads as an instruction; `checkDone` is a plain noun
+     * phrase, because a line that is already satisfied is a receipt rather than a
+     * suggestion. Where a check names a section, it uses that section's real heading from
+     * `lib/i18n/cv-labels.ts`, so the advice points at something the reader can see.
+     */
+    checkTodo: Record<CompletenessCheckId, string>;
+    checkDone: Record<CompletenessCheckId, string>;
+    /**
+     * Replaces `checkTodo.skills` once the CV lists some skills but not yet five. Naming
+     * how many are still missing is actionable where restating the target is not.
+     */
+    skillsShortTodo: (missing: number) => string;
+    /** Appended to a checklist line for screen readers, so it starts with its own separator. */
+    srDone: string;
+    srMissing: string;
+    fixInEditor: string;
+    notFoundTitle: string;
+    notFoundBody: string;
+
+    /* A saved CV as a card or a row. */
+    openAria: (title: string) => string;
+    publicBadge: string;
+
+    /* The action menu, shared by the list and the detail page. */
+    actionsAria: (title: string) => string;
+    downloadPdf: string;
+    preparingPdf: string;
+    /** The trailing ellipsis is the usual "this opens a dialog" signal, in every language. */
+    renameAction: string;
+    shareAction: string;
+    sharingAction: string;
+    deleteAction: string;
+    shareShort: string;
+    pdfReadyTitle: string;
+    pdfReadyBody: string;
+    pdfFailed: string;
+    duplicatedBody: (title: string) => string;
+    duplicateFailed: string;
+    nameLabel: string;
+    nameRequired: string;
+    nameTooLong: (max: number) => string;
+    renameTitle: string;
+    renameLede: string;
+    renameSave: string;
+    renamedTitle: string;
+    renamedBody: (title: string) => string;
+    renameFailed: string;
+    deletedTitle: string;
+    deletedBody: (title: string) => string;
+    deleteFailed: string;
+    shareModalLede: string;
+    shareProTitle: string;
+    shareProBody: string;
+    sharePublicLabel: string;
+    shareLiveHint: string;
+    shareOffHint: string;
+    shareUpdating: string;
+    shareOnTitle: string;
+    shareOnBody: string;
+    shareOffTitle: string;
+    shareOffBody: string;
+    shareFailed: string;
+    copyFailedTitle: string;
+    copyFailedBody: string;
+
+    /* The new-CV flow. Its quota banner has no plan name to hand, so it says "your plan". */
+    limitTitle: (limit: number) => string;
+    limitBody: string;
+    usedOfLimit: (used: number, limit: number) => string;
+    proRemovesLimit: string;
+    stepStart: string;
+    stepTemplate: string;
+    stepTemplateHint: string;
+    stepName: string;
+    nameHint: (untitled: string) => string;
+    namePlaceholder: string;
+    /** Carry their own colon: French puts a space before it, English and German do not. */
+    summaryTemplate: string;
+    summaryPaper: string;
+    summaryContent: string;
+    noneSelected: string;
+    contentExample: string;
+    contentEmpty: string;
+    chooseTemplateHint: string;
+  };
+  templates: {
+    allAvailable: (count: number) => string;
+    freeSubset: (free: number, total: number) => string;
+    filterAria: string;
+    allFilter: string;
+    showing: (shown: number, total: number) => string;
+    /**
+     * The category names, which the registry holds in English only because it is shared
+     * with the marketing site and the sitemap. Each localised surface already names the
+     * categories in its own copy module — `app/fr/fr-copy.ts` does the same — and the
+     * terms here follow those pages so a visitor does not meet two names for one thing.
+     */
+    categoryLabel: Record<TemplateCategory, string>;
+    oneColumn: string;
+    twoColumns: string;
+    details: string;
+    searchPlaceholder: string;
+    searchAria: string;
+    planFilterAria: string;
+    blockedTitle: string;
+    blockedBody: string;
+    emptyTitle: string;
+    emptyBody: string;
+    /**
+     * The corner badge on a picker tile, which is one short word wide before it starts
+     * eating the template name beside it. That rules out `common.free` in German, where
+     * "Kostenlos" is nine characters; "Gratis" says the same thing in six.
+     */
+    badgeFree: string;
+    badgePro: string;
+    useTemplate: string;
+    unlockWithPro: string;
+    lockedAria: (name: string) => string;
+  };
+  account: {
+    unfinishedHeading: string;
+    unfinishedBody: (count: number) => string;
+    lede: string;
+    unverifiedTitle: string;
+    unverifiedBody: string;
+    verifyNow: string;
+    profileHint: string;
+    displayName: string;
+    notSet: string;
+    email: string;
+    verified: string;
+    unverified: string;
+    memberSince: string;
+    lastSignIn: string;
+    /** Split around the "ask support" link; the tail carries its own leading punctuation. */
+    profileLockedLead: (siteName: string) => string;
+    askSupport: string;
+    profileLockedTail: string;
+    planHint: string;
+    statusLabel: string;
+    /** Keyed by the stored enum, so a new subscription state cannot ship without a label. */
+    subscriptionStatus: Record<SubscriptionStatus, string>;
+    expires: string;
+    renews: string;
+    neverPermanent: string;
+    notApplicableFree: string;
+    cvsAndDownloads: string;
+    cvAllowance: (n: number | null) => string;
+    downloadAllowance: (n: number | null) => string;
+    billingHeading: string;
+    billingHint: string;
+    noPaymentsTitle: string;
+    noPaymentsPremium: string;
+    noPaymentsAbandoned: string;
+    noPaymentsFree: string;
+    colDate: string;
+    colPlan: string;
+    colAmount: string;
+    colStatus: string;
+    colOrder: string;
+    paymentStatus: Record<PaymentStatus, string>;
+    invoiceLead: string;
+    contactUs: string;
+    invoiceTail: string;
+  };
+  settings: {
+    title: string;
+    subtitle: string;
+    profileHeading: string;
+    displayName: string;
+    email: string;
+    emailImmutable: string;
+    languageHeading: string;
+    languageHint: string;
+    preferencesHeading: string;
+    paperSize: string;
+    defaultTemplate: string;
+    appDefault: string;
+    marketingOptIn: string;
+    marketingOptInHint: string;
+    dangerHeading: string;
+    deleteAccount: string;
+    deleteAccountHint: string;
+    planHeading: string;
+    currentPlan: string;
+    manageBilling: string;
+    pageLede: string;
+    preferencesHint: string;
+    emailHeading: string;
+    emailHint: string;
+    readOnly: string;
+    marketingEmail: string;
+    optedIn: string;
+    optedOut: string;
+    accountEmail: string;
+    accountEmailAlways: string;
+    /** Split around the "ask us" link; the tail carries its own leading punctuation. */
+    emailLockedLead: (siteName: string) => string;
+    askUs: string;
+    emailLockedTail: string;
+    dataHeading: string;
+    dataHint: string;
+    exportNote: string;
+    dangerZone: string;
+    dangerZoneHint: string;
+
+    /* New-CV defaults, stored per browser. */
+    defaultsSaved: string;
+    defaultsSaveFailedTitle: string;
+    defaultsSaveFailedBody: string;
+    readingDefaults: string;
+    paperSizeHint: string;
+    /** The measurements are a format spec and stay put; only the clause after them moves. */
+    paperA4Hint: string;
+    paperLetterHint: string;
+    defaultTemplateHint: string;
+    defaultTemplateFreeHint: string;
+    useAppDefault: (templateName: string) => string;
+    saveDefaults: string;
+    savedLocallyNote: (siteName: string) => string;
+
+    /* The JSON export. */
+    exportButton: string;
+    exportListing: string;
+    exportProgress: (done: number, total: number) => string;
+    exportNothingTitle: string;
+    exportNothingBody: string;
+    exportPartialTitle: (done: number, total: number) => string;
+    exportPartialBody: (titles: string) => string;
+    exportReadyTitle: string;
+    exportReadyBody: (n: number) => string;
+    exportFailed: string;
+
+    /* Account deletion, which is a support request rather than an endpoint. */
+    deleteAccountBody: string;
+    deleteAccountAction: string;
+    deleteModalTitle: string;
+    deleteModalLede: string;
+    deleteContinue: string;
+    deleteNothingTitle: string;
+    deleteNothingBody: (siteName: string) => string;
+    typeEmailToConfirm: (email: string) => string;
+    emailMismatch: string;
+    /**
+     * The pre-filled support request. Written in the user's own language: they read it
+     * before sending it, and a form that answers in English is a form people abandon.
+     */
+    deleteRequestSubject: string;
+    deleteRequestBody: (siteName: string, email: string) => string;
+  };
+}
+
+const EN: DashboardCopy = {
+  dashboard: {
+    title: 'Dashboard',
+    adminConsole: 'Admin console',
+    tabBarAria: 'Dashboard tabs',
+    greeting: (name) => (name ? `Welcome back, ${name}` : 'Welcome back'),
+    greetingNew: (name) => (name ? `Welcome, ${name}` : 'Welcome'),
+    subtitle: 'Your CVs, downloads and account at a glance.',
+    cvCount: (n) => (n === 1 ? '1 CV' : `${n} CVs`),
+    downloadsLeft: (n) =>
+      n === 1 ? '1 download left this month' : `${n} downloads left this month`,
+    unlimited: 'Unlimited',
+    onFreePlan: 'You are on Free',
+    freePlanLimits: (cvs, downloads) =>
+      `${cvs ?? 'Unlimited'} CVs and ${downloads ?? 'unlimited'} downloads a month.`,
+    comparePlans: 'Compare plans',
+    completeness: 'Completeness',
+    emptyTitle: 'You have not created a CV yet',
+    emptyBody: 'Pick a template, fill it in, and download the PDF. It takes about ten minutes.',
+    createFirst: 'Create your first CV',
+    recentCvs: 'Recent CVs',
+    viewAll: 'View all',
+    lastEdited: (when) => `Edited ${when}`,
+    untitled: 'Untitled CV',
+    overviewLedeEmpty:
+      'Nothing saved yet. Pick a starting point below and you will have a finished CV in one sitting.',
+    overviewLede: (n) =>
+      n === 1 ? 'You have 1 CV in your account.' : `You have ${n} CVs in your account.`,
+    viewAllCvs: 'View all CVs',
+    planUsage: 'Plan usage',
+    statCvsSaved: 'CVs saved',
+    statDownloads: 'Downloads',
+    statPlan: 'Plan',
+    statCompleteness: 'Avg. completeness',
+    unlimitedOnPlan: 'Unlimited on your plan.',
+    atCvLimitHint: 'At the limit — delete one or upgrade to add more.',
+    cvsLeftOnPlan: (n, plan) => `${n} left on ${plan}.`,
+    unlimitedExports: 'Unlimited PDF exports.',
+    resetsOn: (date) => `Resets ${date}.`,
+    renewsOn: (date) => `Renews ${date}.`,
+    permanentAccess: 'Permanent access — no renewal.',
+    freeForever: 'Free forever, with limits.',
+    completenessNoData: 'Create a CV to start tracking this.',
+    completenessAcrossCvs: 'Across every CV in your account.',
+    downloadLimitTitle: 'You have used every download this month',
+    downloadLimitBody: (date) => `The counter resets on ${date}. Pro removes the limit entirely.`,
+    seePlans: 'See plans',
+    finishHeading: (title) => `Finish “${title}”`,
+    finishLede: (percent) => `It is ${percent}% complete. These are the biggest gaps:`,
+    continueEditing: 'Continue editing',
+    recentlyEdited: 'Recently edited',
+    allCvsCount: (n) => `All ${n} CVs`,
+    noCvsYet: 'No CVs yet',
+    noCvsBody:
+      'Start blank, start from a worked example, or browse the templates first — whichever gets you writing.',
+    browseTemplates: 'Browse templates',
+    startNewCv: 'Start a new CV',
+    cvLimitTitle: (limit, plan) => `You are using all ${limit} CVs the ${plan} plan allows`,
+    cvLimitBodyLead: 'Delete one from',
+    cvLimitBodyTail: ' to make room, or upgrade to Pro for unlimited CVs.',
+    errorTitle: 'That page did not load',
+    errorBody: 'Something went wrong on our side. Your CVs are safe — nothing was changed.',
+    errorBodyWithRef: (reference) =>
+      `Something went wrong on our side. Quote reference ${reference} if you contact support.`,
+    backToDashboard: 'Back to the dashboard',
+    errorSupport: (email) => `If it keeps happening, e-mail ${email}.`,
+    upgradeHeading: (plan, price, interval) => `Upgrade to ${plan} — $${price}/${interval}`,
+    billingInterval: {
+      forever: 'forever',
+      month: 'month',
+      year: 'year',
+      'one-time': 'one-time',
+    },
+    getPlan: (plan) => `Get ${plan}`,
+    gainUnlimitedCvs: (freeLimit) => `Unlimited CVs instead of ${freeLimit}`,
+    gainUnlimitedDownloads: (freeLimit) =>
+      `Unlimited PDF downloads instead of ${freeLimit} a month`,
+    gainAllTemplates: (total, free) => `All ${total} templates instead of ${free}`,
+    gainCustomisation: 'Fonts, spacing, custom sections and a public share link',
+    upgradeAltLead: 'Or',
+    upgradeLifetime: (plan, price) => `${plan.toLowerCase()} access once for $${price}`,
+    upgradeAltJoin: ', or',
+    comparePlansLink: 'compare the plans',
+    planLimitTitle: 'You have reached a plan limit',
+    planLimitBody: 'Your current plan does not allow that. Upgrading removes the limit.',
+    networkError: 'Network problem — check your connection and try again.',
+    requestRefused: (status) => `The server refused that request (${status}).`,
+    pleaseTryAgain: 'Please try again.',
+  },
+  cvs: {
+    title: 'My CVs',
+    subtitle: 'Everything you have written, ready to tailor for the next application.',
+    newCv: 'New CV',
+    startBlank: 'Start blank',
+    startBlankHint: 'An empty document with the usual sections ready to fill in.',
+    startExample: 'Start from an example',
+    startExampleHint: 'A complete worked CV you can edit down — useful for seeing the shape.',
+    chooseTemplate: 'Choose a template',
+    deleteTitle: 'Delete this CV?',
+    deleteBody: (title) => `“${title}” will be removed permanently. This cannot be undone.`,
+    deleteConfirm: 'Delete permanently',
+    duplicated: 'Copy created',
+    shareTitle: 'Share a read-only link',
+    shareBody: 'Anyone with the link can view this CV. It will not appear in search results.',
+    shareCopy: 'Copy link',
+    shareCopied: 'Link copied',
+    shareStop: 'Stop sharing',
+    downloads: (n) => (n === 1 ? '1 download' : `${n} downloads`),
+    documentLanguage: 'Document language',
+    documentLanguageHint:
+      'Sets the section headings and date format on this CV. It does not change the language of the app, and it never rewrites what you have written.',
+    savedSummary: (saved, limit, plan) =>
+      limit === null ? `${saved} saved.` : `${saved} saved of ${limit} on the ${plan} plan.`,
+    nothingSavedYet: 'Nothing here yet.',
+    sortName: 'Name',
+    sortAria: 'Sort CVs',
+    layoutAria: 'Layout',
+    gridView: 'Grid',
+    listView: 'List',
+    gridViewAria: 'Grid view',
+    listViewAria: 'List view',
+    slotsFullTitle: (limit, plan) => `All ${limit} CV slots on the ${plan} plan are in use`,
+    slotsFullBody:
+      'Delete or rename an existing CV to reuse a slot, or upgrade to Pro for unlimited CVs.',
+    noneTitle: 'No CVs in your account',
+    noneBody:
+      'Create one from a blank page, from a worked example, or straight from a template you like.',
+    createOne: 'Create a CV',
+    createTitle: 'Create a new CV',
+    createLede:
+      'Pick how you want to start and which design to use. Nothing is saved until you press Create.',
+    createdTitle: 'CV created',
+    createdExampleBody: 'We filled it with a worked example — replace it with your own details.',
+    createdBlankBody: 'Opening the editor…',
+    createFailed: 'Could not create the CV',
+    backToMyCvs: 'Back to my CVs',
+    premiumTemplateTitle: (name) => `“${name}” is a Pro template`,
+    premiumTemplateBody: (count) =>
+      `We have selected a free template instead. Upgrade to unlock all ${count} designs, or pick any of the free ones below.`,
+    unknownTemplateTitle: 'That template does not exist',
+    unknownTemplateBody:
+      'The link you followed points at a template we no longer publish. Pick another one below.',
+    detailLede: (template, percent, when) => `${template} · ${percent}% complete · edited ${when}`,
+    previewAria: 'CV preview',
+    detailsHeading: 'Details',
+    factTemplate: 'Template',
+    factCreated: 'Created',
+    factLastEdited: 'Last edited',
+    factDownloads: 'PDF downloads',
+    factVisibility: 'Visibility',
+    neverDownloaded: 'Never downloaded',
+    downloadsWithLast: (n, when) => `${n} · last ${when}`,
+    unknownTime: 'unknown',
+    publicLinkOn: 'Public link on',
+    privateLabel: 'Private',
+    publicLinkHeading: 'Public link',
+    publicLinkHint: 'Use the Share action to copy or switch it off.',
+    overall: 'Overall',
+    checkTodo: {
+      name: 'Add your first and last name',
+      headline: 'Add a professional headline, such as “Senior Product Designer”',
+      email: 'Add an e-mail address recruiters can reply to',
+      phone: 'Add a phone number',
+      location: 'Add your city and country',
+      summary: 'Write a professional summary of at least three lines',
+      experience: 'Add at least one role to Work Experience',
+      achievements:
+        'Describe what you achieved in a role, not just what you were responsible for',
+      education: 'Add an entry to Education',
+      skills: 'Add at least five skills',
+      languages: 'Add at least one language and your level in it',
+      extras: 'Add a project, certification, award or publication',
+    },
+    checkDone: {
+      name: 'Name',
+      headline: 'Professional headline',
+      email: 'Contact e-mail',
+      phone: 'Phone number',
+      location: 'Location',
+      summary: 'Professional summary',
+      experience: 'Work experience',
+      achievements: 'Achievements on a role',
+      education: 'Education',
+      skills: 'Skills',
+      languages: 'Languages',
+      extras: 'Projects, certifications or awards',
+    },
+    skillsShortTodo: (missing) =>
+      `Add ${missing} more skill${missing === 1 ? '' : 's'} (five is the minimum that reads as deliberate)`,
+    srDone: ' — done',
+    srMissing: ' — missing',
+    fixInEditor: 'Fix these in the editor',
+    notFoundTitle: 'That CV is not here',
+    notFoundBody: 'It may have been deleted, or the link may point at a CV in another account.',
+    openAria: (title) => `Open ${title}`,
+    publicBadge: 'Public',
+    actionsAria: (title) => `Actions for ${title}`,
+    downloadPdf: 'Download PDF',
+    preparingPdf: 'Preparing PDF…',
+    renameAction: 'Rename…',
+    shareAction: 'Share…',
+    sharingAction: 'Sharing…',
+    deleteAction: 'Delete…',
+    shareShort: 'Share',
+    pdfReadyTitle: 'PDF ready',
+    pdfReadyBody: 'Your download should start automatically.',
+    pdfFailed: 'Could not create the PDF',
+    duplicatedBody: (title) => `“${title}” is in your list.`,
+    duplicateFailed: 'Could not duplicate that CV',
+    nameLabel: 'CV name',
+    nameRequired: 'Give the CV a name so you can find it later.',
+    nameTooLong: (max) => `Keep the name to ${max} characters or fewer.`,
+    renameTitle: 'Rename CV',
+    renameLede: 'Only you see this name — it is not printed on the document.',
+    renameSave: 'Save name',
+    renamedTitle: 'Renamed',
+    renamedBody: (title) => `Now called “${title}”.`,
+    renameFailed: 'Could not rename that CV',
+    deletedTitle: 'CV deleted',
+    deletedBody: (title) => `“${title}” has been removed.`,
+    deleteFailed: 'Could not delete that CV',
+    shareModalLede:
+      'Publishing creates a read-only page at an unguessable address. Turn it off at any time.',
+    shareProTitle: 'Public links are a Pro feature',
+    shareProBody:
+      'Upgrade to publish your CV at a link you can put in an e-mail or a job application.',
+    sharePublicLabel: 'Anyone with the link can view this CV',
+    shareLiveHint: 'The page is live now.',
+    shareOffHint: 'Nothing is published until you turn this on.',
+    shareUpdating: 'Updating the link…',
+    shareOnTitle: 'Share link on',
+    shareOnBody: 'Anyone with the link can now view this CV.',
+    shareOffTitle: 'Share link off',
+    shareOffBody: 'The link no longer works.',
+    shareFailed: 'Could not change sharing',
+    copyFailedTitle: 'Could not copy',
+    copyFailedBody: 'Select the link and copy it manually.',
+    limitTitle: (limit) => `You are using all ${limit} CVs your plan allows`,
+    limitBody: 'Delete a CV to make room, or upgrade to Pro for unlimited CVs.',
+    usedOfLimit: (used, limit) => `${used} of ${limit} CVs used on your plan`,
+    proRemovesLimit: 'Pro removes the limit and unlocks every template.',
+    stepStart: '1. Choose a starting point',
+    stepTemplate: '2. Pick a template',
+    stepTemplateHint: 'You can change it later without losing anything you have written.',
+    stepName: '3. Name it and create',
+    nameHint: (untitled) => `Only you see this. Leave it blank to call it “${untitled}”.`,
+    namePlaceholder: 'e.g. Product designer — Atlas Cloud',
+    summaryTemplate: 'Template:',
+    summaryPaper: 'Paper:',
+    summaryContent: 'Content:',
+    noneSelected: 'None selected',
+    contentExample: 'Worked example',
+    contentEmpty: 'Empty',
+    chooseTemplateHint: 'Browse every design, filter by style, then start from the one you like.',
+  },
+  templates: {
+    allAvailable: (count) =>
+      `All ${count} designs are available on your plan. Starting a CV from one takes a single click.`,
+    freeSubset: (free, total) =>
+      `${free} of the ${total} designs are on the Free plan. The rest are marked Pro.`,
+    filterAria: 'Filter templates by category',
+    allFilter: 'All',
+    showing: (shown, total) => `Showing ${shown} of ${total} templates`,
+    categoryLabel: {
+      modern: 'Modern',
+      corporate: 'Corporate',
+      creative: 'Creative',
+      technology: 'Technology',
+      classic: 'Classic',
+      ats: 'ATS-friendly',
+    },
+    oneColumn: 'one column',
+    twoColumns: 'two columns',
+    details: 'Details',
+    searchPlaceholder: 'Search templates — “ats”, “executive”, “designer”…',
+    searchAria: 'Search templates',
+    planFilterAria: 'Filter by plan',
+    blockedTitle: 'That is a Pro template',
+    blockedBody:
+      'Upgrade to unlock every design, or keep going with one of the free templates — the free set includes every ATS-safe layout.',
+    emptyTitle: 'No template matches that',
+    emptyBody: 'Try a shorter search, or clear the category and plan filters.',
+    badgeFree: 'FREE',
+    badgePro: 'PRO',
+    useTemplate: 'Use template',
+    unlockWithPro: 'Unlock with Pro',
+    lockedAria: (name) => `${name} is a Pro template — see plans`,
+  },
+  account: {
+    unfinishedHeading: 'Unfinished checkouts · nothing was charged',
+    unfinishedBody: (count) =>
+      `${count === 1 ? 'This checkout was' : 'These checkouts were'} started but never completed — the order was opened with PayPal and abandoned before payment. No money left your account and no plan was granted. We keep the reference so support can trace it if you think otherwise.`,
+    lede: 'Who you are signed in as, what your plan allows, and what you have paid for.',
+    unverifiedTitle: 'Your e-mail address is not verified',
+    unverifiedBody: 'Verifying protects your account and makes password recovery possible.',
+    verifyNow: 'Verify now',
+    profileHint: 'These details come from the account you sign in with.',
+    displayName: 'Display name',
+    notSet: 'Not set',
+    email: 'E-mail',
+    verified: 'Verified',
+    unverified: 'Unverified',
+    memberSince: 'Member since',
+    lastSignIn: 'Last sign-in',
+    profileLockedLead: (siteName) =>
+      `Read-only for now. Your display name and e-mail are taken from your sign-in provider and refreshed every time you sign in — ${siteName} has no profile-editing endpoint yet, so changing them here would not persist. Change them with your provider, or`,
+    askSupport: 'ask support',
+    profileLockedTail: ' to do it for you.',
+    planHint: 'What your account can do right now.',
+    statusLabel: 'Status',
+    subscriptionStatus: {
+      none: 'No subscription',
+      active: 'Active',
+      expired: 'Expired',
+      cancelled: 'Cancelled',
+      pending: 'Pending',
+    },
+    expires: 'Expires',
+    renews: 'Renews',
+    neverPermanent: 'Never — permanent access',
+    notApplicableFree: 'Not applicable on Free',
+    cvsAndDownloads: 'CVs / downloads',
+    cvAllowance: (n) => (n === null ? 'Unlimited' : `${n} CVs`),
+    downloadAllowance: (n) => (n === null ? 'unlimited downloads' : `${n} downloads a month`),
+    billingHeading: 'Billing history',
+    billingHint: 'Payments actually taken from this account.',
+    noPaymentsTitle: 'No payments yet',
+    noPaymentsPremium:
+      'Your access was granted without a recorded payment. Contact support if that looks wrong.',
+    noPaymentsAbandoned:
+      'You have started a checkout but never completed one, so nothing has been charged.',
+    noPaymentsFree: 'You are on the Free plan, so there is nothing to bill.',
+    colDate: 'Date',
+    colPlan: 'Plan',
+    colAmount: 'Amount',
+    colStatus: 'Status',
+    colOrder: 'Order',
+    paymentStatus: {
+      created: 'Created',
+      approved: 'Approved',
+      completed: 'Completed',
+      failed: 'Failed',
+      cancelled: 'Cancelled',
+      refunded: 'Refunded',
+    },
+    invoiceLead: 'Need an invoice, a refund or a receipt re-sent?',
+    contactUs: 'Contact us',
+    invoiceTail: ' with the order id.',
+  },
+  settings: {
+    title: 'Settings',
+    subtitle: 'Your profile, your plan and the defaults applied to new CVs.',
+    profileHeading: 'Profile',
+    displayName: 'Name',
+    email: 'Email',
+    emailImmutable: 'Your email address is the one you signed in with and cannot be changed here.',
+    languageHeading: 'Language',
+    languageHint:
+      'The language of this dashboard and the editor. Each CV has its own language, set on the CV itself.',
+    preferencesHeading: 'New CV defaults',
+    paperSize: 'Paper size',
+    defaultTemplate: 'Default template',
+    appDefault: 'App default',
+    marketingOptIn: 'Product emails',
+    marketingOptInHint:
+      'Occasional emails about new templates and features. No more than one a month.',
+    dangerHeading: 'Delete account',
+    deleteAccount: 'Delete my account',
+    deleteAccountHint: 'Removes your account and every CV in it. This cannot be undone.',
+    planHeading: 'Plan',
+    currentPlan: 'Current plan',
+    manageBilling: 'Manage billing',
+    pageLede:
+      'Only the things that genuinely do something are switchable here. Everything else says so.',
+    preferencesHint: 'Applied the next time you create a CV from this browser.',
+    emailHeading: 'E-mail preferences',
+    emailHint: 'What we are allowed to send you.',
+    readOnly: 'Read-only',
+    marketingEmail: 'Product and marketing e-mail',
+    optedIn: 'Opted in',
+    optedOut: 'Opted out',
+    accountEmail: 'Account e-mail',
+    accountEmailAlways: 'Always sent — receipts, verification and security notices',
+    emailLockedLead: (siteName) =>
+      `${siteName} has no endpoint for changing this yet, so there is no switch here that would pretend to work. Every marketing e-mail carries a one-click unsubscribe link, or`,
+    askUs: 'ask us',
+    emailLockedTail: ' to change it.',
+    dataHeading: 'Your data',
+    dataHint: 'Take a copy of everything you have written here, at any time.',
+    exportNote:
+      'The file contains every CV in full — personal details, sections, and the design settings for each one — as JSON. It is built in your browser from your own account, so nothing is stored or sent anywhere else.',
+    dangerZone: 'Danger zone',
+    dangerZoneHint: 'Irreversible things.',
+    defaultsSaved: 'Defaults saved',
+    defaultsSaveFailedTitle: 'Could not save on this device',
+    defaultsSaveFailedBody:
+      'Your browser is blocking local storage — private browsing usually does.',
+    readingDefaults: 'Reading your saved defaults…',
+    paperSizeHint: 'Applied when a CV is created. You can still change it per CV in the editor.',
+    paperA4Hint: '210 × 297 mm — standard outside North America',
+    paperLetterHint: '8.5 × 11 in — standard in the US and Canada',
+    defaultTemplateHint: 'Pre-selected in the new-CV flow.',
+    defaultTemplateFreeHint:
+      'Only free templates can be a default while you are on the Free plan.',
+    useAppDefault: (templateName) => `Use the app default (${templateName})`,
+    saveDefaults: 'Save defaults',
+    savedLocallyNote: (siteName) =>
+      `Saved in this browser only — ${siteName} has no endpoint for syncing preferences across devices yet.`,
+    exportButton: 'Download all my CVs as JSON',
+    exportListing: 'Listing your CVs…',
+    exportProgress: (done, total) => `Exporting ${done} of ${total}…`,
+    exportNothingTitle: 'Nothing to export',
+    exportNothingBody: 'You have not saved a CV yet.',
+    exportPartialTitle: (done, total) => `Exported ${done} of ${total}`,
+    exportPartialBody: (titles) => `Could not read: ${titles}. Try again in a minute.`,
+    exportReadyTitle: 'Export ready',
+    exportReadyBody: (n) => (n === 1 ? '1 CV saved as JSON.' : `${n} CVs saved as JSON.`),
+    exportFailed: 'Could not export your CVs',
+    deleteAccountBody:
+      'Removes your profile, every saved CV and your payment history. There is no self-service deletion yet, so this opens a pre-filled request to our support team — we action it by hand and confirm by e-mail.',
+    deleteAccountAction: 'Delete account…',
+    deleteModalTitle: 'Delete your account',
+    deleteModalLede: 'This cannot be undone. Type your e-mail address to confirm you mean it.',
+    deleteContinue: 'Continue to request',
+    deleteNothingTitle: 'Nothing is deleted on this screen',
+    deleteNothingBody: (siteName) =>
+      `${siteName} has no automated deletion endpoint. Confirming here takes you to a pre-filled support request; your data is removed once our team processes it.`,
+    typeEmailToConfirm: (email) => `Type ${email} to confirm`,
+    emailMismatch: 'That does not match your e-mail address.',
+    deleteRequestSubject: 'Account deletion request',
+    deleteRequestBody: (siteName, email) =>
+      `Please delete my ${siteName} account (${email}) and everything stored under it: my saved CVs, my payment history and my profile.`,
+  },
+};
+
+const FR: DashboardCopy = {
+  dashboard: {
+    title: 'Tableau de bord',
+    adminConsole: 'Console d’administration',
+    tabBarAria: 'Onglets du tableau de bord',
+    greeting: (name) => (name ? `Bon retour, ${name}` : 'Bon retour'),
+    greetingNew: (name) => (name ? `Bienvenue, ${name}` : 'Bienvenue'),
+    subtitle: 'Vos CV, vos téléchargements et votre compte en un coup d’œil.',
+    // "CV" is invariable in French — no plural s, ever.
+    cvCount: (n) => (n === 1 ? '1 CV' : `${n} CV`),
+    downloadsLeft: (n) =>
+      n === 1 ? '1 téléchargement restant ce mois-ci' : `${n} téléchargements restants ce mois-ci`,
+    unlimited: 'Illimité',
+    onFreePlan: 'Vous êtes sur la formule Gratuite',
+    freePlanLimits: (cvs, downloads) =>
+      `${cvs ?? 'Un nombre illimité de'} CV et ${downloads ?? 'un nombre illimité de'} téléchargements par mois.`,
+    comparePlans: 'Comparer les formules',
+    completeness: 'Complétude',
+    emptyTitle: 'Vous n’avez pas encore créé de CV',
+    emptyBody:
+      'Choisissez un modèle, remplissez-le et téléchargez le PDF. Comptez une dizaine de minutes.',
+    createFirst: 'Créer mon premier CV',
+    recentCvs: 'CV récents',
+    viewAll: 'Tout voir',
+    lastEdited: (when) => `Modifié ${when}`,
+    untitled: 'CV sans titre',
+    overviewLedeEmpty:
+      'Rien d’enregistré pour l’instant. Choisissez un point de départ ci-dessous et vous aurez un CV terminé en une seule séance.',
+    overviewLede: (n) => `Vous avez ${n} CV dans votre compte.`,
+    viewAllCvs: 'Voir tous mes CV',
+    planUsage: 'Utilisation de votre formule',
+    statCvsSaved: 'CV enregistrés',
+    statDownloads: 'Téléchargements',
+    statPlan: 'Formule',
+    statCompleteness: 'Complétude moyenne',
+    unlimitedOnPlan: 'Illimité avec votre formule.',
+    atCvLimitHint: 'Limite atteinte — supprimez-en un ou passez à une formule supérieure.',
+    cvsLeftOnPlan: (n, plan) => `Il en reste ${n} avec la formule ${plan}.`,
+    unlimitedExports: 'Exports PDF illimités.',
+    resetsOn: (date) => `Remise à zéro le ${date}.`,
+    renewsOn: (date) => `Renouvellement le ${date}.`,
+    permanentAccess: 'Accès permanent — sans renouvellement.',
+    freeForever: 'Gratuit à vie, avec des limites.',
+    completenessNoData: 'Créez un CV pour commencer à suivre cet indicateur.',
+    completenessAcrossCvs: 'Sur l’ensemble des CV de votre compte.',
+    downloadLimitTitle: 'Vous avez utilisé tous vos téléchargements ce mois-ci',
+    downloadLimitBody: (date) =>
+      `Le compteur repart le ${date}. Pro supprime complètement cette limite.`,
+    seePlans: 'Voir les formules',
+    finishHeading: (title) => `Terminer « ${title} »`,
+    finishLede: (percent) =>
+      `Il est complété à ${percent} %. Voici les manques les plus importants :`,
+    continueEditing: 'Continuer la rédaction',
+    recentlyEdited: 'Modifiés récemment',
+    allCvsCount: (n) => `Tous mes ${n} CV`,
+    noCvsYet: 'Aucun CV pour l’instant',
+    noCvsBody:
+      'Partez de zéro, d’un exemple complet, ou parcourez d’abord les modèles — l’essentiel est de commencer à écrire.',
+    browseTemplates: 'Parcourir les modèles',
+    startNewCv: 'Créer un nouveau CV',
+    cvLimitTitle: (limit, plan) => `Vous utilisez les ${limit} CV autorisés par la formule ${plan}`,
+    cvLimitBodyLead: 'Supprimez-en un depuis',
+    cvLimitBodyTail: ' pour libérer une place, ou passez à Pro pour un nombre illimité de CV.',
+    errorTitle: 'Cette page ne s’est pas chargée',
+    errorBody: 'Une erreur est survenue de notre côté. Vos CV sont intacts — rien n’a été modifié.',
+    errorBodyWithRef: (reference) =>
+      `Une erreur est survenue de notre côté. Indiquez la référence ${reference} si vous contactez l’assistance.`,
+    backToDashboard: 'Retour au tableau de bord',
+    errorSupport: (email) => `Si le problème persiste, écrivez à ${email}.`,
+    upgradeHeading: (plan, price, interval) => `Passez à ${plan} — ${price} $/${interval}`,
+    billingInterval: {
+      forever: 'à vie',
+      month: 'mois',
+      year: 'an',
+      'one-time': 'paiement unique',
+    },
+    getPlan: (plan) => `Passer à ${plan}`,
+    gainUnlimitedCvs: (freeLimit) => `Un nombre illimité de CV au lieu de ${freeLimit}`,
+    gainUnlimitedDownloads: (freeLimit) =>
+      `Des téléchargements PDF illimités au lieu de ${freeLimit} par mois`,
+    gainAllTemplates: (total, free) => `Les ${total} modèles au lieu de ${free}`,
+    gainCustomisation:
+      'Polices, espacements, rubriques personnalisées et lien de partage public',
+    upgradeAltLead: 'Ou',
+    upgradeLifetime: (plan, price) => `l’accès ${plan} en un seul paiement de ${price} $`,
+    upgradeAltJoin: ', ou',
+    comparePlansLink: 'comparez les formules',
+    planLimitTitle: 'Vous avez atteint une limite de votre formule',
+    planLimitBody:
+      'Votre formule actuelle ne le permet pas. Passer à une formule supérieure supprime cette limite.',
+    networkError: 'Problème de réseau — vérifiez votre connexion et réessayez.',
+    requestRefused: (status) => `Le serveur a refusé cette requête (${status}).`,
+    pleaseTryAgain: 'Veuillez réessayer.',
+  },
+  cvs: {
+    title: 'Mes CV',
+    subtitle: 'Tout ce que vous avez rédigé, prêt à adapter pour la prochaine candidature.',
+    newCv: 'Nouveau CV',
+    startBlank: 'Partir de zéro',
+    startBlankHint: 'Un document vide avec les rubriques habituelles, prêt à remplir.',
+    startExample: 'Partir d’un exemple',
+    startExampleHint:
+      'Un CV complet que vous pouvez élaguer — utile pour voir la structure attendue.',
+    chooseTemplate: 'Choisir un modèle',
+    deleteTitle: 'Supprimer ce CV ?',
+    deleteBody: (title) =>
+      `« ${title} » sera supprimé définitivement. Cette action est irréversible.`,
+    deleteConfirm: 'Supprimer définitivement',
+    duplicated: 'Copie créée',
+    shareTitle: 'Partager un lien en lecture seule',
+    shareBody:
+      'Toute personne disposant du lien pourra consulter ce CV. Il n’apparaîtra pas dans les résultats de recherche.',
+    shareCopy: 'Copier le lien',
+    shareCopied: 'Lien copié',
+    shareStop: 'Arrêter le partage',
+    downloads: (n) => (n === 1 ? '1 téléchargement' : `${n} téléchargements`),
+    documentLanguage: 'Langue du document',
+    documentLanguageHint:
+      'Définit les intitulés de rubrique et le format des dates de ce CV. Cela ne change pas la langue de l’application et ne réécrit jamais ce que vous avez saisi.',
+    savedSummary: (saved, limit, plan) => {
+      const enregistres = saved === 1 ? '1 CV enregistré' : `${saved} CV enregistrés`;
+      return limit === null
+        ? `${enregistres}.`
+        : `${enregistres} sur ${limit} avec la formule ${plan}.`;
+    },
+    nothingSavedYet: 'Rien pour l’instant.',
+    sortName: 'Nom',
+    sortAria: 'Trier les CV',
+    layoutAria: 'Affichage',
+    gridView: 'Grille',
+    listView: 'Liste',
+    gridViewAria: 'Affichage en grille',
+    listViewAria: 'Affichage en liste',
+    slotsFullTitle: (limit, plan) =>
+      `Les ${limit} emplacements de CV de la formule ${plan} sont tous occupés`,
+    slotsFullBody:
+      'Supprimez ou renommez un CV existant pour libérer un emplacement, ou passez à Pro pour un nombre illimité de CV.',
+    noneTitle: 'Aucun CV dans votre compte',
+    noneBody:
+      'Créez-en un à partir d’une page vierge, d’un exemple complet, ou directement depuis un modèle qui vous plaît.',
+    createOne: 'Créer un CV',
+    createTitle: 'Créer un nouveau CV',
+    createLede:
+      'Choisissez votre point de départ et le design à utiliser. Rien n’est enregistré tant que vous n’avez pas cliqué sur Créer.',
+    createdTitle: 'CV créé',
+    createdExampleBody:
+      'Nous l’avons rempli avec un exemple complet — remplacez-le par vos propres informations.',
+    createdBlankBody: 'Ouverture de l’éditeur…',
+    createFailed: 'Impossible de créer le CV',
+    backToMyCvs: 'Retour à mes CV',
+    premiumTemplateTitle: (name) => `« ${name} » est un modèle Pro`,
+    premiumTemplateBody: (count) =>
+      `Nous avons sélectionné un modèle gratuit à la place. Passez à Pro pour débloquer les ${count} designs, ou choisissez l’un des modèles gratuits ci-dessous.`,
+    unknownTemplateTitle: 'Ce modèle n’existe pas',
+    unknownTemplateBody:
+      'Le lien que vous avez suivi renvoie à un modèle que nous ne publions plus. Choisissez-en un autre ci-dessous.',
+    detailLede: (template, percent, when) =>
+      `${template} · complété à ${percent} % · modifié ${when}`,
+    previewAria: 'Aperçu du CV',
+    detailsHeading: 'Détails',
+    factTemplate: 'Modèle',
+    factCreated: 'Créé le',
+    factLastEdited: 'Dernière modification',
+    factDownloads: 'Téléchargements PDF',
+    factVisibility: 'Visibilité',
+    neverDownloaded: 'Jamais téléchargé',
+    downloadsWithLast: (n, when) => `${n} · dernier ${when}`,
+    unknownTime: 'inconnu',
+    publicLinkOn: 'Lien public actif',
+    privateLabel: 'Privé',
+    publicLinkHeading: 'Lien public',
+    publicLinkHint: 'Utilisez l’action Partager pour le copier ou le désactiver.',
+    overall: 'Global',
+    checkTodo: {
+      name: 'Indiquez votre prénom et votre nom',
+      headline: 'Ajoutez un titre professionnel, par exemple « Designer produit senior »',
+      email: 'Ajoutez une adresse e-mail à laquelle les recruteurs peuvent répondre',
+      phone: 'Ajoutez un numéro de téléphone',
+      location: 'Indiquez votre ville et votre pays',
+      summary: 'Rédigez un profil d’au moins trois lignes',
+      experience: 'Ajoutez au moins un poste à la rubrique Expérience professionnelle',
+      achievements:
+        'Décrivez ce que vous avez accompli à un poste, pas seulement ce dont vous étiez responsable',
+      education: 'Ajoutez une entrée à la rubrique Formation',
+      skills: 'Ajoutez au moins cinq compétences',
+      languages: 'Ajoutez au moins une langue et votre niveau',
+      extras: 'Ajoutez un projet, une certification, une distinction ou une publication',
+    },
+    checkDone: {
+      name: 'Nom',
+      headline: 'Titre professionnel',
+      email: 'E-mail de contact',
+      phone: 'Numéro de téléphone',
+      location: 'Ville et pays',
+      summary: 'Profil',
+      experience: 'Expérience professionnelle',
+      achievements: 'Réalisations à un poste',
+      education: 'Formation',
+      skills: 'Compétences',
+      languages: 'Langues',
+      extras: 'Projets, certifications ou distinctions',
+    },
+    skillsShortTodo: (missing) =>
+      `Ajoutez encore ${missing} compétence${missing === 1 ? '' : 's'} (cinq est le minimum pour que la liste paraisse réfléchie)`,
+    srDone: ' — terminé',
+    srMissing: ' — manquant',
+    fixInEditor: 'Compléter dans l’éditeur',
+    notFoundTitle: 'Ce CV est introuvable',
+    notFoundBody:
+      'Il a peut-être été supprimé, ou le lien renvoie à un CV appartenant à un autre compte.',
+    openAria: (title) => `Ouvrir ${title}`,
+    publicBadge: 'Public',
+    actionsAria: (title) => `Actions pour ${title}`,
+    downloadPdf: 'Télécharger le PDF',
+    preparingPdf: 'Préparation du PDF…',
+    renameAction: 'Renommer…',
+    shareAction: 'Partager…',
+    sharingAction: 'Partage…',
+    deleteAction: 'Supprimer…',
+    shareShort: 'Partager',
+    pdfReadyTitle: 'PDF prêt',
+    pdfReadyBody: 'Le téléchargement devrait démarrer automatiquement.',
+    pdfFailed: 'Impossible de créer le PDF',
+    duplicatedBody: (title) => `« ${title} » figure dans votre liste.`,
+    duplicateFailed: 'Impossible de dupliquer ce CV',
+    nameLabel: 'Nom du CV',
+    nameRequired: 'Donnez un nom à ce CV pour le retrouver plus tard.',
+    nameTooLong: (max) => `Le nom ne doit pas dépasser ${max} caractères.`,
+    renameTitle: 'Renommer le CV',
+    renameLede: 'Vous seul voyez ce nom ; il n’apparaît pas sur le document.',
+    renameSave: 'Enregistrer le nom',
+    renamedTitle: 'Renommé',
+    renamedBody: (title) => `Ce CV s’appelle désormais « ${title} ».`,
+    renameFailed: 'Impossible de renommer ce CV',
+    deletedTitle: 'CV supprimé',
+    deletedBody: (title) => `« ${title} » a été supprimé.`,
+    deleteFailed: 'Impossible de supprimer ce CV',
+    shareModalLede:
+      'La publication crée une page en lecture seule à une adresse impossible à deviner. Vous pouvez la désactiver à tout moment.',
+    shareProTitle: 'Les liens publics sont réservés à Pro',
+    shareProBody:
+      'Passez à Pro pour publier votre CV à une adresse que vous pourrez glisser dans un e-mail ou une candidature.',
+    sharePublicLabel: 'Toute personne disposant du lien peut consulter ce CV',
+    shareLiveHint: 'La page est en ligne.',
+    shareOffHint: 'Rien n’est publié tant que vous n’avez pas activé cette option.',
+    shareUpdating: 'Mise à jour du lien…',
+    shareOnTitle: 'Lien de partage activé',
+    shareOnBody: 'Toute personne disposant du lien peut désormais consulter ce CV.',
+    shareOffTitle: 'Lien de partage désactivé',
+    shareOffBody: 'Le lien ne fonctionne plus.',
+    shareFailed: 'Impossible de modifier le partage',
+    copyFailedTitle: 'Copie impossible',
+    copyFailedBody: 'Sélectionnez le lien et copiez-le manuellement.',
+    limitTitle: (limit) => `Vous utilisez les ${limit} CV autorisés par votre formule`,
+    limitBody:
+      'Supprimez un CV pour libérer une place, ou passez à Pro pour un nombre illimité de CV.',
+    usedOfLimit: (used, limit) =>
+      used === 1
+        ? `1 CV utilisé sur ${limit} avec votre formule`
+        : `${used} CV utilisés sur ${limit} avec votre formule`,
+    proRemovesLimit: 'Pro supprime cette limite et débloque tous les modèles.',
+    stepStart: '1. Choisissez un point de départ',
+    stepTemplate: '2. Choisissez un modèle',
+    stepTemplateHint:
+      'Vous pourrez en changer plus tard sans rien perdre de ce que vous avez écrit.',
+    stepName: '3. Nommez-le et créez-le',
+    nameHint: (untitled) =>
+      `Vous seul le voyez. Laissez ce champ vide pour l’appeler « ${untitled} ».`,
+    namePlaceholder: 'ex. Designer produit — Atlas Cloud',
+    summaryTemplate: 'Modèle :',
+    summaryPaper: 'Format :',
+    summaryContent: 'Contenu :',
+    noneSelected: 'Aucun sélectionné',
+    contentExample: 'Exemple complet',
+    contentEmpty: 'Vide',
+    chooseTemplateHint:
+      'Parcourez tous les designs, filtrez par style, puis partez de celui qui vous plaît.',
+  },
+  templates: {
+    allAvailable: (count) =>
+      `Les ${count} designs sont inclus dans votre formule. Il suffit d’un clic pour commencer un CV.`,
+    freeSubset: (free, total) =>
+      `${free} des ${total} designs sont inclus dans la formule Gratuite. Les autres sont signalés Pro.`,
+    filterAria: 'Filtrer les modèles par catégorie',
+    allFilter: 'Tous',
+    showing: (shown, total) => `${shown} modèles affichés sur ${total}`,
+    // Singular, unlike the plural chips on the marketing site: the same label also sits
+    // under a single template card, where « Modernes » would not agree.
+    categoryLabel: {
+      modern: 'Moderne',
+      corporate: 'Entreprise',
+      creative: 'Créatif',
+      technology: 'Informatique',
+      classic: 'Classique',
+      ats: 'Compatible ATS',
+    },
+    oneColumn: 'une colonne',
+    twoColumns: 'deux colonnes',
+    details: 'Détails',
+    searchPlaceholder: 'Rechercher un modèle — « ats », « cadre », « designer »…',
+    searchAria: 'Rechercher un modèle',
+    planFilterAria: 'Filtrer par formule',
+    blockedTitle: 'Ce modèle est réservé à Pro',
+    blockedBody:
+      'Passez à Pro pour débloquer tous les designs, ou continuez avec un modèle gratuit — la sélection gratuite comprend toutes les mises en page compatibles ATS.',
+    emptyTitle: 'Aucun modèle ne correspond',
+    emptyBody: 'Essayez une recherche plus courte, ou retirez les filtres de catégorie et de formule.',
+    badgeFree: 'GRATUIT',
+    badgePro: 'PRO',
+    useTemplate: 'Utiliser ce modèle',
+    unlockWithPro: 'Débloquer avec Pro',
+    lockedAria: (name) => `${name} est un modèle Pro — voir les formules`,
+  },
+  account: {
+    unfinishedHeading: 'Paiements non finalisés · aucun montant n’a été débité',
+    unfinishedBody: (count) =>
+      `${count === 1 ? 'Ce paiement a été' : 'Ces paiements ont été'} entamé${count === 1 ? '' : 's'} sans jamais aboutir : la commande a été ouverte avec PayPal puis abandonnée avant le règlement. Aucun montant n’a été débité de votre compte et aucune formule n’a été activée. Nous conservons la référence pour que le support puisse vérifier si vous pensez le contraire.`,
+    lede: 'Le compte avec lequel vous êtes connecté, ce que votre formule autorise et ce que vous avez payé.',
+    unverifiedTitle: 'Votre adresse e-mail n’est pas vérifiée',
+    unverifiedBody:
+      'La vérification protège votre compte et rend possible la récupération du mot de passe.',
+    verifyNow: 'Vérifier maintenant',
+    profileHint: 'Ces informations proviennent du compte avec lequel vous vous connectez.',
+    displayName: 'Nom affiché',
+    notSet: 'Non renseigné',
+    email: 'Adresse e-mail',
+    verified: 'Vérifiée',
+    unverified: 'Non vérifiée',
+    memberSince: 'Membre depuis',
+    lastSignIn: 'Dernière connexion',
+    profileLockedLead: (siteName) =>
+      `En lecture seule pour l’instant. Votre nom affiché et votre adresse e-mail proviennent de votre fournisseur de connexion et sont actualisés à chaque connexion — ${siteName} n’a pas encore de point d’accès pour modifier le profil, une modification faite ici ne serait donc pas conservée. Modifiez-les chez votre fournisseur, ou`,
+    askSupport: 'demandez à l’assistance',
+    profileLockedTail: ' de le faire pour vous.',
+    planHint: 'Ce que votre compte permet actuellement.',
+    statusLabel: 'Statut',
+    subscriptionStatus: {
+      none: 'Aucun abonnement',
+      active: 'Actif',
+      expired: 'Expiré',
+      cancelled: 'Résilié',
+      pending: 'En attente',
+    },
+    expires: 'Expire le',
+    renews: 'Renouvellement le',
+    neverPermanent: 'Jamais — accès permanent',
+    notApplicableFree: 'Sans objet avec la formule Gratuite',
+    cvsAndDownloads: 'CV / téléchargements',
+    cvAllowance: (n) => (n === null ? 'Illimité' : `${n} CV`),
+    downloadAllowance: (n) =>
+      n === null ? 'téléchargements illimités' : `${n} téléchargements par mois`,
+    billingHeading: 'Historique de facturation',
+    billingHint: 'Les paiements réellement prélevés sur ce compte.',
+    noPaymentsTitle: 'Aucun paiement pour l’instant',
+    noPaymentsPremium:
+      'Votre accès a été accordé sans paiement enregistré. Contactez l’assistance si cela vous semble anormal.',
+    noPaymentsAbandoned:
+      'Vous avez commencé un paiement sans jamais le finaliser : rien n’a donc été prélevé.',
+    noPaymentsFree: 'Vous êtes sur la formule Gratuite : il n’y a donc rien à facturer.',
+    colDate: 'Date',
+    colPlan: 'Formule',
+    colAmount: 'Montant',
+    colStatus: 'Statut',
+    colOrder: 'Commande',
+    paymentStatus: {
+      created: 'Créé',
+      approved: 'Approuvé',
+      completed: 'Effectué',
+      failed: 'Échoué',
+      cancelled: 'Annulé',
+      refunded: 'Remboursé',
+    },
+    invoiceLead: 'Besoin d’une facture, d’un remboursement ou d’un reçu renvoyé ?',
+    contactUs: 'Contactez-nous',
+    invoiceTail: ' en indiquant le numéro de commande.',
+  },
+  settings: {
+    title: 'Paramètres',
+    subtitle: 'Votre profil, votre formule et les valeurs par défaut des nouveaux CV.',
+    profileHeading: 'Profil',
+    displayName: 'Nom',
+    email: 'Adresse e-mail',
+    emailImmutable:
+      'Votre adresse e-mail est celle utilisée pour vous connecter ; elle ne peut pas être modifiée ici.',
+    languageHeading: 'Langue',
+    languageHint:
+      'La langue de ce tableau de bord et de l’éditeur. Chaque CV possède sa propre langue, définie sur le CV lui-même.',
+    preferencesHeading: 'Valeurs par défaut des nouveaux CV',
+    paperSize: 'Format de page',
+    defaultTemplate: 'Modèle par défaut',
+    appDefault: 'Valeur par défaut',
+    marketingOptIn: 'E-mails produit',
+    marketingOptInHint:
+      'Des e-mails occasionnels sur les nouveaux modèles et fonctionnalités. Pas plus d’un par mois.',
+    dangerHeading: 'Supprimer le compte',
+    deleteAccount: 'Supprimer mon compte',
+    deleteAccountHint:
+      'Supprime votre compte et tous les CV qu’il contient. Cette action est irréversible.',
+    planHeading: 'Formule',
+    currentPlan: 'Formule actuelle',
+    manageBilling: 'Gérer la facturation',
+    pageLede:
+      'Seuls les réglages qui font vraiment quelque chose sont modifiables ici. Les autres le disent clairement.',
+    preferencesHint: 'Appliqué au prochain CV que vous créerez depuis ce navigateur.',
+    emailHeading: 'Préférences d’e-mail',
+    emailHint: 'Ce que nous sommes autorisés à vous envoyer.',
+    readOnly: 'Lecture seule',
+    marketingEmail: 'E-mails produit et marketing',
+    optedIn: 'Accepté',
+    optedOut: 'Refusé',
+    accountEmail: 'E-mails liés au compte',
+    accountEmailAlways: 'Toujours envoyés — reçus, vérification et alertes de sécurité',
+    emailLockedLead: (siteName) =>
+      `${siteName} n’a pas encore de point d’accès pour modifier ce réglage ; il n’y a donc ici aucun interrupteur qui ferait semblant de fonctionner. Chaque e-mail marketing contient un lien de désinscription en un clic, ou`,
+    askUs: 'demandez-nous',
+    emailLockedTail: ' de le modifier.',
+    dataHeading: 'Vos données',
+    dataHint: 'Récupérez à tout moment une copie de tout ce que vous avez écrit ici.',
+    exportNote:
+      'Le fichier contient l’intégralité de chaque CV — coordonnées, rubriques et réglages de design — au format JSON. Il est constitué dans votre navigateur à partir de votre propre compte : rien n’est stocké ni envoyé ailleurs.',
+    dangerZone: 'Zone sensible',
+    dangerZoneHint: 'Actions irréversibles.',
+    defaultsSaved: 'Valeurs par défaut enregistrées',
+    defaultsSaveFailedTitle: 'Enregistrement impossible sur cet appareil',
+    defaultsSaveFailedBody:
+      'Votre navigateur bloque le stockage local — c’est souvent le cas en navigation privée.',
+    readingDefaults: 'Lecture de vos valeurs par défaut…',
+    paperSizeHint:
+      'Appliqué à la création d’un CV. Vous pouvez toujours le modifier CV par CV dans l’éditeur.',
+    paperA4Hint: '210 × 297 mm — standard hors Amérique du Nord',
+    paperLetterHint: '8,5 × 11 po — standard aux États-Unis et au Canada',
+    defaultTemplateHint: 'Présélectionné lors de la création d’un CV.',
+    defaultTemplateFreeHint:
+      'Seuls les modèles gratuits peuvent servir de valeur par défaut avec la formule Gratuite.',
+    useAppDefault: (templateName) => `Utiliser la valeur par défaut (${templateName})`,
+    saveDefaults: 'Enregistrer les préférences',
+    savedLocallyNote: (siteName) =>
+      `Enregistré uniquement dans ce navigateur — ${siteName} n’a pas encore de point d’accès pour synchroniser les préférences entre appareils.`,
+    exportButton: 'Télécharger tous mes CV en JSON',
+    exportListing: 'Recensement de vos CV…',
+    exportProgress: (done, total) => `Export de ${done} sur ${total}…`,
+    exportNothingTitle: 'Rien à exporter',
+    exportNothingBody: 'Vous n’avez pas encore enregistré de CV.',
+    exportPartialTitle: (done, total) =>
+      done === 1 ? `1 CV exporté sur ${total}` : `${done} CV exportés sur ${total}`,
+    exportPartialBody: (titles) => `Impossible de lire : ${titles}. Réessayez dans une minute.`,
+    exportReadyTitle: 'Export prêt',
+    exportReadyBody: (n) =>
+      n === 1 ? '1 CV enregistré au format JSON.' : `${n} CV enregistrés au format JSON.`,
+    exportFailed: 'Impossible d’exporter vos CV',
+    deleteAccountBody:
+      'Supprime votre profil, tous vos CV enregistrés et votre historique de paiement. La suppression automatique n’existe pas encore : ce bouton ouvre une demande pré-remplie à notre assistance, que nous traitons à la main et confirmons par e-mail.',
+    deleteAccountAction: 'Supprimer le compte…',
+    deleteModalTitle: 'Supprimer votre compte',
+    deleteModalLede:
+      'Cette action est irréversible. Saisissez votre adresse e-mail pour confirmer votre choix.',
+    deleteContinue: 'Poursuivre la demande',
+    deleteNothingTitle: 'Rien n’est supprimé sur cet écran',
+    deleteNothingBody: (siteName) =>
+      `${siteName} n’a pas de point d’accès de suppression automatique. Confirmer ici vous amène à une demande d’assistance pré-remplie ; vos données sont supprimées une fois que notre équipe l’a traitée.`,
+    typeEmailToConfirm: (email) => `Saisissez ${email} pour confirmer`,
+    emailMismatch: 'Cela ne correspond pas à votre adresse e-mail.',
+    deleteRequestSubject: 'Demande de suppression de compte',
+    deleteRequestBody: (siteName, email) =>
+      `Merci de supprimer mon compte ${siteName} (${email}) ainsi que tout ce qu’il contient : mes CV enregistrés, mon historique de paiement et mon profil.`,
+  },
+};
+
+const DE: DashboardCopy = {
+  dashboard: {
+    title: 'Übersicht',
+    adminConsole: 'Admin-Konsole',
+    tabBarAria: 'Tableiste der Übersicht',
+    greeting: (name) => (name ? `Willkommen zurück, ${name}` : 'Willkommen zurück'),
+    greetingNew: (name) => (name ? `Willkommen, ${name}` : 'Willkommen'),
+    subtitle: 'Ihre Lebensläufe, Downloads und Ihr Konto auf einen Blick.',
+    cvCount: (n) => (n === 1 ? '1 Lebenslauf' : `${n} Lebensläufe`),
+    downloadsLeft: (n) =>
+      n === 1 ? 'Noch 1 Download diesen Monat' : `Noch ${n} Downloads diesen Monat`,
+    unlimited: 'Unbegrenzt',
+    onFreePlan: 'Sie nutzen den kostenlosen Tarif',
+    freePlanLimits: (cvs, downloads) =>
+      `${cvs ?? 'Unbegrenzt viele'} Lebensläufe und ${downloads ?? 'unbegrenzt viele'} Downloads pro Monat.`,
+    comparePlans: 'Tarife vergleichen',
+    completeness: 'Vollständigkeit',
+    emptyTitle: 'Sie haben noch keinen Lebenslauf erstellt',
+    emptyBody: 'Vorlage wählen, ausfüllen, PDF herunterladen. Das dauert etwa zehn Minuten.',
+    createFirst: 'Ersten Lebenslauf erstellen',
+    recentCvs: 'Zuletzt bearbeitet',
+    viewAll: 'Alle anzeigen',
+    lastEdited: (when) => `Bearbeitet ${when}`,
+    untitled: 'Unbenannter Lebenslauf',
+    overviewLedeEmpty:
+      'Noch nichts gespeichert. Wählen Sie unten einen Ausgangspunkt — Ihr Lebenslauf ist in einem Zug fertig.',
+    overviewLede: (n) =>
+      n === 1
+        ? 'Sie haben 1 Lebenslauf in Ihrem Konto.'
+        : `Sie haben ${n} Lebensläufe in Ihrem Konto.`,
+    viewAllCvs: 'Alle Lebensläufe anzeigen',
+    planUsage: 'Nutzung Ihres Tarifs',
+    statCvsSaved: 'Gespeicherte Lebensläufe',
+    statDownloads: 'Downloads',
+    statPlan: 'Tarif',
+    statCompleteness: 'Ø Vollständigkeit',
+    unlimitedOnPlan: 'In Ihrem Tarif unbegrenzt.',
+    atCvLimitHint: 'Limit erreicht — löschen Sie einen oder führen Sie ein Upgrade durch.',
+    cvsLeftOnPlan: (n, plan) => `Noch ${n} frei im Tarif ${plan}.`,
+    unlimitedExports: 'Unbegrenzte PDF-Exporte.',
+    resetsOn: (date) => `Wird am ${date} zurückgesetzt.`,
+    renewsOn: (date) => `Verlängert sich am ${date}.`,
+    permanentAccess: 'Dauerhafter Zugang — keine Verlängerung.',
+    freeForever: 'Dauerhaft kostenlos, mit Grenzen.',
+    completenessNoData: 'Erstellen Sie einen Lebenslauf, um diesen Wert zu verfolgen.',
+    completenessAcrossCvs: 'Über alle Lebensläufe in Ihrem Konto.',
+    downloadLimitTitle: 'Sie haben alle Downloads dieses Monats verbraucht',
+    downloadLimitBody: (date) =>
+      `Der Zähler wird am ${date} zurückgesetzt. Mit Pro entfällt die Grenze ganz.`,
+    seePlans: 'Tarife ansehen',
+    finishHeading: (title) => `„${title}“ fertigstellen`,
+    finishLede: (percent) => `Er ist zu ${percent} % vollständig. Das sind die größten Lücken:`,
+    continueEditing: 'Weiter bearbeiten',
+    recentlyEdited: 'Zuletzt bearbeitet',
+    allCvsCount: (n) => `Alle ${n} Lebensläufe`,
+    noCvsYet: 'Noch keine Lebensläufe',
+    noCvsBody:
+      'Leer beginnen, mit einem ausgearbeiteten Beispiel starten oder erst die Vorlagen durchsehen — Hauptsache, Sie kommen ins Schreiben.',
+    browseTemplates: 'Vorlagen durchsehen',
+    startNewCv: 'Neuen Lebenslauf beginnen',
+    cvLimitTitle: (limit, plan) =>
+      `Sie nutzen alle ${limit} Lebensläufe, die der Tarif ${plan} erlaubt`,
+    cvLimitBodyLead: 'Löschen Sie einen unter',
+    cvLimitBodyTail:
+      ', um Platz zu schaffen, oder wechseln Sie zu Pro für unbegrenzt viele Lebensläufe.',
+    errorTitle: 'Diese Seite wurde nicht geladen',
+    errorBody:
+      'Auf unserer Seite ist etwas schiefgelaufen. Ihre Lebensläufe sind sicher — es wurde nichts geändert.',
+    errorBodyWithRef: (reference) =>
+      `Auf unserer Seite ist etwas schiefgelaufen. Nennen Sie die Referenz ${reference}, wenn Sie den Support kontaktieren.`,
+    backToDashboard: 'Zurück zur Übersicht',
+    errorSupport: (email) => `Wenn es weiterhin auftritt, schreiben Sie an ${email}.`,
+    upgradeHeading: (plan, price, interval) => `Upgrade auf ${plan} — ${price} $/${interval}`,
+    billingInterval: {
+      forever: 'dauerhaft',
+      month: 'Monat',
+      year: 'Jahr',
+      'one-time': 'einmalig',
+    },
+    getPlan: (plan) => `Zu ${plan} wechseln`,
+    gainUnlimitedCvs: (freeLimit) => `Unbegrenzt viele Lebensläufe statt ${freeLimit}`,
+    gainUnlimitedDownloads: (freeLimit) =>
+      `Unbegrenzte PDF-Downloads statt ${freeLimit} pro Monat`,
+    gainAllTemplates: (total, free) => `Alle ${total} Vorlagen statt ${free}`,
+    gainCustomisation:
+      'Schriften, Abstände, eigene Abschnitte und ein öffentlicher Freigabelink',
+    upgradeAltLead: 'Oder',
+    upgradeLifetime: (plan, price) => `${plan}-Zugang einmalig für ${price} $`,
+    upgradeAltJoin: ', oder',
+    comparePlansLink: 'vergleichen Sie die Tarife',
+    planLimitTitle: 'Sie haben ein Tariflimit erreicht',
+    planLimitBody: 'Ihr aktueller Tarif erlaubt das nicht. Ein Upgrade hebt die Grenze auf.',
+    networkError: 'Netzwerkproblem — prüfen Sie Ihre Verbindung und versuchen Sie es erneut.',
+    requestRefused: (status) => `Der Server hat diese Anfrage abgelehnt (${status}).`,
+    pleaseTryAgain: 'Bitte versuchen Sie es erneut.',
+  },
+  cvs: {
+    title: 'Meine Lebensläufe',
+    subtitle: 'Alles, was Sie geschrieben haben — bereit für die nächste Bewerbung.',
+    newCv: 'Neuer Lebenslauf',
+    startBlank: 'Leer beginnen',
+    startBlankHint: 'Ein leeres Dokument mit den üblichen Abschnitten, bereit zum Ausfüllen.',
+    startExample: 'Mit einem Beispiel beginnen',
+    startExampleHint:
+      'Ein vollständiger Lebenslauf, den Sie kürzen können — hilfreich, um den Aufbau zu sehen.',
+    chooseTemplate: 'Vorlage wählen',
+    deleteTitle: 'Diesen Lebenslauf löschen?',
+    deleteBody: (title) =>
+      `„${title}“ wird endgültig entfernt. Das lässt sich nicht rückgängig machen.`,
+    deleteConfirm: 'Endgültig löschen',
+    duplicated: 'Kopie erstellt',
+    shareTitle: 'Schreibgeschützten Link teilen',
+    shareBody:
+      'Wer den Link hat, kann diesen Lebenslauf ansehen. In Suchergebnissen erscheint er nicht.',
+    shareCopy: 'Link kopieren',
+    shareCopied: 'Link kopiert',
+    shareStop: 'Teilen beenden',
+    downloads: (n) => (n === 1 ? '1 Download' : `${n} Downloads`),
+    documentLanguage: 'Sprache des Dokuments',
+    documentLanguageHint:
+      'Legt Abschnittsüberschriften und Datumsformat dieses Lebenslaufs fest. Die Sprache der Anwendung ändert sich dadurch nicht, und Ihre Texte bleiben unverändert.',
+    savedSummary: (saved, limit, plan) =>
+      limit === null
+        ? `${saved} gespeichert.`
+        : `${saved} von ${limit} im Tarif ${plan} gespeichert.`,
+    nothingSavedYet: 'Noch nichts vorhanden.',
+    sortName: 'Name',
+    sortAria: 'Lebensläufe sortieren',
+    layoutAria: 'Ansicht',
+    gridView: 'Raster',
+    listView: 'Liste',
+    gridViewAria: 'Rasteransicht',
+    listViewAria: 'Listenansicht',
+    slotsFullTitle: (limit, plan) => `Alle ${limit} Lebenslauf-Plätze im Tarif ${plan} sind belegt`,
+    slotsFullBody:
+      'Löschen Sie einen vorhandenen Lebenslauf oder benennen Sie ihn um, um einen Platz freizugeben, oder wechseln Sie zu Pro für unbegrenzt viele Lebensläufe.',
+    noneTitle: 'Keine Lebensläufe in Ihrem Konto',
+    noneBody:
+      'Erstellen Sie einen aus einer leeren Seite, aus einem ausgearbeiteten Beispiel oder direkt aus einer Vorlage, die Ihnen gefällt.',
+    createOne: 'Lebenslauf erstellen',
+    createTitle: 'Neuen Lebenslauf erstellen',
+    createLede:
+      'Wählen Sie Ihren Ausgangspunkt und das Design. Gespeichert wird erst, wenn Sie auf Erstellen klicken.',
+    createdTitle: 'Lebenslauf erstellt',
+    createdExampleBody:
+      'Wir haben ihn mit einem ausgearbeiteten Beispiel gefüllt — ersetzen Sie es durch Ihre eigenen Angaben.',
+    createdBlankBody: 'Der Editor wird geöffnet…',
+    createFailed: 'Der Lebenslauf konnte nicht erstellt werden',
+    backToMyCvs: 'Zurück zu meinen Lebensläufen',
+    premiumTemplateTitle: (name) => `„${name}“ ist eine Pro-Vorlage`,
+    premiumTemplateBody: (count) =>
+      `Wir haben stattdessen eine kostenlose Vorlage ausgewählt. Mit einem Upgrade erhalten Sie alle ${count} Designs — oder wählen Sie unten eine der kostenlosen.`,
+    unknownTemplateTitle: 'Diese Vorlage gibt es nicht',
+    unknownTemplateBody:
+      'Der Link, dem Sie gefolgt sind, verweist auf eine Vorlage, die wir nicht mehr anbieten. Wählen Sie unten eine andere.',
+    detailLede: (template, percent, when) =>
+      `${template} · zu ${percent} % vollständig · bearbeitet ${when}`,
+    previewAria: 'Vorschau des Lebenslaufs',
+    detailsHeading: 'Details',
+    factTemplate: 'Vorlage',
+    factCreated: 'Erstellt',
+    factLastEdited: 'Zuletzt bearbeitet',
+    factDownloads: 'PDF-Downloads',
+    factVisibility: 'Sichtbarkeit',
+    neverDownloaded: 'Nie heruntergeladen',
+    downloadsWithLast: (n, when) => `${n} · zuletzt ${when}`,
+    unknownTime: 'unbekannt',
+    publicLinkOn: 'Öffentlicher Link aktiv',
+    privateLabel: 'Privat',
+    publicLinkHeading: 'Öffentlicher Link',
+    publicLinkHint: 'Über die Aktion Teilen können Sie ihn kopieren oder abschalten.',
+    overall: 'Insgesamt',
+    checkTodo: {
+      name: 'Tragen Sie Vor- und Nachnamen ein',
+      headline: 'Ergänzen Sie eine Berufsbezeichnung, etwa „Senior Product Designer“',
+      email: 'Ergänzen Sie eine E-Mail-Adresse, unter der Recruiter Sie erreichen',
+      phone: 'Ergänzen Sie eine Telefonnummer',
+      location: 'Geben Sie Wohnort und Land an',
+      summary: 'Schreiben Sie ein Profil von mindestens drei Zeilen',
+      experience: 'Tragen Sie mindestens eine Station unter Berufserfahrung ein',
+      achievements:
+        'Beschreiben Sie, was Sie in einer Position erreicht haben — nicht nur, wofür Sie zuständig waren',
+      education: 'Tragen Sie einen Eintrag unter Ausbildung ein',
+      skills: 'Ergänzen Sie mindestens fünf Kenntnisse',
+      languages: 'Ergänzen Sie mindestens eine Sprache und Ihr Niveau',
+      extras: 'Ergänzen Sie ein Projekt, ein Zertifikat, eine Auszeichnung oder eine Publikation',
+    },
+    checkDone: {
+      name: 'Name',
+      headline: 'Berufsbezeichnung',
+      email: 'Kontakt-E-Mail',
+      phone: 'Telefonnummer',
+      location: 'Wohnort und Land',
+      summary: 'Profil',
+      experience: 'Berufserfahrung',
+      achievements: 'Erfolge in einer Position',
+      education: 'Ausbildung',
+      skills: 'Kenntnisse',
+      languages: 'Sprachen',
+      extras: 'Projekte, Zertifikate oder Auszeichnungen',
+    },
+    skillsShortTodo: (missing) =>
+      `Ergänzen Sie ${missing} weitere Kenntnis${missing === 1 ? '' : 'se'} (fünf sind das Minimum, damit die Liste durchdacht wirkt)`,
+    srDone: ' — erledigt',
+    srMissing: ' — fehlt',
+    fixInEditor: 'Im Editor ergänzen',
+    notFoundTitle: 'Diesen Lebenslauf gibt es hier nicht',
+    notFoundBody:
+      'Er wurde möglicherweise gelöscht, oder der Link verweist auf einen Lebenslauf in einem anderen Konto.',
+    openAria: (title) => `${title} öffnen`,
+    publicBadge: 'Öffentlich',
+    actionsAria: (title) => `Aktionen für ${title}`,
+    downloadPdf: 'PDF herunterladen',
+    preparingPdf: 'PDF wird vorbereitet…',
+    renameAction: 'Umbenennen…',
+    shareAction: 'Teilen…',
+    sharingAction: 'Freigabe…',
+    deleteAction: 'Löschen…',
+    shareShort: 'Teilen',
+    pdfReadyTitle: 'PDF bereit',
+    pdfReadyBody: 'Der Download sollte automatisch starten.',
+    pdfFailed: 'PDF konnte nicht erstellt werden',
+    duplicatedBody: (title) => `„${title}“ steht in Ihrer Liste.`,
+    duplicateFailed: 'Dieser Lebenslauf konnte nicht dupliziert werden',
+    nameLabel: 'Name des Lebenslaufs',
+    nameRequired: 'Geben Sie dem Lebenslauf einen Namen, damit Sie ihn wiederfinden.',
+    nameTooLong: (max) => `Der Name darf höchstens ${max} Zeichen lang sein.`,
+    renameTitle: 'Lebenslauf umbenennen',
+    renameLede: 'Diesen Namen sehen nur Sie — auf dem Dokument steht er nicht.',
+    renameSave: 'Namen speichern',
+    renamedTitle: 'Umbenannt',
+    renamedBody: (title) => `Heißt jetzt „${title}“.`,
+    renameFailed: 'Dieser Lebenslauf konnte nicht umbenannt werden',
+    deletedTitle: 'Lebenslauf gelöscht',
+    deletedBody: (title) => `„${title}“ wurde entfernt.`,
+    deleteFailed: 'Dieser Lebenslauf konnte nicht gelöscht werden',
+    shareModalLede:
+      'Beim Veröffentlichen entsteht eine schreibgeschützte Seite unter einer nicht erratbaren Adresse. Sie können sie jederzeit wieder abschalten.',
+    shareProTitle: 'Öffentliche Links gibt es nur mit Pro',
+    shareProBody:
+      'Mit einem Upgrade veröffentlichen Sie Ihren Lebenslauf unter einem Link, den Sie in eine E-Mail oder eine Bewerbung setzen können.',
+    sharePublicLabel: 'Wer den Link hat, kann diesen Lebenslauf ansehen',
+    shareLiveHint: 'Die Seite ist jetzt online.',
+    shareOffHint: 'Es wird nichts veröffentlicht, solange Sie das nicht einschalten.',
+    shareUpdating: 'Link wird aktualisiert…',
+    shareOnTitle: 'Freigabelink aktiv',
+    shareOnBody: 'Wer den Link hat, kann diesen Lebenslauf jetzt ansehen.',
+    shareOffTitle: 'Freigabelink deaktiviert',
+    shareOffBody: 'Der Link funktioniert nicht mehr.',
+    shareFailed: 'Freigabe konnte nicht geändert werden',
+    copyFailedTitle: 'Kopieren nicht möglich',
+    copyFailedBody: 'Markieren Sie den Link und kopieren Sie ihn von Hand.',
+    limitTitle: (limit) => `Sie nutzen alle ${limit} Lebensläufe, die Ihr Tarif erlaubt`,
+    limitBody:
+      'Löschen Sie einen Lebenslauf, um Platz zu schaffen, oder wechseln Sie zu Pro für unbegrenzt viele Lebensläufe.',
+    usedOfLimit: (used, limit) => `${used} von ${limit} Lebensläufen in Ihrem Tarif genutzt`,
+    proRemovesLimit: 'Pro hebt die Grenze auf und schaltet alle Vorlagen frei.',
+    stepStart: '1. Ausgangspunkt wählen',
+    stepTemplate: '2. Vorlage wählen',
+    stepTemplateHint:
+      'Sie können sie später wechseln, ohne etwas von dem zu verlieren, was Sie geschrieben haben.',
+    stepName: '3. Benennen und erstellen',
+    nameHint: (untitled) => `Das sehen nur Sie. Leer lassen, um ihn „${untitled}“ zu nennen.`,
+    namePlaceholder: 'z. B. Produktdesigner — Atlas Cloud',
+    summaryTemplate: 'Vorlage:',
+    summaryPaper: 'Papier:',
+    summaryContent: 'Inhalt:',
+    noneSelected: 'Keine ausgewählt',
+    contentExample: 'Ausgearbeitetes Beispiel',
+    contentEmpty: 'Leer',
+    chooseTemplateHint:
+      'Sehen Sie alle Designs durch, filtern Sie nach Stil und beginnen Sie mit dem, der Ihnen gefällt.',
+  },
+  templates: {
+    allAvailable: (count) =>
+      `Alle ${count} Designs sind in Ihrem Tarif enthalten. Ein Klick genügt, um damit einen Lebenslauf zu beginnen.`,
+    freeSubset: (free, total) =>
+      `${free} der ${total} Designs sind im kostenlosen Tarif enthalten. Der Rest ist mit Pro gekennzeichnet.`,
+    filterAria: 'Vorlagen nach Kategorie filtern',
+    allFilter: 'Alle',
+    showing: (shown, total) => `${shown} von ${total} Vorlagen werden angezeigt`,
+    categoryLabel: {
+      modern: 'Modern',
+      corporate: 'Business',
+      creative: 'Kreativ',
+      technology: 'IT',
+      classic: 'Klassisch',
+      ats: 'ATS-tauglich',
+    },
+    oneColumn: 'einspaltig',
+    twoColumns: 'zweispaltig',
+    details: 'Details',
+    searchPlaceholder: 'Vorlagen durchsuchen — „ats“, „Führungskraft“, „Designer“…',
+    searchAria: 'Vorlagen durchsuchen',
+    planFilterAria: 'Nach Tarif filtern',
+    blockedTitle: 'Das ist eine Pro-Vorlage',
+    blockedBody:
+      'Mit einem Upgrade erhalten Sie alle Designs — oder Sie machen mit einer kostenlosen Vorlage weiter: die kostenlose Auswahl enthält jedes ATS-taugliche Layout.',
+    emptyTitle: 'Dazu passt keine Vorlage',
+    emptyBody: 'Versuchen Sie eine kürzere Suche, oder setzen Sie Kategorie- und Tariffilter zurück.',
+    badgeFree: 'GRATIS',
+    badgePro: 'PRO',
+    useTemplate: 'Vorlage verwenden',
+    unlockWithPro: 'Mit Pro freischalten',
+    lockedAria: (name) => `${name} ist eine Pro-Vorlage — Tarife ansehen`,
+  },
+  account: {
+    unfinishedHeading: 'Nicht abgeschlossene Zahlungen · es wurde nichts abgebucht',
+    unfinishedBody: (count) =>
+      `${count === 1 ? 'Dieser Bezahlvorgang wurde' : 'Diese Bezahlvorgänge wurden'} begonnen, aber nie abgeschlossen — die Bestellung wurde bei PayPal geöffnet und vor der Zahlung abgebrochen. Es wurde nichts von Ihrem Konto abgebucht und kein Tarif freigeschaltet. Wir behalten die Referenz, damit der Support das nachvollziehen kann, falls Sie anderer Meinung sind.`,
+    lede: 'Mit welchem Konto Sie angemeldet sind, was Ihr Tarif erlaubt und was Sie bezahlt haben.',
+    unverifiedTitle: 'Ihre E-Mail-Adresse ist nicht bestätigt',
+    unverifiedBody:
+      'Die Bestätigung schützt Ihr Konto und macht das Zurücksetzen des Passworts möglich.',
+    verifyNow: 'Jetzt bestätigen',
+    profileHint: 'Diese Angaben stammen aus dem Konto, mit dem Sie sich anmelden.',
+    displayName: 'Anzeigename',
+    notSet: 'Nicht angegeben',
+    email: 'E-Mail-Adresse',
+    verified: 'Bestätigt',
+    unverified: 'Nicht bestätigt',
+    memberSince: 'Mitglied seit',
+    lastSignIn: 'Letzte Anmeldung',
+    profileLockedLead: (siteName) =>
+      `Vorerst nur lesbar. Ihr Anzeigename und Ihre E-Mail-Adresse stammen von Ihrem Anmeldedienst und werden bei jeder Anmeldung aktualisiert — ${siteName} hat noch keinen Endpunkt zum Bearbeiten des Profils, eine Änderung hier bliebe also nicht erhalten. Ändern Sie sie bei Ihrem Anbieter oder`,
+    askSupport: 'bitten Sie den Support',
+    profileLockedTail: ', es für Sie zu tun.',
+    planHint: 'Was Ihr Konto derzeit kann.',
+    statusLabel: 'Status',
+    subscriptionStatus: {
+      none: 'Kein Abonnement',
+      active: 'Aktiv',
+      expired: 'Abgelaufen',
+      cancelled: 'Gekündigt',
+      pending: 'Ausstehend',
+    },
+    expires: 'Läuft ab am',
+    renews: 'Verlängert sich am',
+    neverPermanent: 'Nie — dauerhafter Zugang',
+    notApplicableFree: 'Im kostenlosen Tarif nicht zutreffend',
+    cvsAndDownloads: 'Lebensläufe / Downloads',
+    cvAllowance: (n) => (n === null ? 'Unbegrenzt' : `${n} Lebensläufe`),
+    downloadAllowance: (n) => (n === null ? 'unbegrenzte Downloads' : `${n} Downloads pro Monat`),
+    billingHeading: 'Zahlungsverlauf',
+    billingHint: 'Zahlungen, die tatsächlich von diesem Konto abgebucht wurden.',
+    noPaymentsTitle: 'Noch keine Zahlungen',
+    noPaymentsPremium:
+      'Ihr Zugang wurde ohne erfasste Zahlung gewährt. Wenden Sie sich an den Support, falls das nicht stimmt.',
+    noPaymentsAbandoned:
+      'Sie haben eine Bestellung begonnen, aber nie abgeschlossen — es wurde nichts abgebucht.',
+    noPaymentsFree: 'Sie nutzen den kostenlosen Tarif, es gibt also nichts abzurechnen.',
+    colDate: 'Datum',
+    colPlan: 'Tarif',
+    colAmount: 'Betrag',
+    colStatus: 'Status',
+    colOrder: 'Bestellung',
+    paymentStatus: {
+      created: 'Erstellt',
+      approved: 'Genehmigt',
+      completed: 'Abgeschlossen',
+      failed: 'Fehlgeschlagen',
+      cancelled: 'Storniert',
+      refunded: 'Erstattet',
+    },
+    invoiceLead: 'Brauchen Sie eine Rechnung, eine Erstattung oder einen erneut zugesandten Beleg?',
+    contactUs: 'Schreiben Sie uns',
+    invoiceTail: ' — mit der Bestellnummer.',
+  },
+  settings: {
+    title: 'Einstellungen',
+    subtitle: 'Ihr Profil, Ihr Tarif und die Voreinstellungen für neue Lebensläufe.',
+    profileHeading: 'Profil',
+    displayName: 'Name',
+    email: 'E-Mail-Adresse',
+    emailImmutable:
+      'Ihre E-Mail-Adresse ist die, mit der Sie sich anmelden, und kann hier nicht geändert werden.',
+    languageHeading: 'Sprache',
+    languageHint:
+      'Die Sprache dieser Übersicht und des Editors. Jeder Lebenslauf hat seine eigene Sprache, die am Dokument selbst eingestellt wird.',
+    preferencesHeading: 'Voreinstellungen für neue Lebensläufe',
+    paperSize: 'Papierformat',
+    defaultTemplate: 'Standardvorlage',
+    appDefault: 'Standard',
+    marketingOptIn: 'Produkt-E-Mails',
+    marketingOptInHint:
+      'Gelegentliche E-Mails zu neuen Vorlagen und Funktionen. Höchstens eine pro Monat.',
+    dangerHeading: 'Konto löschen',
+    deleteAccount: 'Mein Konto löschen',
+    deleteAccountHint:
+      'Entfernt Ihr Konto und alle darin enthaltenen Lebensläufe. Das lässt sich nicht rückgängig machen.',
+    planHeading: 'Tarif',
+    currentPlan: 'Aktueller Tarif',
+    manageBilling: 'Zahlungen verwalten',
+    pageLede:
+      'Umschaltbar ist hier nur, was tatsächlich etwas bewirkt. Bei allem anderen steht es dabei.',
+    preferencesHint: 'Gilt für den nächsten Lebenslauf, den Sie in diesem Browser erstellen.',
+    emailHeading: 'E-Mail-Einstellungen',
+    emailHint: 'Was wir Ihnen senden dürfen.',
+    readOnly: 'Nur lesbar',
+    marketingEmail: 'Produkt- und Marketing-E-Mails',
+    optedIn: 'Zugestimmt',
+    optedOut: 'Nicht zugestimmt',
+    accountEmail: 'Konto-E-Mails',
+    accountEmailAlways: 'Werden immer gesendet — Belege, Bestätigungen und Sicherheitshinweise',
+    emailLockedLead: (siteName) =>
+      `${siteName} hat dafür noch keinen Endpunkt, deshalb gibt es hier keinen Schalter, der nur so täte, als würde er wirken. Jede Marketing-E-Mail enthält einen Abmeldelink mit nur einem Klick — oder`,
+    askUs: 'bitten Sie uns',
+    emailLockedTail: ', es zu ändern.',
+    dataHeading: 'Ihre Daten',
+    dataHint: 'Holen Sie sich jederzeit eine Kopie von allem, was Sie hier geschrieben haben.',
+    exportNote:
+      'Die Datei enthält jeden Lebenslauf vollständig — persönliche Angaben, Abschnitte und die Design-Einstellungen — als JSON. Sie wird in Ihrem Browser aus Ihrem eigenen Konto erzeugt; nichts wird gespeichert oder anderswohin gesendet.',
+    dangerZone: 'Gefahrenzone',
+    dangerZoneHint: 'Unumkehrbare Aktionen.',
+    defaultsSaved: 'Voreinstellungen gespeichert',
+    defaultsSaveFailedTitle: 'Auf diesem Gerät konnte nicht gespeichert werden',
+    defaultsSaveFailedBody:
+      'Ihr Browser blockiert den lokalen Speicher — im privaten Modus ist das üblich.',
+    readingDefaults: 'Ihre gespeicherten Voreinstellungen werden gelesen…',
+    paperSizeHint:
+      'Wird beim Erstellen eines Lebenslaufs angewendet. Im Editor können Sie es je Lebenslauf weiterhin ändern.',
+    paperA4Hint: '210 × 297 mm — Standard außerhalb Nordamerikas',
+    paperLetterHint: '8,5 × 11 Zoll — Standard in den USA und Kanada',
+    defaultTemplateHint: 'Beim Erstellen eines Lebenslaufs vorausgewählt.',
+    defaultTemplateFreeHint:
+      'Im kostenlosen Tarif kann nur eine kostenlose Vorlage die Standardvorlage sein.',
+    useAppDefault: (templateName) => `App-Standard verwenden (${templateName})`,
+    saveDefaults: 'Voreinstellungen speichern',
+    savedLocallyNote: (siteName) =>
+      `Nur in diesem Browser gespeichert — ${siteName} hat noch keinen Endpunkt, um Voreinstellungen zwischen Geräten abzugleichen.`,
+    exportButton: 'Alle meine Lebensläufe als JSON herunterladen',
+    exportListing: 'Ihre Lebensläufe werden aufgelistet…',
+    exportProgress: (done, total) => `${done} von ${total} werden exportiert…`,
+    exportNothingTitle: 'Nichts zu exportieren',
+    exportNothingBody: 'Sie haben noch keinen Lebenslauf gespeichert.',
+    exportPartialTitle: (done, total) => `${done} von ${total} exportiert`,
+    exportPartialBody: (titles) =>
+      `Nicht lesbar: ${titles}. Versuchen Sie es in einer Minute erneut.`,
+    exportReadyTitle: 'Export bereit',
+    exportReadyBody: (n) =>
+      n === 1 ? '1 Lebenslauf als JSON gespeichert.' : `${n} Lebensläufe als JSON gespeichert.`,
+    exportFailed: 'Ihre Lebensläufe konnten nicht exportiert werden',
+    deleteAccountBody:
+      'Entfernt Ihr Profil, jeden gespeicherten Lebenslauf und Ihren Zahlungsverlauf. Eine Selbstbedienungslöschung gibt es noch nicht — dieser Knopf öffnet eine vorausgefüllte Anfrage an unseren Support, die wir von Hand bearbeiten und per E-Mail bestätigen.',
+    deleteAccountAction: 'Konto löschen…',
+    deleteModalTitle: 'Ihr Konto löschen',
+    deleteModalLede:
+      'Das lässt sich nicht rückgängig machen. Geben Sie Ihre E-Mail-Adresse ein, um zu bestätigen, dass Sie es ernst meinen.',
+    deleteContinue: 'Weiter zur Anfrage',
+    deleteNothingTitle: 'Auf diesem Bildschirm wird nichts gelöscht',
+    deleteNothingBody: (siteName) =>
+      `${siteName} hat keinen Endpunkt für die automatische Löschung. Die Bestätigung hier bringt Sie zu einer vorausgefüllten Support-Anfrage; Ihre Daten werden entfernt, sobald unser Team sie bearbeitet hat.`,
+    typeEmailToConfirm: (email) => `Geben Sie zur Bestätigung ${email} ein`,
+    emailMismatch: 'Das stimmt nicht mit Ihrer E-Mail-Adresse überein.',
+    deleteRequestSubject: 'Antrag auf Kontolöschung',
+    deleteRequestBody: (siteName, email) =>
+      `Bitte löschen Sie mein ${siteName}-Konto (${email}) und alles, was darunter gespeichert ist: meine gespeicherten Lebensläufe, meinen Zahlungsverlauf und mein Profil.`,
+  },
+};
+
+export const DASHBOARD_COPY: Record<Locale, DashboardCopy> = { en: EN, fr: FR, de: DE };

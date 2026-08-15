@@ -39,6 +39,35 @@ You never set those URLs here — `PADDLE_ENVIRONMENT` picks one (`lib/payments/
 
 ---
 
+## Default payment link (required — transactions fail without it)
+
+Paddle will not create *any* transaction until the account has a default payment link, so
+this is not optional and not cosmetic: with it unset, `transactions.create` fails and the
+checkout button does nothing.
+
+Set it in **Paddle → Checkout → Checkout settings → Default payment link** to:
+
+```
+https://createcvonline.com/pay
+```
+
+For sandbox against a local machine, `http://localhost:3000/pay` is accepted.
+
+`/pay` exists for exactly this. Paddle appends `?_ptxn=<transaction id>` to the default
+payment link and uses it as the landing page for checkout links it generates itself —
+"update your payment method" links in its emails, dunning notices, and any transaction
+created outside our own checkout flow.
+
+Do **not** point it at `/payment/checkout`. That page needs a signed-in session and a
+`?plan=` parameter, so a customer arriving from a Paddle email days later would be bounced
+to the sign-in form with no explanation for a payment they were asked to complete.
+
+`/pay` is deliberately public. The transaction id is itself the credential — unguessable,
+scoped to one purchase — and completing a payment there grants nothing on its own: access
+is still written only by the webhook, which attributes it through the `custom_data`
+recorded when the transaction was created.
+
+
 ## 2. Get the two credentials — and keep them apart
 
 Both are created under **Paddle → Developer tools → Authentication**. They are *not*

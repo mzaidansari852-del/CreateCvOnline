@@ -478,6 +478,13 @@ export interface DashboardCopy {
    * of them is what makes that decision for them.
    */
   checkout: {
+    noTransactionTitle: string;
+    noTransactionBody: string;
+    openFailedTitle: string;
+    openFailedBody: string;
+    openingCheckout: string;
+    completing: string;
+    reopen: string;
     /** Rendered only when both gateways are configured; one option is not a choice. */
     methodHeading: string;
     methodPaddle: string;
@@ -940,6 +947,15 @@ const EN: DashboardCopy = {
       `Please delete my ${siteName} account (${email}) and everything stored under it: my saved CVs, my payment history and my profile.`,
   },
   checkout: {
+    noTransactionTitle: 'This link is missing its payment reference',
+    noTransactionBody:
+      'Payment links expire and can only be opened once. Start again from the pricing page, or reply to the email you received and we will send a new one.',
+    openFailedTitle: 'We could not open the payment window',
+    openFailedBody:
+      'Nothing has been charged. Refresh the page to try again — if it keeps failing, contact us and quote the link you followed.',
+    openingCheckout: 'Opening the payment window…',
+    completing: 'Payment received — confirming it now…',
+    reopen: 'Reopen the payment window',
     methodHeading: 'How would you like to pay?',
     methodPaddle: 'Card or wallet',
     methodPaypal: 'PayPal',
@@ -1446,6 +1462,15 @@ const FR: DashboardCopy = {
       `Merci de supprimer mon compte ${siteName} (${email}) ainsi que tout ce qu’il contient : mes CV enregistrés, mon historique de paiement et mon profil.`,
   },
   checkout: {
+    noTransactionTitle: 'Il manque la référence de paiement dans ce lien',
+    noTransactionBody:
+      'Les liens de paiement expirent et ne peuvent être ouverts qu’une seule fois. Recommencez depuis la page des tarifs, ou répondez à l’e-mail reçu et nous vous en enverrons un nouveau.',
+    openFailedTitle: 'Impossible d’ouvrir la fenêtre de paiement',
+    openFailedBody:
+      'Aucun montant n’a été débité. Actualisez la page pour réessayer — si le problème persiste, contactez-nous en indiquant le lien que vous avez suivi.',
+    openingCheckout: 'Ouverture de la fenêtre de paiement…',
+    completing: 'Paiement reçu — confirmation en cours…',
+    reopen: 'Rouvrir la fenêtre de paiement',
     methodHeading: 'Comment souhaitez-vous payer ?',
     methodPaddle: 'Carte ou portefeuille',
     methodPaypal: 'PayPal',
@@ -1944,6 +1969,15 @@ const DE: DashboardCopy = {
       `Bitte löschen Sie mein ${siteName}-Konto (${email}) und alles, was darunter gespeichert ist: meine gespeicherten Lebensläufe, meinen Zahlungsverlauf und mein Profil.`,
   },
   checkout: {
+    noTransactionTitle: 'Diesem Link fehlt die Zahlungsreferenz',
+    noTransactionBody:
+      'Zahlungslinks laufen ab und lassen sich nur einmal öffnen. Beginnen Sie erneut auf der Preisseite, oder antworten Sie auf die erhaltene E-Mail — wir senden Ihnen dann einen neuen Link.',
+    openFailedTitle: 'Das Zahlungsfenster konnte nicht geöffnet werden',
+    openFailedBody:
+      'Es wurde nichts abgebucht. Laden Sie die Seite neu, um es erneut zu versuchen — falls es weiterhin fehlschlägt, kontaktieren Sie uns und nennen Sie den verwendeten Link.',
+    openingCheckout: 'Zahlungsfenster wird geöffnet…',
+    completing: 'Zahlung eingegangen — wird bestätigt…',
+    reopen: 'Zahlungsfenster erneut öffnen',
     methodHeading: 'Wie möchten Sie bezahlen?',
     methodPaddle: 'Karte oder Wallet',
     methodPaypal: 'PayPal',

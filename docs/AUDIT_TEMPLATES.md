@@ -735,3 +735,113 @@ every test run: no pair may fall below 0.15, the cluster under 0.25 may not grow
 every audit-named pair must stay above 0.45, and the catalogue mean must stay above 0.74.
 The count is pinned rather than asserted-to-zero so the open work stays visible and a sixth
 pair cannot appear quietly.
+
+---
+
+## Record — Phase 5 as built
+
+Five templates, one new section, one new document type. The catalogue goes 56 → 61, and the
+distinctiveness measurement from 4.4 held while it grew: mean pair distance 0.776 → 0.777
+across 1,830 pairs, the near-identical cluster still exactly five, and every new template
+clear of its nearest neighbour (Coloured Sidebar 0.281, Creative ATS 0.418, Hybrid 0.451,
+Functional 0.525, Europass 0.600).
+
+### 5.1 — functional and hybrid needed a section, not a template
+
+The gap was not "no functional template", it was that the data model could not express one.
+A functional CV proves a claim by grouping achievements under the capability they
+demonstrate; there was nowhere to put that. `competencies` is a new built-in section —
+name, framing, evidence — deliberately not the `skills` array with a description bolted on.
+A skill is a word with a rating and forty fit on a page; a competency is a short case and
+three to six is the section.
+
+Two templates then differ by one variant and one omission. **Functional CV** renders
+competencies `stack` and work history `history` — role, employer, dates, no bullets,
+because repeating the achievements under the employers hands the timeline back the argument
+the competencies just took from it. **Hybrid CV** renders competencies `grouped` (claim
+beside evidence) and keeps the history at full strength.
+
+**The bug this shipped with, and what caught it.** `defaultSectionConfigs()` ships
+`competencies` disabled — correct for a blank CV, which should not open with nine empty
+headings — and the sample builder used it verbatim. So both previews rendered with *no
+competency block at all*: the one thing those formats exist for, missing, on the two pages
+selling them. Every existing test passed, because a section is allowed to be absent. It was
+visible in one glance at the generated preview image. The sample builder now enables any
+section it was given content for, and `tests/cv/samples.test.ts` asserts the two formats
+actually render the block.
+
+### 5.2 — Europass, and a template that answers to someone else
+
+The data model was already 90% there: `languageLevelSchema` is CEFR. What the format needs
+on top is the labelled left gutter and the self-assessment grid, and the grid raised an
+honest question — the official form asks for five competences (listening, reading, spoken
+interaction, spoken production, writing) against the single level per language we store.
+Generating five different values from one would be fabricating a self-assessment on the
+candidate's behalf. Three columns carrying the recorded level is the same grid without the
+invention.
+
+It also broke a house rule: the design tests require Classic templates to be set in a serif,
+and the Europass is a sans because the Commission set it in a sans. `TemplateMeta.standard`
+names the authority a template answers to, and the tests skip house rules for those — an
+exemption that says *why* rather than a slug on a list.
+
+### 5.3 — the saturated sidebar, and where the band is painted
+
+The band is `pageBackground`, not a `<div>`. A coloured element in the flow stops at the end
+of its content and at the first page break, so sheet two of a two-page CV arrives with a
+white stripe where the design was. Text on the band resolves against the band, so a yellow
+accent prints dark type and a navy one prints white without either being special-cased.
+
+Two defects the tests caught immediately: the job title was set to the band colour and
+rendered at 1.03:1 on white (it is now `accentOn(band)` — measured against paper, which is
+what it lands on), and the shared two-column skill default turned a 34%-wide band into a
+pair of four-character stacks.
+
+### 5.4 — cover letters, and why there is only one
+
+Competitors sell "matched pairs" and the way that promise breaks is that the two documents
+are separate records which drift: restyle the CV in March, send February's letter in April.
+So the letter has no design of its own. It stores only what is genuinely per-letter —
+recipient, vacancy, body — and takes the CV's typefaces, accent, margins, heading case and
+date format at render time. It lives on the CV document, so it needs no new collection, no
+new guard and no new save path, and a tailored letter per application is a CV duplicate,
+which the product already does well.
+
+It exports as the first sheet of the same PDF, because that is the order it is read in. The
+full-bleed band is dropped from `<body>` for a pair export — otherwise a sidebar stripe runs
+down a document that has no sidebar.
+
+### 5.5 — page numbers, and two approaches that look right and produce nothing
+
+"Repeat identity, add a page marker" turned out to be gated on something not obvious:
+Chromium cannot give CSS a live page number. Both routes were built and measured.
+`@page { @bottom-right { content: counter(page) } }` renders *nothing at all*. A
+`position: fixed` element does repeat correctly on every printed page — verified — but
+`counter(page)` inside it always resolves to `0`.
+
+The only real source is Chromium's own `pageNumber` / `totalPages`, which needs a margin to
+draw into. So a multi-page export renders twice: once with no margin to find out whether it
+is long, then again with an 11mm strip and a footer. Single-page CVs — the majority — pay
+nothing and are not pushed onto a second page by the strip reserved to say they are on one.
+Each half of the footer sits on an opaque pill, because the full-bleed bands continue into
+the footer strip and are not always on the same edge.
+
+The test asserts against text extracted from the rendered PDF. A naive version passes on a
+completely absent footer: the streams are Flate-compressed so "Page 2 of 3" is not in the
+bytes, while "Amina" *is*, out of the uncompressed `/Title`.
+
+### 5.6 — the ATS-safe creative
+
+Eight of ten creative templates scored 2–3, so a designer applying through Greenhouse had to
+leave the category. That was a false choice: multi-column flow, text in graphics, icon
+glyphs standing in for labels and rated bars break parsing — scale, two contrasting
+typefaces and whitespace do not. Creative ATS spends everything on the second list and
+nothing on the first, and scores 5.
+
+### Still open
+
+- The five near-identical pairs from 4.4 (Banking, Modern Corporate, Cybersecurity, Art
+  Director, Content Creator) are unchanged. They need layout work, not type.
+- 3.4, deferred: `/templates` is still dynamically rendered.
+- Of the six gaps in 1.6, the remainder are infographic beyond bars, monospace/terminal,
+  dark page, US Federal, and the German Lebenslauf conventions — which belong with 6.2.

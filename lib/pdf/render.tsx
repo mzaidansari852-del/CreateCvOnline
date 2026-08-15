@@ -2,6 +2,7 @@ import 'server-only';
 
 import type { Browser, LaunchOptions } from 'puppeteer-core';
 
+import { CoverLetterDocument } from '@/components/cv/CoverLetterDocument';
 import { CVDocument, documentPageBackground } from '@/components/cv/CVDocument';
 import { CV_DOCUMENT_CSS, printPageCss } from '@/lib/cv/document-css';
 import { googleFontsHref, PAPER } from '@/lib/cv/format';
@@ -29,6 +30,15 @@ export interface RenderOptions {
   customization: CVCustomization;
   /** Adds a discreet footer credit. Free-plan exports carry it; Pro exports do not. */
   branding?: { label: string; url: string } | null;
+  /**
+   * Which document to export.
+   *
+   * `'cv+letter'` puts the letter first, which is the order it is read in — a recruiter
+   * opens one attachment, and the letter is the thing that explains the CV behind it.
+   */
+  document?: 'cv' | 'letter' | 'cv+letter';
+  /** `YYYY-MM-DD` used when the letter carries no explicit date. */
+  today?: string;
 }
 
 function escapeHtml(value: string): string {
@@ -50,12 +60,37 @@ export async function renderCVHtml({
   cv,
   customization,
   branding = null,
+  document = 'cv',
+  today,
 }: RenderOptions): Promise<string> {
   const { renderToStaticMarkup } = await import('react-dom/server');
-  const markup = renderToStaticMarkup(<CVDocument cv={cv} customization={customization} />);
+
+  /*
+   * The letter is a sheet in the same file, not a second export.
+   *
+   * `break-after: page` between them is what makes one PDF hold both without the letter
+   * bleeding into the CV's first page — and keeping them in one document is also what
+   * keeps the pair together on the way to the employer, which is the entire promise.
+   */
+  const wantsLetter = document !== 'cv' && cv.coverLetter.enabled;
+  const wantsCv = document !== 'letter';
+  const letterMarkup = wantsLetter
+    ? renderToStaticMarkup(
+        <CoverLetterDocument
+          cv={cv}
+          customization={customization}
+          today={today}
+          className={wantsCv ? 'cv-page-break' : undefined}
+        />,
+      )
+    : '';
+  const cvMarkup = wantsCv
+    ? renderToStaticMarkup(<CVDocument cv={cv} customization={customization} />)
+    : '';
+  const markup = `${letterMarkup}${cvMarkup}`;
   const paper = PAPER[customization.paperSize];
   const fontsHref = googleFontsHref([customization.bodyFont, customization.headingFont]);
-  const background = documentPageBackground(customization, cv);
+  const background = wantsCv && !wantsLetter ? documentPageBackground(customization, cv) : undefined;
   const name = fullName(cv) || 'Curriculum Vitae';
 
   const brandingMarkup = branding
@@ -74,6 +109,7 @@ ${fontsHref ? `<link rel="preconnect" href="https://fonts.gstatic.com" crossorig
 ${printPageCss(paper.puppeteerFormat)}
 ${background ? `body { background: ${background}; }` : ''}
 ${CV_DOCUMENT_CSS}
+.cv-page-break { break-after: page; page-break-after: always; }
 .cv-credit {
   position: absolute;
   left: 0;
@@ -193,6 +229,42 @@ export interface PdfResult {
   bytes: number;
 }
 
+/** Height of the strip reserved for the running footer on a multi-page export. */
+const FOOTER_MARGIN = '11mm';
+
+/**
+ * The running footer for a CV that runs to more than one page.
+ *
+ * Two sheets arriving in a recruiter's inbox with nothing tying them together is a real
+ * failure mode: page two gets separated, or printed on its own, and there is no name on it.
+ * So a multi-page export repeats the candidate's identity and numbers the pages.
+ *
+ * It has to be Chromium's own header/footer rather than anything in the document, because
+ * a live page number is not available to CSS here. Both of the obvious routes were tried
+ * and measured: `@page { @bottom-right { content: counter(page) } }` renders nothing at
+ * all in Chromium, and `counter(page)` inside a `position: fixed` element renders — on
+ * every page, correctly repeated — but always resolves to `0`. The only source of a real
+ * page number is the `pageNumber` / `totalPages` spans below.
+ *
+ * Each half sits on its own opaque pill. Several templates paint a full-bleed colour band
+ * that continues into the footer strip, and it is not always on the same edge — Coloured
+ * Sidebar and Modern Executive band the left, Management bands the right. Grey text in the
+ * margin would be legible on some templates and invisible on others, so the footer carries
+ * its own background and reads as a deliberate page tab on all of them.
+ */
+function footerTemplate(name: string): string {
+  const pill =
+    'background:#ffffff;border:1px solid #e5e7eb;border-radius:3px;padding:1.5px 5px;' +
+    'color:#4b5563;white-space:nowrap';
+  return (
+    `<div style="width:100%;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:7.5px;` +
+    `padding:0 12mm;display:flex;align-items:center;justify-content:space-between;">` +
+    `<span style="${pill}">${escapeHtml(name)}</span>` +
+    `<span style="${pill}">Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>` +
+    `</div>`
+  );
+}
+
 export async function renderCVPdf(options: RenderOptions): Promise<PdfResult> {
   const html = await renderCVHtml(options);
   const paper = PAPER[options.customization.paperSize];
@@ -214,16 +286,37 @@ export async function renderCVPdf(options: RenderOptions): Promise<PdfResult> {
       .catch(() => undefined);
     await page.emulateMediaType('print');
 
-    const data = await page.pdf({
-      format: paper.puppeteerFormat,
-      printBackground: true,
-      preferCSSPageSize: true,
-      margin: { top: '0', right: '0', bottom: '0', left: '0' },
-      timeout: 30_000,
-    });
+    const print = (footer: string | null) =>
+      page.pdf({
+        format: paper.puppeteerFormat,
+        printBackground: true,
+        // A margin and `preferCSSPageSize` disagree about who owns the page box; the CSS
+        // size wins only while there is no margin to reconcile it with.
+        preferCSSPageSize: footer === null,
+        margin: { top: '0', right: '0', bottom: footer === null ? '0' : FOOTER_MARGIN, left: '0' },
+        displayHeaderFooter: footer !== null,
+        headerTemplate: '<span></span>',
+        footerTemplate: footer ?? '<span></span>',
+        timeout: 30_000,
+      });
 
-    const buffer = Buffer.from(data);
-    return { buffer, pageCount: countPdfPages(buffer), bytes: buffer.byteLength };
+    /*
+     * Two passes, and only when the second one is worth paying for.
+     *
+     * Whether a CV needs a page footer is not knowable until it has been paginated, and
+     * reserving the strip unconditionally would cost every single-page CV — the majority —
+     * 11mm of the page it just fitted onto. So: lay it out with no margin, and re-render
+     * only if it turned out to be long. The second render is authoritative, including its
+     * page count, because reserving the footer strip can itself push content over.
+     */
+    const first = Buffer.from(await print(null));
+    if (countPdfPages(first) <= 1) {
+      return { buffer: first, pageCount: 1, bytes: first.byteLength };
+    }
+
+    const name = fullName(options.cv) || 'Curriculum Vitae';
+    const second = Buffer.from(await print(footerTemplate(name)));
+    return { buffer: second, pageCount: countPdfPages(second), bytes: second.byteLength };
   } finally {
     // `disconnect` for a remote browser; `close` for one we launched.
     if (serverEnv().pdf.browserWSEndpoint) await browser.disconnect();

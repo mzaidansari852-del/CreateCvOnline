@@ -2,10 +2,11 @@
  * AUTO-GENERATED — do not edit.
  * Run `npm run generate:templates` (or `npm run build`) to regenerate.
  *
- * Source: components/cv/templates/<category>/*.tsx  (56 templates)
+ * Source: components/cv/templates/<category>/*.tsx  (61 templates)
  */
 import type { TemplateDefinition } from '@/types/cv';
 
+import CascadeSidebar, { meta as cascadeSidebarMeta, pageBackground as cascadeSidebarBackground } from '@/components/cv/templates/modern/CascadeSidebar';
 import ModernAts, { meta as modernAtsMeta } from '@/components/cv/templates/modern/ModernAts';
 import ModernClean, { meta as modernCleanMeta } from '@/components/cv/templates/modern/ModernClean';
 import ModernCompact, { meta as modernCompactMeta } from '@/components/cv/templates/modern/ModernCompact';
@@ -22,12 +23,14 @@ import ConsultantCV, { meta as consultantCVMeta } from '@/components/cv/template
 import CorporateExecutive, { meta as corporateExecutiveMeta } from '@/components/cv/templates/corporate/CorporateExecutive';
 import FinanceCV, { meta as financeCVMeta } from '@/components/cv/templates/corporate/FinanceCV';
 import HumanResourcesCV, { meta as humanResourcesCVMeta } from '@/components/cv/templates/corporate/HumanResourcesCV';
+import HybridCV, { meta as hybridCVMeta } from '@/components/cv/templates/corporate/HybridCV';
 import ManagementCV, { meta as managementCVMeta, pageBackground as managementCVBackground } from '@/components/cv/templates/corporate/ManagementCV';
 import MarketingCV, { meta as marketingCVMeta } from '@/components/cv/templates/corporate/MarketingCV';
 import OperationsCV, { meta as operationsCVMeta } from '@/components/cv/templates/corporate/OperationsCV';
 import SalesCV, { meta as salesCVMeta } from '@/components/cv/templates/corporate/SalesCV';
 import ArtDirector, { meta as artDirectorMeta } from '@/components/cv/templates/creative/ArtDirector';
 import ContentCreator, { meta as contentCreatorMeta } from '@/components/cv/templates/creative/ContentCreator';
+import CreativeAts, { meta as creativeAtsMeta } from '@/components/cv/templates/creative/CreativeAts';
 import CreativeDesigner, { meta as creativeDesignerMeta, pageBackground as creativeDesignerBackground } from '@/components/cv/templates/creative/CreativeDesigner';
 import CreativeProfessional, { meta as creativeProfessionalMeta } from '@/components/cv/templates/creative/CreativeProfessional';
 import Editorial, { meta as editorialMeta } from '@/components/cv/templates/creative/Editorial';
@@ -49,8 +52,10 @@ import TechMinimal, { meta as techMinimalMeta } from '@/components/cv/templates/
 import Academic, { meta as academicMeta } from '@/components/cv/templates/classic/Academic';
 import ClassicProfessional, { meta as classicProfessionalMeta } from '@/components/cv/templates/classic/ClassicProfessional';
 import ElegantSerif, { meta as elegantSerifMeta } from '@/components/cv/templates/classic/ElegantSerif';
+import Europass, { meta as europassMeta } from '@/components/cv/templates/classic/Europass';
 import ExecutiveClassic, { meta as executiveClassicMeta } from '@/components/cv/templates/classic/ExecutiveClassic';
 import Formal, { meta as formalMeta } from '@/components/cv/templates/classic/Formal';
+import FunctionalCV, { meta as functionalCVMeta } from '@/components/cv/templates/classic/FunctionalCV';
 import Government, { meta as governmentMeta } from '@/components/cv/templates/classic/Government';
 import Legal, { meta as legalMeta } from '@/components/cv/templates/classic/Legal';
 import SimpleClassic, { meta as simpleClassicMeta } from '@/components/cv/templates/classic/SimpleClassic';
@@ -64,6 +69,11 @@ import AtsSimple, { meta as atsSimpleMeta } from '@/components/cv/templates/ats/
 import AtsStudent, { meta as atsStudentMeta } from '@/components/cv/templates/ats/AtsStudent';
 
 export const GENERATED_TEMPLATES: TemplateDefinition[] = [
+  {
+    ...cascadeSidebarMeta,
+    component: CascadeSidebar,
+    pageBackground: cascadeSidebarBackground,
+  },
   {
     ...modernAtsMeta,
     component: ModernAts,
@@ -130,6 +140,10 @@ export const GENERATED_TEMPLATES: TemplateDefinition[] = [
     component: HumanResourcesCV,
   },
   {
+    ...hybridCVMeta,
+    component: HybridCV,
+  },
+  {
     ...managementCVMeta,
     component: ManagementCV,
     pageBackground: managementCVBackground,
@@ -153,6 +167,10 @@ export const GENERATED_TEMPLATES: TemplateDefinition[] = [
   {
     ...contentCreatorMeta,
     component: ContentCreator,
+  },
+  {
+    ...creativeAtsMeta,
+    component: CreativeAts,
   },
   {
     ...creativeDesignerMeta,
@@ -242,12 +260,20 @@ export const GENERATED_TEMPLATES: TemplateDefinition[] = [
     component: ElegantSerif,
   },
   {
+    ...europassMeta,
+    component: Europass,
+  },
+  {
     ...executiveClassicMeta,
     component: ExecutiveClassic,
   },
   {
     ...formalMeta,
     component: Formal,
+  },
+  {
+    ...functionalCVMeta,
+    component: FunctionalCV,
   },
   {
     ...governmentMeta,

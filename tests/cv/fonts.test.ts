@@ -45,7 +45,7 @@ describe('template font pairings', () => {
   it('every template declares one', () => {
     const missing = TEMPLATES.filter((template) => !template.fonts?.heading || !template.fonts.body);
     expect(missing.map((template) => template.slug)).toEqual([]);
-    expect(TEMPLATES).toHaveLength(56);
+    expect(TEMPLATES.length).toBeGreaterThanOrEqual(56);
   });
 
   it('names only fonts the renderer can actually load', () => {
@@ -96,7 +96,12 @@ describe('template font pairings', () => {
     // A sans-serif Classic template is not a variation, it is a miscategorisation. The
     // classification comes off the font table's own `kind`, so adding a face cannot
     // silently widen what counts as a serif.
-    for (const template of TEMPLATES.filter((entry) => entry.category === 'classic')) {
+    //
+    // Templates that reproduce a published format are exempt and say which one: the
+    // Europass is set in a sans because the Commission set it in a sans, and correcting
+    // that would make it no longer a Europass.
+    const houseRules = TEMPLATES.filter((entry) => !entry.standard);
+    for (const template of houseRules.filter((entry) => entry.category === 'classic')) {
       expect(FONT_BY_KEY.get(template.fonts.heading)?.kind, `${template.slug} heading`).toBe(
         'serif',
       );

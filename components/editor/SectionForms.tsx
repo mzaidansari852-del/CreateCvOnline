@@ -4,8 +4,8 @@ import type { ReactNode } from 'react';
 
 import { PhotoField } from './PhotoField';
 import { RepeatableList, StringList } from './RepeatableList';
-import { Checkbox, Field, Input, Select, Textarea } from '@/components/ui/form';
-import { LANGUAGE_LEVELS, SKILL_LEVELS } from '@/lib/cv/format';
+import { Checkbox, Field, Input, Select, Switch, Textarea } from '@/components/ui/form';
+import { LANGUAGE_LEVELS, SKILL_LEVELS, fullName } from '@/lib/cv/format';
 import { customSectionKey, isCustomSectionId } from '@/lib/cv/sections';
 import { uid } from '@/lib/utils/id';
 import type {
@@ -1146,6 +1146,157 @@ export function CustomSectionForm({
 /* Dispatcher                                                                  */
 /* -------------------------------------------------------------------------- */
 
+export function CompetenciesForm({ cv, onChange }: SectionFormProps) {
+  return (
+    <RepeatableList
+      items={cv.competencies}
+      onChange={(competencies) => onChange((current) => ({ ...current, competencies }))}
+      createItem={() => ({ id: uid(), name: '', description: '', achievements: [] })}
+      summary={(item) => ({
+        title: item.name,
+        subtitle: item.description || `${item.achievements.length} points of evidence`,
+      })}
+      addLabel="Add a competency"
+      emptyTitle="No competencies added"
+      emptyDescription="Three to six areas of expertise, each with the achievements that prove it. This is what a functional or hybrid CV leads with — and what lets the employment history below it stay short."
+      itemNoun="competency"
+      max={10}
+    >
+      {(item, update) => (
+        <div className="flex flex-col gap-4">
+          <TextField
+            label="Area of expertise"
+            value={item.name}
+            onChange={(value) => update({ name: value })}
+            placeholder="Programme delivery"
+          />
+          <AreaField
+            label="Framing"
+            value={item.description}
+            onChange={(value) => update({ description: value })}
+            rows={2}
+            maxLength={1200}
+            placeholder="One or two lines saying what you mean by it. Optional — the evidence often carries it alone."
+          />
+          <StringList
+            values={item.achievements}
+            onChange={(achievements) => update({ achievements })}
+            label="Evidence"
+            placeholder="Coordinated a 340-pupil curriculum change across four departments to a fixed exam-board deadline."
+            addLabel="Add evidence"
+            max={12}
+          />
+        </div>
+      )}
+    </RepeatableList>
+  );
+}
+
+/**
+ * The cover letter.
+ *
+ * It has no design controls of its own, and the form says so rather than leaving the user
+ * hunting for them: the letter takes the CV's typefaces, accent and margins so the pair
+ * cannot drift apart. What is edited here is only the part that is genuinely per-letter.
+ */
+export function CoverLetterForm({ cv, onChange }: SectionFormProps) {
+  const letter = cv.coverLetter;
+  const update = (patch: Partial<typeof letter>) =>
+    onChange((current) => ({ ...current, coverLetter: { ...current.coverLetter, ...patch } }));
+
+  return (
+    <div className="flex flex-col gap-5">
+      <Switch
+        checked={letter.enabled}
+        onCheckedChange={(enabled) => update({ enabled })}
+        label="Include a cover letter"
+        hint="Exported as the first page of the same PDF, styled to match this CV. Turning it off keeps the draft."
+      />
+
+      <div className={letter.enabled ? '' : 'pointer-events-none opacity-50'}>
+        <div className="flex flex-col gap-4">
+          <Grid>
+            <TextField
+              label="Recipient"
+              value={letter.recipientName}
+              onChange={(value) => update({ recipientName: value })}
+              placeholder="Ms Okafor"
+              hint="Leave blank for “Dear Hiring Manager”."
+            />
+            <TextField
+              label="Their role"
+              value={letter.recipientRole}
+              onChange={(value) => update({ recipientRole: value })}
+              placeholder="Head of Talent"
+            />
+          </Grid>
+          <Grid>
+            <TextField
+              label="Company"
+              value={letter.company}
+              onChange={(value) => update({ company: value })}
+              placeholder="Atlas Cloud"
+            />
+            <TextField
+              label="Vacancy"
+              value={letter.vacancy}
+              onChange={(value) => update({ vacancy: value })}
+              placeholder="Senior Product Designer"
+            />
+          </Grid>
+          <Grid>
+            <TextField
+              label="Reference"
+              value={letter.reference}
+              onChange={(value) => update({ reference: value })}
+              placeholder="REQ-2841"
+            />
+            <TextField
+              label="Date"
+              value={letter.date}
+              onChange={(value) => update({ date: value })}
+              placeholder="2026-08-15"
+              hint="Leave blank to date it on the day you export."
+            />
+          </Grid>
+          <AreaField
+            label="Company address"
+            value={letter.companyAddress}
+            onChange={(value) => update({ companyAddress: value })}
+            rows={2}
+            maxLength={300}
+            placeholder={'18 Rue Lafayette\n75009 Paris'}
+          />
+          <AreaField
+            label="Letter"
+            value={letter.body}
+            onChange={(value) => update({ body: value })}
+            rows={12}
+            maxLength={8000}
+            placeholder="Three or four short paragraphs: why this role, what you bring to it, and one piece of evidence they will not find on the CV."
+            hint="A blank line starts a new paragraph."
+          />
+          <Grid>
+            <TextField
+              label="Sign-off"
+              value={letter.signOff}
+              onChange={(value) => update({ signOff: value })}
+              placeholder="Yours sincerely,"
+              hint="Left blank, this follows the convention: “sincerely” to a named person, “faithfully” otherwise."
+            />
+            <TextField
+              label="Signature"
+              value={letter.signature}
+              onChange={(value) => update({ signature: value })}
+              placeholder={fullName(cv) || 'Your name'}
+            />
+          </Grid>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function SectionForm({
   sectionId,
   cv,
@@ -1162,6 +1313,8 @@ export function SectionForm({
   switch (sectionId as BuiltInSectionId | 'personal') {
     case 'summary':
       return <SummaryForm cv={cv} onChange={onChange} />;
+    case 'competencies':
+      return <CompetenciesForm cv={cv} onChange={onChange} />;
     case 'experience':
       return <ExperienceForm cv={cv} onChange={onChange} />;
     case 'education':

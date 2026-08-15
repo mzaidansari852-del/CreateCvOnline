@@ -4,7 +4,12 @@ import { downloadsUsed } from '@/lib/db/users';
 import { countCVs } from '@/lib/db/cvs';
 import { effectivePlan, type PlanLimits } from '@/lib/plans';
 import { createDefaultCustomization } from '@/lib/cv/defaults';
-import { findTemplate, DEFAULT_TEMPLATE_ID, freeTemplates } from '@/lib/cv/template-registry';
+import {
+  DEFAULT_TEMPLATE_ID,
+  TEMPLATE_COUNT,
+  findTemplate,
+  freeTemplates,
+} from '@/lib/cv/template-registry';
 import { cvCustomizationSchema, type CVCustomization, type CVData } from '@/types/cv';
 import type { UserProfile } from '@/types/user';
 
@@ -69,7 +74,7 @@ export function assertCanUseTemplate(profile: UserProfile, templateId: string): 
   if (!limits.premiumTemplates) {
     throw new EntitlementError(
       'premium-template',
-      `“${template.name}” is a Pro template. Upgrade to unlock all 56 designs, or pick one of the ${freeTemplates().length} free templates.`,
+      `“${template.name}” is a Pro template. Upgrade to unlock all ${TEMPLATE_COUNT} designs, or pick one of the ${freeTemplates().length} free templates.`,
     );
   }
 }

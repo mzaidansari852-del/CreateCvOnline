@@ -114,6 +114,30 @@ export const skillItemSchema = z.object({
 });
 export type SkillItem = z.infer<typeof skillItemSchema>;
 
+/**
+ * One area of expertise, with the evidence for it.
+ *
+ * This is what makes a functional CV a different *document* rather than a different
+ * arrangement of the same one. A chronological CV proves a claim by where it sits in a
+ * timeline; a functional CV proves it here, by grouping the achievements under the
+ * capability they demonstrate and letting the dates come second.
+ *
+ * It is deliberately not the `skills` array with a description bolted on. A skill is a
+ * word with a rating — forty of them fit on a page. A competency is a short case, and
+ * three to six is the whole section. Conflating them is how a functional template ends up
+ * printing a bar chart with paragraphs next to it.
+ */
+export const competencyItemSchema = z.object({
+  id: z.string(),
+  /** The capability being claimed — "Programme delivery", "Regulatory reporting". */
+  name: trimmed(120).default(''),
+  /** One or two lines framing the claim. Optional: the bullets often carry it alone. */
+  description: trimmed(1200).default(''),
+  /** The evidence. Written the same way as experience achievements, minus the employer. */
+  achievements: z.array(trimmed(500)).max(12).default([]),
+});
+export type CompetencyItem = z.infer<typeof competencyItemSchema>;
+
 export const languageItemSchema = z.object({
   id: z.string(),
   name: trimmed(60).default(''),
@@ -219,6 +243,7 @@ export type CustomSection = z.infer<typeof customSectionSchema>;
 
 export const BUILT_IN_SECTION_IDS = [
   'summary',
+  'competencies',
   'experience',
   'education',
   'skills',
@@ -319,12 +344,62 @@ export type CVCustomization = z.infer<typeof cvCustomizationSchema>;
 /* Document                                                                    */
 /* -------------------------------------------------------------------------- */
 
+/* -------------------------------------------------------------------------- */
+/* Cover letter                                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The cover letter that goes with this CV.
+ *
+ * It lives on the CV rather than in a collection of its own, and that is the design
+ * decision worth defending. Every competitor sells "matched pairs" — a letter whose
+ * masthead, typeface and accent are the same as the CV's — and the way that promise
+ * usually breaks is that the two documents are separate records which drift: you restyle
+ * the CV in March and the letter you send in April is still wearing February's design.
+ *
+ * Here the letter cannot drift, because it has no design of its own. It renders from the
+ * CV's `customization` and the CV's `personal` block, and the only thing stored is the
+ * part that is genuinely different: who it is addressed to and what it says. A tailored
+ * letter per application is then a duplicate of the CV, which is a thing the product
+ * already does well.
+ *
+ * `enabled` is separate from "has content" on purpose. Someone who drafts a letter, turns
+ * it off to send the CV alone, and comes back next week expects the draft to still be
+ * there.
+ */
+export const coverLetterSchema = z.object({
+  enabled: z.boolean().default(false),
+  /** Free text so "Hiring Team" and a named person are equally first-class. */
+  recipientName: trimmed(120).default(''),
+  recipientRole: trimmed(120).default(''),
+  company: trimmed(140).default(''),
+  companyAddress: trimmed(300).default(''),
+  /** The role being applied for; used in the subject line. */
+  vacancy: trimmed(160).default(''),
+  reference: trimmed(80).default(''),
+  /**
+   * `YYYY-MM-DD`, or empty for "the day it is exported".
+   *
+   * Empty is the default because a letter dated the day you wrote it and sent three weeks
+   * later is worse than one with no date at all.
+   */
+  date: partialDateSchema.default(''),
+  salutation: trimmed(120).default(''),
+  /** One string; blank lines separate paragraphs, as they do everywhere else here. */
+  body: trimmed(8000).default(''),
+  signOff: trimmed(60).default(''),
+  /** Shown under the sign-off. Defaults to the CV's name when blank. */
+  signature: trimmed(120).default(''),
+});
+export type CoverLetter = z.infer<typeof coverLetterSchema>;
+
 export const cvDataSchema = z.object({
   personal: personalInfoSchema,
   summary: trimmed(3000).default(''),
   experience: z.array(experienceItemSchema).max(40).default([]),
   education: z.array(educationItemSchema).max(20).default([]),
   skills: z.array(skillItemSchema).max(80).default([]),
+  competencies: z.array(competencyItemSchema).max(10).default([]),
   languages: z.array(languageItemSchema).max(20).default([]),
   projects: z.array(projectItemSchema).max(30).default([]),
   certifications: z.array(certificationItemSchema).max(30).default([]),
@@ -336,6 +411,7 @@ export const cvDataSchema = z.object({
   customSections: z.array(customSectionSchema).max(6).default([]),
   /** Ordered. Array position *is* the render order. */
   sections: z.array(sectionConfigSchema).default([]),
+  coverLetter: coverLetterSchema.default(() => coverLetterSchema.parse({})),
 });
 export type CVData = z.infer<typeof cvDataSchema>;
 
@@ -441,6 +517,20 @@ export interface TemplateMeta {
    * `docs/AUDIT_TEMPLATES.md`.
    */
   metrics: { lineHeight: number; pageMargin: number };
+  /**
+   * The external standard this template reproduces, if it reproduces one.
+   *
+   * Almost every template here is a design decision, and the design tests hold those to
+   * house rules — Classic templates are set in a serif, ATS templates stay on conventional
+   * faces, and so on. A template that implements a published format is a different kind of
+   * object: the Europass is set in a sans because the European Commission set it in a sans,
+   * and "fix" it to a serif and it stops being the thing the user searched for.
+   *
+   * Naming the standard rather than setting a boolean keeps the exemption legible — both to
+   * the tests, which skip house rules for these, and to the reader, who is told which
+   * authority the layout answers to.
+   */
+  standard?: string;
   /** Short marketing line used in cards and meta descriptions. */
   tagline: string;
   description: string;

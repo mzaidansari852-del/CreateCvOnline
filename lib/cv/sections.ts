@@ -42,6 +42,14 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
     defaultEnabled: true,
     compact: false,
   },
+  competencies: {
+    id: 'competencies',
+    defaultLabel: 'Core Competencies',
+    hint: 'Three to six areas of expertise, each with the achievements that prove it. This is what makes a functional CV functional — lead with it and the work history can stay short.',
+    icon: 'layers',
+    defaultEnabled: false,
+    compact: false,
+  },
   experience: {
     id: 'experience',
     defaultLabel: 'Work Experience',
@@ -187,6 +195,10 @@ export function sectionHasContent(cv: CVData, id: string): boolean {
       return cv.volunteer.some((item) => item.role || item.organization);
     case 'publications':
       return cv.publications.some((item) => item.title);
+    case 'competencies':
+      return cv.competencies.some(
+        (item) => item.name || item.description || item.achievements.length > 0,
+      );
     case 'interests':
       return cv.interests.some((item) => item.name);
     case 'references':

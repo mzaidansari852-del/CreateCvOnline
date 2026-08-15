@@ -110,7 +110,8 @@ describe('catalogue distinctiveness', () => {
   }, 120_000);
 
   it('compares every pair', () => {
-    expect(pairs).toHaveLength((56 * 55) / 2);
+    const n = slugs.length;
+    expect(pairs).toHaveLength((n * (n - 1)) / 2);
   });
 
   it('has no two templates rendering effectively the same page', () => {

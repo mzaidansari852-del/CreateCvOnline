@@ -24,7 +24,7 @@ type Params = { id: string };
  */
 export const GET = authedRoute<Params>(
   { scope: 'cv-pdf', rateLimit: { max: 20, windowSeconds: 60 } },
-  async ({ profile, params }) => {
+  async ({ profile, params, request }) => {
     const cv = await getCV(profile.uid, params.id);
 
     assertCanDownload(profile);
@@ -33,9 +33,25 @@ export const GET = authedRoute<Params>(
     const plan = effectivePlan(profile.entitlement);
 
     try {
+      /*
+       * `?document=letter` exports the letter alone; the default sends the pair when the
+       * user has enabled one. The server decides — a client that omits the parameter must
+       * still get the letter it turned on, and one that asks for a letter that does not
+       * exist gets the CV rather than a blank page.
+       */
+      const requested = new URL(request.url).searchParams.get('document');
+      const document =
+        requested === 'letter' && cv.data.coverLetter.enabled
+          ? 'letter'
+          : requested === 'cv'
+            ? 'cv'
+            : 'cv+letter';
+
       const { buffer, pageCount } = await renderCVPdf({
         cv: cv.data,
         customization: cv.customization,
+        document,
+        today: new Date().toISOString().slice(0, 10),
         branding: plan.limits.removeBranding
           ? null
           : { label: `Made with ${site.name}`, url: site.domain },

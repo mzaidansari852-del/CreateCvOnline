@@ -1,3 +1,4 @@
+import { TEMPLATE_COUNT } from '@/lib/cv/template-registry';
 import type { PlanId, UserEntitlement } from '@/types/user';
 
 /**
@@ -83,9 +84,9 @@ export const PLANS: Record<PlanId, Plan> = {
     accessDays: 31,
     tagline: 'For an active job search.',
     description:
-      'All 56 templates, unlimited CVs and unlimited downloads, so you can tailor a version of your CV to every application instead of sending the same document everywhere.',
+      `All ${TEMPLATE_COUNT} templates, unlimited CVs and unlimited downloads, so you can tailor a version of your CV to every application instead of sending the same document everywhere.`,
     highlights: [
-      'All 56 templates',
+      `All ${TEMPLATE_COUNT} templates`,
       'Unlimited CVs and unlimited PDF downloads',
       'Full customisation: fonts, colours, spacing, sections',
       'Custom sections and section reordering',

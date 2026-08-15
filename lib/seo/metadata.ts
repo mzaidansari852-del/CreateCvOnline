@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { TEMPLATE_COUNT } from '@/lib/cv/template-registry';
 import { absoluteUrl, site } from '@/lib/site';
 import { publicEnv } from '@/lib/env';
 
@@ -125,7 +126,10 @@ export function rootMetadata(): Metadata {
       locale: 'en_US',
       images: [
         {
-          url: ogImageUrl('Create your professional CV online', '56 templates · ATS-friendly · Free to start'),
+          url: ogImageUrl(
+            'Create your professional CV online',
+            `${TEMPLATE_COUNT} templates · ATS-friendly · Free to start`,
+          ),
           width: 1200,
           height: 630,
           alt: site.name,

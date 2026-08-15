@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Maximize2, Minus, Plus } from 'lucide-react';
 
+import { CoverLetterDocument } from '@/components/cv/CoverLetterDocument';
 import { CVDocument } from '@/components/cv/CVDocument';
 import { PAPER } from '@/lib/cv/format';
 import { cn } from '@/lib/utils/cn';
@@ -22,6 +23,9 @@ import type { CVCustomization, CVData } from '@/types/cv';
 const MIN_ZOOM = 0.35;
 const MAX_ZOOM = 1.6;
 
+/** Vertical gap between the letter sheet and the CV sheet, in CSS px. */
+const LETTER_GAP = 28;
+
 export function PreviewPane({
   cv,
   customization,
@@ -34,6 +38,14 @@ export function PreviewPane({
   onPageCountChange?: (pages: number) => void;
 }) {
   const paper = PAPER[customization.paperSize];
+  /*
+   * Today, resolved once per mount rather than per render.
+   *
+   * The letter dates itself on the day it is exported when the user has not set a date,
+   * and reading the clock inside the render would make the preview a moving target — it
+   * would also disagree with the server, which stamps the date at export time.
+   */
+  const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const viewportRef = useRef<HTMLDivElement>(null);
   const documentRef = useRef<HTMLDivElement>(null);
 
@@ -118,7 +130,10 @@ export function PreviewPane({
           className="mx-auto"
           style={{
             width: paper.width * zoom,
-            height: Math.max(paper.height, pageCount * paper.height) * zoom,
+            height:
+              (Math.max(paper.height, pageCount * paper.height) +
+                (cv.coverLetter.enabled ? paper.height + LETTER_GAP : 0)) *
+              zoom,
           }}
         >
           <div
@@ -128,6 +143,21 @@ export function PreviewPane({
               width: paper.width,
             }}
           >
+            {/*
+              The letter is shown above the CV because that is the order it exports in and
+              the order it is read in. It is a separate sheet rather than a page of the CV,
+              so it gets its own shadow and its own gap — the preview should not imply the
+              two documents flow into one another.
+            */}
+            {cv.coverLetter.enabled ? (
+              <CoverLetterDocument
+                cv={cv}
+                customization={customization}
+                className="shadow-page"
+                style={{ minHeight: paper.height, marginBottom: LETTER_GAP }}
+                today={today}
+              />
+            ) : null}
             <div ref={documentRef} className="relative">
               <CVDocument
                 cv={cv}

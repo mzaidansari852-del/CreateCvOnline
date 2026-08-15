@@ -13,6 +13,7 @@ import {
   Download,
   Eye,
   Loader2,
+  Mail,
   MoreHorizontal,
   Palette,
   Printer,
@@ -95,7 +96,7 @@ export function CVEditor({
   const completeness = useMemo(() => completenessScore(editor.data), [editor.data]);
 
   const orderedSectionIds = useMemo(
-    () => ['personal', ...editor.data.sections.map((section) => section.id)],
+    () => ['personal', ...editor.data.sections.map((section) => section.id), 'cover-letter'],
     [editor.data.sections],
   );
   const activeIndex = orderedSectionIds.indexOf(activeSectionId);
@@ -103,8 +104,10 @@ export function CVEditor({
   const activeLabel =
     activeSectionId === 'personal'
       ? 'Personal details'
-      : (editor.data.sections.find((section) => section.id === activeSectionId)?.label ??
-        'Personal details');
+      : activeSectionId === 'cover-letter'
+        ? 'Cover letter'
+        : (editor.data.sections.find((section) => section.id === activeSectionId)?.label ??
+          'Personal details');
 
   const upgradePrompt = useCallback(
     (reason: string) => {
@@ -368,6 +371,23 @@ export function CVEditor({
             Personal details
           </button>
 
+          <button
+            type="button"
+            onClick={() => setActiveSectionId('cover-letter')}
+            className={cn(
+              'mb-2 flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-left text-[13px] font-medium transition-colors',
+              activeSectionId === 'cover-letter'
+                ? 'bg-brand-50 text-brand-800'
+                : 'text-ink-800 hover:bg-ink-50',
+            )}
+          >
+            <Mail className="size-3.5 shrink-0 text-ink-400" aria-hidden />
+            Cover letter
+            {editor.data.coverLetter.enabled ? (
+              <span className="ml-auto size-1.5 rounded-full bg-success-500" aria-hidden />
+            ) : null}
+          </button>
+
           <p className="mt-4 mb-2 px-2 text-xs font-bold tracking-[0.1em] text-ink-500 uppercase">
             Sections
           </p>
@@ -412,6 +432,7 @@ export function CVEditor({
                       className="h-11 w-full cursor-pointer rounded-lg border border-ink-200 bg-white px-3 text-sm font-medium text-ink-900 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/12 focus:outline-none"
                     >
                       <option value="personal">Personal details</option>
+                      <option value="cover-letter">Cover letter</option>
                       {editor.data.sections.map((section) => (
                         <option key={section.id} value={section.id}>
                           {section.label}

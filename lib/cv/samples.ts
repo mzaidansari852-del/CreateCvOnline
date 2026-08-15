@@ -77,6 +77,7 @@ const TEMPLATE_PROFILE: Record<string, string> = {
   'modern-03': 'operations-director',
   'modern-04': 'hr-manager',
   'modern-05': 'product-designer',
+  'modern-11': 'marketing-manager', // Coloured Sidebar
   'modern-06': 'security-engineer',
   'modern-07': 'project-manager',
   'modern-08': 'researcher',
@@ -94,18 +95,22 @@ const TEMPLATE_PROFILE: Record<string, string> = {
   'corporate-08': 'marketing-manager', // Marketing
   'corporate-09': 'marketing-manager', // Sales
   'corporate-10': 'operations-director', // Operations
+  // Hybrid needs a CV with competencies written for it, or the format's whole point is an
+  // empty block on the page.
+  'corporate-11': 'policy-officer', // Hybrid CV
 
   // Creative.
-  'creative-01': 'product-designer', // Creative Designer
+  'creative-01': 'photographer', // Creative Designer
   'creative-02': 'product-designer', // Graphic Designer
   'creative-03': 'product-designer', // UI/UX Designer
   'creative-04': 'photographer', // Art Director
   'creative-05': 'photographer', // Photographer
   'creative-06': 'marketing-manager', // Content Creator
   'creative-07': 'photographer', // Creative Professional
-  'creative-08': 'product-designer', // Portfolio
+  'creative-08': 'career-changer', // Portfolio
   'creative-09': 'photographer', // Editorial
   'creative-10': 'photographer', // Visual Resume
+  'creative-11': 'product-designer', // Creative ATS
 
   // Technology.
   'tech-01': 'software-engineer', // Software Engineer
@@ -130,6 +135,8 @@ const TEMPLATE_PROFILE: Record<string, string> = {
   'classic-08': 'solicitor', // Formal
   'classic-09': 'accountant', // Simple Classic
   'classic-10': 'researcher', // Timeless
+  'classic-11': 'career-changer', // Functional CV
+  'classic-12': 'policy-officer', // Europass
 
   // ATS.
   'ats-01': 'project-manager', // ATS CV

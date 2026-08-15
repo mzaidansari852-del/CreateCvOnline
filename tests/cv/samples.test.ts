@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { SAMPLE_PROFILES, profileLoad, sampleProfileFor } from '@/lib/cv/samples';
+import { SAMPLE_PROFILES, profileLoad, sampleCvFor, sampleProfileFor } from '@/lib/cv/samples';
+import { sectionHasContent, visibleSections } from '@/lib/cv/sections';
 import { TEMPLATES } from '@/lib/cv/template-registry';
+import { SECTION_META } from '@/lib/cv/sections';
+
+/** Sections a blank CV starts with, which are allowed to be on and empty. */
+const DEFAULT_ON = Object.values(SECTION_META)
+  .filter((meta) => meta.defaultEnabled)
+  .map((meta) => meta.id);
 
 /**
  * The sample CV each template page shows.
@@ -21,7 +28,7 @@ describe('template → sample mapping', () => {
       // template silently landing on her because nobody wrote a row.
       .filter(
         (template) =>
-          !['creative-01', 'creative-02', 'creative-03', 'creative-08', 'modern-05'].includes(
+          !['creative-01', 'creative-02', 'creative-03', 'creative-11', 'modern-05'].includes(
             template.id,
           ),
       )
@@ -76,6 +83,44 @@ describe('the profiles themselves', () => {
       expect(longest, `${profile.id} has no bullet long enough to test wrapping`).toBeGreaterThan(
         110,
       );
+    }
+  });
+
+  it('shows the competency block on the templates whose format needs one', () => {
+    /*
+     * The bug this replaces: `defaultSectionConfigs()` ships `competencies` disabled — the
+     * right default for a blank CV, since nobody wants to open nine empty headings — and
+     * the sample builder used it verbatim. So the Functional and Hybrid previews rendered
+     * with no competency block at all, which is the single thing those two formats exist
+     * for, and every other test passed because the section is *allowed* to be absent.
+     */
+    const COMPETENCY_FORMATS = ['functional-cv', 'hybrid-cv'];
+    for (const slug of COMPETENCY_FORMATS) {
+      const template = TEMPLATES.find((entry) => entry.slug === slug);
+      expect(template, `${slug} is missing from the registry`).toBeTruthy();
+      const cv = sampleCvFor(template!.id);
+
+      expect(cv.competencies.length, `${slug} sample has no competencies`).toBeGreaterThanOrEqual(3);
+      const config = cv.sections.find((section) => section.id === 'competencies');
+      expect(config?.enabled, `${slug} sample has the competencies section switched off`).toBe(true);
+      expect(
+        visibleSections(cv).some((section) => section.id === 'competencies'),
+        `${slug} would render without its competency block`,
+      ).toBe(true);
+    }
+  });
+
+  it('enables any section it wrote content for, and no others', () => {
+    for (const profile of SAMPLE_PROFILES) {
+      for (const section of profile.cv.sections) {
+        if (!section.enabled) continue;
+        // An enabled section with nothing in it is an empty heading on the preview.
+        expect(
+          sectionHasContent(profile.cv, section.id) ||
+            DEFAULT_ON.includes(section.id as (typeof DEFAULT_ON)[number]),
+          `${profile.id} enables ${section.id} with nothing in it`,
+        ).toBe(true);
+      }
     }
   });
 

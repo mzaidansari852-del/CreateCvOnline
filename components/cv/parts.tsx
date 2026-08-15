@@ -636,6 +636,50 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
     );
   }
 
+  if (variant === 'history') {
+    /*
+     * Work history for a functional CV: role, employer, dates, and nothing else.
+     *
+     * Dropping the bullets is not a space saving, it is the format. A functional CV has
+     * already made its case under the competencies; repeating the achievements here would
+     * put the timeline back in charge, which is precisely what the reader was meant to
+     * stop leading with. One line per role, so a patchy history reads as a list of facts
+     * rather than as a series of gaps.
+     */
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: `${gap * 0.42}em` }}>
+        {items.map((item) => (
+          <div
+            key={item.id}
+            className="cv-block"
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'baseline',
+              justifyContent: 'space-between',
+              gap: '0 1em',
+            }}
+          >
+            <div style={{ minWidth: 0, color }}>
+              <span style={{ fontWeight: strong }}>{item.role}</span>
+              {item.company ? (
+                <span style={{ fontWeight: secondaryWeight }}>{`, ${item.company}`}</span>
+              ) : null}
+            </div>
+            <div style={{ color: muted, fontSize: '0.92em', whiteSpace: 'nowrap' }}>
+              {[
+                formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat),
+                item.location,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (variant === 'minimal') {
     return (
       <div>
@@ -1094,6 +1138,121 @@ export function LanguagesContent(props: PartProps) {
         >
           <span style={{ color }}>{item.name}</span>
           <span style={{ color: muted, fontSize: '0.9em' }}>{languageLabel(item.level)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Competencies                                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Areas of expertise, each with the achievements that prove it.
+ *
+ * The section a functional CV is built around. Where `ExperienceContent` hangs evidence off
+ * an employer and a date range, this hangs it off a capability — which is the entire point
+ * of the format for someone whose timeline is the weakest thing about their application.
+ *
+ * Three variants, because the same section has to serve three different documents. `stack`
+ * is the full case, for a template where competencies *are* the CV. `grouped` sets the
+ * heading beside the evidence rather than above it, which reads as a reference table and
+ * suits a hybrid where the work history is still doing the persuading. `inline` drops the
+ * bullets entirely and is for a sidebar, where a competency has to behave like a heading
+ * with a sentence under it or it will not fit.
+ */
+export function CompetenciesContent(props: PartProps) {
+  const { cv, c, accent, variant = 'stack' } = props;
+  const { surface, accentText, color, muted, gap, marker, strong } = useTone(props);
+  const items = cv.competencies.filter(
+    (item) => item.name || item.description || item.achievements.filter(Boolean).length > 0,
+  );
+  if (items.length === 0) return null;
+
+  if (variant === 'inline') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: `${gap * 0.5}em` }}>
+        {items.map((item) => (
+          <div key={item.id} className="cv-block">
+            <div style={{ fontWeight: strong, color: accentText }}>{item.name}</div>
+            {item.description ? (
+              <div style={{ color: muted, fontSize: '0.92em', marginTop: '0.1em' }}>
+                {item.description}
+              </div>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (variant === 'grouped') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: `${gap * 0.7}em` }}>
+        {items.map((item) => (
+          <div
+            key={item.id}
+            className="cv-block"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(7.5em, 11em) 1fr',
+              gap: '0 1.1em',
+              alignItems: 'start',
+            }}
+          >
+            <div style={{ fontWeight: strong, color: accentText, lineHeight: 1.3 }}>
+              {item.name}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              {item.description ? <div style={{ color }}>{item.description}</div> : null}
+              {item.achievements.filter(Boolean).length > 0 ? (
+                <Bullets
+                  items={item.achievements.filter(Boolean)}
+                  color={color}
+                  marker={marker}
+                  markerColor={accentText}
+                  style={{ marginTop: item.description ? '0.25em' : 0 }}
+                />
+              ) : null}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {items.map((item, index) => (
+        <div
+          key={item.id}
+          className="cv-block"
+          style={{ marginTop: index === 0 ? 0 : `${gap * 0.85}em` }}
+        >
+          <EntryHead
+            c={c}
+            surface={surface}
+            primary={item.name}
+            color={color}
+            muted={muted}
+            accent={accent}
+            layout="stacked"
+            primarySize={1.04}
+            accentTarget="primary"
+          />
+          {item.description ? (
+            <div style={{ color, marginTop: '0.15em' }}>{item.description}</div>
+          ) : null}
+          {item.achievements.filter(Boolean).length > 0 ? (
+            <Bullets
+              items={item.achievements.filter(Boolean)}
+              color={color}
+              marker={marker}
+              markerColor={accentText}
+              style={{ marginTop: '0.25em' }}
+            />
+          ) : null}
         </div>
       ))}
     </div>
@@ -1595,6 +1754,8 @@ export function SectionContent(props: SectionContentProps): ReactNode {
   switch (id) {
     case 'summary':
       return <SummaryContent {...rest} variant={variant} />;
+    case 'competencies':
+      return <CompetenciesContent {...rest} variant={variant} />;
     case 'experience':
       return <ExperienceContent {...rest} variant={variant} />;
     case 'education':

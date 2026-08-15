@@ -66,6 +66,15 @@ interface ProfileInput {
   /** `Category: name @ level`, kept flat because that is how a CV reads. */
   skills: { category: string; name: string; level: SkillLevel }[];
   languages: { name: string; level: LanguageLevel }[];
+  /**
+   * Areas of expertise with the evidence for each.
+   *
+   * Only the profiles shown on a functional or hybrid template need these, and only those
+   * templates render them — a chronological design leaves the section out entirely. But a
+   * preview of a functional CV with an empty competency block is a preview of nothing, so
+   * where it is needed it is written properly rather than generated from the skills list.
+   */
+  competencies?: { name: string; description?: string; achievements: string[] }[];
   certifications?: { name: string; issuer: string; date: string }[];
   projects?: { name: string; role: string; description: string; highlights?: string[] }[];
   publications?: { title: string; publisher: string; date: string; description: string }[];
@@ -124,6 +133,12 @@ function build(input: ProfileInput): CVData {
       name: language.name,
       level: language.level,
     })),
+    competencies: (input.competencies ?? []).map((competency, index) => ({
+      id: `${key}-comp-${index + 1}`,
+      name: competency.name,
+      description: competency.description ?? '',
+      achievements: competency.achievements,
+    })),
     projects: (input.projects ?? []).map((project, index) => ({
       id: `${key}-proj-${index + 1}`,
       name: project.name,
@@ -162,8 +177,38 @@ function build(input: ProfileInput): CVData {
     })),
     references: [],
     customSections: [],
-    sections: defaultSectionConfigs(),
+    /*
+     * A section the author wrote content for is a section the author meant to show.
+     *
+     * `defaultSectionConfigs()` ships `competencies`, `projects`, `certifications` and the
+     * rest switched off, because a blank CV should not open with nine empty headings. On a
+     * *sample* that default is exactly wrong: it silently drops the section the template
+     * was chosen to demonstrate. The functional and hybrid previews rendered with no
+     * competencies block at all — the one thing those two formats exist for.
+     */
+    sections: defaultSectionConfigs().map((section) => ({
+      ...section,
+      enabled: section.enabled || hasAuthoredContent(input, section.id),
+    })),
   });
+}
+
+/** True when `input` carries anything for this section. */
+function hasAuthoredContent(input: ProfileInput, id: string): boolean {
+  switch (id) {
+    case 'competencies':
+      return (input.competencies?.length ?? 0) > 0;
+    case 'projects':
+      return (input.projects?.length ?? 0) > 0;
+    case 'certifications':
+      return (input.certifications?.length ?? 0) > 0;
+    case 'publications':
+      return (input.publications?.length ?? 0) > 0;
+    case 'interests':
+      return (input.interests?.length ?? 0) > 0;
+    default:
+      return false;
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -783,6 +828,243 @@ const SECURITY_ENGINEER = build({
 });
 
 /** The profiles authored for this purpose, keyed by id. */
+/**
+ * The career changer — the reader a functional CV is written for.
+ *
+ * Twelve years in secondary teaching, then a conversion into learning technology. Told
+ * chronologically it reads as a teacher who recently changed jobs; told by competency it
+ * reads as someone who has been designing instruction, running stakeholder programmes and
+ * handling data protection the whole time. That inversion is the entire argument for the
+ * format, so the sample has to be a CV where it actually makes a difference.
+ */
+const CAREER_CHANGER = build({
+  id: 'career-changer',
+  label: 'Career changer',
+  firstName: 'Priya',
+  lastName: 'Raghavan',
+  title: 'Learning Experience Designer',
+  location: 'Bristol, UK',
+  linkedin: 'linkedin.com/in/priya-raghavan',
+  summary:
+    'Twelve years teaching secondary science, now designing learning for adults. The through-line is the same work in a different setting: finding out what people already believe, building something that changes it, and checking afterwards whether it did. I moved across deliberately rather than by accident, and the evidence below is grouped by what I do rather than by who was paying at the time.',
+  competencies: [
+    {
+      name: 'Instructional design',
+      description:
+        'Designing and rebuilding courses against a stated learning outcome rather than a content list.',
+      achievements: [
+        'Rebuilt a two-day compliance course as four 40-minute modules with a scenario assessment; completion went from 61% to 94% and the pass rate on first attempt from 58% to 89%.',
+        'Wrote the department scheme of work for GCSE combined science, used unchanged by six teachers across three years.',
+        'Converted eleven face-to-face workshops to blended delivery during 2020 without dropping the practical assessment component.',
+      ],
+    },
+    {
+      name: 'Stakeholder and programme management',
+      description:
+        'Running work that depends on people who do not report to you and have their own deadlines.',
+      achievements: [
+        'Coordinated a 340-pupil curriculum change across four departments, chairing the working group and holding the timeline to a fixed exam-board deadline.',
+        'Negotiated release time with six line managers to get subject experts into content review, which is what kept the technical accuracy sign-off inside two weeks.',
+      ],
+    },
+    {
+      name: 'Assessment and data',
+      description: 'Measuring whether the thing worked, and changing it when it did not.',
+      achievements: [
+        'Built the departmental tracking spreadsheet that identified underperformance by topic rather than by pupil, redirecting revision time to the three weakest areas.',
+        'Ran the post-course evaluation for the learning team: Kirkpatrick levels 1 and 2 for every course, level 3 for the two with a measurable operational outcome.',
+      ],
+    },
+    {
+      name: 'Safeguarding and data protection',
+      achievements: [
+        'Designated safeguarding lead for three years, including the referral process and the annual staff training.',
+        'Completed the GDPR review of the learning platform before rollout, cutting retained personal data to what the lawful basis actually covered.',
+      ],
+    },
+  ],
+  experience: [
+    {
+      role: 'Learning Experience Designer',
+      company: 'Meridian Care Group',
+      location: 'Bristol, UK',
+      start: '2024-02',
+      description:
+        'Designing statutory and clinical training for 2,100 care staff across 34 sites.',
+      achievements: [
+        'Owner of the mandatory training curriculum: eleven courses, rebuilt six of them in the first year against measured completion and pass-rate targets.',
+      ],
+    },
+    {
+      role: 'Head of Science',
+      company: 'Ashfield Academy',
+      location: 'Bristol, UK',
+      start: '2019-09',
+      end: '2024-01',
+      description:
+        'Curriculum, staffing and outcomes for a department of nine across three key stages.',
+      achievements: [
+        'Progress 8 score for the department moved from −0.21 to +0.34 over four years, against a roughly flat intake profile.',
+      ],
+    },
+    {
+      role: 'Teacher of Science',
+      company: 'Ashfield Academy',
+      location: 'Bristol, UK',
+      start: '2012-09',
+      end: '2019-08',
+      description: 'Biology and combined science, key stages 3 to 5.',
+      achievements: [],
+    },
+  ],
+  education: [
+    {
+      degree: 'PGCE',
+      field: 'Secondary Science',
+      institution: 'University of Bristol',
+      location: 'Bristol, UK',
+      start: '2011-09',
+      end: '2012-07',
+    },
+    {
+      degree: 'BSc (Hons)',
+      field: 'Biochemistry',
+      institution: 'University of Leeds',
+      location: 'Leeds, UK',
+      start: '2008-09',
+      end: '2011-06',
+      grade: 'First class',
+    },
+  ],
+  skills: [
+    { category: 'Design', name: 'Backward design', level: 'expert' },
+    { category: 'Design', name: 'Scenario-based assessment', level: 'advanced' },
+    { category: 'Design', name: 'Accessibility (WCAG 2.2)', level: 'intermediate' },
+    { category: 'Tools', name: 'Articulate Storyline', level: 'advanced' },
+    { category: 'Tools', name: 'Moodle and Totara', level: 'advanced' },
+    { category: 'Tools', name: 'Camtasia', level: 'intermediate' },
+    { category: 'Evaluation', name: 'Kirkpatrick evaluation', level: 'advanced' },
+    { category: 'Evaluation', name: 'Data analysis in Excel', level: 'advanced' },
+  ],
+  languages: [
+    { name: 'English', level: 'native' },
+    { name: 'Tamil', level: 'full-professional' },
+    { name: 'French', level: 'limited-working' },
+  ],
+  certifications: [
+    { name: 'Certified Professional in Talent Development (CPTD)', issuer: 'ATD', date: '2025-03' },
+  ],
+  interests: ['Open-water swimming', 'Science communication', 'Allotment'],
+});
+
+/**
+ * The Europass reader: an EU policy officer whose application will be screened against a
+ * standard form. Multilingual by necessity, which is the part of the format that the CEFR
+ * grid exists to carry, and with competencies because the same person is a plausible
+ * hybrid-CV subject too.
+ */
+const POLICY_OFFICER = build({
+  id: 'policy-officer',
+  label: 'Policy officer',
+  firstName: 'Elena',
+  lastName: 'Marchetti',
+  title: 'Policy Officer, Environmental Regulation',
+  location: 'Brussels, Belgium',
+  linkedin: 'linkedin.com/in/elena-marchetti',
+  summary:
+    'Policy officer working on environmental regulation, currently on the implementation side of the packaging and packaging waste file. Seven years split between a national ministry and the Brussels institutions, which means I have drafted for both audiences and know where the two diverge. Working languages Italian, English and French; reading Spanish.',
+  competencies: [
+    {
+      name: 'Legislative drafting',
+      description: 'Turning a policy objective into text that survives legal scrutiny.',
+      achievements: [
+        'Drafted three implementing acts under the Waste Framework Directive, all adopted without substantive amendment at comitology.',
+        'Led the legal-linguistic review across four language versions of a delegated act, resolving eleven divergences before publication.',
+      ],
+    },
+    {
+      name: 'Stakeholder consultation',
+      achievements: [
+        'Ran the public consultation on packaging waste targets: 1,240 responses, synthesised into a 40-page report inside six weeks.',
+        'Chaired eight expert-group meetings with member-state representatives, including two where the mandate was contested.',
+      ],
+    },
+    {
+      name: 'Impact assessment',
+      achievements: [
+        'Built the cost model underlying the Commission impact assessment on reusable packaging, working with JRC on the sensitivity analysis.',
+        'Presented the evidence base to the Regulatory Scrutiny Board; opinion returned positive at first reading.',
+      ],
+    },
+  ],
+  experience: [
+    {
+      role: 'Policy Officer',
+      company: 'European Commission, DG Environment',
+      location: 'Brussels, Belgium',
+      start: '2021-09',
+      description:
+        'Implementation of the packaging and packaging waste file: implementing acts, expert groups and member-state liaison.',
+      achievements: [
+        'Case handler for three implementing acts from first draft to adoption, including the comitology procedure and the WTO TBT notification.',
+        'Point of contact for nine member states on transposition questions, with a two-working-day response standard maintained across the year.',
+      ],
+    },
+    {
+      role: 'Legal and Policy Adviser',
+      company: 'Ministry of Environment and Energy Security',
+      location: 'Rome, Italy',
+      start: '2018-01',
+      end: '2021-08',
+      description:
+        'National transposition of EU environmental law, and the ministry position in Council working parties.',
+      achievements: [
+        'Prepared the Italian position for eighteen Council working-party meetings on the circular-economy package.',
+        'Coordinated transposition of the Single-Use Plastics Directive, delivered four months inside the deadline.',
+      ],
+    },
+  ],
+  education: [
+    {
+      degree: 'LLM',
+      field: 'European Law',
+      institution: 'College of Europe',
+      location: 'Bruges, Belgium',
+      start: '2016-09',
+      end: '2017-06',
+    },
+    {
+      degree: 'Laurea Magistrale',
+      field: 'Giurisprudenza',
+      institution: 'Università di Bologna',
+      location: 'Bologna, Italy',
+      start: '2011-09',
+      end: '2016-07',
+      grade: '110/110 cum laude',
+    },
+  ],
+  skills: [
+    { category: 'Policy', name: 'Legislative drafting', level: 'expert' },
+    { category: 'Policy', name: 'Impact assessment', level: 'advanced' },
+    { category: 'Policy', name: 'Comitology procedure', level: 'expert' },
+    { category: 'Policy', name: 'Infringement procedure', level: 'intermediate' },
+    { category: 'Analysis', name: 'Cost-benefit modelling', level: 'advanced' },
+    { category: 'Analysis', name: 'Stakeholder mapping', level: 'advanced' },
+    { category: 'Digital', name: 'Excel modelling', level: 'advanced' },
+    { category: 'Digital', name: 'Decide and CIRCABC', level: 'advanced' },
+  ],
+  languages: [
+    { name: 'Italian', level: 'native' },
+    { name: 'English', level: 'full-professional' },
+    { name: 'French', level: 'professional-working' },
+    { name: 'Spanish', level: 'limited-working' },
+  ],
+  certifications: [
+    { name: 'EU Law and Policy Making', issuer: 'European Institute of Public Administration', date: '2019-11' },
+  ],
+  interests: ['Choral singing', 'Long-distance cycling'],
+});
+
 export const AUTHORED_PROFILES: { id: string; label: string; cv: CVData }[] = [
   { id: 'operations-director', label: 'Operations director', cv: OPERATIONS_DIRECTOR },
   { id: 'solicitor', label: 'Solicitor', cv: SOLICITOR },
@@ -791,4 +1073,6 @@ export const AUTHORED_PROFILES: { id: string; label: string; cv: CVData }[] = [
   { id: 'photographer', label: 'Photographer', cv: PHOTOGRAPHER },
   { id: 'data-scientist', label: 'Data scientist', cv: DATA_SCIENTIST },
   { id: 'security-engineer', label: 'Security engineer', cv: SECURITY_ENGINEER },
+  { id: 'career-changer', label: 'Career changer', cv: CAREER_CHANGER },
+  { id: 'policy-officer', label: 'Policy officer', cv: POLICY_OFFICER },
 ];

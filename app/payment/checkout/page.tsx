@@ -4,11 +4,15 @@ import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 
 import { CheckoutButton } from '@/components/payments/CheckoutButton';
+import { CheckoutMethodChoice } from '@/components/payments/CheckoutMethodChoice';
+import { PaddleCheckoutButton } from '@/components/payments/PaddleCheckoutButton';
 import { ButtonLink } from '@/components/ui/button';
 import { Alert } from '@/components/ui/feedback';
 import { requireViewer } from '@/lib/auth/guards';
+import { appCopy } from '@/lib/i18n/app-copy';
 import { planHighlights } from '@/lib/i18n/copy/content';
 import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
+import { availableGateways } from '@/lib/payments';
 import { publicEnv } from '@/lib/env';
 import { formatDateTime } from '@/lib/cv/format';
 import { getPlan, isPurchasablePlan, PLANS } from '@/lib/plans';
@@ -17,28 +21,32 @@ import { site } from '@/lib/site';
 import type { PlanId } from '@/types/user';
 
 /**
- * The order summary shown before the payer leaves for PayPal.
+ * The order summary shown before the payer commits.
  *
- * This page is the missing half of the checkout: `/payment/success` handles coming *back*
- * from PayPal, and this handles going *there*. It is deliberately server-rendered and
- * authenticated — `requireViewer` bounces a signed-out visitor to `/login?next=…` and
- * brings them straight back here afterwards, which is why the pricing page can stay fully
- * static and still have a working "Get Pro" button.
+ * This page is the missing half of the checkout: `/payment/success` handles the outcome,
+ * and this handles getting there. It is deliberately server-rendered and authenticated —
+ * `requireViewer` bounces a signed-out visitor to `/login?next=…` and brings them straight
+ * back here afterwards, which is why the pricing page can stay fully static and still have
+ * a working "Get Pro" button.
  *
  * Nothing here decides a price. The figures are read from `lib/plans.ts` purely to show
- * the payer what they are about to agree to; the amount PayPal charges is looked up again,
- * server-side, inside the create-order route.
+ * the payer what they are about to agree to; what the gateway actually charges is looked
+ * up again, server-side, when the order or transaction is created.
+ *
+ * Which gateway is offered is also decided here rather than in the browser. The client is
+ * told what it may use; it does not get to nominate one.
  */
 
-export const metadata: Metadata = privateMetadata(
-  'Checkout',
-  'Review your plan before paying with PayPal.',
-);
+export const metadata: Metadata = privateMetadata('Checkout', 'Review your plan before you pay.');
 
 const currencySymbols: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', MAD: 'MAD ' };
 
+/**
+ * Prices are quoted in the store's currency, not a gateway's. `paypalCurrency` used to
+ * stand in for both, which stopped being true the moment a second gateway read it.
+ */
 function formatPrice(value: string): string {
-  const symbol = currencySymbols[publicEnv.paypalCurrency] ?? `${publicEnv.paypalCurrency} `;
+  const symbol = currencySymbols[publicEnv.storeCurrency] ?? `${publicEnv.storeCurrency} `;
   const amount = Number.parseFloat(value);
   return `${symbol}${Number.isInteger(amount) ? String(amount) : amount.toFixed(2)}`;
 }
@@ -78,8 +86,21 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
     cookieLocale: (await cookies()).get(LOCALE_COOKIE)?.value,
   });
 
+  const copy = appCopy(locale);
   const { entitlement } = viewer.profile;
   const priceLabel = `${formatPrice(plan.price)} ${intervalLabel(plan.interval)}`;
+
+  /*
+   * `availableGateways()` reports what the *server* can talk to. Paddle needs a second
+   * thing the server never uses — its public client token in the browser — and the two are
+   * configured independently, so a deployment with the API key and no
+   * `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` would render a button whose overlay can never open.
+   * Dropping it here means the payer sees the gateway that works rather than the one that
+   * is half-installed.
+   */
+  const gateways = availableGateways().filter(
+    (id) => id !== 'paddle' || publicEnv.paddleClientToken.length > 0,
+  );
 
   // Someone who already owns Lifetime has nothing to buy; someone on Pro can still move
   // up to Lifetime, so only the strictly-pointless purchase is blocked.
@@ -162,7 +183,7 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
               <span className="text-2xl font-extrabold tracking-tight text-ink-950">
                 {formatPrice(plan.price)}
               </span>
-              <span className="ml-1.5 text-sm text-ink-500">{publicEnv.paypalCurrency}</span>
+              <span className="ml-1.5 text-sm text-ink-500">{publicEnv.storeCurrency}</span>
               <span className="block text-xs text-ink-500">{intervalLabel(plan.interval)}</span>
             </dd>
           </div>
@@ -192,7 +213,22 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
       </ul>
 
       <div className="mt-8">
-        <CheckoutButton planId={planId} planName={plan.name} priceLabel={priceLabel} />
+        {gateways.length === 0 ? (
+          <Alert tone="danger" title={copy.checkout.unavailableTitle}>
+            {copy.checkout.unavailableBody(site.supportEmail)}
+          </Alert>
+        ) : gateways.length > 1 ? (
+          <CheckoutMethodChoice
+            planId={planId}
+            planName={plan.name}
+            priceLabel={priceLabel}
+            defaultMethod={gateways[0] === 'paypal' ? 'paypal' : 'paddle'}
+          />
+        ) : gateways[0] === 'paypal' ? (
+          <CheckoutButton planId={planId} planName={plan.name} priceLabel={priceLabel} />
+        ) : (
+          <PaddleCheckoutButton planId={planId} planName={plan.name} priceLabel={priceLabel} />
+        )}
       </div>
 
       <div className="mt-7 border-t border-ink-100 pt-5 text-center text-xs leading-relaxed text-ink-500">
@@ -208,7 +244,7 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
           >
             refund policy
           </Link>
-          . We never see or store your card details — PayPal handles the payment entirely.
+          . We never see or store your card details — the payment provider handles that entirely.
         </p>
         <p className="mt-2">
           Changed your mind?{' '}

@@ -63,7 +63,9 @@ export function CheckoutButton({
     setPending(true);
     setError(null);
     setDiagnostic(null);
-    trackEvent('checkout_started', { plan: planId });
+    // Tagged with the gateway now that two of them are live: an untagged `checkout_started`
+    // cannot be compared against the completions of either one.
+    trackEvent('checkout_started', { plan: planId, gateway: 'paypal' });
 
     try {
       const response = await fetch('/api/payments/paypal/create-order', {
@@ -118,13 +120,7 @@ export function CheckoutButton({
 
   return (
     <div className="flex flex-col gap-3">
-      <Button
-        onClick={start}
-        loading={pending}
-        size="lg"
-        fullWidth
-        data-testid="checkout-submit"
-      >
+      <Button onClick={start} loading={pending} size="lg" fullWidth data-testid="checkout-submit">
         {pending ? 'Taking you to PayPal…' : `Continue to PayPal — ${priceLabel}`}
       </Button>
 
@@ -132,18 +128,15 @@ export function CheckoutButton({
         <Alert tone="danger" title="Checkout could not start">
           {error}
           {diagnostic ? (
-            <span className="mt-2 block font-mono text-2xs break-all opacity-80">
-              {diagnostic}
-            </span>
+            <span className="mt-2 block font-mono text-2xs break-all opacity-80">{diagnostic}</span>
           ) : null}
         </Alert>
       ) : null}
 
       <p className="text-center text-xs leading-relaxed text-ink-500">
-        You will approve the payment on PayPal, then come straight back here. You can pay
-        with a PayPal balance, a bank account, or a debit or credit card — a PayPal account
-        is not required. {planName} is unlocked only after our server confirms the payment
-        with PayPal.
+        You will approve the payment on PayPal, then come straight back here. You can pay with a
+        PayPal balance, a bank account, or a debit or credit card — a PayPal account is not
+        required. {planName} is unlocked only after our server confirms the payment with PayPal.
       </p>
     </div>
   );

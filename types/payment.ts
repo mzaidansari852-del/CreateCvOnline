@@ -1,7 +1,12 @@
 import { z } from 'zod';
 import { planIdSchema } from './user';
 
-export const paymentProviderSchema = z.enum(['paypal', 'manual']);
+/**
+ * `manual` is an admin grant, not a gateway. Both real gateways are listed because they
+ * run side by side: existing PayPal records must keep parsing after Paddle becomes the
+ * default, and a payment's provider is how support knows where to look for it.
+ */
+export const paymentProviderSchema = z.enum(['paypal', 'paddle', 'manual']);
 export type PaymentProvider = z.infer<typeof paymentProviderSchema>;
 
 export const paymentStatusSchema = z.enum([

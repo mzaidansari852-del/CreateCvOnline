@@ -6,6 +6,7 @@ import { computePeriodEnd, getPlan } from '@/lib/plans';
 import {
   paymentRecordSchema,
   type CaptureResult,
+  type PaymentProvider,
   type PaymentRecord,
   type PaymentStatus,
 } from '@/types/payment';
@@ -63,6 +64,11 @@ export async function recordOrderCreated(input: {
   planId: PlanId;
   amount: string;
   currency: string;
+  /**
+   * Which gateway took the order. Defaults to PayPal so records written before Paddle
+   * existed keep their provider, and so no existing call site changes meaning.
+   */
+  provider?: PaymentProvider;
 }): Promise<void> {
   const now = new Date().toISOString();
   await paymentCollection(input.userId)
@@ -70,7 +76,7 @@ export async function recordOrderCreated(input: {
     .set(
       {
         userId: input.userId,
-        provider: 'paypal',
+        provider: input.provider ?? 'paypal',
         providerOrderId: input.orderId,
         providerCaptureId: null,
         planId: input.planId,
@@ -107,8 +113,11 @@ export async function fulfilPayment(input: {
   userId: string;
   planId: PlanId;
   capture: CaptureResult;
+  /** The gateway the money actually moved through. Defaults to PayPal for old callers. */
+  provider?: PaymentProvider;
 }): Promise<FulfilmentResult> {
   const { userId, planId, capture } = input;
+  const provider = input.provider ?? 'paypal';
   const plan = getPlan(planId);
   const now = new Date();
   const nowIso = now.toISOString();
@@ -122,7 +131,7 @@ export async function fulfilPayment(input: {
 
     const record = {
       userId,
-      provider: 'paypal',
+      provider,
       providerOrderId: capture.orderId,
       providerCaptureId: capture.captureId,
       planId,
@@ -188,9 +197,7 @@ export async function listAllPayments(limit = 50): Promise<PaymentRecord[]> {
     .limit(Math.min(Math.max(limit, 1), 200))
     .get();
 
-  return snapshot.docs.map((doc) =>
-    hydrate(doc.id, doc.ref.parent.parent?.id ?? '', doc.data()),
-  );
+  return snapshot.docs.map((doc) => hydrate(doc.id, doc.ref.parent.parent?.id ?? '', doc.data()));
 }
 
 export interface RevenueSummary {

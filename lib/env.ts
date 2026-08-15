@@ -29,6 +29,11 @@ export interface PublicEnv {
   };
   paypalClientId: string;
   paypalCurrency: string;
+  /** The currency plan prices are quoted in. */
+  storeCurrency: string;
+  /** Paddle's client-side token. Public by design; never the API key. */
+  paddleClientToken: string;
+  paddleEnvironment: 'sandbox' | 'production';
   gaMeasurementId?: string;
   googleSiteVerification?: string;
 }
@@ -58,6 +63,32 @@ export const publicEnv: PublicEnv = {
   },
   paypalClientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? '',
   paypalCurrency: (process.env.NEXT_PUBLIC_PAYPAL_CURRENCY || 'USD').toUpperCase().slice(0, 3),
+  /*
+   * The currency `lib/plans.ts` quotes its prices in. Named for the store rather than for
+   * a gateway, because two gateways now read it and `paypalCurrency` was never really a
+   * PayPal setting — it was always "what our prices mean". That variable is kept as the
+   * fallback so existing deployments need no new environment entry.
+   */
+  storeCurrency: (
+    process.env.NEXT_PUBLIC_STORE_CURRENCY ||
+    process.env.NEXT_PUBLIC_PAYPAL_CURRENCY ||
+    'USD'
+  )
+    .toUpperCase()
+    .slice(0, 3),
+  /*
+   * Paddle's client-side token is *designed* to be public — it identifies the seller to
+   * Paddle.js and can do nothing on its own. It is not the API key, which is server-only
+   * and must never appear here. Paddle prefixes them differently for exactly this reason:
+   * a client token starts `live_`/`test_`, an API key starts `pdl_`. A test asserts the
+   * one in this field is not an API key, because pasting the wrong value into the wrong
+   * variable is the single most likely way to leak it.
+   */
+  paddleClientToken: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN ?? '',
+  paddleEnvironment:
+    (process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT || 'sandbox').toLowerCase() === 'production'
+      ? ('production' as const)
+      : ('sandbox' as const),
   gaMeasurementId: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || undefined,
   googleSiteVerification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
 };
@@ -117,7 +148,7 @@ if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
     const message =
       `${problem}\n` +
       'Set it to the public origin of the deployment, e.g. https://www.createcvonline.com ' +
-      '(no trailing slash), in the hosting provider\'s environment variables.';
+      "(no trailing slash), in the hosting provider's environment variables.";
     if (isDeploymentBuild) {
       throw new Error(`[env] ${message}`);
     }
@@ -220,6 +251,13 @@ export interface ServerEnv {
     environment: 'sandbox' | 'live';
     webhookId: string | undefined;
   } | null;
+  paddle: {
+    apiKey: string;
+    /** Undefined until the webhook is created in the Paddle dashboard. */
+    webhookSecret: string | undefined;
+    environment: 'sandbox' | 'production';
+    prices: { pro: string; lifetime: string };
+  } | null;
   pdf: {
     executablePath: string | undefined;
     browserWSEndpoint: string | undefined;
@@ -244,12 +282,27 @@ export function serverEnv(): ServerEnv {
     readOpaqueToken(process.env.PAYPAL_ENVIRONMENT) || 'sandbox'
   ).toLowerCase();
 
+  const paddleApiKey = readOpaqueToken(process.env.PADDLE_API_KEY);
+  const paddleWebhookSecret = readOpaqueToken(process.env.PADDLE_WEBHOOK_SECRET);
+  const paddleEnvironment = (
+    readOpaqueToken(process.env.PADDLE_ENVIRONMENT) || 'sandbox'
+  ).toLowerCase();
+
+  /*
+   * One price id per paid plan. These are not secrets — they appear in the checkout the
+   * customer sees — but they belong in the environment rather than in `lib/plans.ts`,
+   * because sandbox and production have entirely different ids and the same build has to
+   * run against both.
+   */
+  const paddlePrices = {
+    pro: readOpaqueToken(process.env.PADDLE_PRICE_PRO),
+    lifetime: readOpaqueToken(process.env.PADDLE_PRICE_LIFETIME),
+  };
+
   cached = {
     firebaseAdmin,
     storageBucket:
-      process.env.FIREBASE_STORAGE_BUCKET?.trim() ||
-      publicEnv.firebase.storageBucket ||
-      undefined,
+      process.env.FIREBASE_STORAGE_BUCKET?.trim() || publicEnv.firebase.storageBucket || undefined,
     paypal:
       paypalClientId && paypalClientSecret
         ? {
@@ -257,6 +310,27 @@ export function serverEnv(): ServerEnv {
             clientSecret: paypalClientSecret,
             environment: paypalEnvironment === 'live' ? 'live' : 'sandbox',
             webhookId: readOpaqueToken(process.env.PAYPAL_WEBHOOK_ID),
+          }
+        : null,
+    /*
+     * Paddle is configured only when the API key *and* both price ids are present.
+     * A half-configured gateway is worse than an absent one: the checkout button would
+     * render, the overlay would open, and the purchase would fail after the customer had
+     * already entered a card. `paymentsAvailable()` reads this, so an incomplete setup
+     * simply falls back to PayPal.
+     *
+     * The webhook secret is deliberately *not* part of that test. It is required to grant
+     * entitlements and the webhook route refuses to run without it, but a deployment that
+     * can take a payment and cannot yet confirm it is recoverable by reconciliation —
+     * whereas one that cannot take a payment at all is not.
+     */
+    paddle:
+      paddleApiKey && paddlePrices.pro && paddlePrices.lifetime
+        ? {
+            apiKey: paddleApiKey,
+            webhookSecret: paddleWebhookSecret,
+            environment: paddleEnvironment === 'production' ? 'production' : 'sandbox',
+            prices: { pro: paddlePrices.pro, lifetime: paddlePrices.lifetime },
           }
         : null,
     pdf: {
@@ -281,12 +355,7 @@ export function serverEnv(): ServerEnv {
   return cached;
 }
 
-function clampNumber(
-  raw: string | undefined,
-  fallback: number,
-  min: number,
-  max: number,
-): number {
+function clampNumber(raw: string | undefined, fallback: number, min: number, max: number): number {
   const parsed = Number.parseInt(raw ?? '', 10);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(max, Math.max(min, parsed));
@@ -324,6 +393,10 @@ export function isFirebaseAdminConfigured(): boolean {
 /** True when server-side PayPal operations are possible. */
 export function isPayPalConfigured(): boolean {
   return serverEnv().paypal !== null;
+}
+
+export function isPaddleConfigured(): boolean {
+  return serverEnv().paddle !== null;
 }
 
 /** Used by tests to reset memoised state between cases. */

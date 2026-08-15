@@ -98,9 +98,25 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
    * Dropping it here means the payer sees the gateway that works rather than the one that
    * is half-installed.
    */
-  const gateways = availableGateways().filter(
-    (id) => id !== 'paddle' || publicEnv.paddleClientToken.length > 0,
-  );
+  const serverGateways = availableGateways();
+  const paddleClientReady = publicEnv.paddleClientToken.length > 0;
+  const gateways = serverGateways.filter((id) => id !== 'paddle' || paddleClientReady);
+
+  /*
+   * Say so in the log when Paddle is dropped for this reason.
+   *
+   * Silently falling back is right for the customer and baffling for whoever configured
+   * the deployment: the API key is set, the price ids are set, and the checkout still
+   * offers PayPal with nothing to explain it. The usual cause is that
+   * `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` is inlined into the client bundle at *build* time,
+   * so adding it to the hosting dashboard after a deploy has no effect until a rebuild.
+   */
+  if (serverGateways.includes('paddle') && !paddleClientReady) {
+    console.warn(
+      '[checkout] Paddle is configured server-side but NEXT_PUBLIC_PADDLE_CLIENT_TOKEN is empty, ' +
+        'so it is not being offered. That variable is baked in at build time — set it and redeploy.',
+    );
+  }
 
   // Someone who already owns Lifetime has nothing to buy; someone on Pro can still move
   // up to Lifetime, so only the strictly-pointless purchase is blocked.

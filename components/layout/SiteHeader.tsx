@@ -8,7 +8,7 @@ import { Logo } from '@/components/brand/Logo';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useScrolledPast } from '@/hooks/browser';
-import { CHROME, navFor, otherLocale } from '@/lib/i18n/nav';
+import { CHROME, navFor, otherLocales } from '@/lib/i18n/nav';
 import { LOCALE_META, alternatesFor, localeOf } from '@/lib/i18n/locales';
 import { cn } from '@/lib/utils/cn';
 
@@ -29,7 +29,7 @@ export function SiteHeader() {
   const chrome = CHROME[locale];
   const nav = navFor(locale);
   const alternate = alternatesFor(pathname ?? '/');
-  const swapTo = otherLocale(locale);
+  const swapTo = otherLocales(locale);
   const { sessionUser, ready, signOut } = useAuth();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -166,17 +166,20 @@ export function SiteHeader() {
               by the same path map as `hreflang`, so it cannot offer a translation that does
               not exist. On an untranslated page it is simply absent.
             */}
-            {alternate ? (
-              <Link
-                href={alternate[swapTo]}
-                hrefLang={LOCALE_META[swapTo].tag}
-                lang={LOCALE_META[swapTo].tag}
-                aria-label={`${chrome.language} : ${LOCALE_META[swapTo].label}`}
-                className="mr-1 rounded-lg px-2 py-1 text-[13px] font-medium text-ink-600 transition-colors hover:text-brand-700"
-              >
-                {LOCALE_META[swapTo].label}
-              </Link>
-            ) : null}
+            {alternate
+              ? swapTo.map((code) => (
+                  <Link
+                    key={code}
+                    href={alternate[code]}
+                    hrefLang={LOCALE_META[code].tag}
+                    lang={LOCALE_META[code].tag}
+                    aria-label={`${chrome.language}: ${LOCALE_META[code].label}`}
+                    className="rounded-lg px-2 py-1 text-[13px] font-medium text-ink-600 transition-colors hover:text-brand-700"
+                  >
+                    {LOCALE_META[code].label}
+                  </Link>
+                ))
+              : null}
             {!ready ? (
               /*
                * The user is unknown for a moment because the marketing pages are static

@@ -5,7 +5,13 @@ import { getAllExampleSlugs } from '@/lib/cv-examples';
 import { getAllProfessionSlugs } from '@/lib/professions';
 import { PREVIEW_SLUGS } from '@/lib/cv/previews';
 import { TEMPLATES, TEMPLATE_CATEGORIES, templatesByCategory } from '@/lib/cv/template-registry';
-import { LOCALES, LOCALE_META, TRANSLATED_PATHS } from '@/lib/i18n/locales';
+import {
+  DEFAULT_LOCALE,
+  LOCALES,
+  LOCALE_META,
+  TRANSLATED_PATHS,
+  templatePath,
+} from '@/lib/i18n/locales';
 import { absoluteUrl, isPrivatePath } from '@/lib/site';
 
 /**
@@ -158,16 +164,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
    * with its English counterpart rather than reading the two as duplicates.
    */
   for (const [path, group] of Object.entries(TRANSLATED_PATHS)) {
-    entries.push({
-      url: absoluteUrl(group.fr),
-      changeFrequency: 'weekly',
-      priority: path === '/fr' || path === '/' ? 0.9 : 0.75,
-      alternates: {
-        languages: Object.fromEntries(
-          LOCALES.map((locale) => [LOCALE_META[locale].tag, absoluteUrl(group[locale])]),
-        ),
-      },
-    });
+    for (const locale of LOCALES) {
+      if (locale === DEFAULT_LOCALE) continue;
+      entries.push({
+        url: absoluteUrl(group[locale]),
+        changeFrequency: 'weekly',
+        priority: path === '/' ? 0.9 : 0.75,
+        alternates: {
+          languages: Object.fromEntries(
+            LOCALES.map((code) => [LOCALE_META[code].tag, absoluteUrl(group[code])]),
+          ),
+        },
+      });
+    }
   }
 
   /*
@@ -180,22 +189,27 @@ export default function sitemap(): MetadataRoute.Sitemap {
    * `hreflang`-paired to an indexed English page rather than arriving unattached.
    */
   for (const template of TEMPLATES) {
-    entries.push({
-      url: absoluteUrl(`/fr/modeles-de-cv/${template.slug}`),
-      changeFrequency: 'monthly',
-      priority: template.premium ? 0.55 : 0.65,
-      // The French image, not the English one: Google Images is a separate surface, and on
-      // a French page the picture is a different picture.
-      ...(PREVIEW_SLUGS.includes(template.slug)
-        ? { images: [absoluteUrl(`/previews/fr/${template.slug}.webp`)] }
-        : {}),
-      alternates: {
-        languages: {
-          en: absoluteUrl(`/templates/${template.slug}`),
-          fr: absoluteUrl(`/fr/modeles-de-cv/${template.slug}`),
+    for (const locale of LOCALES) {
+      if (locale === DEFAULT_LOCALE) continue;
+      entries.push({
+        url: absoluteUrl(templatePath(template.slug, locale)),
+        changeFrequency: 'monthly',
+        priority: template.premium ? 0.55 : 0.65,
+        // The localised image, not the English one: Google Images is a separate surface,
+        // and the picture on a German page really is a different picture.
+        ...(PREVIEW_SLUGS.includes(template.slug)
+          ? { images: [absoluteUrl(`/previews/${locale}/${template.slug}.webp`)] }
+          : {}),
+        alternates: {
+          languages: Object.fromEntries(
+            LOCALES.map((code) => [
+              LOCALE_META[code].tag,
+              absoluteUrl(templatePath(template.slug, code)),
+            ]),
+          ),
         },
-      },
-    });
+      });
+    }
   }
 
   // One guide per profession.

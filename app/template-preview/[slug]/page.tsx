@@ -56,7 +56,7 @@ export default async function TemplatePreviewPage(props: {
    * `WORK EXPERIENCE` — the copy around them can be as French as you like and the product
    * still looks English, because the picture is the product.
    */
-  const locale: Locale = lang === 'fr' ? 'fr' : 'en';
+  const locale: Locale = lang === 'fr' || lang === 'de' ? lang : 'en';
   const cv = localiseCv(sampleCvFor(template.id), locale);
   const customization = createDefaultCustomization({
     ...templateDefaults(template),

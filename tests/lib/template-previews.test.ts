@@ -94,8 +94,15 @@ describe('the pages actually use them', () => {
   });
 
   it('writes alt text a crawler and a screen reader can both use', () => {
-    // Not the filename, not "image": the template name and what the picture shows.
-    expect(image).toContain('template.name} CV template preview');
+    /*
+     * Not the filename, not "image": the template name and what the picture shows — and now
+     * in the language of the page it is on, because Google Images matches the alt text
+     * against the query and a German searcher does not type "CV template preview".
+     */
+    expect(image).toContain('CV template preview');
+    expect(image).toContain('Aperçu du modèle de CV');
+    expect(image).toContain('Vorschau der Lebenslauf-Vorlage');
+    expect(image).toContain('alt={ALT[locale](template.name, template.category)}');
     expect(image).toContain('template.category');
   });
 

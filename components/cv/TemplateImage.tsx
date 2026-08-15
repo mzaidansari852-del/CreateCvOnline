@@ -48,8 +48,17 @@ export function previewSrc(
   locale: Locale = 'en',
 ): string {
   const suffix = variant === 'card' ? '-card' : '';
-  return locale === 'en' ? `/previews/${slug}${suffix}.webp` : `/previews/fr/${slug}${suffix}.webp`;
+  return locale === 'en'
+    ? `/previews/${slug}${suffix}.webp`
+    : `/previews/${locale}/${slug}${suffix}.webp`;
 }
+
+/** What a screen reader hears, and what Google Images matches against, per language. */
+const ALT: Record<Locale, (name: string, category: string) => string> = {
+  en: (name, category) => `${name} CV template preview — a ${category} résumé layout`,
+  fr: (name, category) => `Aperçu du modèle de CV ${name} — une mise en page ${category}`,
+  de: (name, category) => `Vorschau der Lebenslauf-Vorlage ${name} — ein ${category}-Layout`,
+};
 
 export function TemplateImage({
   template,
@@ -90,11 +99,7 @@ export function TemplateImage({
        * a screen-reader user gets. It names the template and says what the picture is,
        * rather than repeating the filename or the word "image".
        */
-      alt={
-        locale === 'fr'
-          ? `Aperçu du modèle de CV ${template.name} — une mise en page ${template.category}`
-          : `${template.name} CV template preview — a ${template.category} résumé layout`
-      }
+      alt={ALT[locale](template.name, template.category)}
       className={cn('block h-auto w-full bg-white', className)}
     />
   );

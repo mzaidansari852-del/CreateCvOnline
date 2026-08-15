@@ -1,5 +1,5 @@
 import { primaryNav, type NavGroup } from '@/lib/site';
-import { DEFAULT_LOCALE, type Locale } from './locales';
+import { LOCALES, type Locale } from './locales';
 
 /**
  * The header and footer, per language.
@@ -25,6 +25,14 @@ export const CHROME: Record<Locale, { dashboard: string; newCv: string; signIn: 
     menu: 'Menu',
     language: 'Language',
     other: 'Français',
+  },
+  de: {
+    dashboard: 'Mein Bereich',
+    newCv: 'Lebenslauf erstellen',
+    signIn: 'Anmelden',
+    menu: 'Menü',
+    language: 'Sprache',
+    other: 'English',
   },
   fr: {
     dashboard: 'Mon espace',
@@ -55,6 +63,48 @@ const FR_CATEGORIES: { id: string; label: string; slug: string }[] = [
 ];
 
 export const FR_NAV_CATEGORIES = FR_CATEGORIES;
+
+/** The same six, in German. See the note above for why they are not read from the registry. */
+const DE_CATEGORIES: { id: string; label: string; slug: string }[] = [
+  { id: 'modern', label: 'Modern', slug: 'modern' },
+  { id: 'corporate', label: 'Business', slug: 'business' },
+  { id: 'creative', label: 'Kreativ', slug: 'kreativ' },
+  { id: 'technology', label: 'IT', slug: 'it' },
+  { id: 'classic', label: 'Klassisch', slug: 'klassisch' },
+  { id: 'ats', label: 'ATS-tauglich', slug: 'ats' },
+];
+
+export const DE_NAV_CATEGORIES = DE_CATEGORIES;
+
+export const NAV_CATEGORIES: Partial<Record<Locale, typeof FR_CATEGORIES>> = {
+  fr: FR_CATEGORIES,
+  de: DE_CATEGORIES,
+};
+
+const DE_NAV: NavGroup[] = [
+  {
+    label: 'Lebenslauf-Vorlagen',
+    href: '/de/lebenslauf-vorlagen',
+    links: [
+      {
+        label: 'Alle Vorlagen',
+        href: '/de/lebenslauf-vorlagen',
+        description: 'Die vollständige Galerie, alle Stile.',
+      },
+      ...DE_CATEGORIES.map((category) => ({
+        label: category.label,
+        href: `/de/lebenslauf-vorlagen/${category.slug}`,
+      })),
+    ],
+  },
+  {
+    label: 'Preise',
+    href: '/de/preise',
+    links: [
+      { label: 'Preise', href: '/de/preise', description: 'Kostenlos, Pro und einmalig.' },
+    ],
+  },
+];
 
 const FR_NAV: NavGroup[] = [
   {
@@ -95,6 +145,40 @@ export const FOOTER: Record<Locale, {
     strapline: 'create your professional CV online.',
     columns: [],
   },
+  de: {
+    blurb: (count) =>
+      `ist ein Online-Lebenslauf-Generator mit ${count} professionellen Vorlagen, einem Live-Editor und sofortigem PDF-Download. Kostenlos starten — ohne Kreditkarte.`,
+    browseByCategory: 'Vorlagen nach Stil',
+    rights: 'Alle Rechte vorbehalten.',
+    strapline: 'erstellen Sie Ihren Lebenslauf online.',
+    columns: [
+      {
+        label: 'Vorlagen',
+        links: [
+          { label: 'Alle Vorlagen', href: '/de/lebenslauf-vorlagen' },
+          ...DE_CATEGORIES.map((category) => ({
+            label: category.label,
+            href: `/de/lebenslauf-vorlagen/${category.slug}`,
+          })),
+        ],
+      },
+      {
+        label: 'Produkt',
+        links: [
+          { label: 'Preise', href: '/de/preise' },
+          { label: 'Lebenslauf erstellen', href: '/register' },
+          { label: 'Anmelden', href: '/login' },
+        ],
+      },
+      {
+        label: 'Seite',
+        links: [
+          { label: 'Startseite', href: '/de' },
+          { label: 'English site', href: '/' },
+        ],
+      },
+    ],
+  },
   fr: {
     blurb: (count) =>
       `est un créateur de CV en ligne : ${count} modèles professionnels, un éditeur en direct et un téléchargement PDF immédiat. Gratuit pour commencer — sans carte bancaire.`,
@@ -132,10 +216,17 @@ export const FOOTER: Record<Locale, {
 };
 
 export function navFor(locale: Locale): NavGroup[] {
-  return locale === 'fr' ? FR_NAV : primaryNav;
+  if (locale === 'fr') return FR_NAV;
+  if (locale === 'de') return DE_NAV;
+  return primaryNav;
 }
 
-/** Where the language toggle in the header should point, given the page you are on. */
-export function otherLocale(locale: Locale): Locale {
-  return locale === 'fr' ? DEFAULT_LOCALE : 'fr';
+/**
+ * The languages the toggle offers, other than the one you are reading.
+ *
+ * Three languages means the header can no longer be a single "switch to the other one"
+ * link. It lists the alternatives, and only those a given page actually has.
+ */
+export function otherLocales(locale: Locale): Locale[] {
+  return LOCALES.filter((candidate) => candidate !== locale);
 }

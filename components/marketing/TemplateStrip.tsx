@@ -47,6 +47,22 @@ const CARD_COPY = {
       ats: 'ATS-friendly',
     },
   },
+  de: {
+    view: 'Vorlage ansehen',
+    free: 'Kostenlos',
+    pro: 'Pro',
+    oneColumn: 'einspaltig',
+    twoColumns: 'zweispaltig',
+    ats: 'ATS-tauglich',
+    category: {
+      modern: 'modern',
+      corporate: 'business',
+      creative: 'kreativ',
+      technology: 'IT',
+      classic: 'klassisch',
+      ats: 'ATS-tauglich',
+    },
+  },
   fr: {
     view: 'Voir le modèle',
     free: 'Gratuit',

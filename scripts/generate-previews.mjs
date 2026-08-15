@@ -42,7 +42,7 @@ let BASE = process.env.PREVIEW_BASE_URL ?? 'http://localhost:3000';
 const OUT = join(process.cwd(), 'public', 'previews');
 
 /** Languages that get their own image set, beyond the default English one. */
-const LOCALES = ['fr'];
+const LOCALES = ['fr', 'de'];
 
 /**
  * Chromium rasterises a CSS-transformed element at the device pixel ratio, so a preview

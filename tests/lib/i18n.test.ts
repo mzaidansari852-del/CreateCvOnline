@@ -12,10 +12,12 @@ import {
   alternatesFor,
   localeOf,
   normalisePath,
+  templatePath,
 } from '@/lib/i18n/locales';
 import { pageMetadata } from '@/lib/seo/metadata';
 import { absoluteUrl } from '@/lib/site';
 import { FR, FR_CATEGORY_SLUG, categoryFromFrenchSlug } from '@/app/fr/fr-copy';
+import { DE, DE_CATEGORY_SLUG, categoryFromGermanSlug } from '@/app/de/de-copy';
 import { TEMPLATES, TEMPLATE_CATEGORIES } from '@/lib/cv/template-registry';
 import { hasPreview } from '@/components/cv/TemplateImage';
 import { createSampleCV } from '@/lib/cv/defaults';
@@ -43,7 +45,11 @@ describe('locale model', () => {
   it('reads the locale off the prefix', () => {
     expect(localeOf('/fr')).toBe('fr');
     expect(localeOf('/fr/modeles-de-cv')).toBe('fr');
+    expect(localeOf('/de')).toBe('de');
+    expect(localeOf('/de/lebenslauf-vorlagen')).toBe('de');
     expect(localeOf('/templates')).toBe('en');
+    // `/design-tips` starts with `de`; the prefix has to be a whole segment.
+    expect(localeOf('/design-tips')).toBe('en');
     // `/french-cv-tips` starts with the same three letters and is an English page.
     expect(localeOf('/french-cv-tips')).toBe('en');
     expect(localeOf('/')).toBe(DEFAULT_LOCALE);
@@ -167,6 +173,42 @@ describe('French copy', () => {
     expect(overlap).toEqual([]);
   });
 
+  it('is actually in German', () => {
+    const headlines = [
+      DE.home.lede,
+      DE.gallery.heading,
+      DE.gallery.lede,
+      ...TEMPLATE_CATEGORIES.map((category) => DE.categories[category.id].heading),
+      ...TEMPLATE_CATEGORIES.map((category) => DE.categories[category.id].lede),
+    ];
+    /*
+     * German-only orthography, a function word English marketing copy would not use, or a
+     * noun that is unambiguously German. The third case is needed because a headline like
+     * "Lebenslauf-Vorlagen" is plainly German and contains neither an umlaut nor a
+     * function word — the risk being guarded against is a section left in English, not a
+     * headline that happens to be short.
+     */
+    const germanMarker =
+      /[äöüß]|\b(der|die|das|und|für|mit|Ihre|Ihren|eine|einen|nicht)\b|Lebenslauf|Vorlage|Bewerbung/i;
+    for (const line of headlines) {
+      expect(germanMarker.test(line), `not German: ${line}`).toBe(true);
+    }
+  });
+
+  it('says "Lebenslauf" rather than "CV" in the terms it is targeting', () => {
+    // `Lebenslauf` is the query. `CV` is understood in Germany and is not what is typed.
+    expect(DE.gallery.metaTitle.toLowerCase()).toContain('lebenslauf');
+    expect(DE.gallery.heading.toLowerCase()).toContain('lebenslauf');
+    expect(DE.home.metaTitle.toLowerCase()).toContain('lebenslauf');
+  });
+
+  it('covers every category in German too', () => {
+    for (const category of TEMPLATE_CATEGORIES) {
+      expect(DE.categories[category.id], category.id).toBeTruthy();
+      expect(categoryFromGermanSlug(DE_CATEGORY_SLUG[category.id])).toBe(category.id);
+    }
+  });
+
   it('is actually in French', () => {
     /*
      * A cheap smoke test for the real risk, which is not a mistranslation but a section
@@ -197,9 +239,9 @@ describe('French copy', () => {
 });
 
 describe('the French pages show a French document', () => {
-  const PREVIEWS = path.join(process.cwd(), 'public', 'previews', 'fr');
+  const previewDir = (locale: string) => path.join(process.cwd(), 'public', 'previews', locale);
 
-  it('has a French image for every template that has an English one', () => {
+  it.each(['fr', 'de'] as const)('has a %s image for every template', (locale) => {
     /*
      * The gallery shows pictures, not live DOM. So a French page without a French image set
      * is sixty-one photographs of a CV headed `WORK EXPERIENCE` sitting underneath French
@@ -209,9 +251,10 @@ describe('the French pages show a French document', () => {
      */
     const missing = TEMPLATES.filter(
       (template) =>
-        hasPreview(template.slug) && !existsSync(path.join(PREVIEWS, `${template.slug}-card.webp`)),
+        hasPreview(template.slug) &&
+        !existsSync(path.join(previewDir(locale), `${template.slug}-card.webp`)),
     ).map((template) => template.slug);
-    expect(missing, 'run `npm run previews` to regenerate the French set').toEqual([]);
+    expect(missing, `run \`npm run previews\` to regenerate the ${locale} set`).toEqual([]);
   });
 
   it('translates the section headings a template prints', () => {
@@ -231,10 +274,10 @@ describe('the French pages show a French document', () => {
     expect(french.experience).toBe(english.experience);
   });
 
-  it('has a French label for every built-in section', () => {
-    // A section with no translation prints its English heading in the middle of a French
-    // document, which is exactly the defect this file exists to prevent.
-    const missing = BUILT_IN_SECTION_IDS.filter((id) => !sectionLabel(id, 'fr'));
+  it.each(['fr', 'de'] as const)('has a %s label for every built-in section', (locale) => {
+    // A section with no translation prints its English heading in the middle of a
+    // translated document, which is exactly the defect this file exists to prevent.
+    const missing = BUILT_IN_SECTION_IDS.filter((id) => !sectionLabel(id, locale));
     expect(missing).toEqual([]);
   });
 
@@ -248,22 +291,19 @@ describe('sitemap', () => {
   const entries = sitemap();
   const byUrl = new Map(entries.map((entry) => [entry.url, entry]));
 
-  it('lists every French page', () => {
+  it('lists every translated landing page, with its alternates', () => {
     for (const group of Object.values(TRANSLATED_PATHS)) {
-      expect(byUrl.has(absoluteUrl(group.fr)), group.fr).toBe(true);
+      for (const locale of LOCALES) {
+        if (locale === DEFAULT_LOCALE) continue;
+        const entry = byUrl.get(absoluteUrl(group[locale]));
+        expect(entry, group[locale]).toBeTruthy();
+        const languages = entry!.alternates?.languages as Record<string, string> | undefined;
+        for (const code of LOCALES) expect(languages?.[code]).toBe(absoluteUrl(group[code]));
+      }
     }
   });
 
-  it('gives each French entry its language alternates', () => {
-    for (const group of Object.values(TRANSLATED_PATHS)) {
-      const entry = byUrl.get(absoluteUrl(group.fr))!;
-      const languages = entry.alternates?.languages as Record<string, string> | undefined;
-      expect(languages?.fr).toBe(absoluteUrl(group.fr));
-      expect(languages?.en).toBe(absoluteUrl(group.en));
-    }
-  });
-
-  it('lists a French page for every template, each paired to its English one', () => {
+  it.each(['fr', 'de'] as const)('lists a %s page for every template, each paired', (locale) => {
     /*
      * The eight landing pages were held back from the detail pages at first, on the
      * launch-velocity reasoning in audit 3.5. What makes publishing the rest a different
@@ -274,16 +314,24 @@ describe('sitemap', () => {
      * an English one in Google's eyes, which is the outcome the whole exercise avoids.
      */
     for (const template of TEMPLATES) {
-      const entry = byUrl.get(absoluteUrl(`/fr/modeles-de-cv/${template.slug}`));
-      expect(entry, template.slug).toBeTruthy();
+      const entry = byUrl.get(absoluteUrl(templatePath(template.slug, locale)));
+      expect(entry, `${locale}/${template.slug}`).toBeTruthy();
       const languages = entry!.alternates?.languages as Record<string, string> | undefined;
-      expect(languages?.en).toBe(absoluteUrl(`/templates/${template.slug}`));
-      expect(languages?.fr).toBe(absoluteUrl(`/fr/modeles-de-cv/${template.slug}`));
+      for (const code of LOCALES) {
+        expect(languages?.[code]).toBe(absoluteUrl(templatePath(template.slug, code)));
+      }
     }
   });
 
-  it('never lets a French page go out unpaired', () => {
-    for (const entry of entries.filter((candidate) => candidate.url.includes('/fr/'))) {
+  it('never lets a translated page go out unpaired', () => {
+    const prefixes = LOCALES.filter((code) => code !== DEFAULT_LOCALE).map(
+      (code) => `${LOCALE_META[code].prefix}/`,
+    );
+    const translated = entries.filter((entry) =>
+      prefixes.some((prefix) => new URL(entry.url).pathname.startsWith(prefix)),
+    );
+    expect(translated.length).toBeGreaterThan(100);
+    for (const entry of translated) {
       expect(entry.alternates?.languages, entry.url).toBeTruthy();
     }
   });

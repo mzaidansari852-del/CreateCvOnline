@@ -23,7 +23,7 @@
  * annotations entirely, which is the failure mode that looks like it is working.
  */
 
-export const LOCALES = ['en', 'fr'] as const;
+export const LOCALES = ['en', 'fr', 'de'] as const;
 export type Locale = (typeof LOCALES)[number];
 
 export const DEFAULT_LOCALE: Locale = 'en';
@@ -43,6 +43,7 @@ export const LOCALE_META: Record<
 > = {
   en: { tag: 'en', ogLocale: 'en_US', label: 'English', prefix: '' },
   fr: { tag: 'fr', ogLocale: 'fr_FR', label: 'Français', prefix: '/fr' },
+  de: { tag: 'de', ogLocale: 'de_DE', label: 'Deutsch', prefix: '/de' },
 };
 
 /**
@@ -54,15 +55,39 @@ export const LOCALE_META: Record<
  * test suite checks every path in it actually resolves.
  */
 export const TRANSLATED_PATHS: Record<string, Record<Locale, string>> = {
-  '/': { en: '/', fr: '/fr' },
-  '/templates': { en: '/templates', fr: '/fr/modeles-de-cv' },
-  '/pricing': { en: '/pricing', fr: '/fr/tarifs' },
-  '/templates/modern': { en: '/templates/modern', fr: '/fr/modeles-de-cv/moderne' },
-  '/templates/corporate': { en: '/templates/corporate', fr: '/fr/modeles-de-cv/entreprise' },
-  '/templates/creative': { en: '/templates/creative', fr: '/fr/modeles-de-cv/creatif' },
-  '/templates/technology': { en: '/templates/technology', fr: '/fr/modeles-de-cv/informatique' },
-  '/templates/classic': { en: '/templates/classic', fr: '/fr/modeles-de-cv/classique' },
-  '/templates/ats': { en: '/templates/ats', fr: '/fr/modeles-de-cv/ats' },
+  '/': { en: '/', fr: '/fr', de: '/de' },
+  '/templates': { en: '/templates', fr: '/fr/modeles-de-cv', de: '/de/lebenslauf-vorlagen' },
+  '/pricing': { en: '/pricing', fr: '/fr/tarifs', de: '/de/preise' },
+  '/templates/modern': {
+    en: '/templates/modern',
+    fr: '/fr/modeles-de-cv/moderne',
+    de: '/de/lebenslauf-vorlagen/modern',
+  },
+  '/templates/corporate': {
+    en: '/templates/corporate',
+    fr: '/fr/modeles-de-cv/entreprise',
+    de: '/de/lebenslauf-vorlagen/business',
+  },
+  '/templates/creative': {
+    en: '/templates/creative',
+    fr: '/fr/modeles-de-cv/creatif',
+    de: '/de/lebenslauf-vorlagen/kreativ',
+  },
+  '/templates/technology': {
+    en: '/templates/technology',
+    fr: '/fr/modeles-de-cv/informatique',
+    de: '/de/lebenslauf-vorlagen/it',
+  },
+  '/templates/classic': {
+    en: '/templates/classic',
+    fr: '/fr/modeles-de-cv/classique',
+    de: '/de/lebenslauf-vorlagen/klassisch',
+  },
+  '/templates/ats': {
+    en: '/templates/ats',
+    fr: '/fr/modeles-de-cv/ats',
+    de: '/de/lebenslauf-vorlagen/ats',
+  },
 };
 
 /** Every path in the map, from either side, so a lookup works in both directions. */
@@ -81,8 +106,17 @@ for (const group of Object.values(TRANSLATED_PATHS)) {
  * `modèle de CV`.
  */
 export function templatePath(slug: string, locale: Locale): string {
-  return locale === 'fr' ? `/fr/modeles-de-cv/${slug}` : `/templates/${slug}`;
+  if (locale === 'fr') return `/fr/modeles-de-cv/${slug}`;
+  if (locale === 'de') return `/de/lebenslauf-vorlagen/${slug}`;
+  return `/templates/${slug}`;
 }
+
+/** The segment each language puts its templates under. */
+export const TEMPLATE_ROOT: Record<Locale, string> = {
+  en: '/templates',
+  fr: '/fr/modeles-de-cv',
+  de: '/de/lebenslauf-vorlagen',
+};
 
 /** Trailing slashes and casing are not meaningful here; `/fr/` and `/fr` are one page. */
 export function normalisePath(path: string): string {
@@ -124,21 +158,41 @@ export function alternatesFor(path: string): Record<Locale, string> | null {
    * `notFound()` for a slug they do not recognise, so an unknown slug never renders a page
    * that could emit one.
    */
-  const en = /^\/templates\/([^/]+)$/.exec(normalised);
-  const fr = /^\/fr\/modeles-de-cv\/([^/]+)$/.exec(normalised);
-  const slug = en?.[1] ?? fr?.[1];
-  if (!slug || CATEGORY_SLUGS.has(slug) || FR_CATEGORY_SLUGS.has(slug)) return null;
-
-  return { en: `/templates/${slug}`, fr: `/fr/modeles-de-cv/${slug}` };
+  for (const root of Object.values(TEMPLATE_ROOT)) {
+    const match = normalised.startsWith(`${root}/`) ? normalised.slice(root.length + 1) : null;
+    if (!match || match.includes('/')) continue;
+    if (RESERVED_SLUGS.has(match)) return null;
+    return {
+      en: templatePath(match, 'en'),
+      fr: templatePath(match, 'fr'),
+      de: templatePath(match, 'de'),
+    };
+  }
+  return null;
 }
 
-/** Category slugs are handled by the table above; templates by the rule. */
-const CATEGORY_SLUGS = new Set(['modern', 'corporate', 'creative', 'technology', 'classic', 'ats']);
-const FR_CATEGORY_SLUGS = new Set([
+/**
+ * Slugs that belong to a category page rather than a template, in any language.
+ *
+ * One flat set rather than one per language, because the rule above only needs to know
+ * "is this segment a template slug", and a category slug from any language answers no.
+ */
+const RESERVED_SLUGS = new Set([
+  'modern',
+  'corporate',
+  'creative',
+  'technology',
+  'classic',
+  'ats',
   'moderne',
   'entreprise',
   'creatif',
   'informatique',
   'classique',
-  'ats',
+  'business',
+  'kreativ',
+  'it',
+  'klassisch',
 ]);
+
+

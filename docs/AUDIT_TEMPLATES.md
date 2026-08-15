@@ -953,3 +953,41 @@ written out in `nav.ts`, with a test holding the list against the registry.
 
 **Still English:** `/register`, `/login`, the editor and the dashboard. Those are the
 product behind the sign-up, not the pages that rank, and they are the obvious next step.
+
+---
+
+## Record — 6.2 German
+
+The audit put German alongside French: `lebenslauf template` returns simplegermany.com,
+liveingermany.de, coolfreecv.com and expatrio.com — no major player, the same picture. It
+was second rather than first only because French was slightly larger.
+
+**It cost a fraction of what French did**, and that is the point worth recording. French
+was expensive because it had to build the i18n architecture the audit wrongly said already
+existed. German reused all of it: adding `'de'` to `LOCALES` turned every locale-keyed
+`Record` into a compile error, and TypeScript listed exactly what needed writing. The work
+was the copy, not the plumbing — which is what a second language is supposed to cost.
+
+Same shape as French: 69 pages (home, gallery, six categories, pricing, 61 template pages),
+a German image set at `public/previews/de/`, German section headings on every rendered
+document, German chrome, and three-way `hreflang` verified against the served HTML.
+
+**Written for German conventions, not translated.** A Lebenslauf is *tabellarisch* — dates
+against facts, not prose — and the home page says so. The photo question is hedged rather
+than asserted, because it is genuinely contested: still normal, and a growing number of
+employers ask for applications without one under the AGG. Claiming either "always" or
+"never" would be wrong. Section headings use the words the format uses:
+`Berufserfahrung`, `Ausbildung`, `Kenntnisse`.
+
+**Two things the third language forced that the second had not.**
+
+The header's language control was a single "switch to the other one" link, which only works
+with two. It now lists every alternative a page actually has, still driven by the path map,
+so it cannot offer a translation that does not exist.
+
+`alternatesFor()` had a French-shaped special case for template URLs — two regexes and two
+sets of category slugs. Three languages made that untenable, so it now iterates a
+`TEMPLATE_ROOT` map. Adding a fourth language is one line there rather than a new branch.
+
+**Still English across all three:** `/register`, `/login`, the editor and the dashboard.
+That is the product behind the sign-up rather than the pages that rank.

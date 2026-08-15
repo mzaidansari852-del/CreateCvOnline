@@ -36,7 +36,33 @@ const FR_LABELS: Record<BuiltInSectionId, string> = {
   references: 'Références',
 };
 
-const LABELS: Partial<Record<Locale, Record<BuiltInSectionId, string>>> = { fr: FR_LABELS };
+/**
+ * German headings, in the words a Lebenslauf uses.
+ *
+ * `Berufserfahrung` rather than a literal rendering of "work experience", `Ausbildung`
+ * rather than "education" — these are the standard section names on a tabellarischer
+ * Lebenslauf, and using anything else marks the document as a translation.
+ */
+const DE_LABELS: Record<BuiltInSectionId, string> = {
+  summary: 'Profil',
+  competencies: 'Kernkompetenzen',
+  experience: 'Berufserfahrung',
+  education: 'Ausbildung',
+  skills: 'Kenntnisse',
+  languages: 'Sprachen',
+  projects: 'Projekte',
+  certifications: 'Zertifikate',
+  awards: 'Auszeichnungen',
+  volunteer: 'Ehrenamt',
+  publications: 'Publikationen',
+  interests: 'Interessen',
+  references: 'Referenzen',
+};
+
+const LABELS: Partial<Record<Locale, Record<BuiltInSectionId, string>>> = {
+  fr: FR_LABELS,
+  de: DE_LABELS,
+};
 
 /** The heading this section prints in `locale`, or `undefined` to leave it alone. */
 export function sectionLabel(id: string, locale: Locale): string | undefined {

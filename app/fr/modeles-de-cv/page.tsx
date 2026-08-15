@@ -6,8 +6,10 @@ import { Badge } from '@/components/ui/feedback';
 import { ButtonLink } from '@/components/ui/button';
 import { CtaBanner, Section, SectionHeading } from '@/components/marketing/primitives';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { TemplateFilterBar } from '@/components/marketing/TemplateFilterBar';
 import { TemplateGrid } from '@/components/marketing/TemplateStrip';
-import { hasPreview } from '@/components/cv/TemplateImage';
+import { hasPreview, previewSrc } from '@/components/cv/TemplateImage';
+import { templatePath } from '@/lib/i18n/locales';
 import {
   FREE_TEMPLATE_COUNT,
   TEMPLATES,
@@ -36,11 +38,11 @@ export const metadata: Metadata = pageMetadata({
 /**
  * The French gallery — the page the whole French subtree exists to rank.
  *
- * Statically rendered, unlike its English counterpart, because it has no `searchParams`
- * filter. The English `/templates` reads `?category=` in both `generateMetadata` and the
- * page body, which forces it dynamic; audit item 3.4 is still open on that. Here the
- * filtering is done by linking to the six category pages, which are real indexable URLs
- * and are what a French searcher is actually querying for.
+ * Statically rendered, as all three galleries now are. Category is a row of links to the
+ * six real indexable category URLs — which is what a French searcher actually queries for
+ * — and the remaining facets are filtered in the browser by `TemplateFilterBar`, over
+ * cards the server has already rendered. Nothing here reads the query string, which is
+ * what would opt the route into per-request rendering. Audit item 3.4.
  */
 export default function FrenchTemplatesPage() {
   const singleColumn = TEMPLATES.filter((template) => template.columns === 1).length;
@@ -52,9 +54,7 @@ export default function FrenchTemplatesPage() {
           <h1 className="font-display text-4xl font-extrabold tracking-tight text-balance text-ink-950 sm:text-5xl">
             {FR.gallery.heading}
           </h1>
-          <p className="mt-4 text-lg leading-relaxed text-pretty text-ink-600">
-            {FR.gallery.lede}
-          </p>
+          <p className="mt-4 text-lg leading-relaxed text-pretty text-ink-600">{FR.gallery.lede}</p>
 
           <div className="mt-6 flex flex-wrap items-center gap-2">
             <Badge tone="brand">
@@ -79,11 +79,17 @@ export default function FrenchTemplatesPage() {
         </div>
       </Section>
 
-      <Section tone="muted" size="sm">
+      <Section tone="muted" size="sm" id="parcourir">
+        {/*
+          Category stays a row of links rather than becoming a filter chip, for the same
+          reason it does on the English gallery: each category is a real page with its own
+          copy and its own place in the sitemap, and a filtered view of this page competing
+          with it is duplication rather than a feature.
+        */}
         <h2 className="text-xs font-bold tracking-[0.12em] text-ink-950 uppercase">
           {FR.gallery.browseByCategory}
         </h2>
-        <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
+        <ul className="mt-4 mb-6 flex flex-wrap gap-x-5 gap-y-2">
           {TEMPLATE_CATEGORIES.map((category) => (
             <li key={category.id}>
               <Link
@@ -98,29 +104,39 @@ export default function FrenchTemplatesPage() {
             </li>
           ))}
         </ul>
-      </Section>
 
-      {TEMPLATE_CATEGORIES.map((category) => {
-        const templates = templatesByCategory(category.id);
-        return (
-          <Section key={category.id} size="sm">
-            <SectionHeading
-              align="left"
-              title={FR.categories[category.id].heading}
-              description={FR.categories[category.id].lede}
-            />
-            <TemplateGrid className="mt-8" templates={templates} columns={4} locale="fr" />
-            <p className="mt-6 text-sm">
-              <Link
-                href={`/fr/modeles-de-cv/${FR_CATEGORY_SLUG[category.id]}`}
-                className="font-medium text-brand-700 underline underline-offset-2"
-              >
-                {FR.categories[category.id].heading} — tout voir
-              </Link>
-            </p>
-          </Section>
-        );
-      })}
+        <TemplateFilterBar total={TEMPLATE_COUNT} freeCount={FREE_TEMPLATE_COUNT} locale="fr">
+          <div className="flex flex-col gap-14">
+            {TEMPLATE_CATEGORIES.map((category) => {
+              const templates = templatesByCategory(category.id);
+              if (templates.length === 0) return null;
+              return (
+                <section
+                  key={category.id}
+                  id={FR_CATEGORY_SLUG[category.id]}
+                  data-template-group=""
+                  className="scroll-mt-24"
+                >
+                  <SectionHeading
+                    align="left"
+                    title={FR.categories[category.id].heading}
+                    description={FR.categories[category.id].lede}
+                  />
+                  <TemplateGrid className="mt-8" templates={templates} columns={4} locale="fr" />
+                  <p className="mt-6 text-sm">
+                    <Link
+                      href={`/fr/modeles-de-cv/${FR_CATEGORY_SLUG[category.id]}`}
+                      className="font-medium text-brand-700 underline underline-offset-2"
+                    >
+                      {FR.categories[category.id].heading} — tout voir
+                    </Link>
+                  </p>
+                </section>
+              );
+            })}
+          </div>
+        </TemplateFilterBar>
+      </Section>
 
       <Section tone="muted" size="sm">
         <div className="mx-auto max-w-3xl">
@@ -149,13 +165,22 @@ export default function FrenchTemplatesPage() {
             type: 'CollectionPage',
             inLanguage: 'fr',
           }),
+          /*
+           * The list points at the French pages, not the English ones.
+           *
+           * It was emitting `/templates/{slug}` and the English preview image — a French
+           * `CollectionPage` whose every member was an English URL. That contradicts the
+           * hreflang cluster it sits inside and invites Google to treat the French page as
+           * a thin wrapper around English content. `templatePath` and `previewSrc` both
+           * take the locale; the French previews were generated for exactly this.
+           */
           itemListSchema(
             TEMPLATES.map((template) => ({
               name: template.name,
-              path: `/templates/${template.slug}`,
+              path: templatePath(template.slug, 'fr'),
               description: template.tagline,
               image: hasPreview(template.slug)
-                ? absoluteUrl(`/previews/${template.slug}-card.webp`)
+                ? absoluteUrl(previewSrc(template.slug, 'card', 'fr'))
                 : undefined,
             })),
             FR.gallery.heading,

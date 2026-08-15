@@ -104,6 +104,35 @@ export function TemplateCard({
   return (
     <Link
       href={templatePath(template.slug, locale)}
+      /*
+       * The card's facets, in the DOM.
+       *
+       * `TemplateFilterBar` filters by reading these rather than by being handed the
+       * registry, which keeps sixty-one template records out of the client bundle. The
+       * search haystack is built here, on the server, for the same reason.
+       */
+      data-template-card=""
+      data-plan={template.premium ? 'pro' : 'free'}
+      data-columns={template.columns}
+      data-ats={template.atsScore}
+      /*
+       * The haystack carries the card's own words in *this* page's language as well as the
+       * registry's English ones. The registry has a single language, so a French visitor
+       * typing `entreprise`, `gratuit` or `deux colonnes` is searching text that does not
+       * exist on the page they are looking at. `search-terms.ts` translates the rest of the
+       * query vocabulary; these four are free to add here and exact rather than mapped.
+       */
+      data-search={[
+        template.name,
+        template.tagline,
+        template.category,
+        ...template.keywords,
+        copy.category[template.category],
+        template.columns === 1 ? copy.oneColumn : copy.twoColumns,
+        template.premium ? copy.pro : copy.free,
+      ]
+        .join(' ')
+        .toLowerCase()}
       className={cn(
         'group flex flex-col rounded-xl border border-ink-200 bg-white p-3 transition-all duration-200',
         'hover:-translate-y-1 hover:border-brand-300 hover:shadow-card-hover',

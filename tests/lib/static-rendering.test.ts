@@ -3,6 +3,8 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { TEMPLATE_CATEGORIES } from '@/lib/cv/template-registry';
+
 /**
  * Keeps the public site statically rendered.
  *
@@ -78,6 +80,64 @@ describe('static rendering of the public site', () => {
     // Otherwise every returning visitor sees "Sign in" flash on a static page.
     expect(siteHeader).toContain('ready');
     expect(siteHeader).toMatch(/!ready \?/);
+  });
+
+  /*
+   * `/templates` is the most linked page on the site and was the only marketing page
+   * rendered per request. Reading `searchParams` — in the body *or* in `generateMetadata`
+   * — is what opts a route into dynamic rendering, and the filters used to be query links,
+   * so it did both. Audit item 3.4.
+   *
+   * Asserted on the source rather than on a build artefact because the failure is silent:
+   * the page keeps working, it just stops being static, and nothing in the output says so
+   * until someone reads the build table.
+   *
+   * The French and German galleries were already static and are held to the same rule —
+   * they are the likeliest place for a query-string filter to be reintroduced, since
+   * whoever adds one there will be copying whatever the English page does.
+   */
+  const GALLERIES = [
+    'app/(marketing)/templates/page.tsx',
+    'app/fr/modeles-de-cv/page.tsx',
+    'app/de/lebenslauf-vorlagen/page.tsx',
+  ];
+
+  it.each(GALLERIES)('keeps searchParams out of %s', (path) => {
+    const gallery = readFileSync(join(process.cwd(), path), 'utf8');
+    /*
+     * Matched on *use*, not on mention. The page's own doc comment explains what was
+     * removed and why, so it names both `searchParams` and `generateMetadata` in prose;
+     * a bare `toContain` fails on the explanation rather than on the code. Excluding the
+     * backticked forms draws that line exactly, and still catches every way the prop can
+     * be read — destructured, typed, or reached through `props`.
+     */
+    expect(gallery).not.toMatch(/(?<!`)\bsearchParams\b(?!`)/);
+    // Static metadata, not a `generateMetadata` that could reach for the query again.
+    expect(gallery).toContain('export const metadata');
+    expect(gallery).not.toMatch(/(?<!`)\bgenerateMetadata\b(?!`)/);
+    // The filtering that replaced it, over cards the server already rendered.
+    expect(gallery).toContain('TemplateFilterBar');
+  });
+
+  it('sends the old ?category= views to the pages written for them', () => {
+    // Two addresses for one list, and only one of them has copy. The redirect has to clear
+    // the query as well as move the path, or it produces a third address.
+    const proxy = readFileSync(join(process.cwd(), 'proxy.ts'), 'utf8');
+    expect(proxy).toContain("pathname === '/templates'");
+    expect(proxy).toContain('CATEGORY_SLUGS');
+    expect(proxy).toContain("url.search = ''");
+
+    /*
+     * The slug list is written out in `proxy.ts` rather than imported, because importing
+     * the registry into the proxy pulls all sixty-one template components into the edge
+     * bundle. That is the right call and it is also a copy that can drift silently — a
+     * renamed category would stop redirecting with nothing to indicate it. So the literal
+     * set is parsed back out and compared against the registry.
+     */
+    const literal = /const CATEGORY_SLUGS = new Set\(\[([^\]]*)\]\)/.exec(proxy);
+    expect(literal, 'CATEGORY_SLUGS should be a literal Set of strings').not.toBeNull();
+    const declared = [...literal![1]!.matchAll(/'([^']+)'/g)].map((m) => m[1]!);
+    expect(declared.sort()).toEqual(TEMPLATE_CATEGORIES.map((c) => c.slug).sort());
   });
 
   it('leaves the private layouts free to read the session', () => {

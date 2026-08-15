@@ -991,3 +991,77 @@ sets of category slugs. Three languages made that untenable, so it now iterates 
 
 **Still English across all three:** `/register`, `/login`, the editor and the dashboard.
 That is the product behind the sign-up rather than the pages that rank.
+
+---
+
+## Record — 3.4 The template gallery, statically rendered
+
+`/templates` is the most linked page on the site and was the only marketing page rendered
+per request. Every filter was a `next/link` writing to the query string, which reads well
+until you notice what it costs: reading `searchParams` in a page — in the body *or* in
+`generateMetadata` — opts the whole route into dynamic rendering. It did both.
+
+The query string was doing two unrelated jobs, and the fix splits them.
+
+**Category became links.** `?category=modern` and `/templates/modern` were two addresses
+for one list, and only one of them has copy written for it, a title, and a place in the
+sitemap. The chips now point at the six category pages. The old query URLs redirect —
+from `proxy.ts`, not `next.config.ts`, because a `redirects()` rule forwards the query it
+matched on and would land on `/templates/modern?category=modern`, inventing a third address
+instead of removing one.
+
+**Plan, columns, ATS and search became client-side filtering over server-rendered cards.**
+The obvious version passes the template list to the browser as props, which ships sixty-one
+registry entries as RSC payload. Instead each card carries its facets in `data-` attributes
+and `TemplateFilterBar` hides the ones that do not match. The browser learns nothing it was
+not already sent as HTML, and with JavaScript off the page is the full unfiltered gallery —
+which is what a crawler should see anyway.
+
+All three galleries now build as `○`.
+
+### What the test found, which is the part worth recording
+
+The assertion was written against all three galleries rather than just the English one, on
+the theory that whoever reintroduces a query filter in French will be copying English. It
+failed immediately — not on `searchParams`, but on `TemplateFilterBar` being absent from
+the French and German pages. The English gallery had gained search and filters that the
+localised ones did not have, and the filter bar's labels were hardcoded English besides.
+
+So the localised galleries were restructured to the same shape and the bar was translated.
+Three further defects surfaced while verifying that in a browser:
+
+**The French and German `ItemList` pointed at English URLs.** Every member of a French
+`CollectionPage` was `/templates/{slug}`, with the English preview image — contradicting the
+hreflang cluster the page sits inside. `templatePath()` and `previewSrc()` both already took
+a locale; nothing was using them here.
+
+**The search box could not match French or German.** The haystack is the registry's
+metadata and the registry has one language, so `banque`, `étudiant` and `minimaliste`
+returned nothing — and those were the three examples the French placeholder itself
+suggested. `lib/i18n/search-terms.ts` translates the query instead of the corpus: the
+rendered page is unchanged, the cost is a few hundred bytes, and the whole vocabulary is one
+readable file. The terms are drawn from the tokens the registry actually produces, so a
+translation pointing at a word no template carries is a test failure rather than dead copy.
+
+**Splitting a phrase into words is wrong.** `two column` as `two` AND `column` matched
+*Modern Creative* — one column, tagline "a two-line name over a diagonal accent wash" —
+because adding the card's own "one column" text to the haystack put `column` on every card.
+Measured against the registry: seventeen templates are two-column, and the split query
+returned twenty. Recognised phrases are now looked up whole. The three languages had been
+returning 20, 17 and 32 for the same question.
+
+### And one found by accident
+
+Checking the German page in a browser turned up `Free CV builder` in its footer. The German
+footer copy had been written alongside the German pages and never rendered: `SiteFooter`
+asked `locale === 'fr'` before using a translation. Every German page had shipped an English
+footer, blurb included. The copy was correct in `nav.ts` the entire time, which is exactly
+what made it invisible — reviewing the copy file showed nothing wrong.
+
+That is the second time in this project that a translation was present and unused. Both
+tests for it therefore assert on the rendered component, not on the copy table.
+
+**Verified:** 1,595 tests; `○` for all three galleries; 268 pages audited by the SEO check
+with 0 errors and 0 warnings; and a browser pass over all three locales confirming 61 cards,
+correct facet counts, locale-correct structured data, and every term the placeholder
+advertises returning results.

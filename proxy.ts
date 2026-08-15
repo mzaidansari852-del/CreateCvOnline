@@ -22,6 +22,21 @@ import { SESSION_COOKIE } from '@/lib/auth/session';
 const PROTECTED_PREFIXES = ['/dashboard', '/admin', '/account'];
 const AUTH_PAGES = ['/login', '/register', '/forgot-password'];
 
+/**
+ * The six category slugs, for consolidating the gallery's old query-string views.
+ *
+ * `/templates?category=modern` and `/templates/modern` were two addresses for one list,
+ * and only the second has its own copy, title and sitemap entry. Those query URLs exist in
+ * the wild and in Google's index, so they get a permanent redirect rather than being left
+ * to compete — audit item 3.4.
+ *
+ * This lives here rather than in `next.config.ts` because a `redirects()` rule forwards
+ * the query it matched on to the destination: the result is `/templates/modern?category=
+ * modern`, a third address, which is the opposite of the point. Clearing `url.search` is
+ * only possible with the URL in hand.
+ */
+const CATEGORY_SLUGS = new Set(['modern', 'corporate', 'creative', 'technology', 'classic', 'ats']);
+
 export function proxy(request: NextRequest): NextResponse {
   const { pathname, search } = request.nextUrl;
   const hasSession = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
@@ -35,6 +50,16 @@ export function proxy(request: NextRequest): NextResponse {
     url.pathname = '/login';
     url.search = `?next=${encodeURIComponent(pathname + search)}`;
     return NextResponse.redirect(url);
+  }
+
+  if (pathname === '/templates') {
+    const category = request.nextUrl.searchParams.get('category');
+    if (category && CATEGORY_SLUGS.has(category)) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/templates/${category}`;
+      url.search = '';
+      return NextResponse.redirect(url, 308);
+    }
   }
 
   // Someone already signed in has no use for the sign-in form.

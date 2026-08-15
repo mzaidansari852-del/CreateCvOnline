@@ -6,8 +6,10 @@ import { Badge } from '@/components/ui/feedback';
 import { ButtonLink } from '@/components/ui/button';
 import { CtaBanner, Section, SectionHeading } from '@/components/marketing/primitives';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { TemplateFilterBar } from '@/components/marketing/TemplateFilterBar';
 import { TemplateGrid } from '@/components/marketing/TemplateStrip';
-import { hasPreview } from '@/components/cv/TemplateImage';
+import { hasPreview, previewSrc } from '@/components/cv/TemplateImage';
+import { templatePath } from '@/lib/i18n/locales';
 import {
   FREE_TEMPLATE_COUNT,
   TEMPLATES,
@@ -36,9 +38,10 @@ export const metadata: Metadata = pageMetadata({
 /**
  * The German gallery — the page the whole German subtree exists to rank.
  *
- * Statically rendered, like its French counterpart and unlike the English one, because it
- * has no `searchParams` filter: the filtering is done by linking to six real indexable
- * category URLs, which is what a German searcher is querying for anyway.
+ * Statically rendered, as all three galleries now are. Category is a row of links to the
+ * six real indexable category URLs, which is what a German searcher queries for anyway;
+ * plan, columns, ATS and search are filtered in the browser by `TemplateFilterBar` over
+ * cards the server has already rendered. Audit item 3.4.
  */
 export default function GermanTemplatesPage() {
   const singleColumn = TEMPLATES.filter((template) => template.columns === 1).length;
@@ -50,9 +53,7 @@ export default function GermanTemplatesPage() {
           <h1 className="font-display text-4xl font-extrabold tracking-tight text-balance text-ink-950 sm:text-5xl">
             {DE.gallery.heading}
           </h1>
-          <p className="mt-4 text-lg leading-relaxed text-pretty text-ink-600">
-            {DE.gallery.lede}
-          </p>
+          <p className="mt-4 text-lg leading-relaxed text-pretty text-ink-600">{DE.gallery.lede}</p>
 
           <div className="mt-6 flex flex-wrap items-center gap-2">
             <Badge tone="brand">
@@ -77,11 +78,16 @@ export default function GermanTemplatesPage() {
         </div>
       </Section>
 
-      <Section tone="muted" size="sm">
+      <Section tone="muted" size="sm" id="durchsuchen">
+        {/*
+          Category stays a row of links rather than becoming a filter chip: each category
+          is a real page with its own copy and its own place in the sitemap, and a filtered
+          view of this page competing with it is duplication rather than a feature.
+        */}
         <h2 className="text-xs font-bold tracking-[0.12em] text-ink-950 uppercase">
           {DE.gallery.browseByCategory}
         </h2>
-        <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
+        <ul className="mt-4 mb-6 flex flex-wrap gap-x-5 gap-y-2">
           {TEMPLATE_CATEGORIES.map((category) => (
             <li key={category.id}>
               <Link
@@ -96,29 +102,39 @@ export default function GermanTemplatesPage() {
             </li>
           ))}
         </ul>
-      </Section>
 
-      {TEMPLATE_CATEGORIES.map((category) => {
-        const templates = templatesByCategory(category.id);
-        return (
-          <Section key={category.id} size="sm">
-            <SectionHeading
-              align="left"
-              title={DE.categories[category.id].heading}
-              description={DE.categories[category.id].lede}
-            />
-            <TemplateGrid className="mt-8" templates={templates} columns={4} locale="de" />
-            <p className="mt-6 text-sm">
-              <Link
-                href={`/de/lebenslauf-vorlagen/${DE_CATEGORY_SLUG[category.id]}`}
-                className="font-medium text-brand-700 underline underline-offset-2"
-              >
-                {DE.categories[category.id].heading} — alle ansehen
-              </Link>
-            </p>
-          </Section>
-        );
-      })}
+        <TemplateFilterBar total={TEMPLATE_COUNT} freeCount={FREE_TEMPLATE_COUNT} locale="de">
+          <div className="flex flex-col gap-14">
+            {TEMPLATE_CATEGORIES.map((category) => {
+              const templates = templatesByCategory(category.id);
+              if (templates.length === 0) return null;
+              return (
+                <section
+                  key={category.id}
+                  id={DE_CATEGORY_SLUG[category.id]}
+                  data-template-group=""
+                  className="scroll-mt-24"
+                >
+                  <SectionHeading
+                    align="left"
+                    title={DE.categories[category.id].heading}
+                    description={DE.categories[category.id].lede}
+                  />
+                  <TemplateGrid className="mt-8" templates={templates} columns={4} locale="de" />
+                  <p className="mt-6 text-sm">
+                    <Link
+                      href={`/de/lebenslauf-vorlagen/${DE_CATEGORY_SLUG[category.id]}`}
+                      className="font-medium text-brand-700 underline underline-offset-2"
+                    >
+                      {DE.categories[category.id].heading} — alle ansehen
+                    </Link>
+                  </p>
+                </section>
+              );
+            })}
+          </div>
+        </TemplateFilterBar>
+      </Section>
 
       <Section tone="muted" size="sm">
         <div className="mx-auto max-w-3xl">
@@ -147,13 +163,18 @@ export default function GermanTemplatesPage() {
             type: 'CollectionPage',
             inLanguage: 'de',
           }),
+          /*
+           * The list points at the German pages, not the English ones — see the note on
+           * the French gallery. A `CollectionPage` in one language whose members are all
+           * URLs in another contradicts the hreflang cluster it sits inside.
+           */
           itemListSchema(
             TEMPLATES.map((template) => ({
               name: template.name,
-              path: `/templates/${template.slug}`,
+              path: templatePath(template.slug, 'de'),
               description: template.tagline,
               image: hasPreview(template.slug)
-                ? absoluteUrl(`/previews/${template.slug}-card.webp`)
+                ? absoluteUrl(previewSrc(template.slug, 'card', 'de'))
                 : undefined,
             })),
             DE.gallery.heading,

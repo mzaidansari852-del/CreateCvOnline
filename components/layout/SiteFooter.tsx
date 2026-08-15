@@ -5,8 +5,8 @@ import { usePathname } from 'next/navigation';
 
 import { Logo } from '@/components/brand/Logo';
 import { footerNav, site } from '@/lib/site';
-import { FOOTER, FR_NAV_CATEGORIES } from '@/lib/i18n/nav';
-import { localeOf } from '@/lib/i18n/locales';
+import { FOOTER, NAV_CATEGORIES } from '@/lib/i18n/nav';
+import { TEMPLATE_ROOT, localeOf } from '@/lib/i18n/locales';
 import type { TemplateCategory } from '@/types/cv';
 import {
   TEMPLATE_CATEGORIES,
@@ -18,20 +18,27 @@ import {
 export function SiteFooter() {
   const year = new Date().getFullYear();
   /*
-   * Follows the page it sits on, like the header. The French footer is a different shape
+   * Follows the page it sits on, like the header. A localised footer is a different shape
    * rather than a translation: the English one links fourteen guide pages that exist only
-   * in English, and a French menu leading to English pages is worse than a shorter menu.
+   * in English, and a French or German menu leading to English pages is worse than a
+   * shorter menu.
+   *
+   * Keyed on whether a translation exists rather than on `locale === 'fr'`, which is what
+   * it used to say. German copy was written at the same time as the German pages and then
+   * never rendered — every German page shipped an English footer, down to a "Free CV
+   * builder" link pointing at an English-only guide.
    */
   const locale = localeOf(usePathname() ?? '/');
   const copy = FOOTER[locale];
-  const groups = locale === 'fr' ? copy.columns : footerNav;
+  const groups = copy.columns.length > 0 ? copy.columns : footerNav;
+  const navCategories = NAV_CATEGORIES[locale];
   const categoryHref = (id: TemplateCategory) =>
-    locale === 'fr'
-      ? `/fr/modeles-de-cv/${FR_NAV_CATEGORIES.find((entry) => entry.id === id)?.slug ?? id}`
+    navCategories
+      ? `${TEMPLATE_ROOT[locale]}/${navCategories.find((entry) => entry.id === id)?.slug ?? id}`
       : categoryPath(id);
   const categoryLabel = (id: TemplateCategory, fallback: string) =>
-    locale === 'fr'
-      ? (FR_NAV_CATEGORIES.find((entry) => entry.id === id)?.label ?? fallback)
+    navCategories
+      ? (navCategories.find((entry) => entry.id === id)?.label ?? fallback)
       : `${fallback} CV templates`;
 
   return (
@@ -40,10 +47,10 @@ export function SiteFooter() {
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,3fr)]">
           <div className="max-w-sm">
             <Logo />
+            {/* `FOOTER[locale].blurb` — the English wording, written out, was the reason
+                this paragraph stayed English on the French and German pages. */}
             <p className="mt-4 text-sm leading-relaxed text-ink-600">
-              {site.name} is an online CV and resume builder with {TEMPLATE_COUNT} professional
-              templates, a real-time editor and instant PDF download. Start free — no card, no
-              trial timer.
+              {site.name} {copy.blurb(TEMPLATE_COUNT)}
             </p>
             <ul className="mt-5 flex items-center gap-3">
               <SocialLink href={site.social.linkedin} label="LinkedIn">

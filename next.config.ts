@@ -91,6 +91,9 @@ const nextConfig: NextConfig = {
       { source: '/cv-template', destination: '/cv-templates', permanent: true },
       { source: '/resume-template', destination: '/resume-templates', permanent: true },
       { source: '/curriculum-vitae', destination: '/professional-cv', permanent: true },
+      // `/templates?category=…` is consolidated in `proxy.ts` instead: a `redirects()` rule
+      // forwards the unconsumed query onto the destination, which recreates the second
+      // address the redirect exists to remove.
     ];
   },
 };

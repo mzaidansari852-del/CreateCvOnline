@@ -6,6 +6,8 @@ import { PAPER } from '@/lib/cv/format';
 import { getTemplateBySlug, templateDefaults, TEMPLATES } from '@/lib/cv/template-registry';
 import { createDefaultCustomization } from '@/lib/cv/defaults';
 import { sampleCvFor } from '@/lib/cv/samples';
+import { localiseCv } from '@/lib/i18n/cv-labels';
+import type { Locale } from '@/lib/i18n/locales';
 import { privateMetadata } from '@/lib/seo/metadata';
 
 /**
@@ -37,13 +39,25 @@ export function generateStaticParams() {
   return TEMPLATES.map((template) => ({ slug: template.slug }));
 }
 
-export default async function TemplatePreviewPage(props: { params: Promise<{ slug: string }> }) {
+export default async function TemplatePreviewPage(props: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ lang?: string }>;
+}) {
   const { slug } = await props.params;
+  const { lang } = await props.searchParams;
   const template = getTemplateBySlug(slug);
   if (!template) notFound();
 
-  // The CV this template is for, not the one every template used to show.
-  const cv = sampleCvFor(template.id);
+  /*
+   * `?lang=fr` renders the same document with French section headings.
+   *
+   * This route exists only to be screenshotted, and the screenshots are what the gallery
+   * shows. Without this the French pages display sixty-one pictures of a CV headed
+   * `WORK EXPERIENCE` — the copy around them can be as French as you like and the product
+   * still looks English, because the picture is the product.
+   */
+  const locale: Locale = lang === 'fr' ? 'fr' : 'en';
+  const cv = localiseCv(sampleCvFor(template.id), locale);
   const customization = createDefaultCustomization({
     ...templateDefaults(template),
   });

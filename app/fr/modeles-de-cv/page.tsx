@@ -109,7 +109,7 @@ export default function FrenchTemplatesPage() {
               title={FR.categories[category.id].heading}
               description={FR.categories[category.id].lede}
             />
-            <TemplateGrid className="mt-8" templates={templates} columns={4} />
+            <TemplateGrid className="mt-8" templates={templates} columns={4} locale="fr" />
             <p className="mt-6 text-sm">
               <Link
                 href={`/fr/modeles-de-cv/${FR_CATEGORY_SLUG[category.id]}`}
@@ -135,7 +135,7 @@ export default function FrenchTemplatesPage() {
         <CtaBanner
           title={FR.cta.title}
           description={FR.cta.description}
-          secondaryHref="/pricing"
+          secondaryHref="/fr/tarifs"
           secondaryLabel={FR.cta.secondary}
         />
       </Section>

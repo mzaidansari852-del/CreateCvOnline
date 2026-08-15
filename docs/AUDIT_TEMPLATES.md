@@ -906,3 +906,50 @@ query with the demand behind it.
   *content* is French, which is what gets indexed and read, but a French visitor meets
   English chrome. Translating the shared shell is the obvious next step and is a larger
   change than the eight pages were.
+
+### 6.1 completed — what the first French release actually shipped
+
+The first pass shipped eight French pages and called the phase done. It was not, and the
+gaps were the visible ones rather than the subtle ones.
+
+**The pictures were English.** The gallery shows pre-rendered images, not live DOM, so
+every French page displayed sixty-one photographs of a CV headed `WORK EXPERIENCE` beneath
+French copy. The copy can be perfect and the product still looks English, because the
+picture *is* the product. `/template-preview/[slug]` now takes `?lang=fr`, the generator
+produces a second set into `public/previews/fr/`, and a test fails if a template has an
+English image without a French one.
+
+**The chrome was English.** The header nav, the footer, the `Free`/`Pro` badges and the
+`two columns` line on every card. Sixty-one cards on a page means the card strings are most
+of the text a shopper reads while scrolling.
+
+**Half the links left the language.** French category pages linked to `/templates/<slug>`,
+and every French call to action pointed at the English `/pricing`. A visitor who was ready
+to pay met an English page.
+
+Now: 61 French template pages, a French pricing page at `/fr/tarifs`, French cards, French
+chrome, and 193 URLs in the sitemap with every French entry `hreflang`-paired.
+
+**Two decisions worth recording.**
+
+Template detail copy is *generated from structured metadata*, not translated. Each
+template's `description`, `tagline`, `bestFor` and `features` are English prose — sixty-one
+templates times four fields is roughly six hundred sentences, and machine-translating them
+would put six hundred unread sentences on the pages meant to sell the product. The French
+pages are written from category, columns, ATS score, photo, plan and typeface instead:
+facts that are true by construction, in sentences written once by someone who could read
+them. The cost is real — the English page says something specific about each design that
+this cannot.
+
+The sixty-one detail pages were held back at first on the launch-velocity reasoning in
+audit 3.5, and publishing them is a different bet from publishing 61 new pages: they are
+the second language of pages Google has already been crawling for months, each arriving
+paired to an indexed English page rather than unattached.
+
+**A regression caught on the way.** `lib/i18n/nav.ts` imported the template registry to
+build a six-item dropdown, and `SiteHeader` is a client component — so all sixty-one CV
+template components were being pulled into the browser bundle. The six categories are now
+written out in `nav.ts`, with a test holding the list against the registry.
+
+**Still English:** `/register`, `/login`, the editor and the dashboard. Those are the
+product behind the sign-up, not the pages that rank, and they are the obvious next step.

@@ -219,6 +219,89 @@ export const FR = {
     englishSiteDescription: 'The same builder, with UK and US CV conventions.',
   },
 
+  pricing: {
+    metaTitle: 'Tarifs',
+    metaDescription:
+      'Gratuit pour créer un CV et le télécharger en PDF. Pro à 9 € par mois ou accès à vie à 69 € pour débloquer tous les modèles et la personnalisation complète.',
+    heading: 'Des tarifs simples',
+    lede: 'Le CV, l’éditeur et le téléchargement PDF sont gratuits avec les modèles gratuits. L’offre payante existe pour ceux qui postulent souvent et veulent tout le catalogue et tous les réglages.',
+    perMonth: 'par mois',
+    oneTime: 'paiement unique',
+    forever: 'pour toujours',
+    currencyNote:
+      'Les montants sont facturés en dollars américains ; votre banque applique son taux de change.',
+    plans: {
+      free: {
+        name: 'Gratuit',
+        tagline: 'Pour une candidature.',
+        description:
+          'Créez un CV, remplissez-le, exportez le PDF. Sans carte bancaire et sans compte à rebours.',
+        highlights: [
+          'Les modèles gratuits du catalogue',
+          'Éditeur complet et aperçu en direct',
+          'Export PDF avec une mention discrète en pied de page',
+          'Un CV enregistré',
+        ],
+        cta: 'Commencer gratuitement',
+      },
+      pro: {
+        name: 'Pro',
+        tagline: 'Pour une recherche active.',
+        description:
+          'Tous les modèles, un nombre illimité de CV et de téléchargements : de quoi adapter votre CV à chaque offre au lieu d’envoyer le même partout.',
+        highlights: [
+          'Tous les modèles, Pro compris',
+          'CV et téléchargements illimités',
+          'Personnalisation complète : polices, couleurs, espacements, rubriques',
+          'Rubriques sur mesure et réorganisation',
+          'Lien public partageable',
+          'PDF sans mention',
+        ],
+        cta: 'Passer à Pro',
+      },
+      lifetime: {
+        name: 'Accès à vie',
+        tagline: 'Un paiement, pas d’abonnement.',
+        description:
+          'Tout ce que contient Pro, payé une seule fois. Un CV se met à jour tous les deux ou trois ans : un abonnement mensuel n’est pas toujours la bonne forme.',
+        highlights: [
+          'Tout ce que contient Pro',
+          'Paiement unique, sans renouvellement',
+          'Les modèles ajoutés plus tard sont inclus',
+        ],
+        cta: 'Prendre l’accès à vie',
+      },
+    },
+    faqTitle: 'Questions sur les tarifs',
+    faq: [
+      {
+        question: 'L’offre gratuite est-elle limitée dans le temps ?',
+        answer:
+          'Non. Il n’y a pas de période d’essai qui se termine : les modèles gratuits restent gratuits, et vous pouvez télécharger le PDF sans payer. Un compte est nécessaire uniquement pour enregistrer votre CV et le retrouver ensuite.',
+      },
+      {
+        question: 'Que contient exactement l’offre Pro ?',
+        answer:
+          'Tous les modèles du catalogue, un nombre illimité de CV et de téléchargements, la personnalisation complète de la mise en forme, les rubriques sur mesure, le lien public partageable, et un PDF sans mention en pied de page.',
+      },
+      {
+        question: 'Puis-je annuler ?',
+        answer:
+          'Oui, à tout moment depuis votre espace. L’accès reste ouvert jusqu’à la fin de la période déjà payée, et vos CV restent accessibles ensuite avec les modèles gratuits.',
+      },
+      {
+        question: 'Pourquoi une offre à vie ?',
+        answer:
+          'Parce qu’un CV ne se refait pas tous les mois. Beaucoup de gens en ont besoin quelques semaines tous les deux ou trois ans, et un abonnement mensuel est une mauvaise forme pour cet usage.',
+      },
+      {
+        question: 'Comment se fait le paiement ?',
+        answer:
+          'Par PayPal, carte comprise. Les montants sont facturés en dollars américains ; votre banque applique son taux de change.',
+      },
+    ],
+  },
+
   cta: {
     title: 'Prêt à créer votre CV ?',
     description:

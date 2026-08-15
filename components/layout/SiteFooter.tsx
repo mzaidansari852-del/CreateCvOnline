@@ -1,7 +1,13 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 import { Logo } from '@/components/brand/Logo';
 import { footerNav, site } from '@/lib/site';
+import { FOOTER, FR_NAV_CATEGORIES } from '@/lib/i18n/nav';
+import { localeOf } from '@/lib/i18n/locales';
+import type { TemplateCategory } from '@/types/cv';
 import {
   TEMPLATE_CATEGORIES,
   TEMPLATE_COUNT,
@@ -11,6 +17,22 @@ import {
 
 export function SiteFooter() {
   const year = new Date().getFullYear();
+  /*
+   * Follows the page it sits on, like the header. The French footer is a different shape
+   * rather than a translation: the English one links fourteen guide pages that exist only
+   * in English, and a French menu leading to English pages is worse than a shorter menu.
+   */
+  const locale = localeOf(usePathname() ?? '/');
+  const copy = FOOTER[locale];
+  const groups = locale === 'fr' ? copy.columns : footerNav;
+  const categoryHref = (id: TemplateCategory) =>
+    locale === 'fr'
+      ? `/fr/modeles-de-cv/${FR_NAV_CATEGORIES.find((entry) => entry.id === id)?.slug ?? id}`
+      : categoryPath(id);
+  const categoryLabel = (id: TemplateCategory, fallback: string) =>
+    locale === 'fr'
+      ? (FR_NAV_CATEGORIES.find((entry) => entry.id === id)?.label ?? fallback)
+      : `${fallback} CV templates`;
 
   return (
     <footer className="border-t border-ink-200 bg-ink-50">
@@ -44,7 +66,7 @@ export function SiteFooter() {
           </div>
 
           <nav aria-label="Footer" className="grid grid-cols-2 gap-8 sm:grid-cols-4">
-            {footerNav.map((group) => (
+            {groups.map((group) => (
               <div key={group.label}>
                 <h2 className="text-xs font-bold tracking-[0.12em] text-ink-950 uppercase">
                   {group.label}
@@ -75,16 +97,16 @@ export function SiteFooter() {
         */}
         <nav aria-label="Templates by category" className="mt-12 border-t border-ink-200 pt-6">
           <h2 className="text-xs font-bold tracking-[0.12em] text-ink-950 uppercase">
-            Browse templates by category
+            {copy.browseByCategory}
           </h2>
           <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
             {TEMPLATE_CATEGORIES.map((category) => (
               <li key={category.id}>
                 <Link
-                  href={categoryPath(category.id)}
+                  href={categoryHref(category.id)}
                   className="text-sm text-ink-600 transition-colors hover:text-brand-700"
                 >
-                  {category.label} CV templates
+                  {categoryLabel(category.id, category.label)}
                   <span className="ml-1.5 text-ink-400">
                     ({templatesByCategory(category.id).length})
                   </span>
@@ -96,10 +118,10 @@ export function SiteFooter() {
 
         <div className="mt-8 flex flex-col gap-4 border-t border-ink-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[13px] text-ink-500">
-            © {year} {site.legalName}. All rights reserved.
+            © {year} {site.legalName}. {copy.rights}
           </p>
           <p className="text-[13px] text-ink-500">
-            {site.domain} — create your professional CV online.
+            {site.domain} — {copy.strapline}
           </p>
         </div>
       </div>

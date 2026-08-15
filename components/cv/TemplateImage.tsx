@@ -2,6 +2,7 @@ import Image from 'next/image';
 
 import { PREVIEW_SLUGS } from '@/lib/cv/previews';
 import { cn } from '@/lib/utils/cn';
+import type { Locale } from '@/lib/i18n/locales';
 import type { TemplateMeta } from '@/types/cv';
 
 /**
@@ -33,6 +34,23 @@ export function hasPreview(slug: string): boolean {
   return PREVIEW_SLUGS.includes(slug);
 }
 
+/**
+ * Where a template's preview image lives, per language.
+ *
+ * The French set is generated from the same route with `?lang=fr`, into a `fr/`
+ * subdirectory, so the two never collide and either can be regenerated alone. The English
+ * path is unchanged, which matters: it is the one in the sitemap's image entries and in
+ * every `og:image` already crawled.
+ */
+export function previewSrc(
+  slug: string,
+  variant: 'card' | 'full' = 'card',
+  locale: Locale = 'en',
+): string {
+  const suffix = variant === 'card' ? '-card' : '';
+  return locale === 'en' ? `/previews/${slug}${suffix}.webp` : `/previews/fr/${slug}${suffix}.webp`;
+}
+
 export function TemplateImage({
   template,
   width,
@@ -40,6 +58,7 @@ export function TemplateImage({
   priority = false,
   className,
   sizes,
+  locale = 'en',
 }: {
   template: Pick<TemplateMeta, 'slug' | 'name' | 'category'>;
   width: number;
@@ -49,10 +68,11 @@ export function TemplateImage({
   priority?: boolean;
   className?: string;
   sizes?: string;
+  locale?: Locale;
 }) {
   if (!hasPreview(template.slug)) return null;
 
-  const src = `/previews/${template.slug}${variant === 'card' ? '-card' : ''}.webp`;
+  const src = previewSrc(template.slug, variant, locale);
   const height = Math.round(width * PAGE_RATIO);
 
   return (
@@ -70,7 +90,11 @@ export function TemplateImage({
        * a screen-reader user gets. It names the template and says what the picture is,
        * rather than repeating the filename or the word "image".
        */
-      alt={`${template.name} CV template preview — a ${template.category} résumé layout`}
+      alt={
+        locale === 'fr'
+          ? `Aperçu du modèle de CV ${template.name} — une mise en page ${template.category}`
+          : `${template.name} CV template preview — a ${template.category} résumé layout`
+      }
       className={cn('block h-auto w-full bg-white', className)}
     />
   );

@@ -16,7 +16,11 @@ import {
 import { pageMetadata } from '@/lib/seo/metadata';
 import { absoluteUrl } from '@/lib/site';
 import { FR, FR_CATEGORY_SLUG, categoryFromFrenchSlug } from '@/app/fr/fr-copy';
-import { TEMPLATE_CATEGORIES } from '@/lib/cv/template-registry';
+import { TEMPLATES, TEMPLATE_CATEGORIES } from '@/lib/cv/template-registry';
+import { hasPreview } from '@/components/cv/TemplateImage';
+import { createSampleCV } from '@/lib/cv/defaults';
+import { localiseCv, sectionLabel } from '@/lib/i18n/cv-labels';
+import { BUILT_IN_SECTION_IDS } from '@/types/cv';
 
 /**
  * The French site.
@@ -54,8 +58,11 @@ describe('locale model', () => {
   });
 
   it('returns nothing for a page with no translation', () => {
-    expect(alternatesFor('/pricing')).toBeNull();
+    // Deliberately not `/pricing`: that one is translated now. The point of the assertion
+    // is that an untranslated page stays untranslated, so it has to name pages that are.
     expect(alternatesFor('/blog')).toBeNull();
+    expect(alternatesFor('/about')).toBeNull();
+    expect(alternatesFor('/cv-for/nurse')).toBeNull();
   });
 });
 
@@ -83,7 +90,7 @@ describe('hreflang', () => {
   });
 
   it('is absent on pages that are only in English', () => {
-    const meta = pageMetadata({ title: 'x', description: 'y', path: '/pricing' });
+    const meta = pageMetadata({ title: 'x', description: 'y', path: '/about' });
     expect(meta.alternates?.languages).toBeUndefined();
   });
 
@@ -189,6 +196,54 @@ describe('French copy', () => {
   });
 });
 
+describe('the French pages show a French document', () => {
+  const PREVIEWS = path.join(process.cwd(), 'public', 'previews', 'fr');
+
+  it('has a French image for every template that has an English one', () => {
+    /*
+     * The gallery shows pictures, not live DOM. So a French page without a French image set
+     * is sixty-one photographs of a CV headed `WORK EXPERIENCE` sitting underneath French
+     * copy — the copy can be perfect and the product still looks English, because the
+     * picture *is* the product. This is the assertion that was missing when the first
+     * French release shipped.
+     */
+    const missing = TEMPLATES.filter(
+      (template) =>
+        hasPreview(template.slug) && !existsSync(path.join(PREVIEWS, `${template.slug}-card.webp`)),
+    ).map((template) => template.slug);
+    expect(missing, 'run `npm run previews` to regenerate the French set').toEqual([]);
+  });
+
+  it('translates the section headings a template prints', () => {
+    const english = createSampleCV();
+    const french = localiseCv(english, 'fr');
+
+    // `createSampleCV` renames it to "Experience"; what matters is that it is English
+    // before and French after, not the exact wording of the default.
+    expect(english.sections.find((section) => section.id === 'experience')?.label).toBe(
+      'Experience',
+    );
+    expect(french.sections.find((section) => section.id === 'experience')?.label).toBe(
+      'Expérience professionnelle',
+    );
+    // The content itself is a separate question and must be left alone.
+    expect(french.summary).toBe(english.summary);
+    expect(french.experience).toBe(english.experience);
+  });
+
+  it('has a French label for every built-in section', () => {
+    // A section with no translation prints its English heading in the middle of a French
+    // document, which is exactly the defect this file exists to prevent.
+    const missing = BUILT_IN_SECTION_IDS.filter((id) => !sectionLabel(id, 'fr'));
+    expect(missing).toEqual([]);
+  });
+
+  it('leaves English pages untouched', () => {
+    const cv = createSampleCV();
+    expect(localiseCv(cv, 'en')).toBe(cv);
+  });
+});
+
 describe('sitemap', () => {
   const entries = sitemap();
   const byUrl = new Map(entries.map((entry) => [entry.url, entry]));
@@ -208,15 +263,29 @@ describe('sitemap', () => {
     }
   });
 
-  it('does not list the sixty-one template pages in French', () => {
+  it('lists a French page for every template, each paired to its English one', () => {
     /*
-     * Deliberate, and pinned so it stays deliberate. Audit 3.5 records a first-party case
-     * where ~284 pages published at once cut impressions 75% on a new domain; this one
-     * already shipped ~118 in a single go. Eight French pages carrying the head terms is
-     * a measurable bet. Seventy-four is a repeat of a known bad outcome.
+     * The eight landing pages were held back from the detail pages at first, on the
+     * launch-velocity reasoning in audit 3.5. What makes publishing the rest a different
+     * bet is that they are not new content: each is the second language of a page Google
+     * has already been crawling, arriving `hreflang`-paired rather than unattached.
+     *
+     * The pairing is the part worth asserting. An unpaired French page is a duplicate of
+     * an English one in Google's eyes, which is the outcome the whole exercise avoids.
      */
-    const french = entries.filter((entry) => entry.url.includes('/fr/'));
-    expect(french.length).toBeLessThanOrEqual(10);
+    for (const template of TEMPLATES) {
+      const entry = byUrl.get(absoluteUrl(`/fr/modeles-de-cv/${template.slug}`));
+      expect(entry, template.slug).toBeTruthy();
+      const languages = entry!.alternates?.languages as Record<string, string> | undefined;
+      expect(languages?.en).toBe(absoluteUrl(`/templates/${template.slug}`));
+      expect(languages?.fr).toBe(absoluteUrl(`/fr/modeles-de-cv/${template.slug}`));
+    }
+  });
+
+  it('never lets a French page go out unpaired', () => {
+    for (const entry of entries.filter((candidate) => candidate.url.includes('/fr/'))) {
+      expect(entry.alternates?.languages, entry.url).toBeTruthy();
+    }
   });
 
   it('has no duplicate URLs', () => {

@@ -156,6 +156,14 @@ describe('category links', () => {
       'utf8',
     );
     expect(footer).toContain('TEMPLATE_CATEGORIES.map');
-    expect(footer).toContain('categoryPath(category.id)');
+    /*
+     * The footer routes through `categoryHref`, not `categoryPath` directly, because it now
+     * serves two languages: English categories go to `/templates/<slug>`, French ones to
+     * `/fr/modeles-de-cv/<slug>`. What still has to hold is that neither is hand-written —
+     * the English branch must go through `categoryPath` so a change to the canonical
+     * category URL lands here too, which is the regression this test was written for.
+     */
+    expect(footer).toContain('categoryHref(category.id)');
+    expect(footer).toContain('categoryPath(id)');
   });
 });

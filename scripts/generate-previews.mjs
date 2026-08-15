@@ -41,6 +41,9 @@ const SERVE = process.argv.includes('--serve');
 let BASE = process.env.PREVIEW_BASE_URL ?? 'http://localhost:3000';
 const OUT = join(process.cwd(), 'public', 'previews');
 
+/** Languages that get their own image set, beyond the default English one. */
+const LOCALES = ['fr'];
+
 /**
  * Chromium rasterises a CSS-transformed element at the device pixel ratio, so a preview
  * scaled down to 560px in the page still captures crisply at 3×. That is what lets the
@@ -103,8 +106,11 @@ async function templates() {
   return unique;
 }
 
-async function capture(page, slug) {
-  const url = `${BASE}/template-preview/${slug}`;
+async function capture(page, slug, locale = 'en') {
+  const url =
+    locale === 'en'
+      ? `${BASE}/template-preview/${slug}`
+      : `${BASE}/template-preview/${slug}?lang=${locale}`;
   const response = await page.goto(url, { waitUntil: 'networkidle0', timeout: 45_000 });
   if (!response || !response.ok()) {
     throw new Error(`${url} returned ${response ? response.status() : 'no response'}`);
@@ -151,7 +157,7 @@ async function metaFor(page, slug) {
   return meta;
 }
 
-async function writeVariants(slug, png) {
+async function writeVariants(slug, png, dir = OUT) {
   const image = sharp(png);
   const { width, height } = await image.metadata();
 
@@ -159,7 +165,7 @@ async function writeVariants(slug, png) {
     await sharp(png)
       .resize({ width: target, withoutEnlargement: true })
       .webp({ quality: 82, effort: 5 })
-      .toFile(join(OUT, `${slug}${suffix}.webp`));
+      .toFile(join(dir, `${slug}${suffix}.webp`));
   }
 
   return { source: `${width}×${height}` };
@@ -255,6 +261,34 @@ async function main() {
       } catch (error) {
         failures.push({ slug, message: error.message });
         console.log(`${label}  ✗  ${error.message}`);
+      }
+    }
+
+    /*
+     * The same documents again, with French section headings.
+     *
+     * These are not decoration. The gallery shows pictures, not live DOM, so a French page
+     * without a French image set is sixty-one photographs of a CV headed `WORK EXPERIENCE`
+     * underneath French copy — the single most visible thing wrong with a translated site.
+     *
+     * Only the page images are duplicated, not the social cards: `og:image` is language-
+     * neutral enough that a second set is not worth 61 more files.
+     */
+    for (const locale of LOCALES) {
+      const dir = join(OUT, locale);
+      await mkdir(dir, { recursive: true });
+      console.log(`\nGenerating ${locale.toUpperCase()} previews\n`);
+
+      for (const [index, slug] of slugs.entries()) {
+        const label = `[${String(index + 1).padStart(2, ' ')}/${slugs.length}] ${locale}/${slug}`;
+        try {
+          const { png } = await capture(page, slug, locale);
+          const { source } = await writeVariants(slug, png, dir);
+          console.log(`${label}  ✓  ${source}`);
+        } catch (error) {
+          failures.push({ slug: `${locale}/${slug}`, message: error.message });
+          console.log(`${label}  ✗  ${error.message}`);
+        }
       }
     }
   } finally {

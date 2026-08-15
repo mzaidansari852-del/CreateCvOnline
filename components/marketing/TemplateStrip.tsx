@@ -1,6 +1,9 @@
 import Link from 'next/link';
 
 import { templateDefaults } from '@/lib/cv/template-registry';
+import { localiseCv } from '@/lib/i18n/cv-labels';
+import { templatePath } from '@/lib/i18n/locales';
+import type { Locale } from '@/lib/i18n/locales';
 import { CVThumbnail } from '@/components/cv/CVThumbnail';
 import { TemplateImage, hasPreview } from '@/components/cv/TemplateImage';
 import { Badge } from '@/components/ui/feedback';
@@ -20,25 +23,71 @@ import type { TemplateDefinition } from '@/types/cv';
  * image crawler cannot read anyway. The live path stays as the fallback for a template
  * whose image has not been generated yet, so adding one never leaves a hole in the grid.
  */
+/**
+ * The words on a card, per language.
+ *
+ * The card is the unit the gallery is made of, so an English "Free" badge and an English
+ * "two columns" line appear sixty-one times on a French page. Small strings, but they are
+ * most of the text a shopper actually reads while scrolling.
+ */
+const CARD_COPY = {
+  en: {
+    view: 'View template',
+    free: 'Free',
+    pro: 'Pro',
+    oneColumn: 'one column',
+    twoColumns: 'two columns',
+    ats: 'ATS-friendly',
+    category: {
+      modern: 'modern',
+      corporate: 'corporate',
+      creative: 'creative',
+      technology: 'technology',
+      classic: 'classic',
+      ats: 'ATS-friendly',
+    },
+  },
+  fr: {
+    view: 'Voir le modèle',
+    free: 'Gratuit',
+    pro: 'Pro',
+    oneColumn: 'une colonne',
+    twoColumns: 'deux colonnes',
+    ats: 'compatible ATS',
+    category: {
+      modern: 'moderne',
+      corporate: 'entreprise',
+      creative: 'créatif',
+      technology: 'informatique',
+      classic: 'classique',
+      ats: 'compatible ATS',
+    },
+  },
+} satisfies Record<Locale, unknown>;
+
 export function TemplateCard({
   template,
   width = 260,
   crop,
   className,
+  locale = 'en',
 }: {
   template: TemplateDefinition;
   width?: number;
   crop?: number;
   className?: string;
+  /** Localises the card chrome, the href and the section headings in the live preview. */
+  locale?: Locale;
 }) {
-  const cv = createSampleCV();
+  const copy = CARD_COPY[locale];
+  const cv = localiseCv(createSampleCV(), locale);
   const customization = createDefaultCustomization({
     ...templateDefaults(template),
   });
 
   return (
     <Link
-      href={`/templates/${template.slug}`}
+      href={templatePath(template.slug, locale)}
       className={cn(
         'group flex flex-col rounded-xl border border-ink-200 bg-white p-3 transition-all duration-200',
         'hover:-translate-y-1 hover:border-brand-300 hover:shadow-card-hover',
@@ -51,6 +100,7 @@ export function TemplateCard({
           <TemplateImage
             template={template}
             width={width}
+            locale={locale}
             sizes={`(max-width: 640px) 45vw, ${width}px`}
             className={crop ? 'object-cover' : undefined}
           />
@@ -73,7 +123,7 @@ export function TemplateCard({
           aria-hidden
           className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-2 p-3 text-center text-[13px] font-semibold text-white opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
         >
-          View template
+          {copy.view}
         </span>
       </div>
 
@@ -82,12 +132,16 @@ export function TemplateCard({
           <h3 className="truncate text-sm font-semibold text-ink-950 group-hover:text-brand-700">
             {template.name}
           </h3>
-          <p className="mt-0.5 text-xs text-ink-500 capitalize">
-            {template.category === 'ats' ? 'ATS-friendly' : template.category} ·{' '}
-            {template.columns === 1 ? 'one column' : 'two columns'}
+          <p className="mt-0.5 text-xs text-ink-500 first-letter:uppercase">
+            {copy.category[template.category]} ·{' '}
+            {template.columns === 1 ? copy.oneColumn : copy.twoColumns}
           </p>
         </div>
-        {template.premium ? <Badge tone="accent">Pro</Badge> : <Badge tone="success">Free</Badge>}
+        {template.premium ? (
+          <Badge tone="accent">{copy.pro}</Badge>
+        ) : (
+          <Badge tone="success">{copy.free}</Badge>
+        )}
       </div>
     </Link>
   );
@@ -98,11 +152,13 @@ export function TemplateGrid({
   columns = 4,
   width = 260,
   className,
+  locale = 'en',
 }: {
   templates: TemplateDefinition[];
   columns?: 3 | 4 | 5;
   width?: number;
   className?: string;
+  locale?: Locale;
 }) {
   const cols = {
     3: 'grid-cols-2 md:grid-cols-3',
@@ -115,7 +171,7 @@ export function TemplateGrid({
   return (
     <div className={cn('grid gap-4 sm:gap-5', cols[columns], className)}>
       {templates.map((template) => (
-        <TemplateCard key={template.id} template={template} width={width} />
+        <TemplateCard key={template.id} template={template} width={width} locale={locale} />
       ))}
     </div>
   );

@@ -56,6 +56,7 @@ export const LOCALE_META: Record<
 export const TRANSLATED_PATHS: Record<string, Record<Locale, string>> = {
   '/': { en: '/', fr: '/fr' },
   '/templates': { en: '/templates', fr: '/fr/modeles-de-cv' },
+  '/pricing': { en: '/pricing', fr: '/fr/tarifs' },
   '/templates/modern': { en: '/templates/modern', fr: '/fr/modeles-de-cv/moderne' },
   '/templates/corporate': { en: '/templates/corporate', fr: '/fr/modeles-de-cv/entreprise' },
   '/templates/creative': { en: '/templates/creative', fr: '/fr/modeles-de-cv/creatif' },
@@ -68,6 +69,19 @@ export const TRANSLATED_PATHS: Record<string, Record<Locale, string>> = {
 const BY_PATH = new Map<string, Record<Locale, string>>();
 for (const group of Object.values(TRANSLATED_PATHS)) {
   for (const path of Object.values(group)) BY_PATH.set(normalisePath(path), group);
+}
+
+/**
+ * Where a template's detail page lives, per language.
+ *
+ * The template slugs themselves are not translated — `modern-professional` is the product's
+ * name for the design, and inventing a French slug for each of sixty-one would mean two
+ * sets of identifiers to keep in step for no search gain, since nobody queries a template
+ * by its slug. What is translated is the segment above them, which is the part carrying
+ * `modèle de CV`.
+ */
+export function templatePath(slug: string, locale: Locale): string {
+  return locale === 'fr' ? `/fr/modeles-de-cv/${slug}` : `/templates/${slug}`;
 }
 
 /** Trailing slashes and casing are not meaningful here; `/fr/` and `/fr` are one page. */
@@ -95,5 +109,36 @@ export function localeOf(path: string): Locale {
  * that claims a French version exists.
  */
 export function alternatesFor(path: string): Record<Locale, string> | null {
-  return BY_PATH.get(normalisePath(path)) ?? null;
+  const normalised = normalisePath(path);
+  const listed = BY_PATH.get(normalised);
+  if (listed) return listed;
+
+  /*
+   * Template detail pages, by rule rather than by sixty-one table rows.
+   *
+   * Writing them out would mean this file importing the registry, and the registry reaches
+   * `templates.generated`, which imports all sixty-one CV components — a dependency this
+   * module must not have, because `SiteHeader` is a client component and imports it.
+   *
+   * The rule cannot produce an `hreflang` to a 404 in practice: both routes call
+   * `notFound()` for a slug they do not recognise, so an unknown slug never renders a page
+   * that could emit one.
+   */
+  const en = /^\/templates\/([^/]+)$/.exec(normalised);
+  const fr = /^\/fr\/modeles-de-cv\/([^/]+)$/.exec(normalised);
+  const slug = en?.[1] ?? fr?.[1];
+  if (!slug || CATEGORY_SLUGS.has(slug) || FR_CATEGORY_SLUGS.has(slug)) return null;
+
+  return { en: `/templates/${slug}`, fr: `/fr/modeles-de-cv/${slug}` };
 }
+
+/** Category slugs are handled by the table above; templates by the rule. */
+const CATEGORY_SLUGS = new Set(['modern', 'corporate', 'creative', 'technology', 'classic', 'ats']);
+const FR_CATEGORY_SLUGS = new Set([
+  'moderne',
+  'entreprise',
+  'creatif',
+  'informatique',
+  'classique',
+  'ats',
+]);

@@ -15,7 +15,14 @@ import {
 import { JsonLd } from '@/components/seo/JsonLd';
 import { TemplateGrid } from '@/components/marketing/TemplateStrip';
 import { hasPreview } from '@/components/cv/TemplateImage';
-import { TEMPLATE_CATEGORIES, templatesByCategory } from '@/lib/cv/template-registry';
+import { FrenchTemplatePage } from './FrenchTemplatePage';
+import { frenchTemplateCopy } from '../../fr-template-copy';
+import {
+  TEMPLATES,
+  TEMPLATE_CATEGORIES,
+  getTemplateBySlug,
+  templatesByCategory,
+} from '@/lib/cv/template-registry';
 import { pageMetadata } from '@/lib/seo/metadata';
 import { itemListSchema, webPageSchema } from '@/lib/seo/schema';
 import { absoluteUrl } from '@/lib/site';
@@ -30,13 +37,34 @@ import { absoluteUrl } from '@/lib/site';
  */
 
 export function generateStaticParams() {
-  return TEMPLATE_CATEGORIES.map((category) => ({ slug: FR_CATEGORY_SLUG[category.id] }));
+  return [
+    ...TEMPLATE_CATEGORIES.map((category) => ({ slug: FR_CATEGORY_SLUG[category.id] })),
+    ...TEMPLATES.map((template) => ({ slug: template.slug })),
+  ];
 }
 
 export async function generateMetadata(props: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await props.params;
+
+  const template = getTemplateBySlug(slug);
+  if (template) {
+    const templateCopy = frenchTemplateCopy(template);
+    return pageMetadata({
+      title: templateCopy.metaTitle,
+      description: templateCopy.metaDescription,
+      path: `/fr/modeles-de-cv/${slug}`,
+      locale: 'fr',
+      image: hasPreview(slug) ? absoluteUrl(`/previews/${slug}-og.jpg`) : undefined,
+      keywords: [
+        `modèle de cv ${template.name.toLowerCase()}`,
+        'modèle de cv à télécharger',
+        'cv à remplir en ligne',
+      ],
+    });
+  }
+
   const category = categoryFromFrenchSlug(slug);
   if (!category) return { title: 'Introuvable' };
 
@@ -54,8 +82,16 @@ export async function generateMetadata(props: {
   });
 }
 
-export default async function FrenchCategoryPage(props: { params: Promise<{ slug: string }> }) {
+export default async function FrenchTemplatesSlugPage(props: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await props.params;
+
+  // A category slug and a template slug share one namespace here, exactly as they do on the
+  // English side. A test asserts the two sets never collide.
+  const template = getTemplateBySlug(slug);
+  if (template) return <FrenchTemplatePage template={template} />;
+
   const category = categoryFromFrenchSlug(slug);
   if (!category) notFound();
 
@@ -112,7 +148,7 @@ export default async function FrenchCategoryPage(props: { params: Promise<{ slug
 
       <Section tone="muted" size="sm">
         <SectionHeading align="left" title={copy.heading} />
-        <TemplateGrid className="mt-8" templates={templates} columns={4} />
+        <TemplateGrid className="mt-8" templates={templates} columns={4} locale="fr" />
       </Section>
 
       <Section size="sm">
@@ -142,7 +178,7 @@ export default async function FrenchCategoryPage(props: { params: Promise<{ slug
         <CtaBanner
           title={FR.cta.title}
           description={FR.cta.description}
-          secondaryHref="/pricing"
+          secondaryHref="/fr/tarifs"
           secondaryLabel={FR.cta.secondary}
           note={
             free.length > 0

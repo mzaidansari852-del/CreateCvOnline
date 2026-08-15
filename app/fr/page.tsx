@@ -81,7 +81,7 @@ export default function FrenchHomePage() {
           title={FR.gallery.heading}
           description={`${TEMPLATE_COUNT} modèles, dont ${FREE_TEMPLATE_COUNT} ${FR.gallery.freeBadge}.`}
         />
-        <TemplateGrid className="mt-8" templates={showcase} columns={4} />
+        <TemplateGrid className="mt-8" templates={showcase} columns={4} locale="fr" />
         <p className="mt-8 text-sm text-ink-600">
           <Link
             href="/fr/modeles-de-cv"
@@ -137,7 +137,7 @@ export default function FrenchHomePage() {
         <CtaBanner
           title={FR.cta.title}
           description={FR.cta.description}
-          secondaryHref="/pricing"
+          secondaryHref="/fr/tarifs"
           secondaryLabel={FR.cta.secondary}
         />
       </Section>

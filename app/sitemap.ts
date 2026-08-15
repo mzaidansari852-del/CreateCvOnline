@@ -170,6 +170,34 @@ export default function sitemap(): MetadataRoute.Sitemap {
     });
   }
 
+  /*
+   * The French template pages.
+   *
+   * The eight pages above were held back from the sixty-one detail pages on the
+   * launch-velocity reasoning in audit 3.5. Those sixty-one are now published too, and the
+   * distinction that makes it a different bet: these are not new *content*, they are the
+   * second language of pages Google has already been crawling for months, each one
+   * `hreflang`-paired to an indexed English page rather than arriving unattached.
+   */
+  for (const template of TEMPLATES) {
+    entries.push({
+      url: absoluteUrl(`/fr/modeles-de-cv/${template.slug}`),
+      changeFrequency: 'monthly',
+      priority: template.premium ? 0.55 : 0.65,
+      // The French image, not the English one: Google Images is a separate surface, and on
+      // a French page the picture is a different picture.
+      ...(PREVIEW_SLUGS.includes(template.slug)
+        ? { images: [absoluteUrl(`/previews/fr/${template.slug}.webp`)] }
+        : {}),
+      alternates: {
+        languages: {
+          en: absoluteUrl(`/templates/${template.slug}`),
+          fr: absoluteUrl(`/fr/modeles-de-cv/${template.slug}`),
+        },
+      },
+    });
+  }
+
   // One guide per profession.
   for (const slug of getAllProfessionSlugs()) {
     entries.push({

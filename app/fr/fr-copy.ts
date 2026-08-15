@@ -31,6 +31,15 @@ export const FR = {
       'Créez un CV professionnel en ligne en quelques minutes. Modèles gratuits compatibles avec les logiciels de recrutement, éditeur en direct et téléchargement PDF immédiat.',
     eyebrow: 'Sans carte bancaire',
     heading: 'Créez votre CV en ligne, gratuitement',
+    /** Fills the shared hero, so the French page is the same design and not a plainer one. */
+    hero: {
+      headingBefore: 'Créez votre ',
+      headingHighlight: 'CV professionnel',
+      headingAfter: ' en ligne',
+      badge: 'modèles notés 5/5 pour les logiciels de tri',
+      primaryCta: 'Créer mon CV — gratuit',
+      secondaryCta: 'Voir les modèles',
+    },
     lede: 'Choisissez un modèle, remplissez des champs structurés et regardez une vraie page A4 se construire à côté de vous. Quand le résultat vous convient, exportez un PDF dont le texte reste sélectionnable — par un recruteur comme par un logiciel de tri.',
     ctaPrimary: 'Créer mon CV',
     ctaSecondary: 'Voir les modèles',

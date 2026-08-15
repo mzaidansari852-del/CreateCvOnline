@@ -8,7 +8,8 @@ import { Logo } from '@/components/brand/Logo';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useScrolledPast } from '@/hooks/browser';
-import { primaryNav } from '@/lib/site';
+import { CHROME, navFor, otherLocale } from '@/lib/i18n/nav';
+import { LOCALE_META, alternatesFor, localeOf } from '@/lib/i18n/locales';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -20,6 +21,15 @@ import { cn } from '@/lib/utils/cn';
  */
 export function SiteHeader() {
   const pathname = usePathname();
+  /*
+   * The header follows the page it is sitting on. A French page under an English nav reads
+   * as a translated page rather than a French product, and it is the first thing on screen.
+   */
+  const locale = localeOf(pathname ?? '/');
+  const chrome = CHROME[locale];
+  const nav = navFor(locale);
+  const alternate = alternatesFor(pathname ?? '/');
+  const swapTo = otherLocale(locale);
   const { sessionUser, ready, signOut } = useAuth();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -67,7 +77,7 @@ export function SiteHeader() {
 
           <nav aria-label="Main" className="hidden lg:block">
             <ul className="flex items-center gap-1">
-              {primaryNav.map((group) => {
+              {nav.map((group) => {
                 const hasChildren = group.links.length > 0;
                 const open = openGroup === group.label;
 
@@ -151,6 +161,22 @@ export function SiteHeader() {
           </nav>
 
           <div className="hidden items-center gap-2 lg:flex">
+            {/*
+              The language toggle only appears where there is somewhere to go: it is driven
+              by the same path map as `hreflang`, so it cannot offer a translation that does
+              not exist. On an untranslated page it is simply absent.
+            */}
+            {alternate ? (
+              <Link
+                href={alternate[swapTo]}
+                hrefLang={LOCALE_META[swapTo].tag}
+                lang={LOCALE_META[swapTo].tag}
+                aria-label={`${chrome.language} : ${LOCALE_META[swapTo].label}`}
+                className="mr-1 rounded-lg px-2 py-1 text-[13px] font-medium text-ink-600 transition-colors hover:text-brand-700"
+              >
+                {LOCALE_META[swapTo].label}
+              </Link>
+            ) : null}
             {!ready ? (
               /*
                * The user is unknown for a moment because the marketing pages are static
@@ -166,19 +192,19 @@ export function SiteHeader() {
             ) : sessionUser ? (
               <>
                 <ButtonLink href="/dashboard" variant="ghost" size="sm">
-                  Dashboard
+                  {chrome.dashboard}
                 </ButtonLink>
                 <ButtonLink href="/dashboard/cvs/new" size="sm">
-                  New CV
+                  {chrome.newCv}
                 </ButtonLink>
               </>
             ) : (
               <>
                 <ButtonLink href="/login" variant="ghost" size="sm">
-                  Sign in
+                  {chrome.signIn}
                 </ButtonLink>
                 <ButtonLink href="/register" size="sm">
-                  Create my CV
+                  {chrome.newCv}
                 </ButtonLink>
               </>
             )}
@@ -210,7 +236,7 @@ export function SiteHeader() {
         >
           <div className="container-page py-6">
             <nav aria-label="Mobile">
-              {primaryNav.map((group) => (
+              {nav.map((group) => (
                 <div key={group.label} className="mb-6">
                   {group.href ? (
                     <Link

@@ -73,10 +73,45 @@ function FannedPreview() {
   );
 }
 
-export function HomeHero() {
-  const atsPerfect = atsSafeTemplates().length;
+/**
+ * The words the hero says, in one language.
+ *
+ * Parameterised rather than duplicated. The French home page originally reproduced this
+ * layout out of the generic section primitives, which is how it ended up as a page of
+ * plain text next to an English page with a badge, a gradient headline and a fanned stack
+ * of previews — the same product looking like a lesser one in French. A translation should
+ * change the words and nothing else.
+ */
+export interface HeroCopy {
+  /** Rendered around the accent word: `before` + highlighted + `after`. */
+  headingBefore: string;
+  headingHighlight: string;
+  headingAfter: string;
+  lede: string;
+  badge: (count: number) => string;
+  primaryCta: string;
+  secondaryCta: string;
+  browseHref: string;
+  atsHref: string;
+  trust: string[];
+}
 
-  const trust = [`${TEMPLATE_COUNT} templates`, 'ATS-friendly', 'Free to start', 'No card'];
+const EN: HeroCopy = {
+  headingBefore: 'Create your ',
+  headingHighlight: 'professional CV',
+  headingAfter: ' online',
+  lede: `Choose one of ${TEMPLATE_COUNT} recruiter-ready designs, type into structured fields, and watch a real A4 page build itself next to you. When it reads well, export a clean PDF whose text a recruiter — and a parser — can actually select.`,
+  badge: (count) => `${count} templates score 5/5 for parsing`,
+  primaryCta: 'Create my CV — free',
+  secondaryCta: `Browse ${TEMPLATE_COUNT} templates`,
+  browseHref: '/templates',
+  atsHref: '/ats-cv',
+  trust: [`${TEMPLATE_COUNT} templates`, 'ATS-friendly', 'Free to start', 'No card'],
+};
+
+export function HomeHero({ copy = EN }: { copy?: HeroCopy } = {}) {
+  const atsPerfect = atsSafeTemplates().length;
+  const trust = copy.trust;
 
   return (
     <section className="relative isolate overflow-hidden bg-gradient-to-b from-brand-50 via-white to-white">
@@ -89,32 +124,32 @@ export function HomeHero() {
         <div className="grid items-center gap-12 py-14 sm:py-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,500px)] lg:gap-8 lg:py-24">
           <div>
             <Link
-              href="/ats-cv"
+              href={copy.atsHref}
               className="group inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/80 py-1.5 pr-3 pl-1.5 text-[13px] font-medium text-ink-700 shadow-sm backdrop-blur transition-colors hover:border-brand-300 hover:text-ink-900"
             >
               <span className="rounded-full bg-brand-600 px-2 py-0.5 text-2xs font-bold tracking-wide text-white uppercase">
                 ATS
               </span>
-              {atsPerfect} templates score 5/5 for parsing
+              {copy.badge(atsPerfect)}
               <ArrowIcon className="size-3.5 text-brand-600 transition-transform group-hover:translate-x-0.5" />
             </Link>
 
             <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-balance text-ink-950 sm:text-5xl xl:text-[3.4rem] xl:leading-[1.05]">
-              Create your <span className="text-gradient-brand">professional CV</span> online
+              {copy.headingBefore}
+              <span className="text-gradient-brand">{copy.headingHighlight}</span>
+              {copy.headingAfter}
             </h1>
 
             <p className="mt-5 max-w-xl text-base leading-relaxed text-pretty text-ink-600 sm:text-lg">
-              Choose one of {TEMPLATE_COUNT} recruiter-ready designs, type into structured fields,
-              and watch a real A4 page build itself next to you. When it reads well, export a clean
-              PDF whose text a recruiter — and a parser — can actually select.
+              {copy.lede}
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <ButtonLink href="/register" size="lg">
-                Create my CV — free
+                {copy.primaryCta}
               </ButtonLink>
-              <ButtonLink href="/templates" size="lg" variant="outline">
-                Browse {TEMPLATE_COUNT} templates
+              <ButtonLink href={copy.browseHref} size="lg" variant="outline">
+                {copy.secondaryCta}
               </ButtonLink>
             </div>
 

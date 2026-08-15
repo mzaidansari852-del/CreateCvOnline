@@ -4,15 +4,14 @@ import type { Metadata } from 'next';
 import { FR, FR_CATEGORY_SLUG } from './fr-copy';
 import {
   CtaBanner,
-  Eyebrow,
   FaqSection,
   FeatureGrid,
   Section,
   SectionHeading,
   StepList,
 } from '@/components/marketing/primitives';
+import { HomeHero } from '@/components/marketing/home/HomeHero';
 import { TemplateGrid } from '@/components/marketing/TemplateStrip';
-import { ButtonLink } from '@/components/ui/button';
 import { JsonLd } from '@/components/seo/JsonLd';
 import {
   FREE_TEMPLATE_COUNT,
@@ -52,33 +51,20 @@ export default function FrenchHomePage() {
 
   return (
     <>
-      <Section size="lg">
-        <div className="max-w-3xl">
-          <Eyebrow>{FR.home.eyebrow}</Eyebrow>
-          <h1 className="mt-3 font-display text-4xl font-extrabold tracking-tight text-balance text-ink-950 sm:text-5xl">
-            {FR.home.heading}
-          </h1>
-          <p className="mt-5 text-lg leading-relaxed text-pretty text-ink-600">{FR.home.lede}</p>
-
-          <div className="mt-8 flex flex-wrap gap-3">
-            <ButtonLink href="/register" size="lg">
-              {FR.home.ctaPrimary}
-            </ButtonLink>
-            <ButtonLink href="/fr/modeles-de-cv" size="lg" variant="outline">
-              {FR.home.ctaSecondary}
-            </ButtonLink>
-          </div>
-
-          <ul className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-600">
-            {FR.home.trust.map((item) => (
-              <li key={item} className="flex items-center gap-2">
-                <span aria-hidden className="size-1.5 rounded-full bg-brand-500" />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </Section>
+      <HomeHero
+        copy={{
+          headingBefore: FR.home.hero.headingBefore,
+          headingHighlight: FR.home.hero.headingHighlight,
+          headingAfter: FR.home.hero.headingAfter,
+          lede: FR.home.lede,
+          badge: (count) => `${count} ${FR.home.hero.badge}`,
+          primaryCta: FR.home.hero.primaryCta,
+          secondaryCta: FR.home.hero.secondaryCta,
+          browseHref: '/fr/modeles-de-cv',
+          atsHref: '/fr/modeles-de-cv/ats',
+          trust: [...FR.home.trust],
+        }}
+      />
 
       <Section tone="muted" size="sm">
         <SectionHeading align="left" title={FR.home.stepsTitle} />

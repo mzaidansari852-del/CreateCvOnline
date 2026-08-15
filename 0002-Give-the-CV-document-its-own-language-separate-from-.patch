@@ -1,0 +1,3324 @@
+From 395c6408ad68794e4f668f87e15c8b2a59ae56fb Mon Sep 17 00:00:00 2001
+From: CreateCVOnline <dev@createcvonline.com>
+Date: Sat, 15 Aug 2026 16:19:30 +0000
+Subject: [PATCH 2/3] Give the CV document its own language, separate from the
+ interface
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A French user signing up on /fr got a CV headed "Work Experience",
+"Education", "Skills" — and that is what printed in the PDF they sent to
+employers. The French and German headings had existed since the localised
+marketing pages shipped; they were wired to the previews and to nothing
+else.
+
+Language belongs to the document, not the account, because someone applying
+in Paris and Berlin needs a French CV and a German Lebenslauf side by side.
+So CVData gains `language`, defaulting to English so every document written
+before the field parses unchanged, and the user profile's long-dead `locale`
+field becomes the interface language it was always meant to be.
+
+Localised with it, because a half-translated document is worse than an
+English one:
+
+- Section headings on new CVs, and on switching a CV's language. Switching
+  never overwrites a heading the user renamed — a heading counts as
+  untouched only when it matches that section's default in some language.
+- Dates. `Mar 2021 – Present` / `mars 2021 – aujourd'hui` / `März 2021 –
+  heute`. Month names are written out rather than taken from Intl: ICU data
+  differs between local Chromium, Vercel and Lambda, and a CV re-downloaded
+  a year later has to come out byte-identical.
+- The `Your Name` placeholder, which 59 of the 61 templates carried inline
+  and which is the largest text on an empty page.
+- The cover letter — salutation, sign-off, subject line and date. These are
+  conventions rather than translations: French closes with "Je vous prie
+  d'agréer…", German with "Mit freundlichen Grüßen", and the English
+  sincerely/faithfully rule only applies to English.
+- Europass and Government, the two templates that print field labels. The
+  CEFR grid uses the Commission's own headings.
+- The multi-page PDF footer: "Page 1 of 2" / "1 sur 2" / "Seite 1 von 2".
+- `lang` on the document root, which decides hyphenation and is what makes
+  the exported PDF reach PDF/UA.
+
+`SECTION_META.defaultLabel` is gone. It was a second copy of the same
+thirteen strings and had already drifted by one word — the test written to
+assert the two agreed failed on its first run, which is the argument.
+
+1,626 tests.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01KqU6xXaZUtNkv28VRtkast
+---
+ app/api/cvs/route.ts                          |  18 +-
+ components/cv/CVDocument.tsx                  |  11 +
+ components/cv/CoverLetterDocument.tsx         | 128 ++++++---
+ components/cv/parts.tsx                       |  32 +--
+ components/cv/templates/ats/AtsAccountant.tsx |   5 +-
+ components/cv/templates/ats/AtsClassic.tsx    |   5 +-
+ components/cv/templates/ats/AtsEntryLevel.tsx |   5 +-
+ components/cv/templates/ats/AtsResume.tsx     |   5 +-
+ components/cv/templates/ats/AtsSimple.tsx     |  12 +-
+ components/cv/templates/ats/AtsStudent.tsx    |   5 +-
+ components/cv/templates/classic/Academic.tsx  |   5 +-
+ .../templates/classic/ClassicProfessional.tsx |   5 +-
+ .../cv/templates/classic/ElegantSerif.tsx     |   5 +-
+ components/cv/templates/classic/Europass.tsx  |  74 +++--
+ .../cv/templates/classic/ExecutiveClassic.tsx |   5 +-
+ components/cv/templates/classic/Formal.tsx    |   5 +-
+ .../cv/templates/classic/FunctionalCV.tsx     |   5 +-
+ .../cv/templates/classic/Government.tsx       |  52 +++-
+ components/cv/templates/classic/Legal.tsx     |   5 +-
+ .../cv/templates/classic/SimpleClassic.tsx    |   5 +-
+ components/cv/templates/classic/Timeless.tsx  |   5 +-
+ .../cv/templates/classic/Traditional.tsx      |  12 +-
+ .../cv/templates/corporate/BankingCV.tsx      |   5 +-
+ .../corporate/BusinessProfessional.tsx        |   4 +-
+ .../cv/templates/corporate/ConsultantCV.tsx   |   4 +-
+ .../corporate/CorporateExecutive.tsx          |   4 +-
+ .../cv/templates/corporate/FinanceCV.tsx      |   5 +-
+ .../templates/corporate/HumanResourcesCV.tsx  |   5 +-
+ .../cv/templates/corporate/HybridCV.tsx       |   5 +-
+ .../cv/templates/corporate/ManagementCV.tsx   |   4 +-
+ .../cv/templates/corporate/MarketingCV.tsx    |   5 +-
+ .../cv/templates/corporate/OperationsCV.tsx   |   5 +-
+ components/cv/templates/corporate/SalesCV.tsx |   5 +-
+ .../cv/templates/creative/ArtDirector.tsx     |   4 +-
+ .../cv/templates/creative/ContentCreator.tsx  |   4 +-
+ .../cv/templates/creative/CreativeAts.tsx     |   5 +-
+ .../templates/creative/CreativeDesigner.tsx   |   4 +-
+ .../creative/CreativeProfessional.tsx         |   5 +-
+ .../cv/templates/creative/Editorial.tsx       |   5 +-
+ .../cv/templates/creative/Photographer.tsx    |  11 +-
+ .../cv/templates/creative/PortfolioStyle.tsx  |   5 +-
+ .../cv/templates/creative/UiUxDesigner.tsx    |   4 +-
+ .../cv/templates/creative/VisualResume.tsx    |   4 +-
+ .../cv/templates/modern/CascadeSidebar.tsx    |   5 +-
+ components/cv/templates/modern/ModernAts.tsx  |   5 +-
+ .../cv/templates/modern/ModernClean.tsx       |   5 +-
+ .../cv/templates/modern/ModernCompact.tsx     |   4 +-
+ .../cv/templates/modern/ModernCorporate.tsx   |   5 +-
+ .../cv/templates/modern/ModernElegant.tsx     |   5 +-
+ .../cv/templates/modern/ModernExecutive.tsx   |   4 +-
+ .../cv/templates/modern/ModernMinimal.tsx     |   5 +-
+ .../templates/modern/ModernProfessional.tsx   |   5 +-
+ components/cv/templates/modern/ModernTech.tsx |   5 +-
+ .../cv/templates/technology/AiEngineer.tsx    |   5 +-
+ .../cv/templates/technology/Cybersecurity.tsx |   5 +-
+ .../cv/templates/technology/DataScientist.tsx |   5 +-
+ .../templates/technology/DevOpsEngineer.tsx   |   5 +-
+ .../cv/templates/technology/Developer.tsx     |   5 +-
+ .../technology/FullStackDeveloper.tsx         |   5 +-
+ .../templates/technology/ItProfessional.tsx   |   5 +-
+ .../templates/technology/ProductManager.tsx   |   5 +-
+ .../templates/technology/SoftwareEngineer.tsx |   5 +-
+ .../cv/templates/technology/TechMinimal.tsx   |  11 +-
+ lib/cv/defaults.ts                            |  13 +-
+ lib/cv/format.ts                              | 152 ++++++++---
+ lib/cv/sections.ts                            |  35 +--
+ lib/db/cvs.ts                                 |  10 +-
+ lib/i18n/cv-labels.ts                         |  83 +++++-
+ lib/pdf/render.tsx                            |  24 +-
+ tests/cv/document-language.test.tsx           | 254 ++++++++++++++++++
+ types/cv.ts                                   |  15 ++
+ types/user.ts                                 |  16 +-
+ 72 files changed, 877 insertions(+), 340 deletions(-)
+ create mode 100644 tests/cv/document-language.test.tsx
+
+diff --git a/app/api/cvs/route.ts b/app/api/cvs/route.ts
+index c5252c5..e473da4 100644
+--- a/app/api/cvs/route.ts
++++ b/app/api/cvs/route.ts
+@@ -6,6 +6,7 @@ import { createCV, listCVs } from '@/lib/db/cvs';
+ import { assertCanCreateCV, assertCanUseTemplate, sanitizeCustomization } from '@/lib/entitlements';
+ import { createDefaultCustomization, createSampleCV } from '@/lib/cv/defaults';
+ import { DEFAULT_TEMPLATE_ID, findTemplate } from '@/lib/cv/template-registry';
++import { setCvLanguage } from '@/lib/i18n/cv-labels';
+ import { cvDataSchema } from '@/types/cv';
+ 
+ export const runtime = 'nodejs';
+@@ -44,10 +45,25 @@ export const POST = authedRoute(
+       }),
+     );
+ 
++    /*
++     * A new CV is written in the language the account is using, so a French user gets
++     * "Expérience professionnelle" rather than "Work Experience" — in the editor and,
++     * more to the point, in the PDF they send to an employer. Taken from the profile
++     * rather than from the request: the client should not be able to choose what language
++     * somebody else's document is created in.
++     *
++     * The worked example is a separate case. It is written in English, so it is retitled
++     * rather than merely stamped — otherwise the headings and the `language` field would
++     * disagree with each other from the moment the document exists.
++     */
++    const language = profile.locale;
++    const sample = body.starter === 'sample' ? setCvLanguage(createSampleCV(), language) : undefined;
++
+     const cv = await createCV(profile.uid, {
+       title: body.title,
+       templateId,
+-      data: body.data ?? (body.starter === 'sample' ? createSampleCV() : undefined),
++      data: body.data ?? sample,
++      language,
+       customization,
+     });
+ 
+diff --git a/components/cv/CVDocument.tsx b/components/cv/CVDocument.tsx
+index fe9eaf8..4f17a0a 100644
+--- a/components/cv/CVDocument.tsx
++++ b/components/cv/CVDocument.tsx
+@@ -53,6 +53,17 @@ export function CVDocument({
+         ...style,
+       }}
+       data-template={template.id}
++      /*
++       * The document's own language, which is not the page's.
++       *
++       * The editor is a French interface wrapping an English CV as readily as the reverse,
++       * so `lang` has to sit on the document rather than be inherited from the app shell.
++       * It is what tells the browser which hyphenation dictionary to use when a template
++       * justifies text, and it is what a screen reader switches voice on. In the exported
++       * PDF it becomes the language metadata that makes the file reach PDF/UA — which some
++       * public-sector employers check for.
++       */
++      lang={cv.language}
+     >
+       <Template cv={cv} customization={customization} />
+       {overlay}
+diff --git a/components/cv/CoverLetterDocument.tsx b/components/cv/CoverLetterDocument.tsx
+index 74e8283..f05ba50 100644
+--- a/components/cv/CoverLetterDocument.tsx
++++ b/components/cv/CoverLetterDocument.tsx
+@@ -6,17 +6,52 @@ import {
+   accentOn,
+   bodyWeight,
+   fontStack,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+   mutedOn,
+   paragraphs,
++  monthName,
+ } from '@/lib/cv/format';
+ import { getTemplate } from '@/lib/cv/template-registry';
++import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/locales';
+ import { cn } from '@/lib/utils/cn';
+ import type { CVCustomization, CVData } from '@/types/cv';
+ 
++/**
++ * The words the letter supplies itself, as opposed to the ones the applicant writes.
++ *
++ * The subject line is the one worth reading twice. English fronts the noun — "Application
++ * for Senior Designer" — while German names the role directly, "Bewerbung als Senior
++ * Designer", and French uses "au poste de". Interpolating a role into an English-shaped
++ * sentence produces something no native reader would write.
++ */
++const LETTER_COPY: Record<Locale, {
++  application: (vacancy: string) => string;
++  reference: (ref: string) => string;
++  placeholder: string;
++}> = {
++  en: {
++    application: (vacancy) => `Application for ${vacancy}`,
++    reference: (ref) => `Ref ${ref}`,
++    placeholder:
++      'Your letter goes here. Three or four short paragraphs: why this role, what you bring to it, and one piece of evidence they will not find on the CV.',
++  },
++  fr: {
++    application: (vacancy) => `Candidature au poste de ${vacancy}`,
++    reference: (ref) => `Réf. ${ref}`,
++    placeholder:
++      'Votre lettre ici. Trois ou quatre paragraphes courts : pourquoi ce poste, ce que vous apportez, et un élément que votre CV ne montre pas.',
++  },
++  de: {
++    application: (vacancy) => `Bewerbung als ${vacancy}`,
++    reference: (ref) => `Ref. ${ref}`,
++    placeholder:
++      'Hier steht Ihr Anschreiben. Drei oder vier kurze Absätze: warum diese Stelle, was Sie mitbringen, und ein Beleg, der nicht im Lebenslauf steht.',
++  },
++};
++
+ /**
+  * The cover letter that matches the CV.
+  *
+@@ -24,9 +59,9 @@ import type { CVCustomization, CVData } from '@/types/cv';
+  * thing being sold is a *pair* — two documents that arrive in the same inbox looking like
+  * they came from the same person — and the reliable way to build that is to give the letter
+  * no design of its own at all. It takes the CV's typefaces, its accent, its page margin,
+- * its heading case and its date format, so the pair cannot drift apart when the CV is
+- * restyled. Sixty-one letter templates would look like more product and would guarantee the
+- * opposite.
++ * its heading case, its date format and its language, so the pair cannot drift apart when
++ * the CV is restyled. Sixty-one letter templates would look like more product and would
++ * guarantee the opposite.
+  *
+  * What the letter does not inherit is the CV's *structure*. A two-column CV with a coloured
+  * band is a scanning document; a letter is read top to bottom in one column, and putting a
+@@ -57,7 +92,8 @@ export function CoverLetterDocument({
+   const accent = c.accentColor;
+   const accentText = accentOn(accent);
+   const muted = mutedOn(c.textColor, 0.34);
+-  const name = fullName(cv) || 'Your Name';
++  const copy = LETTER_COPY[cv.language];
++  const name = displayName(cv);
+ 
+   const cssVars = {
+     '--cv-page-width': `${paper.width}px`,
+@@ -74,9 +110,15 @@ export function CoverLetterDocument({
+     '--cv-secondary': c.secondaryColor,
+   } as CSSProperties;
+ 
+-  const dateLine = formatLetterDate(letter.date || today || '');
+-  const salutation = letter.salutation || defaultSalutation(letter.recipientName);
+-  const signOff = letter.signOff || defaultSignOff(letter.recipientName);
++  /*
++   * The letter follows the CV it is paired with. They are printed together and read
++   * together, so a French CV with an English "Dear Hiring Manager," would be the most
++   * visible possible seam.
++   */
++  const locale = cv.language;
++  const dateLine = formatLetterDate(letter.date || today || '', locale);
++  const salutation = letter.salutation || defaultSalutation(letter.recipientName, locale);
++  const signOff = letter.signOff || defaultSignOff(letter.recipientName, locale);
+   const signature = letter.signature || name;
+   const blocks = paragraphs(letter.body);
+ 
+@@ -90,8 +132,8 @@ export function CoverLetterDocument({
+     .filter(Boolean);
+ 
+   const subject = [
+-    letter.vacancy ? `Application for ${letter.vacancy}` : '',
+-    letter.reference ? `Ref ${letter.reference}` : '',
++    letter.vacancy ? copy.application(letter.vacancy) : '',
++    letter.reference ? copy.reference(letter.reference) : '',
+   ]
+     .filter(Boolean)
+     .join(' · ');
+@@ -198,10 +240,7 @@ export function CoverLetterDocument({
+           {blocks.length > 0 ? (
+             blocks.map((block, index) => <p key={index}>{block}</p>)
+           ) : (
+-            <p style={{ color: muted }}>
+-              Your letter goes here. Three or four short paragraphs: why this role, what you bring
+-              to it, and one piece of evidence they will not find on the CV.
+-            </p>
++            <p style={{ color: muted }}>{copy.placeholder}</p>
+           )}
+         </div>
+ 
+@@ -224,47 +263,60 @@ export function CoverLetterDocument({
+ }
+ 
+ /**
+- * "Dear Ms Okafor," or "Dear Hiring Manager,".
++ * "Dear Ms Okafor," / "Madame, Monsieur," / "Sehr geehrte Damen und Herren,".
+  *
+  * A letter opening with "Dear ," because the recipient was left blank is worse than one
+  * that never tried to be personal, so the fallback is the neutral form rather than an
+  * empty slot.
++ *
++ * The neutral forms are not translations of each other and should not be made into one.
++ * English addresses the role, French addresses two honorifics, German addresses the whole
++ * company. Each is what a letter in that country actually opens with.
+  */
+-function defaultSalutation(recipientName: string): string {
++function defaultSalutation(recipientName: string, locale: Locale): string {
+   const trimmed = recipientName.trim();
++  if (locale === 'fr') return trimmed ? `Madame, Monsieur ${trimmed},` : 'Madame, Monsieur,';
++  if (locale === 'de') {
++    return trimmed ? `Sehr geehrte(r) ${trimmed},` : 'Sehr geehrte Damen und Herren,';
++  }
+   return trimmed ? `Dear ${trimmed},` : 'Dear Hiring Manager,';
+ }
+ 
+ /**
+- * The British convention, which is also the one most likely to be wrong by accident:
+- * "Yours sincerely" when the letter is addressed to a named person, "Yours faithfully"
+- * when it opens "Dear Sir/Madam" or "Dear Hiring Manager". Getting this backwards is a
+- * small thing that a certain kind of reader notices immediately.
++ * The sign-off, which is where letter conventions diverge most.
++ *
++ * English follows the British rule — "Yours sincerely" to a named person, "Yours
++ * faithfully" to an unnamed one — which is the one most likely to be wrong by accident.
++ *
++ * French has no such distinction but does have a formula: the long
++ * "Je vous prie d’agréer…" is still the standard close on an application letter, and a
++ * bare "Cordialement" reads as an email rather than a letter. German uses one line
++ * regardless of whether the recipient is named.
+  */
+-function defaultSignOff(recipientName: string): string {
++function defaultSignOff(recipientName: string, locale: Locale): string {
++  if (locale === 'fr') {
++    return 'Je vous prie d’agréer, Madame, Monsieur, l’expression de mes salutations distinguées.';
++  }
++  if (locale === 'de') return 'Mit freundlichen Grüßen';
+   return recipientName.trim() ? 'Yours sincerely,' : 'Yours faithfully,';
+ }
+ 
+-/** "14 August 2026" — the form a letter uses, which is not the form a CV date uses. */
+-export function formatLetterDate(value: string): string {
++/**
++ * "14 August 2026" / "le 14 août 2026" / "14. August 2026".
++ *
++ * The form a letter uses, which is not the form a CV date uses. French prefixes `le` and
++ * German takes an ordinal point after the day — both are part of the convention rather
++ * than decoration, and a date without them marks the letter as translated.
++ */
++export function formatLetterDate(value: string, locale: Locale = DEFAULT_LOCALE): string {
+   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+   if (!match) return '';
+   const [, year, month, day] = match;
+-  const months = [
+-    'January',
+-    'February',
+-    'March',
+-    'April',
+-    'May',
+-    'June',
+-    'July',
+-    'August',
+-    'September',
+-    'October',
+-    'November',
+-    'December',
+-  ];
+-  const label = months[Number(month) - 1];
++
++  const label = monthName(Number(month) - 1, locale);
+   if (!label) return '';
++
++  if (locale === 'fr') return `le ${Number(day)} ${label} ${year}`;
++  if (locale === 'de') return `${Number(day)}. ${label} ${year}`;
+   return `${Number(day)} ${label} ${year}`;
+ }
+diff --git a/components/cv/parts.tsx b/components/cv/parts.tsx
+index 89e28e0..85bdc50 100644
+--- a/components/cv/parts.tsx
++++ b/components/cv/parts.tsx
+@@ -525,7 +525,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
+               surface={surface}
+               primary={item.role}
+               secondary={[item.company, item.location].filter(Boolean).join(' · ')}
+-              meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}
++              meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language)}
+               metaSecondary={
+                 showDuration
+                   ? formatDuration(item.startDate, item.endDate, item.current)
+@@ -565,7 +565,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
+             }}
+           >
+             <div style={{ color: muted, fontSize: '0.9em', paddingTop: '0.15em' }}>
+-              <div>{formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}</div>
++              <div>{formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language)}</div>
+               {item.location ? (
+                 <div style={{ marginTop: '0.2em', opacity: 0.85 }}>{item.location}</div>
+               ) : null}
+@@ -611,7 +611,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
+               surface={surface}
+               primary={item.role}
+               secondary={item.company}
+-              meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}
++              meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language)}
+               color={color}
+               muted={muted}
+               accent={accent}
+@@ -668,7 +668,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
+             </div>
+             <div style={{ color: muted, fontSize: '0.92em', whiteSpace: 'nowrap' }}>
+               {[
+-                formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat),
++                formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language),
+                 item.location,
+               ]
+                 .filter(Boolean)
+@@ -695,7 +695,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
+             </div>
+             <div style={{ color: muted, fontSize: '0.92em', marginTop: '0.1em' }}>
+               {[
+-                formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat),
++                formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language),
+                 item.location,
+               ]
+                 .filter(Boolean)
+@@ -726,7 +726,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
+             surface={surface}
+             primary={item.role}
+             secondary={item.company}
+-            meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}
++            meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language)}
+             metaSecondary={item.location || undefined}
+             color={color}
+             muted={muted}
+@@ -827,7 +827,7 @@ export function EducationContent(props: PartProps) {
+             <div style={{ color: accentText, fontWeight: secondaryWeight }}>{item.institution}</div>
+             <div style={{ color: muted, fontSize: '0.9em', marginTop: '0.05em' }}>
+               {[
+-                formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat),
++                formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language),
+                 item.location,
+               ]
+                 .filter(Boolean)
+@@ -854,7 +854,7 @@ export function EducationContent(props: PartProps) {
+             }}
+           >
+             <div style={{ color: muted, fontSize: '0.9em', paddingTop: '0.15em' }}>
+-              {formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}
++              {formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language)}
+             </div>
+             <div>
+               <div style={{ fontWeight: strong, color }}>{degreeLine(item)}</div>
+@@ -906,7 +906,7 @@ export function EducationContent(props: PartProps) {
+             surface={surface}
+             primary={degreeLine(item)}
+             secondary={item.institution}
+-            meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}
++            meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language)}
+             metaSecondary={item.location || undefined}
+             color={color}
+             muted={muted}
+@@ -1340,7 +1340,7 @@ export function ProjectsContent(props: PartProps) {
+             primary={item.name}
+             secondary={item.role || undefined}
+             meta={
+-              formatDateRange(item.startDate, item.endDate, false, c.dateFormat) ||
++              formatDateRange(item.startDate, item.endDate, false, c.dateFormat, cv.language) ||
+               (item.url ? prettyUrl(item.url) : undefined)
+             }
+             color={color}
+@@ -1392,7 +1392,7 @@ export function CertificationsContent(props: PartProps) {
+           <div key={item.id} className="cv-block">
+             <div style={{ fontWeight: strong, color }}>{item.name}</div>
+             <div style={{ color: muted, fontSize: '0.9em', fontWeight: secondaryWeight }}>
+-              {[item.issuer, formatPartialDate(item.date, c.dateFormat)]
++              {[item.issuer, formatPartialDate(item.date, c.dateFormat, cv.language)]
+                 .filter(Boolean)
+                 .join(' · ')}
+             </div>
+@@ -1415,7 +1415,7 @@ export function CertificationsContent(props: PartProps) {
+             surface={surface}
+             primary={item.name}
+             secondary={item.issuer || undefined}
+-            meta={formatPartialDate(item.date, c.dateFormat)}
++            meta={formatPartialDate(item.date, c.dateFormat, cv.language)}
+             color={color}
+             muted={muted}
+             accent={accent}
+@@ -1469,7 +1469,7 @@ export function AwardsContent(props: PartProps) {
+             surface={surface}
+             primary={item.title}
+             secondary={item.issuer || undefined}
+-            meta={formatPartialDate(item.date, c.dateFormat)}
++            meta={formatPartialDate(item.date, c.dateFormat, cv.language)}
+             color={color}
+             muted={muted}
+             accent={accent}
+@@ -1503,7 +1503,7 @@ export function VolunteerContent(props: PartProps) {
+             surface={surface}
+             primary={item.role}
+             secondary={[item.organization, item.location].filter(Boolean).join(' · ')}
+-            meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}
++            meta={formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat, cv.language)}
+             color={color}
+             muted={muted}
+             accent={accent}
+@@ -1544,7 +1544,7 @@ export function PublicationsContent(props: PartProps) {
+             <span>
+               <span style={{ fontWeight: strong, color }}>{item.title}</span>
+               <span style={{ color: muted }}>
+-                {[item.authors, item.publisher, formatPartialDate(item.date, c.dateFormat)]
++                {[item.authors, item.publisher, formatPartialDate(item.date, c.dateFormat, cv.language)]
+                   .filter(Boolean)
+                   .map((part) => ` · ${part}`)
+                   .join('')}
+@@ -1569,7 +1569,7 @@ export function PublicationsContent(props: PartProps) {
+         >
+           <div style={{ fontWeight: strong, color }}>{item.title}</div>
+           <div style={{ color: muted, fontSize: '0.92em' }}>
+-            {[item.authors, item.publisher, formatPartialDate(item.date, c.dateFormat)]
++            {[item.authors, item.publisher, formatPartialDate(item.date, c.dateFormat, cv.language)]
+               .filter(Boolean)
+               .join(' · ')}
+           </div>
+diff --git a/components/cv/templates/ats/AtsAccountant.tsx b/components/cv/templates/ats/AtsAccountant.tsx
+index ed6c6b6..27dc779 100644
+--- a/components/cv/templates/ats/AtsAccountant.tsx
++++ b/components/cv/templates/ats/AtsAccountant.tsx
+@@ -2,7 +2,7 @@ import { contactEntries, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -75,7 +75,6 @@ export default function AtsAccountant({ cv, customization: c }: CVTemplateProps)
+   const accent = c.accentColor;
+   const accentText = accentOn(accent);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+   const lines = contactLines(cv);
+ 
+   return (
+@@ -94,7 +93,7 @@ export default function AtsAccountant({ cv, customization: c }: CVTemplateProps)
+             color: ink,
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         {cv.personal.title ? (
+           <p
+diff --git a/components/cv/templates/ats/AtsClassic.tsx b/components/cv/templates/ats/AtsClassic.tsx
+index 39b84fb..4f7165d 100644
+--- a/components/cv/templates/ats/AtsClassic.tsx
++++ b/components/cv/templates/ats/AtsClassic.tsx
+@@ -1,5 +1,5 @@
+ import { ContactList, SectionContent } from '@/components/cv/parts';
+-import { fullName, headingTracking, headingTransform, headingWeight } from '@/lib/cv/format';
++import { displayName, headingTracking, headingTransform, headingWeight } from '@/lib/cv/format';
+ import { visibleSections } from '@/lib/cv/sections';
+ import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
+ 
+@@ -47,7 +47,6 @@ export const meta: TemplateMeta = {
+ export default function AtsClassic({ cv, customization: c }: CVTemplateProps) {
+   const ink = c.textColor;
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: c.pageMargin }}>
+@@ -60,7 +59,7 @@ export default function AtsClassic({ cv, customization: c }: CVTemplateProps) {
+             color: ink,
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         {cv.personal.title ? (
+           <p style={{ fontSize: '1.06em', marginTop: '0.12em', color: ink }}>{cv.personal.title}</p>
+diff --git a/components/cv/templates/ats/AtsEntryLevel.tsx b/components/cv/templates/ats/AtsEntryLevel.tsx
+index 0f8322e..016e81e 100644
+--- a/components/cv/templates/ats/AtsEntryLevel.tsx
++++ b/components/cv/templates/ats/AtsEntryLevel.tsx
+@@ -1,7 +1,7 @@
+ import { ContactList, SectionContent } from '@/components/cv/parts';
+ import {
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -58,7 +58,6 @@ export default function AtsEntryLevel({ cv, customization: c }: CVTemplateProps)
+   const sections = visibleSections(cv);
+   const spacing = c.sectionSpacing * 0.75;
+   const tracking = c.headingCase === 'uppercase' ? '0.18em' : headingTracking(c);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: c.pageMargin }}>
+@@ -80,7 +79,7 @@ export default function AtsEntryLevel({ cv, customization: c }: CVTemplateProps)
+               color: ink,
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p style={{ fontSize: '1em', color: metaInk, fontWeight: bodyWeight(c, 600) }}>{cv.personal.title}</p>
+diff --git a/components/cv/templates/ats/AtsResume.tsx b/components/cv/templates/ats/AtsResume.tsx
+index 79bd808..b0135ad 100644
+--- a/components/cv/templates/ats/AtsResume.tsx
++++ b/components/cv/templates/ats/AtsResume.tsx
+@@ -1,5 +1,5 @@
+ import { ContactList, SectionContent } from '@/components/cv/parts';
+-import { fullName, headingTracking, headingTransform, headingWeight, tint } from '@/lib/cv/format';
++import { displayName, headingTracking, headingTransform, headingWeight, tint } from '@/lib/cv/format';
+ import { visibleSections } from '@/lib/cv/sections';
+ import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
+ 
+@@ -49,7 +49,6 @@ export default function AtsResume({ cv, customization: c }: CVTemplateProps) {
+   const metaInk = tint(ink, 0.24);
+   const sections = visibleSections(cv);
+   const spacing = c.sectionSpacing * 0.85;
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: c.pageMargin }}>
+@@ -62,7 +61,7 @@ export default function AtsResume({ cv, customization: c }: CVTemplateProps) {
+             color: ink,
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         {cv.personal.title ? (
+           <p style={{ fontSize: '1.02em', marginTop: '0.1em', color: ink }}>{cv.personal.title}</p>
+diff --git a/components/cv/templates/ats/AtsSimple.tsx b/components/cv/templates/ats/AtsSimple.tsx
+index d4e0908..0a4848a 100644
+--- a/components/cv/templates/ats/AtsSimple.tsx
++++ b/components/cv/templates/ats/AtsSimple.tsx
+@@ -1,12 +1,5 @@
+ import { contactEntries, SectionContent } from '@/components/cv/parts';
+-import {
+-  accentOn,
+-  fullName,
+-  headingTracking,
+-  headingTransform,
+-  headingWeight,
+-  tint,
+-} from '@/lib/cv/format';
++import { accentOn, displayName, headingTracking, headingTransform, headingWeight, tint } from '@/lib/cv/format';
+ import { visibleSections } from '@/lib/cv/sections';
+ import type { CVData, CVTemplateProps, TemplateMeta } from '@/types/cv';
+ 
+@@ -74,7 +67,6 @@ export default function AtsSimple({ cv, customization: c }: CVTemplateProps) {
+   const accent = c.accentColor;
+   const accentText = accentOn(accent);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+   const lines = contactLines(cv);
+ 
+   return (
+@@ -88,7 +80,7 @@ export default function AtsSimple({ cv, customization: c }: CVTemplateProps) {
+             color: ink,
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         {cv.personal.title ? (
+           <p style={{ fontSize: '1.05em', marginTop: '0.12em', color: ink }}>{cv.personal.title}</p>
+diff --git a/components/cv/templates/ats/AtsStudent.tsx b/components/cv/templates/ats/AtsStudent.tsx
+index ad8549b..23c6341 100644
+--- a/components/cv/templates/ats/AtsStudent.tsx
++++ b/components/cv/templates/ats/AtsStudent.tsx
+@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -59,7 +59,6 @@ export default function AtsStudent({ cv, customization: c }: CVTemplateProps) {
+   const accentText = accentOn(accent);
+   const sections = visibleSections(cv);
+   const spacing = c.sectionSpacing * 1.2;
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: c.pageMargin }}>
+@@ -72,7 +71,7 @@ export default function AtsStudent({ cv, customization: c }: CVTemplateProps) {
+             color: ink,
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         {cv.personal.title ? (
+           <p
+diff --git a/components/cv/templates/classic/Academic.tsx b/components/cv/templates/classic/Academic.tsx
+index 076c564..4c94412 100644
+--- a/components/cv/templates/classic/Academic.tsx
++++ b/components/cv/templates/classic/Academic.tsx
+@@ -2,7 +2,7 @@ import { contactEntries, ContactIcon, SectionContent } from '@/components/cv/par
+ import {
+   accentOn,
+   centredTracking,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -58,7 +58,6 @@ export default function Academic({ cv, customization: c }: CVTemplateProps) {
+   const accentText = accentOn(accent);
+   const rule = tint(accent, 0.42);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+   const spacing = Math.round(c.sectionSpacing * 0.9);
+ 
+   return (
+@@ -73,7 +72,7 @@ export default function Academic({ cv, customization: c }: CVTemplateProps) {
+             color: c.secondaryColor,
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         {cv.personal.title ? (
+           <p style={{ marginTop: '0.2em', fontSize: '1.04em', color: accentText }}>
+diff --git a/components/cv/templates/classic/ClassicProfessional.tsx b/components/cv/templates/classic/ClassicProfessional.tsx
+index 0338224..dae85ad 100644
+--- a/components/cv/templates/classic/ClassicProfessional.tsx
++++ b/components/cv/templates/classic/ClassicProfessional.tsx
+@@ -2,7 +2,7 @@ import { contactEntries, ContactIcon, SectionContent } from '@/components/cv/par
+ import {
+   accentOn,
+   centredTracking,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -58,7 +58,6 @@ export default function ClassicProfessional({ cv, customization: c }: CVTemplate
+   const accentText = accentOn(accent);
+   const rule = tint(accent, 0.35);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: c.pageMargin }}>
+@@ -73,7 +72,7 @@ export default function ClassicProfessional({ cv, customization: c }: CVTemplate
+             color: c.secondaryColor,
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         {cv.personal.title ? (
+           <p
+diff --git a/components/cv/templates/classic/ElegantSerif.tsx b/components/cv/templates/classic/ElegantSerif.tsx
+index 362b28a..f7f7cbf 100644
+--- a/components/cv/templates/classic/ElegantSerif.tsx
++++ b/components/cv/templates/classic/ElegantSerif.tsx
+@@ -1,7 +1,7 @@
+ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -63,7 +63,6 @@ export default function ElegantSerif({ cv, customization: c }: CVTemplateProps)
+   const muted = mutedOn(c.textColor, 0.34);
+   const tracking = c.headingCase === 'uppercase' ? '0.24em' : headingTracking(c);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div
+@@ -103,7 +102,7 @@ export default function ElegantSerif({ cv, customization: c }: CVTemplateProps)
+               color: c.secondaryColor,
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+ 
+           {cv.personal.title ? (
+diff --git a/components/cv/templates/classic/Europass.tsx b/components/cv/templates/classic/Europass.tsx
+index 8cb2b92..b5fa99a 100644
+--- a/components/cv/templates/classic/Europass.tsx
++++ b/components/cv/templates/classic/Europass.tsx
+@@ -1,14 +1,7 @@
+ import { Photo, SectionContent, contactEntries } from '@/components/cv/parts';
+-import {
+-  accentOn,
+-  bodyWeight,
+-  fullName,
+-  headingWeight,
+-  languageShort,
+-  mutedOn,
+-  tint,
+-} from '@/lib/cv/format';
++import { accentOn, bodyWeight, displayName, headingWeight, languageShort, mutedOn, tint } from '@/lib/cv/format';
+ import { visibleSections } from '@/lib/cv/sections';
++import type { Locale } from '@/lib/i18n/locales';
+ import type { CVData, CVTemplateProps, TemplateMeta } from '@/types/cv';
+ 
+ export const meta: TemplateMeta = {
+@@ -53,13 +46,38 @@ const GUTTER = '9.2em';
+  * The Europass form names each contact row rather than showing an icon, and the names it
+  * uses are part of what makes the document recognisable as a Europass.
+  */
+-const CONTACT_LABEL: Record<string, string> = {
+-  email: 'Email',
+-  phone: 'Telephone',
+-  location: 'Address',
+-  website: 'Website',
+-  linkedin: 'LinkedIn',
+-  github: 'GitHub',
++const CONTACT_LABEL: Record<Locale, Record<string, string>> = {
++  en: {
++    email: 'Email',
++    phone: 'Telephone',
++    location: 'Address',
++    website: 'Website',
++    linkedin: 'LinkedIn',
++    github: 'GitHub',
++  },
++  fr: {
++    email: 'Courriel',
++    phone: 'Téléphone',
++    location: 'Adresse',
++    website: 'Site web',
++    linkedin: 'LinkedIn',
++    github: 'GitHub',
++  },
++  de: {
++    email: 'E-Mail',
++    phone: 'Telefon',
++    location: 'Anschrift',
++    website: 'Website',
++    linkedin: 'LinkedIn',
++    github: 'GitHub',
++  },
++};
++
++/** The words the form itself supplies, in the language the document is written in. */
++const FORM_COPY: Record<Locale, { link: string; motherTongue: string; personal: string }> = {
++  en: { link: 'Link', motherTongue: 'Mother tongue: ', personal: 'Personal information' },
++  fr: { link: 'Lien', motherTongue: 'Langue maternelle : ', personal: 'Informations personnelles' },
++  de: { link: 'Link', motherTongue: 'Muttersprache: ', personal: 'Angaben zur Person' },
+ };
+ 
+ /**
+@@ -70,8 +88,17 @@ const CONTACT_LABEL: Record<string, string> = {
+  * from one would be fabricating a self-assessment on the candidate's behalf. Three columns
+  * with the recorded level in each is the honest version of the same grid: it says what the
+  * user actually told us, in the vocabulary the reader is expecting.
++ *
++ * The column headings are the European Commission's own, not a translation of the English
++ * ones — the published French grid says "Comprendre / Parler / Écrire" and the German one
++ * "Verstehen / Sprechen / Schreiben". Using anything else on a document whose entire value
++ * is being recognisable as a Europass would defeat the point of picking this template.
+  */
+-const COMPETENCES = ['Understanding', 'Speaking', 'Writing'] as const;
++const COMPETENCES: Record<Locale, readonly [string, string, string]> = {
++  en: ['Understanding', 'Speaking', 'Writing'],
++  fr: ['Comprendre', 'Parler', 'Écrire'],
++  de: ['Verstehen', 'Sprechen', 'Schreiben'],
++};
+ 
+ function motherTongues(cv: CVData) {
+   return cv.languages.filter((language) => language.name && language.level === 'native');
+@@ -148,7 +175,6 @@ export default function Europass({ cv, customization: c }: CVTemplateProps) {
+   const rule = tint(accent, 0.78);
+   const sections = visibleSections(cv).filter((section) => section.id !== 'languages');
+   const languageSection = visibleSections(cv).find((section) => section.id === 'languages');
+-  const name = fullName(cv);
+   const contacts = contactEntries(cv);
+ 
+   return (
+@@ -169,7 +195,7 @@ export default function Europass({ cv, customization: c }: CVTemplateProps) {
+             lineHeight: 1.35,
+           }}
+         >
+-          Personal information
++          {FORM_COPY[cv.language].personal}
+         </div>
+         <div style={{ display: 'flex', gap: '1.2em', alignItems: 'flex-start', minWidth: 0 }}>
+           <div style={{ minWidth: 0, flex: 1 }}>
+@@ -181,7 +207,7 @@ export default function Europass({ cv, customization: c }: CVTemplateProps) {
+                 color: c.secondaryColor,
+               }}
+             >
+-              {name || 'Your Name'}
++              {displayName(cv)}
+             </h1>
+             {cv.personal.title ? (
+               <p style={{ marginTop: '0.1em', color: muted }}>{cv.personal.title}</p>
+@@ -199,7 +225,7 @@ export default function Europass({ cv, customization: c }: CVTemplateProps) {
+                 {contacts.map((entry) => (
+                   <div key={entry.key} style={{ display: 'contents' }}>
+                     <dt style={{ color: muted, whiteSpace: 'nowrap' }}>
+-                      {CONTACT_LABEL[entry.key] ?? 'Link'}
++                      {CONTACT_LABEL[cv.language][entry.key] ?? FORM_COPY[cv.language].link}
+                     </dt>
+                     <dd style={{ color: c.textColor, minWidth: 0, overflowWrap: 'anywhere' }}>
+                       {entry.label}
+@@ -258,7 +284,7 @@ export default function Europass({ cv, customization: c }: CVTemplateProps) {
+         >
+           {motherTongues(cv).length > 0 ? (
+             <p style={{ marginBottom: otherLanguages(cv).length > 0 ? '0.6em' : 0 }}>
+-              <span style={{ color: muted }}>Mother tongue: </span>
++              <span style={{ color: muted }}>{FORM_COPY[cv.language].motherTongue}</span>
+               <span style={{ fontWeight: bodyWeight(c, 700) }}>
+                 {motherTongues(cv)
+                   .map((language) => language.name)
+@@ -301,7 +327,7 @@ export default function Europass({ cv, customization: c }: CVTemplateProps) {
+                   >
+                     Language
+                   </th>
+-                  {COMPETENCES.map((competence) => (
++                  {COMPETENCES[cv.language].map((competence) => (
+                     <th
+                       key={competence}
+                       scope="col"
+@@ -333,7 +359,7 @@ export default function Europass({ cv, customization: c }: CVTemplateProps) {
+                     >
+                       {language.name}
+                     </th>
+-                    {COMPETENCES.map((competence) => (
++                    {COMPETENCES[cv.language].map((competence) => (
+                       <td
+                         key={competence}
+                         style={{
+diff --git a/components/cv/templates/classic/ExecutiveClassic.tsx b/components/cv/templates/classic/ExecutiveClassic.tsx
+index b5fe33b..aaf6d0d 100644
+--- a/components/cv/templates/classic/ExecutiveClassic.tsx
++++ b/components/cv/templates/classic/ExecutiveClassic.tsx
+@@ -3,7 +3,7 @@ import {
+   accentOn,
+   bodyWeight,
+   centredTracking,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -63,7 +63,6 @@ export default function ExecutiveClassic({ cv, customization: c }: CVTemplatePro
+   const hairline = tint(c.textColor, 0.72);
+   const muted = mutedOn(c.textColor, 0.34);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: `${c.pageMargin}px ${Math.round(c.pageMargin * 1.1)}px` }}>
+@@ -88,7 +87,7 @@ export default function ExecutiveClassic({ cv, customization: c }: CVTemplatePro
+               minWidth: 0,
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/classic/Formal.tsx b/components/cv/templates/classic/Formal.tsx
+index 11e8b7b..778c964 100644
+--- a/components/cv/templates/classic/Formal.tsx
++++ b/components/cv/templates/classic/Formal.tsx
+@@ -1,7 +1,7 @@
+ import { contactEntries, ContactList, SectionContent } from '@/components/cv/parts';
+ import {
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -63,7 +63,6 @@ export default function Formal({ cv, customization: c }: CVTemplateProps) {
+   const sections = visibleSections(cv);
+   const { main, aside } = splitSections(sections, ASIDE_SECTIONS);
+   const hasContact = contactEntries(cv).length > 0;
+-  const name = fullName(cv);
+ 
+   return (
+     <div
+@@ -84,7 +83,7 @@ export default function Formal({ cv, customization: c }: CVTemplateProps) {
+             color: c.secondaryColor,
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         {cv.personal.title ? (
+           <p style={{ marginTop: '0.15em', fontSize: '1.02em', fontWeight: bodyWeight(c, 600), color: muted }}>
+diff --git a/components/cv/templates/classic/FunctionalCV.tsx b/components/cv/templates/classic/FunctionalCV.tsx
+index df2ac0c..9951a4d 100644
+--- a/components/cv/templates/classic/FunctionalCV.tsx
++++ b/components/cv/templates/classic/FunctionalCV.tsx
+@@ -2,7 +2,7 @@ import { contactEntries, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   centredTracking,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -63,7 +63,6 @@ export default function FunctionalCV({ cv, customization: c }: CVTemplateProps)
+   const accentText = accentOn(accent);
+   const muted = mutedOn(c.textColor, 0.34);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+   const contacts = contactEntries(cv).map((entry) => entry.label);
+ 
+   return (
+@@ -77,7 +76,7 @@ export default function FunctionalCV({ cv, customization: c }: CVTemplateProps)
+             color: c.secondaryColor,
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         {cv.personal.title ? (
+           <p
+diff --git a/components/cv/templates/classic/Government.tsx b/components/cv/templates/classic/Government.tsx
+index b576849..3bc8b5d 100644
+--- a/components/cv/templates/classic/Government.tsx
++++ b/components/cv/templates/classic/Government.tsx
+@@ -1,7 +1,7 @@
+ import { contactEntries, SectionContent, type ContactIconKey } from '@/components/cv/parts';
+ import {
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -10,6 +10,7 @@ import {
+   tint,
+ } from '@/lib/cv/format';
+ import { visibleSections } from '@/lib/cv/sections';
++import type { Locale } from '@/lib/i18n/locales';
+ import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
+ 
+ export const meta: TemplateMeta = {
+@@ -46,15 +47,41 @@ export const meta: TemplateMeta = {
+   ],
+ };
+ 
+-/** Field names for the header grid, keyed by the kind of contact detail. */
+-const FIELD_LABELS: Record<ContactIconKey, string> = {
+-  mail: 'Email',
+-  phone: 'Telephone',
+-  pin: 'Address',
+-  globe: 'Website',
+-  linkedin: 'LinkedIn',
+-  github: 'GitHub',
+-  link: 'Profile',
++/**
++ * Field names for the header grid, keyed by the kind of contact detail.
++ *
++ * This template prints its labels, which most do not — the field rows are the whole point
++ * of the form archetype — so they are the one place a public-sector CV would otherwise
++ * show English on an otherwise French or German page.
++ */
++const FIELD_LABELS: Record<Locale, Record<ContactIconKey, string>> = {
++  en: {
++    mail: 'Email',
++    phone: 'Telephone',
++    pin: 'Address',
++    globe: 'Website',
++    linkedin: 'LinkedIn',
++    github: 'GitHub',
++    link: 'Profile',
++  },
++  fr: {
++    mail: 'Courriel',
++    phone: 'Téléphone',
++    pin: 'Adresse',
++    globe: 'Site web',
++    linkedin: 'LinkedIn',
++    github: 'GitHub',
++    link: 'Profil',
++  },
++  de: {
++    mail: 'E-Mail',
++    phone: 'Telefon',
++    pin: 'Anschrift',
++    globe: 'Website',
++    linkedin: 'LinkedIn',
++    github: 'GitHub',
++    link: 'Profil',
++  },
+ };
+ 
+ /**
+@@ -75,7 +102,6 @@ export default function Government({ cv, customization: c }: CVTemplateProps) {
+   const muted = mutedOn(c.textColor, 0.3);
+   const sections = visibleSections(cv);
+   const fields = contactEntries(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: c.pageMargin }}>
+@@ -90,7 +116,7 @@ export default function Government({ cv, customization: c }: CVTemplateProps) {
+               color: c.secondaryColor,
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p style={{ marginTop: '0.2em', fontSize: '1.02em', fontWeight: bodyWeight(c, 600), color: ink }}>
+@@ -120,7 +146,7 @@ export default function Government({ cv, customization: c }: CVTemplateProps) {
+                 color: muted,
+               }}
+             >
+-              {FIELD_LABELS[field.icon]}
++              {FIELD_LABELS[cv.language][field.icon]}
+             </div>
+             <div style={{ padding: '0.32em 1em', color: c.textColor }}>
+               {field.href ? (
+diff --git a/components/cv/templates/classic/Legal.tsx b/components/cv/templates/classic/Legal.tsx
+index 7391c0f..200dd62 100644
+--- a/components/cv/templates/classic/Legal.tsx
++++ b/components/cv/templates/classic/Legal.tsx
+@@ -2,7 +2,7 @@ import { contactEntries, ContactIcon, SectionContent } from '@/components/cv/par
+ import {
+   accentOn,
+   centredTracking,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -57,7 +57,6 @@ export default function Legal({ cv, customization: c }: CVTemplateProps) {
+   const accentText = accentOn(accent);
+   const rule = tint(accent, 0.4);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+   const spacing = Math.round(c.sectionSpacing * 0.9);
+ 
+   return (
+@@ -74,7 +73,7 @@ export default function Legal({ cv, customization: c }: CVTemplateProps) {
+               color: c.secondaryColor,
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/classic/SimpleClassic.tsx b/components/cv/templates/classic/SimpleClassic.tsx
+index d561165..8078de8 100644
+--- a/components/cv/templates/classic/SimpleClassic.tsx
++++ b/components/cv/templates/classic/SimpleClassic.tsx
+@@ -1,7 +1,7 @@
+ import { ContactList, SectionContent } from '@/components/cv/parts';
+ import {
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -56,13 +56,12 @@ export default function SimpleClassic({ cv, customization: c }: CVTemplateProps)
+   const accent = c.accentColor;
+   const muted = mutedOn(c.textColor, 0.22);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: c.pageMargin }}>
+       <header>
+         <h1 style={{ fontSize: '2.15em', lineHeight: 1.15, fontWeight: headingWeight(c, 600), color: c.textColor }}>
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         {cv.personal.title ? (
+           <p
+diff --git a/components/cv/templates/classic/Timeless.tsx b/components/cv/templates/classic/Timeless.tsx
+index c723313..7e5202a 100644
+--- a/components/cv/templates/classic/Timeless.tsx
++++ b/components/cv/templates/classic/Timeless.tsx
+@@ -2,7 +2,7 @@ import { contactEntries, ContactIcon, SectionContent } from '@/components/cv/par
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -63,7 +63,6 @@ export default function Timeless({ cv, customization: c }: CVTemplateProps) {
+   const tracking = c.headingCase === 'uppercase' ? '0.17em' : headingTracking(c);
+   const sections = visibleSections(cv);
+   const contacts = contactEntries(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: `${c.pageMargin}px ${Math.round(c.pageMargin * 1.3)}px` }}>
+@@ -85,7 +84,7 @@ export default function Timeless({ cv, customization: c }: CVTemplateProps) {
+               color: c.secondaryColor,
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/classic/Traditional.tsx b/components/cv/templates/classic/Traditional.tsx
+index 80d4f53..0cfa819 100644
+--- a/components/cv/templates/classic/Traditional.tsx
++++ b/components/cv/templates/classic/Traditional.tsx
+@@ -1,12 +1,5 @@
+ import { ContactList, SectionContent } from '@/components/cv/parts';
+-import {
+-  accentOn,
+-  fullName,
+-  headingTracking,
+-  headingTransform,
+-  headingWeight,
+-  tint,
+-} from '@/lib/cv/format';
++import { accentOn, displayName, headingTracking, headingTransform, headingWeight, tint } from '@/lib/cv/format';
+ import { visibleSections } from '@/lib/cv/sections';
+ import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
+ 
+@@ -62,7 +55,6 @@ export default function Traditional({ cv, customization: c }: CVTemplateProps) {
+   const accent = c.accentColor;
+   const accentText = accentOn(accent);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: c.pageMargin }}>
+@@ -82,7 +74,7 @@ export default function Traditional({ cv, customization: c }: CVTemplateProps) {
+             color: c.secondaryColor,
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         {cv.personal.title ? (
+           <p style={{ fontSize: '1.02em', marginTop: '0.12em', color: accentText }}>
+diff --git a/components/cv/templates/corporate/BankingCV.tsx b/components/cv/templates/corporate/BankingCV.tsx
+index f10dec4..9bba8d7 100644
+--- a/components/cv/templates/corporate/BankingCV.tsx
++++ b/components/cv/templates/corporate/BankingCV.tsx
+@@ -1,7 +1,7 @@
+ import { ContactList, SectionContent } from '@/components/cv/parts';
+ import {
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -65,7 +65,6 @@ export default function BankingCV({ cv, customization: c }: CVTemplateProps) {
+   const sections = visibleSections(cv);
+   const { main, aside } = splitSections(sections, SIDEBAR_SECTIONS);
+   const hasAside = aside.length > 0;
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 'inherit' }}>
+@@ -86,7 +85,7 @@ export default function BankingCV({ cv, customization: c }: CVTemplateProps) {
+             letterSpacing: '0.02em',
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         {cv.personal.title ? (
+           <p
+diff --git a/components/cv/templates/corporate/BusinessProfessional.tsx b/components/cv/templates/corporate/BusinessProfessional.tsx
+index 6cf1461..d04f800 100644
+--- a/components/cv/templates/corporate/BusinessProfessional.tsx
++++ b/components/cv/templates/corporate/BusinessProfessional.tsx
+@@ -2,7 +2,7 @@ import { ContactIcon, SectionContent, contactEntries } from '@/components/cv/par
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -83,7 +83,7 @@ export default function BusinessProfessional({ cv, customization: c }: CVTemplat
+               letterSpacing: '-0.01em',
+             }}
+           >
+-            {fullName(cv) || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/corporate/ConsultantCV.tsx b/components/cv/templates/corporate/ConsultantCV.tsx
+index fd98514..a3625b2 100644
+--- a/components/cv/templates/corporate/ConsultantCV.tsx
++++ b/components/cv/templates/corporate/ConsultantCV.tsx
+@@ -2,7 +2,7 @@ import { ContactIcon, SectionContent, contactEntries } from '@/components/cv/par
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -89,7 +89,7 @@ export default function ConsultantCV({ cv, customization: c }: CVTemplateProps)
+               letterSpacing: '-0.022em',
+             }}
+           >
+-            {fullName(cv) || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/corporate/CorporateExecutive.tsx b/components/cv/templates/corporate/CorporateExecutive.tsx
+index a5e2ec1..50930bb 100644
+--- a/components/cv/templates/corporate/CorporateExecutive.tsx
++++ b/components/cv/templates/corporate/CorporateExecutive.tsx
+@@ -3,7 +3,7 @@ import {
+   accentOn,
+   bodyWeight,
+   centredTracking,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -86,7 +86,7 @@ export default function CorporateExecutive({ cv, customization: c }: CVTemplateP
+               color: c.secondaryColor,
+             }}
+           >
+-            {fullName(cv) || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/corporate/FinanceCV.tsx b/components/cv/templates/corporate/FinanceCV.tsx
+index 79ad6c2..44691e9 100644
+--- a/components/cv/templates/corporate/FinanceCV.tsx
++++ b/components/cv/templates/corporate/FinanceCV.tsx
+@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -62,7 +62,6 @@ export default function FinanceCV({ cv, customization: c }: CVTemplateProps) {
+   const accent = c.accentColor;
+   const accentText = accentOn(accent);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: c.pageMargin }}>
+@@ -86,7 +85,7 @@ export default function FinanceCV({ cv, customization: c }: CVTemplateProps) {
+               letterSpacing: '-0.012em',
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/corporate/HumanResourcesCV.tsx b/components/cv/templates/corporate/HumanResourcesCV.tsx
+index e058f88..10a97a9 100644
+--- a/components/cv/templates/corporate/HumanResourcesCV.tsx
++++ b/components/cv/templates/corporate/HumanResourcesCV.tsx
+@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -60,7 +60,6 @@ export default function HumanResourcesCV({ cv, customization: c }: CVTemplatePro
+   const border = tint(accent, 0.74);
+   const strip = tint(accent, 0.93);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: c.pageMargin }}>
+@@ -83,7 +82,7 @@ export default function HumanResourcesCV({ cv, customization: c }: CVTemplatePro
+               letterSpacing: '-0.01em',
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/corporate/HybridCV.tsx b/components/cv/templates/corporate/HybridCV.tsx
+index b33df74..1999e25 100644
+--- a/components/cv/templates/corporate/HybridCV.tsx
++++ b/components/cv/templates/corporate/HybridCV.tsx
+@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -63,7 +63,6 @@ export default function HybridCV({ cv, customization: c }: CVTemplateProps) {
+   const accentText = accentOn(accent);
+   const muted = mutedOn(c.textColor, 0.36);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: `${c.pageMargin}px` }}>
+@@ -88,7 +87,7 @@ export default function HybridCV({ cv, customization: c }: CVTemplateProps) {
+               color: c.secondaryColor,
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p style={{ marginTop: '0.12em', fontWeight: bodyWeight(c, 600), color: accentText }}>
+diff --git a/components/cv/templates/corporate/ManagementCV.tsx b/components/cv/templates/corporate/ManagementCV.tsx
+index 1cafdad..33efda8 100644
+--- a/components/cv/templates/corporate/ManagementCV.tsx
++++ b/components/cv/templates/corporate/ManagementCV.tsx
+@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -85,7 +85,7 @@ export default function ManagementCV({ cv, customization: c }: CVTemplateProps)
+               letterSpacing: '-0.015em',
+             }}
+           >
+-            {fullName(cv) || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/corporate/MarketingCV.tsx b/components/cv/templates/corporate/MarketingCV.tsx
+index b6d1e48..77e8ba2 100644
+--- a/components/cv/templates/corporate/MarketingCV.tsx
++++ b/components/cv/templates/corporate/MarketingCV.tsx
+@@ -1,7 +1,7 @@
+ import { contactEntries, ContactList, Photo, SectionContent } from '@/components/cv/parts';
+ import {
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -60,7 +60,6 @@ export default function MarketingCV({ cv, customization: c }: CVTemplateProps) {
+   // colour the user picked — see `mutedOn`.
+   const panelMuted = mutedOn(onAccent, 0.3, accent);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+   // Without a photo or a single contact row the accent panel would be a bare colour block,
+   // so the header collapses to the tinted panel alone.
+   const hasAccentPanel = c.showPhoto || contactEntries(cv).length > 0;
+@@ -94,7 +93,7 @@ export default function MarketingCV({ cv, customization: c }: CVTemplateProps) {
+               letterSpacing: '-0.02em',
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/corporate/OperationsCV.tsx b/components/cv/templates/corporate/OperationsCV.tsx
+index f81f029..51a49c3 100644
+--- a/components/cv/templates/corporate/OperationsCV.tsx
++++ b/components/cv/templates/corporate/OperationsCV.tsx
+@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -59,7 +59,6 @@ export default function OperationsCV({ cv, customization: c }: CVTemplateProps)
+   const accentText = accentOn(accent);
+   const onAccent = readableOn(accent);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: c.pageMargin }}>
+@@ -87,7 +86,7 @@ export default function OperationsCV({ cv, customization: c }: CVTemplateProps)
+             letterSpacing: '-0.012em',
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         <div style={{ marginTop: '0.6em' }}>
+           <ContactList
+diff --git a/components/cv/templates/corporate/SalesCV.tsx b/components/cv/templates/corporate/SalesCV.tsx
+index bff90aa..e5be584 100644
+--- a/components/cv/templates/corporate/SalesCV.tsx
++++ b/components/cv/templates/corporate/SalesCV.tsx
+@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -58,7 +58,6 @@ export default function SalesCV({ cv, customization: c }: CVTemplateProps) {
+   const accent = c.accentColor;
+   const accentText = accentOn(accent);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+ 
+   const latestRole = cv.experience[0];
+   const highlights = (latestRole?.achievements ?? [])
+@@ -82,7 +81,7 @@ export default function SalesCV({ cv, customization: c }: CVTemplateProps) {
+             letterSpacing: '-0.018em',
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         {cv.personal.title ? (
+           <p
+diff --git a/components/cv/templates/creative/ArtDirector.tsx b/components/cv/templates/creative/ArtDirector.tsx
+index 67dd4d4..8169687 100644
+--- a/components/cv/templates/creative/ArtDirector.tsx
++++ b/components/cv/templates/creative/ArtDirector.tsx
+@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -93,7 +93,7 @@ export default function ArtDirector({ cv, customization: c }: CVTemplateProps) {
+               color: onBand,
+             }}
+           >
+-            {fullName(cv) || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/creative/ContentCreator.tsx b/components/cv/templates/creative/ContentCreator.tsx
+index 274661e..636fe12 100644
+--- a/components/cv/templates/creative/ContentCreator.tsx
++++ b/components/cv/templates/creative/ContentCreator.tsx
+@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -98,7 +98,7 @@ export default function ContentCreator({ cv, customization: c }: CVTemplateProps
+                 color: c.secondaryColor,
+               }}
+             >
+-              {fullName(cv) || 'Your Name'}
++              {displayName(cv)}
+             </h1>
+             {cv.personal.title ? (
+               <p
+diff --git a/components/cv/templates/creative/CreativeAts.tsx b/components/cv/templates/creative/CreativeAts.tsx
+index 63c27be..a3ed5c5 100644
+--- a/components/cv/templates/creative/CreativeAts.tsx
++++ b/components/cv/templates/creative/CreativeAts.tsx
+@@ -2,7 +2,7 @@ import { SectionContent, contactEntries } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -65,7 +65,6 @@ export default function CreativeAts({ cv, customization: c }: CVTemplateProps) {
+   const accentText = accentOn(accent);
+   const muted = mutedOn(c.textColor, 0.36);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+   const contacts = contactEntries(cv).map((entry) => entry.label);
+ 
+   return (
+@@ -80,7 +79,7 @@ export default function CreativeAts({ cv, customization: c }: CVTemplateProps) {
+             color: c.secondaryColor,
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         {cv.personal.title ? (
+           <p
+diff --git a/components/cv/templates/creative/CreativeDesigner.tsx b/components/cv/templates/creative/CreativeDesigner.tsx
+index 49f93bf..b1e89d1 100644
+--- a/components/cv/templates/creative/CreativeDesigner.tsx
++++ b/components/cv/templates/creative/CreativeDesigner.tsx
+@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -135,7 +135,7 @@ export default function CreativeDesigner({ cv, customization: c }: CVTemplatePro
+               color: c.secondaryColor,
+             }}
+           >
+-            {fullName(cv) || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/creative/CreativeProfessional.tsx b/components/cv/templates/creative/CreativeProfessional.tsx
+index c6209d6..43f1fb4 100644
+--- a/components/cv/templates/creative/CreativeProfessional.tsx
++++ b/components/cv/templates/creative/CreativeProfessional.tsx
+@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -56,7 +56,6 @@ export default function CreativeProfessional({ cv, customization: c }: CVTemplat
+   const accent = c.accentColor;
+   const accentText = accentOn(accent);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+   // The rounded square frame is structural here — a circle would collide with the
+   // squared-off marker bars used throughout the document.
+   const photoCustomization = { ...c, photoShape: 'rounded' as const };
+@@ -91,7 +90,7 @@ export default function CreativeProfessional({ cv, customization: c }: CVTemplat
+               letterSpacing: '-0.012em',
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/creative/Editorial.tsx b/components/cv/templates/creative/Editorial.tsx
+index 46dbeab..6dfe83a 100644
+--- a/components/cv/templates/creative/Editorial.tsx
++++ b/components/cv/templates/creative/Editorial.tsx
+@@ -3,7 +3,7 @@ import {
+   accentOn,
+   bodyWeight,
+   centredTracking,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -63,7 +63,6 @@ export default function Editorial({ cv, customization: c }: CVTemplateProps) {
+   const rest = sections.filter((section) => section.id !== 'summary');
+   const left = rest.filter((_, index) => index % 2 === 0);
+   const right = rest.filter((_, index) => index % 2 === 1);
+-  const name = fullName(cv);
+   const muted = mutedOn(c.textColor, 0.34);
+   const hairline = tint(c.textColor, 0.72);
+ 
+@@ -80,7 +79,7 @@ export default function Editorial({ cv, customization: c }: CVTemplateProps) {
+             color: c.secondaryColor,
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+       </header>
+ 
+diff --git a/components/cv/templates/creative/Photographer.tsx b/components/cv/templates/creative/Photographer.tsx
+index e032f62..b355763 100644
+--- a/components/cv/templates/creative/Photographer.tsx
++++ b/components/cv/templates/creative/Photographer.tsx
+@@ -1,12 +1,5 @@
+ import { contactEntries, ContactIcon, Photo, SectionContent } from '@/components/cv/parts';
+-import {
+-  fullName,
+-  headingTracking,
+-  headingTransform,
+-  headingWeight,
+-  mutedOn,
+-  tint,
+-} from '@/lib/cv/format';
++import { displayName, headingTracking, headingTransform, headingWeight, mutedOn, tint } from '@/lib/cv/format';
+ import { visibleSections } from '@/lib/cv/sections';
+ import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
+ 
+@@ -104,7 +97,7 @@ export default function Photographer({ cv, customization: c }: CVTemplateProps)
+               color: c.secondaryColor,
+             }}
+           >
+-            {fullName(cv) || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+ 
+           {cv.personal.title ? (
+diff --git a/components/cv/templates/creative/PortfolioStyle.tsx b/components/cv/templates/creative/PortfolioStyle.tsx
+index 965ecdb..e33bbe2 100644
+--- a/components/cv/templates/creative/PortfolioStyle.tsx
++++ b/components/cv/templates/creative/PortfolioStyle.tsx
+@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -57,7 +57,6 @@ export default function PortfolioStyle({ cv, customization: c }: CVTemplateProps
+   const accent = c.accentColor;
+   const accentText = accentOn(accent);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+ 
+   // Lowercase headings are this template's signature and the heading-case control has no
+   // lowercase option, so the default (uppercase) maps to it; an explicit capitalise/none
+@@ -88,7 +87,7 @@ export default function PortfolioStyle({ cv, customization: c }: CVTemplateProps
+                 letterSpacing: '-0.015em',
+               }}
+             >
+-              {name || 'Your Name'}
++              {displayName(cv)}
+             </h1>
+             {cv.personal.title ? (
+               <p style={{ fontWeight: bodyWeight(c, 600), color: accentText }}>{cv.personal.title}</p>
+diff --git a/components/cv/templates/creative/UiUxDesigner.tsx b/components/cv/templates/creative/UiUxDesigner.tsx
+index 1f6f9b0..e73967b 100644
+--- a/components/cv/templates/creative/UiUxDesigner.tsx
++++ b/components/cv/templates/creative/UiUxDesigner.tsx
+@@ -1,7 +1,7 @@
+ import { ContactList, SectionContent } from '@/components/cv/parts';
+ import {
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -113,7 +113,7 @@ export default function UiUxDesigner({ cv, customization: c }: CVTemplateProps)
+                 color: c.secondaryColor,
+               }}
+             >
+-              {fullName(cv) || 'Your Name'}
++              {displayName(cv)}
+             </h1>
+           </div>
+ 
+diff --git a/components/cv/templates/creative/VisualResume.tsx b/components/cv/templates/creative/VisualResume.tsx
+index 71a9be8..5bcc756 100644
+--- a/components/cv/templates/creative/VisualResume.tsx
++++ b/components/cv/templates/creative/VisualResume.tsx
+@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -156,7 +156,7 @@ export default function VisualResume({ cv, customization: c }: CVTemplateProps)
+               letterSpacing: '-0.02em',
+             }}
+           >
+-            {fullName(cv) || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/modern/CascadeSidebar.tsx b/components/cv/templates/modern/CascadeSidebar.tsx
+index 0efd3d7..1154c31 100644
+--- a/components/cv/templates/modern/CascadeSidebar.tsx
++++ b/components/cv/templates/modern/CascadeSidebar.tsx
+@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -105,7 +105,6 @@ export default function CascadeSidebar({ cv, customization: c }: CVTemplateProps
+   const sections = visibleSections(cv);
+   const { main, aside } = splitSections(sections, BAND_SECTIONS);
+   const muted = mutedOn(c.textColor, 0.36);
+-  const name = fullName(cv);
+ 
+   return (
+     <div
+@@ -200,7 +199,7 @@ export default function CascadeSidebar({ cv, customization: c }: CVTemplateProps
+               color: c.secondaryColor,
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/modern/ModernAts.tsx b/components/cv/templates/modern/ModernAts.tsx
+index 5ed5c48..807edd8 100644
+--- a/components/cv/templates/modern/ModernAts.tsx
++++ b/components/cv/templates/modern/ModernAts.tsx
+@@ -1,7 +1,7 @@
+ import { ContactList, SectionContent } from '@/components/cv/parts';
+ import {
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -57,13 +57,12 @@ export default function ModernAts({ cv, customization: c }: CVTemplateProps) {
+   const muted = mutedOn(c.textColor, 0.35);
+   const rule = tint(c.textColor, 0.68);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: c.pageMargin }}>
+       <header>
+         <h1 style={{ fontSize: '2.05em', lineHeight: 1.12, fontWeight: headingWeight(c, 700), color: c.textColor }}>
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         {cv.personal.title ? (
+           <p style={{ marginTop: '0.15em', fontSize: '1.05em', fontWeight: bodyWeight(c, 600), color: muted }}>
+diff --git a/components/cv/templates/modern/ModernClean.tsx b/components/cv/templates/modern/ModernClean.tsx
+index 27eca9e..8c059eb 100644
+--- a/components/cv/templates/modern/ModernClean.tsx
++++ b/components/cv/templates/modern/ModernClean.tsx
+@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -59,7 +59,6 @@ export default function ModernClean({ cv, customization: c }: CVTemplateProps) {
+   const accent = c.accentColor;
+   const accentText = accentOn(accent);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+   const hairline = tint(accent, 0.7);
+ 
+   return (
+@@ -91,7 +90,7 @@ export default function ModernClean({ cv, customization: c }: CVTemplateProps) {
+               letterSpacing: '-0.018em',
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/modern/ModernCompact.tsx b/components/cv/templates/modern/ModernCompact.tsx
+index d668bce..35a89f6 100644
+--- a/components/cv/templates/modern/ModernCompact.tsx
++++ b/components/cv/templates/modern/ModernCompact.tsx
+@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -94,7 +94,7 @@ export default function ModernCompact({ cv, customization: c }: CVTemplateProps)
+               letterSpacing: '-0.02em',
+             }}
+           >
+-            {fullName(cv) || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p style={{ fontSize: '1em', fontWeight: bodyWeight(c, 600), color: accentText, marginTop: '0.08em' }}>
+diff --git a/components/cv/templates/modern/ModernCorporate.tsx b/components/cv/templates/modern/ModernCorporate.tsx
+index 2f640dc..600448b 100644
+--- a/components/cv/templates/modern/ModernCorporate.tsx
++++ b/components/cv/templates/modern/ModernCorporate.tsx
+@@ -1,7 +1,7 @@
+ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
+ import {
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -72,7 +72,6 @@ export default function ModernCorporate({ cv, customization: c }: CVTemplateProp
+ 
+   const sections = visibleSections(cv);
+   const { main, aside } = splitSections(sections, ASIDE_SECTIONS);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 'inherit' }}>
+@@ -97,7 +96,7 @@ export default function ModernCorporate({ cv, customization: c }: CVTemplateProp
+               color: onBand,
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/modern/ModernElegant.tsx b/components/cv/templates/modern/ModernElegant.tsx
+index 6b02d02..de96bc5 100644
+--- a/components/cv/templates/modern/ModernElegant.tsx
++++ b/components/cv/templates/modern/ModernElegant.tsx
+@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -59,7 +59,6 @@ export default function ModernElegant({ cv, customization: c }: CVTemplateProps)
+   const muted = mutedOn(c.textColor, 0.38);
+   const frame = tint(accent, 0.45);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: `${c.pageMargin * 1.05}px ${c.pageMargin}px ${c.pageMargin}px` }}>
+@@ -93,7 +92,7 @@ export default function ModernElegant({ cv, customization: c }: CVTemplateProps)
+               color: c.secondaryColor,
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/modern/ModernExecutive.tsx b/components/cv/templates/modern/ModernExecutive.tsx
+index ef2bc6a..6f11c17 100644
+--- a/components/cv/templates/modern/ModernExecutive.tsx
++++ b/components/cv/templates/modern/ModernExecutive.tsx
+@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -108,7 +108,7 @@ export default function ModernExecutive({ cv, customization: c }: CVTemplateProp
+             textAlign: 'center',
+           }}
+         >
+-          {fullName(cv) || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         {cv.personal.title ? (
+           <p
+diff --git a/components/cv/templates/modern/ModernMinimal.tsx b/components/cv/templates/modern/ModernMinimal.tsx
+index 5fa0dfd..ef97d94 100644
+--- a/components/cv/templates/modern/ModernMinimal.tsx
++++ b/components/cv/templates/modern/ModernMinimal.tsx
+@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
+ import {
+   bodyWeight,
+   centredTracking,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -56,7 +56,6 @@ export default function ModernMinimal({ cv, customization: c }: CVTemplateProps)
+   const accent = c.accentColor;
+   const muted = mutedOn(c.textColor, 0.45);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: `${c.pageMargin * 1.15}px ${c.pageMargin}px ${c.pageMargin}px` }}>
+@@ -70,7 +69,7 @@ export default function ModernMinimal({ cv, customization: c }: CVTemplateProps)
+             color: c.textColor,
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+ 
+         {cv.personal.title ? (
+diff --git a/components/cv/templates/modern/ModernProfessional.tsx b/components/cv/templates/modern/ModernProfessional.tsx
+index d4ccb90..0be792d 100644
+--- a/components/cv/templates/modern/ModernProfessional.tsx
++++ b/components/cv/templates/modern/ModernProfessional.tsx
+@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -56,7 +56,6 @@ export default function ModernProfessional({ cv, customization: c }: CVTemplateP
+   const accent = c.accentColor;
+   const accentText = accentOn(accent);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 'inherit' }}>
+@@ -81,7 +80,7 @@ export default function ModernProfessional({ cv, customization: c }: CVTemplateP
+               letterSpacing: '-0.015em',
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/modern/ModernTech.tsx b/components/cv/templates/modern/ModernTech.tsx
+index e79694e..709eb9a 100644
+--- a/components/cv/templates/modern/ModernTech.tsx
++++ b/components/cv/templates/modern/ModernTech.tsx
+@@ -2,8 +2,8 @@ import { ContactIcon, SectionContent, type ContactIconKey } from '@/components/c
+ import {
+   accentOn,
+   bodyWeight,
++  displayName,
+   ensureProtocol,
+-  fullName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -138,7 +138,6 @@ export default function ModernTech({ cv, customization: c }: CVTemplateProps) {
+   const dashed = tint(c.textColor, 0.7);
+   const sections = visibleSections(cv);
+   const rows = contactRows(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: c.pageMargin }}>
+@@ -154,7 +153,7 @@ export default function ModernTech({ cv, customization: c }: CVTemplateProps) {
+         <h1
+           style={{ fontSize: '2.1em', lineHeight: 1.12, fontWeight: headingWeight(c, 600), color: c.secondaryColor }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         {cv.personal.title ? (
+           <p
+diff --git a/components/cv/templates/technology/AiEngineer.tsx b/components/cv/templates/technology/AiEngineer.tsx
+index dc5fb18..3b79ae0 100644
+--- a/components/cv/templates/technology/AiEngineer.tsx
++++ b/components/cv/templates/technology/AiEngineer.tsx
+@@ -4,7 +4,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -75,7 +75,6 @@ export default function AiEngineer({ cv, customization: c }: CVTemplateProps) {
+   const accentText = accentOn(accent, featuredPanel);
+   const sections = visibleSections(cv);
+   const { main, aside } = splitSections(sections, ASIDE_SECTIONS);
+-  const name = fullName(cv);
+ 
+   return (
+     <div
+@@ -102,7 +101,7 @@ export default function AiEngineer({ cv, customization: c }: CVTemplateProps) {
+             color: c.secondaryColor,
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         {cv.personal.title ? (
+           <p style={{ fontSize: '1.1em', fontWeight: bodyWeight(c, 600), color: accentText, marginTop: '0.18em' }}>
+diff --git a/components/cv/templates/technology/Cybersecurity.tsx b/components/cv/templates/technology/Cybersecurity.tsx
+index 93ec6e5..1f9c03c 100644
+--- a/components/cv/templates/technology/Cybersecurity.tsx
++++ b/components/cv/templates/technology/Cybersecurity.tsx
+@@ -1,7 +1,7 @@
+ import { ContactIcon, SectionContent, contactEntries } from '@/components/cv/parts';
+ import {
+   accentOn,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -87,7 +87,6 @@ export default function Cybersecurity({ cv, customization: c }: CVTemplateProps)
+   const asideOrdered = [...aside].sort((a, b) => asideRank(a.id) - asideRank(b.id));
+ 
+   const entries = contactEntries(cv);
+-  const name = fullName(cv);
+   const twoColumns = main.length > 0 && asideOrdered.length > 0;
+ 
+   return (
+@@ -108,7 +107,7 @@ export default function Cybersecurity({ cv, customization: c }: CVTemplateProps)
+             color: onBanner,
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+ 
+         {cv.personal.title ? (
+diff --git a/components/cv/templates/technology/DataScientist.tsx b/components/cv/templates/technology/DataScientist.tsx
+index c94c8a1..4127601 100644
+--- a/components/cv/templates/technology/DataScientist.tsx
++++ b/components/cv/templates/technology/DataScientist.tsx
+@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -67,7 +67,6 @@ export default function DataScientist({ cv, customization: c }: CVTemplateProps)
+   const accentText = accentOn(accent, panel);
+   const muted = mutedOn(c.textColor, 0.42, panel);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+   const publicationCount = cv.publications.filter((item) => item.title).length;
+ 
+   const bracket = {
+@@ -99,7 +98,7 @@ export default function DataScientist({ cv, customization: c }: CVTemplateProps)
+               color: c.secondaryColor,
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/technology/DevOpsEngineer.tsx b/components/cv/templates/technology/DevOpsEngineer.tsx
+index 76bbefb..f6262ef 100644
+--- a/components/cv/templates/technology/DevOpsEngineer.tsx
++++ b/components/cv/templates/technology/DevOpsEngineer.tsx
+@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -70,7 +70,6 @@ export default function DevOpsEngineer({ cv, customization: c }: CVTemplateProps
+   const accentText = accentOn(accent, panel);
+   const muted = mutedOn(c.textColor, 0.4, panel);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: `${c.pageMargin}px` }}>
+@@ -97,7 +96,7 @@ export default function DevOpsEngineer({ cv, customization: c }: CVTemplateProps
+               color: c.secondaryColor,
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p style={{ marginTop: '0.1em', fontWeight: bodyWeight(c, 600), color: accentText }}>
+diff --git a/components/cv/templates/technology/Developer.tsx b/components/cv/templates/technology/Developer.tsx
+index ce45264..6133397 100644
+--- a/components/cv/templates/technology/Developer.tsx
++++ b/components/cv/templates/technology/Developer.tsx
+@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -60,7 +60,6 @@ export default function Developer({ cv, customization: c }: CVTemplateProps) {
+   const accentText = accentOn(accent);
+   const sections = visibleSections(cv);
+   const { main, aside } = splitSections(sections, SIDEBAR_SECTIONS);
+-  const name = fullName(cv);
+   const muted = mutedOn(c.textColor, 0.32);
+   const hairline = tint(c.textColor, 0.7);
+ 
+@@ -79,7 +78,7 @@ export default function Developer({ cv, customization: c }: CVTemplateProps) {
+               letterSpacing: '-0.015em',
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <>
+diff --git a/components/cv/templates/technology/FullStackDeveloper.tsx b/components/cv/templates/technology/FullStackDeveloper.tsx
+index fba600d..1a38016 100644
+--- a/components/cv/templates/technology/FullStackDeveloper.tsx
++++ b/components/cv/templates/technology/FullStackDeveloper.tsx
+@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -67,7 +67,6 @@ export default function FullStackDeveloper({ cv, customization: c }: CVTemplateP
+   const sections = visibleSections(cv);
+   const { main: right, aside: left } = splitSections(sections, LEFT_COLUMN_SECTIONS);
+   const stack = cv.skills.filter((skill) => skill.name).slice(0, STACK_RAIL_LIMIT);
+-  const name = fullName(cv);
+   const twoColumns = left.length > 0 && right.length > 0;
+ 
+   return (
+@@ -86,7 +85,7 @@ export default function FullStackDeveloper({ cv, customization: c }: CVTemplateP
+             color: c.secondaryColor,
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+ 
+         {cv.personal.title ? (
+diff --git a/components/cv/templates/technology/ItProfessional.tsx b/components/cv/templates/technology/ItProfessional.tsx
+index 77e221f..71213a2 100644
+--- a/components/cv/templates/technology/ItProfessional.tsx
++++ b/components/cv/templates/technology/ItProfessional.tsx
+@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -58,7 +58,6 @@ export default function ItProfessional({ cv, customization: c }: CVTemplateProps
+   const accentText = accentOn(accent);
+   const muted = mutedOn(c.textColor, 0.38);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 'inherit' }}>
+@@ -81,7 +80,7 @@ export default function ItProfessional({ cv, customization: c }: CVTemplateProps
+               color: c.secondaryColor,
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/technology/ProductManager.tsx b/components/cv/templates/technology/ProductManager.tsx
+index 4bb0aa1..f136405 100644
+--- a/components/cv/templates/technology/ProductManager.tsx
++++ b/components/cv/templates/technology/ProductManager.tsx
+@@ -2,7 +2,7 @@ import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -62,7 +62,6 @@ export default function ProductManager({ cv, customization: c }: CVTemplateProps
+   const accentText = accentOn(accent);
+   const muted = mutedOn(c.textColor, 0.4);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+ 
+   const leadRole = cv.experience.find((item) => item.role || item.company || item.description);
+   const impact = (leadRole?.achievements ?? []).filter(Boolean).slice(0, IMPACT_CELLS);
+@@ -88,7 +87,7 @@ export default function ProductManager({ cv, customization: c }: CVTemplateProps
+               color: c.secondaryColor,
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/technology/SoftwareEngineer.tsx b/components/cv/templates/technology/SoftwareEngineer.tsx
+index 4309be1..aa648f7 100644
+--- a/components/cv/templates/technology/SoftwareEngineer.tsx
++++ b/components/cv/templates/technology/SoftwareEngineer.tsx
+@@ -2,7 +2,7 @@ import { ContactList, SectionContent } from '@/components/cv/parts';
+ import {
+   accentOn,
+   bodyWeight,
+-  fullName,
++  displayName,
+   headingTracking,
+   headingTransform,
+   headingWeight,
+@@ -56,7 +56,6 @@ export default function SoftwareEngineer({ cv, customization: c }: CVTemplatePro
+   const accent = c.accentColor;
+   const accentText = accentOn(accent);
+   const sections = visibleSections(cv);
+-  const name = fullName(cv);
+   const hairline = tint(c.textColor, 0.7);
+ 
+   return (
+@@ -81,7 +80,7 @@ export default function SoftwareEngineer({ cv, customization: c }: CVTemplatePro
+               letterSpacing: '-0.015em',
+             }}
+           >
+-            {name || 'Your Name'}
++            {displayName(cv)}
+           </h1>
+           {cv.personal.title ? (
+             <p
+diff --git a/components/cv/templates/technology/TechMinimal.tsx b/components/cv/templates/technology/TechMinimal.tsx
+index febf58f..1680a17 100644
+--- a/components/cv/templates/technology/TechMinimal.tsx
++++ b/components/cv/templates/technology/TechMinimal.tsx
+@@ -1,11 +1,5 @@
+ import { ContactIcon, contactEntries, SectionContent } from '@/components/cv/parts';
+-import {
+-  accentOn,
+-  fullName,
+-  headingTracking,
+-  headingTransform,
+-  headingWeight,
+-} from '@/lib/cv/format';
++import { accentOn, displayName, headingTracking, headingTransform, headingWeight } from '@/lib/cv/format';
+ import { visibleSections } from '@/lib/cv/sections';
+ import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
+ 
+@@ -56,7 +50,6 @@ export default function TechMinimal({ cv, customization: c }: CVTemplateProps) {
+   const accentText = accentOn(accent);
+   const sections = visibleSections(cv);
+   const contacts = contactEntries(cv);
+-  const name = fullName(cv);
+ 
+   return (
+     <div style={{ padding: c.pageMargin }}>
+@@ -70,7 +63,7 @@ export default function TechMinimal({ cv, customization: c }: CVTemplateProps) {
+             color: c.secondaryColor,
+           }}
+         >
+-          {name || 'Your Name'}
++          {displayName(cv)}
+         </h1>
+         {cv.personal.title ? (
+           <p style={{ fontSize: '1.02em', marginTop: '0.1em', color: accentText }}>
+diff --git a/lib/cv/defaults.ts b/lib/cv/defaults.ts
+index efdb7ef..9587426 100644
+--- a/lib/cv/defaults.ts
++++ b/lib/cv/defaults.ts
+@@ -1,10 +1,19 @@
+ import { uid } from '@/lib/utils/id';
++import { DEFAULT_LOCALE } from '@/lib/i18n/locales';
+ import { defaultSectionConfigs } from './sections';
+ import { cvCustomizationSchema, cvDataSchema, type CVCustomization, type CVData } from '@/types/cv';
+ 
+-/** A blank but structurally valid CV. */
++/**
++ * A blank but structurally valid CV, written in `language`.
++ *
++ * The language is read off the overrides rather than taken as a second argument, so the
++ * one place that knows it — whichever caller is creating the document for a signed-in
++ * user — passes it the same way it passes everything else.
++ */
+ export function createEmptyCV(overrides: Partial<CVData> = {}): CVData {
++  const language = overrides.language ?? DEFAULT_LOCALE;
+   const base = cvDataSchema.parse({
++    language,
+     personal: {},
+     summary: '',
+     experience: [],
+@@ -19,7 +28,7 @@ export function createEmptyCV(overrides: Partial<CVData> = {}): CVData {
+     interests: [],
+     references: [],
+     customSections: [],
+-    sections: defaultSectionConfigs(),
++    sections: defaultSectionConfigs(language),
+   });
+   return { ...base, ...overrides };
+ }
+diff --git a/lib/cv/format.ts b/lib/cv/format.ts
+index a7d23ba..d30757a 100644
+--- a/lib/cv/format.ts
++++ b/lib/cv/format.ts
+@@ -7,6 +7,7 @@ import type {
+   PaperSize,
+   SkillLevel,
+ } from '@/types/cv';
++import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/locales';
+ 
+ /* -------------------------------------------------------------------------- */
+ /* Fonts                                                                       */
+@@ -247,41 +248,115 @@ export const PAPER: Record<PaperSize, PaperGeometry> = {
+ /* Dates                                                                       */
+ /* -------------------------------------------------------------------------- */
+ 
+-const MONTHS_SHORT = [
+-  'Jan',
+-  'Feb',
+-  'Mar',
+-  'Apr',
+-  'May',
+-  'Jun',
+-  'Jul',
+-  'Aug',
+-  'Sep',
+-  'Oct',
+-  'Nov',
+-  'Dec',
+-];
++/**
++ * Month names, written out rather than taken from `Intl`.
++ *
++ * `toLocaleDateString` would be the obvious source and is the wrong one here. These strings
++ * are printed into a PDF rendered by headless Chromium, and ICU data differs between the
++ * local Chromium, the one on Vercel and the Lambda build — so the same CV could come out
++ * with different month names depending on where it was exported. A CV is a document
++ * somebody archives and re-downloads a year later; it has to be byte-stable.
++ *
++ * French and German lower-case their months. That is correct, not an oversight: only
++ * German nouns are capitalised and month names in running text follow the sentence, while
++ * French never capitalises them. Getting this wrong is a visible tell that a document was
++ * translated by someone who did not speak the language.
++ */
++const MONTHS_SHORT: Record<Locale, string[]> = {
++  en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
++  fr: ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'],
++  de: ['Jan.', 'Feb.', 'März', 'Apr.', 'Mai', 'Juni', 'Juli', 'Aug.', 'Sep.', 'Okt.', 'Nov.', 'Dez.'],
++};
+ 
+-const MONTHS_LONG = [
+-  'January',
+-  'February',
+-  'March',
+-  'April',
+-  'May',
+-  'June',
+-  'July',
+-  'August',
+-  'September',
+-  'October',
+-  'November',
+-  'December',
+-];
++const MONTHS_LONG: Record<Locale, string[]> = {
++  en: [
++    'January',
++    'February',
++    'March',
++    'April',
++    'May',
++    'June',
++    'July',
++    'August',
++    'September',
++    'October',
++    'November',
++    'December',
++  ],
++  fr: [
++    'janvier',
++    'février',
++    'mars',
++    'avril',
++    'mai',
++    'juin',
++    'juillet',
++    'août',
++    'septembre',
++    'octobre',
++    'novembre',
++    'décembre',
++  ],
++  de: [
++    'Januar',
++    'Februar',
++    'März',
++    'April',
++    'Mai',
++    'Juni',
++    'Juli',
++    'August',
++    'September',
++    'Oktober',
++    'November',
++    'Dezember',
++  ],
++};
++
++/**
++ * What an ongoing role is called.
++ *
++ * `heute` rather than a literal rendering of "present" — that is what a Lebenslauf says.
++ * French uses `aujourd'hui` with a typographic apostrophe, matching the rest of the app.
++ */
++const PRESENT_LABEL: Record<Locale, string> = {
++  en: 'Present',
++  fr: 'aujourd’hui',
++  de: 'heute',
++};
++
++/**
++ * What the masthead shows before a name has been typed.
++ *
++ * Fifty-nine of the sixty-one templates carried the string `'Your Name'` inline. On an
++ * empty French CV that is the single largest piece of text on the page, set at 30-odd
++ * points — the first thing anyone sees, in the wrong language.
++ */
++const PLACEHOLDER_NAME: Record<Locale, string> = {
++  en: 'Your Name',
++  fr: 'Votre nom',
++  de: 'Ihr Name',
++};
++
++/** The name to print: the applicant's, or the placeholder in the document's language. */
++export function displayName(cv: CVData): string {
++  return fullName(cv) || PLACEHOLDER_NAME[cv.language];
++}
++
++/** The long month name in `locale` — `''` for an index outside 0–11. */
++export function monthName(index: number, locale: Locale = DEFAULT_LOCALE): string {
++  return MONTHS_LONG[locale][index] ?? '';
++}
+ 
+ /**
+  * Formats a partial `YYYY[-MM[-DD]]` value.
+  * Returns `''` for empty input so templates can decide what to render.
+  */
+-export function formatPartialDate(value: string, format: DateFormatKey = 'month-year-short'): string {
++export function formatPartialDate(
++  value: string,
++  format: DateFormatKey = 'month-year-short',
++  locale: Locale = DEFAULT_LOCALE,
++): string {
+   const trimmedValue = value?.trim();
+   if (!trimmedValue) return '';
+ 
+@@ -299,24 +374,31 @@ export function formatPartialDate(value: string, format: DateFormatKey = 'month-
+     case 'numeric':
+       return `${monthRaw}/${year}`;
+     case 'month-year-long':
+-      return `${MONTHS_LONG[monthIndex]} ${year}`;
++      return `${MONTHS_LONG[locale][monthIndex]} ${year}`;
+     case 'month-year-short':
+     default:
+-      return `${MONTHS_SHORT[monthIndex]} ${year}`;
++      return `${MONTHS_SHORT[locale][monthIndex]} ${year}`;
+   }
+ }
+ 
+-/** `Jan 2021 — Present`, `2019 — 2021`, or a single value when only one side exists. */
++/**
++ * `Jan 2021 – Present`, `janv. 2021 – aujourd’hui`, `2019 – 2021`.
++ *
++ * Takes the document's language rather than a `presentLabel` string, which is what it used
++ * to take. Every caller passed the default, so nothing was choosing a label — and a caller
++ * that translated "Present" while the month names stayed English would have produced a
++ * half-translated date, which is worse than a consistently English one.
++ */
+ export function formatDateRange(
+   start: string,
+   end: string,
+   current: boolean,
+   format: DateFormatKey = 'month-year-short',
+-  presentLabel = 'Present',
++  locale: Locale = DEFAULT_LOCALE,
+   separator = ' – ',
+ ): string {
+-  const from = formatPartialDate(start, format);
+-  const to = current ? presentLabel : formatPartialDate(end, format);
++  const from = formatPartialDate(start, format, locale);
++  const to = current ? PRESENT_LABEL[locale] : formatPartialDate(end, format, locale);
+   if (from && to) return `${from}${separator}${to}`;
+   return from || to || '';
+ }
+diff --git a/lib/cv/sections.ts b/lib/cv/sections.ts
+index ea38db0..e0e54eb 100644
+--- a/lib/cv/sections.ts
++++ b/lib/cv/sections.ts
+@@ -4,10 +4,17 @@ import {
+   type CVData,
+   type SectionConfig,
+ } from '@/types/cv';
++import { defaultSectionLabels } from '@/lib/i18n/cv-labels';
++import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/locales';
+ 
+ export interface SectionMeta {
+   id: BuiltInSectionId;
+-  defaultLabel: string;
++  /*
++   * No `defaultLabel` here. The English headings live in `cv-labels.ts` alongside the
++   * French and German ones, because a CV can be written in any of the three and the
++   * heading for a section is one fact with three spellings, not an English constant with
++   * translations bolted on.
++   */
+   /** Copy shown in the editor's section list and the "add section" sheet. */
+   hint: string;
+   icon: SectionIconName;
+@@ -36,7 +43,6 @@ export type SectionIconName =
+ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
+   summary: {
+     id: 'summary',
+-    defaultLabel: 'Professional Summary',
+     hint: 'Three or four lines that frame who you are and the value you bring.',
+     icon: 'file-text',
+     defaultEnabled: true,
+@@ -44,7 +50,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
+   },
+   competencies: {
+     id: 'competencies',
+-    defaultLabel: 'Core Competencies',
+     hint: 'Three to six areas of expertise, each with the achievements that prove it. This is what makes a functional CV functional — lead with it and the work history can stay short.',
+     icon: 'layers',
+     defaultEnabled: false,
+@@ -52,7 +57,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
+   },
+   experience: {
+     id: 'experience',
+-    defaultLabel: 'Work Experience',
+     hint: 'Roles, companies, dates and the results you delivered.',
+     icon: 'briefcase',
+     defaultEnabled: true,
+@@ -60,7 +64,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
+   },
+   education: {
+     id: 'education',
+-    defaultLabel: 'Education',
+     hint: 'Degrees, institutions and relevant coursework.',
+     icon: 'graduation-cap',
+     defaultEnabled: true,
+@@ -68,7 +71,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
+   },
+   skills: {
+     id: 'skills',
+-    defaultLabel: 'Skills',
+     hint: 'Hard and soft skills, optionally grouped into categories.',
+     icon: 'sparkles',
+     defaultEnabled: true,
+@@ -76,7 +78,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
+   },
+   languages: {
+     id: 'languages',
+-    defaultLabel: 'Languages',
+     hint: 'Languages you speak and your proficiency in each.',
+     icon: 'languages',
+     defaultEnabled: true,
+@@ -84,7 +85,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
+   },
+   projects: {
+     id: 'projects',
+-    defaultLabel: 'Projects',
+     hint: 'Side projects, open-source work or client deliverables.',
+     icon: 'folder-git-2',
+     defaultEnabled: false,
+@@ -92,7 +92,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
+   },
+   certifications: {
+     id: 'certifications',
+-    defaultLabel: 'Certifications',
+     hint: 'Professional certifications, licences and credentials.',
+     icon: 'badge-check',
+     defaultEnabled: false,
+@@ -100,7 +99,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
+   },
+   awards: {
+     id: 'awards',
+-    defaultLabel: 'Awards',
+     hint: 'Recognition, prizes and honours.',
+     icon: 'trophy',
+     defaultEnabled: false,
+@@ -108,7 +106,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
+   },
+   volunteer: {
+     id: 'volunteer',
+-    defaultLabel: 'Volunteer Experience',
+     hint: 'Unpaid work that demonstrates initiative and values.',
+     icon: 'heart-handshake',
+     defaultEnabled: false,
+@@ -116,7 +113,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
+   },
+   publications: {
+     id: 'publications',
+-    defaultLabel: 'Publications',
+     hint: 'Papers, articles, books and conference talks.',
+     icon: 'book-open',
+     defaultEnabled: false,
+@@ -124,7 +120,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
+   },
+   interests: {
+     id: 'interests',
+-    defaultLabel: 'Interests',
+     hint: 'A short, human line at the end of the document.',
+     icon: 'palette',
+     defaultEnabled: false,
+@@ -132,7 +127,6 @@ export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
+   },
+   references: {
+     id: 'references',
+-    defaultLabel: 'References',
+     hint: 'Referees, or a single "available on request" line.',
+     icon: 'quote',
+     defaultEnabled: false,
+@@ -145,10 +139,19 @@ export const ORDERED_SECTION_META: SectionMeta[] = BUILT_IN_SECTION_IDS.map(
+ );
+ 
+ /** Default section order for a brand-new CV. */
+-export function defaultSectionConfigs(): SectionConfig[] {
++/**
++ * The sections a fresh CV starts with, headed in `locale`.
++ *
++ * A French user signing up used to get a document headed "Work Experience", "Education",
++ * "Skills" — and that is what printed in the PDF they sent to employers, which is a worse
++ * failure than any untranslated button. The labels already existed; nothing passed them a
++ * language.
++ */
++export function defaultSectionConfigs(locale: Locale = DEFAULT_LOCALE): SectionConfig[] {
++  const labels = defaultSectionLabels(locale);
+   return BUILT_IN_SECTION_IDS.map((id) => ({
+     id,
+-    label: SECTION_META[id].defaultLabel,
++    label: labels[id],
+     enabled: SECTION_META[id].defaultEnabled,
+   }));
+ }
+diff --git a/lib/db/cvs.ts b/lib/db/cvs.ts
+index b90b602..e7a21d0 100644
+--- a/lib/db/cvs.ts
++++ b/lib/db/cvs.ts
+@@ -5,6 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
+ import { adminDb, COLLECTIONS, cvCollection, toIso } from '@/lib/firebase/admin';
+ import { adjustCvCount } from './users';
+ import { createDefaultCustomization, createEmptyCV } from '@/lib/cv/defaults';
++import type { Locale } from '@/lib/i18n/locales';
+ import { completenessScore } from '@/lib/cv/sections';
+ import { DEFAULT_TEMPLATE_ID, findTemplate } from '@/lib/cv/template-registry';
+ import { shareId as makeShareId } from '@/lib/utils/id';
+@@ -125,6 +126,13 @@ export async function createCV(
+     templateId?: string;
+     data?: CVData;
+     customization?: Partial<CVCustomization>;
++    /**
++     * The document's language, normally the creator's interface language.
++     *
++     * Only consulted when no `data` is supplied — an imported or duplicated CV already
++     * carries its own, and overriding it here would silently retitle someone's document.
++     */
++    language?: Locale;
+   } = {},
+ ): Promise<CVDocument> {
+   const template = findTemplate(input.templateId ?? DEFAULT_TEMPLATE_ID);
+@@ -139,7 +147,7 @@ export async function createCV(
+   const document: Omit<CVDocument, 'id'> = {
+     ownerId: uid,
+     title: input.title?.trim() || 'Untitled CV',
+-    data: input.data ? cvDataSchema.parse(input.data) : createEmptyCV(),
++    data: input.data ? cvDataSchema.parse(input.data) : createEmptyCV({ language: input.language }),
+     customization,
+     createdAt: now,
+     updatedAt: now,
+diff --git a/lib/i18n/cv-labels.ts b/lib/i18n/cv-labels.ts
+index 4775d71..0a74a17 100644
+--- a/lib/i18n/cv-labels.ts
++++ b/lib/i18n/cv-labels.ts
+@@ -1,5 +1,5 @@
+ import { BUILT_IN_SECTION_IDS, type BuiltInSectionId, type CVData } from '@/types/cv';
+-import type { Locale } from './locales';
++import { LOCALES, type Locale } from './locales';
+ 
+ /**
+  * The section headings a CV prints, per language.
+@@ -59,11 +59,87 @@ const DE_LABELS: Record<BuiltInSectionId, string> = {
+   references: 'Referenzen',
+ };
+ 
+-const LABELS: Partial<Record<Locale, Record<BuiltInSectionId, string>>> = {
++/**
++ * The English headings — the source of truth, not a copy of one.
++ *
++ * `localiseCv` could get away with "no entry means leave it alone", because it only ever
++ * ran on marketing samples written in English to begin with. `retitleSections` cannot:
++ * switching a CV *back* to English has to know what English looks like, and recognising a
++ * heading as untouched means comparing it against every language, including this one.
++ *
++ * `SECTION_META` used to carry its own `defaultLabel` for each section. Two tables of the
++ * same thirteen strings is a drift waiting to happen — and it had already happened, by one
++ * word, before a test caught it. `sections.ts` now reads these.
++ */
++const EN_LABELS: Record<BuiltInSectionId, string> = {
++  summary: 'Professional Summary',
++  competencies: 'Core Competencies',
++  experience: 'Work Experience',
++  education: 'Education',
++  skills: 'Skills',
++  languages: 'Languages',
++  projects: 'Projects',
++  certifications: 'Certifications',
++  awards: 'Awards',
++  volunteer: 'Volunteer Experience',
++  publications: 'Publications',
++  interests: 'Interests',
++  references: 'References',
++};
++
++const LABELS: Record<Locale, Record<BuiltInSectionId, string>> = {
++  en: EN_LABELS,
+   fr: FR_LABELS,
+   de: DE_LABELS,
+ };
+ 
++/** Every heading this section is known to print, in any language. */
++function knownLabels(id: BuiltInSectionId): string[] {
++  return LOCALES.map((locale) => LABELS[locale][id]);
++}
++
++/** The default headings for a CV written in `locale`. */
++export function defaultSectionLabels(locale: Locale): Record<BuiltInSectionId, string> {
++  return LABELS[locale];
++}
++
++/**
++ * The same CV with its built-in headings switched to `locale` — but only the ones the
++ * user has not renamed.
++ *
++ * This is the difference between this and `localiseCv`, and it matters because this runs
++ * on documents people have written. Someone who renamed "Work Experience" to "Selected
++ * Engagements" and then switches the CV to French must keep their wording; silently
++ * reverting it would destroy work with no undo.
++ *
++ * A heading counts as untouched when it matches that section's default in *any* language.
++ * That reads oddly at first — why check French when leaving French? — but it is the only
++ * way to recognise a heading that arrived from a previous switch. The alternative is
++ * storing a "renamed" flag, which every CV written before this feature would lack.
++ *
++ * A user who deliberately renames their section to the exact French default and then
++ * switches to German will see it translate. That is the acknowledged false positive, and
++ * it is the harmless direction to be wrong in.
++ */
++export function retitleSections(cv: CVData, locale: Locale): CVData {
++  const labels = LABELS[locale];
++
++  return {
++    ...cv,
++    sections: cv.sections.map((section) => {
++      if (!(BUILT_IN_SECTION_IDS as readonly string[]).includes(section.id)) return section;
++      const id = section.id as BuiltInSectionId;
++      const renamed = !knownLabels(id).includes(section.label);
++      return renamed ? section : { ...section, label: labels[id] };
++    }),
++  };
++}
++
++/** The same CV, retitled and stamped with its new language. */
++export function setCvLanguage(cv: CVData, locale: Locale): CVData {
++  return { ...retitleSections(cv, locale), language: locale };
++}
++
+ /** The heading this section prints in `locale`, or `undefined` to leave it alone. */
+ export function sectionLabel(id: string, locale: Locale): string | undefined {
+   if (!(BUILT_IN_SECTION_IDS as readonly string[]).includes(id)) return undefined;
+@@ -77,8 +153,7 @@ export function sectionLabel(id: string, locale: Locale): string | undefined {
+  * React sees the identical reference.
+  */
+ export function localiseCv(cv: CVData, locale: Locale): CVData {
+-  const labels = LABELS[locale];
+-  if (!labels) return cv;
++  if (locale === 'en') return cv;
+ 
+   return {
+     ...cv,
+diff --git a/lib/pdf/render.tsx b/lib/pdf/render.tsx
+index 1c18e35..7f5b24a 100644
+--- a/lib/pdf/render.tsx
++++ b/lib/pdf/render.tsx
+@@ -8,6 +8,7 @@ import { CV_DOCUMENT_CSS, printPageCss } from '@/lib/cv/document-css';
+ import { googleFontsHref, PAPER } from '@/lib/cv/format';
+ import { fullName } from '@/lib/cv/format';
+ import { serverEnv } from '@/lib/env';
++import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/locales';
+ import type { CVCustomization, CVData } from '@/types/cv';
+ 
+ /**
+@@ -252,15 +253,30 @@ const FOOTER_MARGIN = '11mm';
+  * margin would be legible on some templates and invisible on others, so the footer carries
+  * its own background and reads as a deliberate page tab on all of them.
+  */
+-function footerTemplate(name: string): string {
++/**
++ * "Page 1 of 2" / "Page 1 sur 2" / "Seite 1 von 2".
++ *
++ * Split around the two counters rather than interpolated, because Chromium replaces the
++ * contents of `.pageNumber` and `.totalPages` itself — the words have to sit outside those
++ * spans, and the three languages put them in different places.
++ */
++const PAGE_LABEL: Record<Locale, { lead: string; between: string }> = {
++  en: { lead: 'Page ', between: ' of ' },
++  fr: { lead: 'Page ', between: ' sur ' },
++  de: { lead: 'Seite ', between: ' von ' },
++};
++
++function footerTemplate(name: string, locale: Locale): string {
+   const pill =
+     'background:#ffffff;border:1px solid #e5e7eb;border-radius:3px;padding:1.5px 5px;' +
+     'color:#4b5563;white-space:nowrap';
++  const page = PAGE_LABEL[locale] ?? PAGE_LABEL[DEFAULT_LOCALE];
+   return (
+     `<div style="width:100%;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:7.5px;` +
+     `padding:0 12mm;display:flex;align-items:center;justify-content:space-between;">` +
+     `<span style="${pill}">${escapeHtml(name)}</span>` +
+-    `<span style="${pill}">Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>` +
++    `<span style="${pill}">${escapeHtml(page.lead)}<span class="pageNumber"></span>` +
++    `${escapeHtml(page.between)}<span class="totalPages"></span></span>` +
+     `</div>`
+   );
+ }
+@@ -314,8 +330,10 @@ export async function renderCVPdf(options: RenderOptions): Promise<PdfResult> {
+       return { buffer: first, pageCount: 1, bytes: first.byteLength };
+     }
+ 
++    // "Curriculum Vitae" happens to be the same in all three, which is why it survives as a
++    // literal — but the page counter beside it does not, so the footer takes the language.
+     const name = fullName(options.cv) || 'Curriculum Vitae';
+-    const second = Buffer.from(await print(footerTemplate(name)));
++    const second = Buffer.from(await print(footerTemplate(name, options.cv.language)));
+     return { buffer: second, pageCount: countPdfPages(second), bytes: second.byteLength };
+   } finally {
+     // `disconnect` for a remote browser; `close` for one we launched.
+diff --git a/tests/cv/document-language.test.tsx b/tests/cv/document-language.test.tsx
+new file mode 100644
+index 0000000..015eb58
+--- /dev/null
++++ b/tests/cv/document-language.test.tsx
+@@ -0,0 +1,254 @@
++import { cleanup, render } from '@testing-library/react';
++import { afterEach, describe, expect, it } from 'vitest';
++
++import { CVDocument } from '@/components/cv/CVDocument';
++import { CoverLetterDocument, formatLetterDate } from '@/components/cv/CoverLetterDocument';
++import { createDefaultCustomization, createEmptyCV, createSampleCV } from '@/lib/cv/defaults';
++import { defaultSectionLabels, retitleSections, setCvLanguage } from '@/lib/i18n/cv-labels';
++import { displayName, formatDateRange, formatPartialDate } from '@/lib/cv/format';
++import { LOCALES, type Locale } from '@/lib/i18n/locales';
++import { BUILT_IN_SECTION_IDS, type CVData } from '@/types/cv';
++
++/**
++ * The language of the document, as distinct from the language of the app.
++ *
++ * The bug this covers was the worst one in the product and the least visible from the
++ * outside: a French user signed up on `/fr`, opened the editor, and got a CV headed
++ * "Work Experience", "Education", "Skills". That is not a cosmetic miss — it is the
++ * document they attach to an application. The headings existed in French the whole time;
++ * they were wired to the marketing previews and to nothing else.
++ */
++
++afterEach(cleanup);
++
++describe('a CV knows what language it is written in', () => {
++  it('defaults to English so documents written before the field parse unchanged', () => {
++    expect(createEmptyCV().language).toBe('en');
++  });
++
++  it.each(LOCALES)('starts a new %s CV with headings in that language', (locale) => {
++    const cv = createEmptyCV({ language: locale });
++    const expected = defaultSectionLabels(locale);
++    expect(cv.language).toBe(locale);
++    for (const section of cv.sections) {
++      expect(section.label, `${locale}: ${section.id}`).toBe(expected[section.id as never]);
++    }
++  });
++
++  it('heads a French CV in French rather than in English', () => {
++    // The specific thing the user reported, asserted on the words themselves.
++    const labels = createEmptyCV({ language: 'fr' }).sections.map((s) => s.label);
++    expect(labels).toContain('Expérience professionnelle');
++    expect(labels).toContain('Formation');
++    expect(labels).not.toContain('Work Experience');
++    expect(labels).not.toContain('Education');
++  });
++
++  it('heads a German CV in the words a Lebenslauf uses', () => {
++    const labels = createEmptyCV({ language: 'de' }).sections.map((s) => s.label);
++    expect(labels).toContain('Berufserfahrung');
++    expect(labels).toContain('Ausbildung');
++    expect(labels).not.toContain('Work Experience');
++  });
++
++  it('has a heading for every section in every language', () => {
++    /*
++     * This started life asserting that `cv-labels.ts` agreed with a second copy of the
++     * same thirteen strings on `SECTION_META.defaultLabel`. It failed on the first run —
++     * "Volunteering" against "Volunteer Experience" — which is the entire argument against
++     * keeping two copies, so `defaultLabel` is gone and this checks completeness instead.
++     *
++     * A missing entry would render `undefined` as a section heading in the PDF.
++     */
++    for (const locale of LOCALES) {
++      const labels = defaultSectionLabels(locale);
++      for (const id of BUILT_IN_SECTION_IDS) {
++        expect(labels[id], `${locale}: ${id}`).toBeTruthy();
++        expect(typeof labels[id], `${locale}: ${id}`).toBe('string');
++      }
++      // And every section the app knows about is covered, with nothing left over.
++      expect(Object.keys(labels).sort()).toEqual([...BUILT_IN_SECTION_IDS].sort());
++    }
++  });
++
++  it('gives each language its own wording rather than reusing English', () => {
++    const en = defaultSectionLabels('en');
++    for (const locale of ['fr', 'de'] as const) {
++      const labels = defaultSectionLabels(locale);
++      // `Publications` is legitimately identical in all three, so this is a count rather
++      // than a per-section assertion.
++      const shared = BUILT_IN_SECTION_IDS.filter((id) => labels[id] === en[id]);
++      expect(shared.length, `${locale} reuses ${shared.join(', ')}`).toBeLessThan(3);
++    }
++  });
++});
++
++describe('switching a CV between languages', () => {
++  it('retitles the headings the user has not touched', () => {
++    const cv = createEmptyCV({ language: 'en' });
++    const french = setCvLanguage(cv, 'fr');
++    expect(french.language).toBe('fr');
++    expect(french.sections.find((s) => s.id === 'experience')?.label).toBe(
++      'Expérience professionnelle',
++    );
++  });
++
++  it('never overwrites a heading the user renamed', () => {
++    /*
++     * The destructive case. Someone who renamed "Work Experience" to "Selected
++     * Engagements" and then switches language must keep their wording — there is no undo
++     * in the editor for a change the app made on its own.
++     */
++    const cv = createEmptyCV({ language: 'en' });
++    const renamed: CVData = {
++      ...cv,
++      sections: cv.sections.map((s) =>
++        s.id === 'experience' ? { ...s, label: 'Selected Engagements' } : s,
++      ),
++    };
++
++    for (const locale of LOCALES) {
++      const switched = setCvLanguage(renamed, locale);
++      expect(switched.sections.find((s) => s.id === 'experience')?.label, locale).toBe(
++        'Selected Engagements',
++      );
++      // Everything the user did *not* rename still follows the language.
++      expect(switched.sections.find((s) => s.id === 'education')?.label, locale).toBe(
++        defaultSectionLabels(locale).education,
++      );
++    }
++  });
++
++  it('round-trips back to English without stranding a translated heading', () => {
++    // en → fr → de → en has to land exactly where it started, or headings accumulate the
++    // residue of every language the CV has ever been in.
++    const start = createEmptyCV({ language: 'en' });
++    const back = setCvLanguage(setCvLanguage(setCvLanguage(start, 'fr'), 'de'), 'en');
++    expect(back.sections).toEqual(start.sections);
++    expect(back.language).toBe('en');
++  });
++
++  it('leaves custom sections alone entirely', () => {
++    const cv = createEmptyCV({ language: 'en' });
++    const withCustom: CVData = {
++      ...cv,
++      sections: [...cv.sections, { id: 'custom:abc', label: 'Speaking', enabled: true }],
++    };
++    const french = retitleSections(withCustom, 'fr');
++    expect(french.sections.find((s) => s.id === 'custom:abc')?.label).toBe('Speaking');
++  });
++
++  it('does not touch the content, only the headings', () => {
++    const sample = createSampleCV();
++    const french = setCvLanguage(sample, 'fr');
++    expect(french.experience).toEqual(sample.experience);
++    expect(french.summary).toBe(sample.summary);
++    expect(french.personal).toEqual(sample.personal);
++  });
++});
++
++describe('dates print in the document language', () => {
++  it.each([
++    ['en', 'Mar 2021', 'Present'],
++    ['fr', 'mars 2021', 'aujourd’hui'],
++    ['de', 'März 2021', 'heute'],
++  ] as [Locale, string, string][])('%s', (locale, month, present) => {
++    const range = formatDateRange('2021-03', '', true, 'month-year-short', locale);
++    expect(range).toContain(month);
++    expect(range).toContain(present);
++  });
++
++  it('lower-cases French and German month names, which is correct', () => {
++    // Only German nouns are capitalised, and French never capitalises months. Getting this
++    // wrong is the visible tell of a machine translation.
++    expect(formatPartialDate('2021-01', 'month-year-long', 'fr')).toBe('janvier 2021');
++    expect(formatPartialDate('2021-01', 'month-year-long', 'de')).toBe('Januar 2021');
++    expect(formatPartialDate('2021-01', 'month-year-long', 'en')).toBe('January 2021');
++  });
++
++  it('does not depend on the host ICU data', () => {
++    /*
++     * These strings go into a PDF rendered by headless Chromium, and ICU differs between
++     * the local build, Vercel and Lambda. If this ever starts going through `Intl`, the
++     * same CV could export with different month names depending on where it ran.
++     */
++    const viaIntl = new Intl.DateTimeFormat('fr-FR', { month: 'long' }).format(new Date(2021, 0));
++    expect(formatPartialDate('2021-01', 'month-year-long', 'fr')).toBe(`${viaIntl} 2021`);
++    // Asserted as a literal too, so the test still means something if ICU is absent.
++    expect(formatPartialDate('2021-01', 'month-year-long', 'fr')).toBe('janvier 2021');
++  });
++});
++
++describe('the empty-state name', () => {
++  it.each([
++    ['en', 'Your Name'],
++    ['fr', 'Votre nom'],
++    ['de', 'Ihr Name'],
++  ] as [Locale, string][])('reads %s as “%s”', (locale, expected) => {
++    expect(displayName(createEmptyCV({ language: locale }))).toBe(expected);
++  });
++
++  it('gives way to a real name as soon as there is one', () => {
++    const cv = createEmptyCV({ language: 'fr' });
++    cv.personal.firstName = 'Amina';
++    cv.personal.lastName = 'El Fassi';
++    expect(displayName(cv)).toBe('Amina El Fassi');
++  });
++});
++
++describe('the rendered document', () => {
++  it.each(LOCALES)('carries lang="%s" for hyphenation and screen readers', (locale) => {
++    const cv = createEmptyCV({ language: locale });
++    const { container } = render(
++      <CVDocument cv={cv} customization={createDefaultCustomization()} />,
++    );
++    expect(container.querySelector('[data-template]')?.getAttribute('lang')).toBe(locale);
++  });
++
++  it.each(LOCALES)('prints no English placeholder on a blank %s CV', (locale) => {
++    const cv = createEmptyCV({ language: locale });
++    const { container } = render(
++      <CVDocument cv={cv} customization={createDefaultCustomization()} />,
++    );
++    if (locale === 'en') return;
++    expect(container.textContent ?? '').not.toContain('Your Name');
++  });
++});
++
++describe('the cover letter follows its CV', () => {
++  const letterFor = (locale: Locale) => {
++    const cv = setCvLanguage(createSampleCV(), locale);
++    const { container } = render(
++      <CoverLetterDocument
++        cv={cv}
++        customization={createDefaultCustomization()}
++        today="2026-08-14"
++      />,
++    );
++    return container.textContent ?? '';
++  };
++
++  it('opens and closes with the right convention', () => {
++    expect(letterFor('en')).toContain('Dear Hiring Manager,');
++    expect(letterFor('fr')).toContain('Madame, Monsieur,');
++    expect(letterFor('de')).toContain('Sehr geehrte Damen und Herren,');
++
++    expect(letterFor('fr')).toContain('Je vous prie d’agréer');
++    expect(letterFor('de')).toContain('Mit freundlichen Grüßen');
++  });
++
++  it('dates itself the way a letter in that country is dated', () => {
++    expect(formatLetterDate('2026-08-14', 'en')).toBe('14 August 2026');
++    expect(formatLetterDate('2026-08-14', 'fr')).toBe('le 14 août 2026');
++    expect(formatLetterDate('2026-08-14', 'de')).toBe('14. August 2026');
++  });
++
++  it('never leaves an English opening on a translated letter', () => {
++    for (const locale of ['fr', 'de'] as const) {
++      const text = letterFor(locale);
++      expect(text, locale).not.toContain('Dear ');
++      expect(text, locale).not.toContain('Yours sincerely');
++      expect(text, locale).not.toContain('Yours faithfully');
++    }
++  });
++});
+diff --git a/types/cv.ts b/types/cv.ts
+index 2aefad0..8b47b2f 100644
+--- a/types/cv.ts
++++ b/types/cv.ts
+@@ -1,5 +1,9 @@
+ import { z } from 'zod';
+ 
++// A leaf module — no imports of its own, so this cannot create a cycle back through the
++// i18n layer, which does depend on these types.
++import { DEFAULT_LOCALE, LOCALES } from '@/lib/i18n/locales';
++
+ /**
+  * The single normalised CV document shape.
+  *
+@@ -412,6 +416,17 @@ export const cvDataSchema = z.object({
+   /** Ordered. Array position *is* the render order. */
+   sections: z.array(sectionConfigSchema).default([]),
+   coverLetter: coverLetterSchema.default(() => coverLetterSchema.parse({})),
++  /**
++   * The language of the *document*, which is not the language of the interface.
++   *
++   * Someone applying in Paris and Berlin from one account needs a French CV and a German
++   * Lebenslauf side by side, so this belongs to the CV rather than to the user. It drives
++   * the section headings and the date formatting the templates print — not the content,
++   * which is the applicant's own words in whatever language they choose to write them.
++   *
++   * Defaults to English so every CV written before this field existed parses unchanged.
++   */
++  language: z.enum(LOCALES).default(DEFAULT_LOCALE),
+ });
+ export type CVData = z.infer<typeof cvDataSchema>;
+ 
+diff --git a/types/user.ts b/types/user.ts
+index 6126fe7..f9ae6dc 100644
+--- a/types/user.ts
++++ b/types/user.ts
+@@ -1,5 +1,7 @@
+ import { z } from 'zod';
+ 
++import { DEFAULT_LOCALE, LOCALES } from '@/lib/i18n/locales';
++
+ export const planIdSchema = z.enum(['free', 'pro', 'lifetime']);
+ export type PlanId = z.infer<typeof planIdSchema>;
+ 
+@@ -42,7 +44,19 @@ export const userProfileSchema = z.object({
+   downloadsThisMonth: z.number().int().min(0).default(0),
+   downloadsPeriod: z.string().default(''),
+   marketingOptIn: z.boolean().default(false),
+-  locale: z.string().default('en'),
++  /**
++   * The language of the *interface*, which is not the language of any CV.
++   *
++   * This field existed from the beginning and nothing rendered from it. It is now the
++   * dashboard's and the editor's language, set from the site language a visitor signed up
++   * under and changeable in the header or in Settings. A CV carries its own `language`,
++   * so browsing in French while writing a German Lebenslauf is a supported thing to do.
++   *
++   * `catch` rather than a bare default: a profile written when this was a free-form
++   * string may hold anything, and an unknown language should degrade to English rather
++   * than fail the whole profile parse and lock the user out.
++   */
++  locale: z.enum(LOCALES).catch(DEFAULT_LOCALE).default(DEFAULT_LOCALE),
+ });
+ export type UserProfile = z.infer<typeof userProfileSchema>;
+ 
+-- 
+2.43.0
+

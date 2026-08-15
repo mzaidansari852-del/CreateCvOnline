@@ -1,0 +1,1657 @@
+From a1ec3eefd219d7936da4a321f0ff9edacb594b2e Mon Sep 17 00:00:00 2001
+From: CreateCVOnline <dev@createcvonline.com>
+Date: Sat, 15 Aug 2026 16:39:23 +0000
+Subject: [PATCH 3/3] Add the language switcher and carry the site language
+ into the app
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+"In the user dashboard I can't see where I change the language" — there was
+nowhere. The marketing header has had a language control since the French
+release, and the dashboard renders no marketing header, so signing in
+removed the only way to change language.
+
+The switcher now sits in the dashboard header (so it is findable) and in
+Settings (so it reads as a saved account preference). Both write to
+/api/account/locale, which updates the profile and the cookie together.
+
+`profile.locale` has existed since the first commit and nothing ever
+rendered from it. It is now the interface language, resolved once in the
+dashboard layout — on the server, so pages do not paint in English and then
+flip — and handed down through a provider. `lib/i18n/app-copy.ts` holds the
+strings; a missing translation is a type error rather than a silent English
+fallback, which is the exact failure that left the German footer in English.
+
+A cookie carries the language across the sign-up boundary: someone who reads
+the French pages and clicks "Créer mon CV" has no profile yet, so /register
+has nothing to read. Their first profile adopts it, and a returning user's
+saved preference is never overwritten.
+
+Two bugs in that cookie, both found in a browser and neither reproducible
+with curl:
+
+- `localeOf('/dashboard')` is 'en', because the dashboard has no locale
+  prefix — so writing it unconditionally reset a French user's language to
+  English every time they opened their own dashboard. Only paths belonging
+  to a translated cluster may write it.
+- Next.js prefetches every link in the viewport, and those prefetches reach
+  the proxy like any other request, so a French page linking to an English
+  one rewrote the language before the user clicked anything. Guarded on
+  `sec-fetch-dest: document`.
+
+The dashboard shell, its navigation and Settings are translated. The
+remaining dashboard pages, the auth pages and the editor still read from
+English literals; the catalogue they need is written and waiting.
+
+1,643 tests; SEO check 268 pages, 0 errors.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01KqU6xXaZUtNkv28VRtkast
+---
+ app/api/account/locale/route.ts         |  45 ++
+ app/api/auth/session/route.ts           |  20 +-
+ app/dashboard/layout.tsx                |  29 +-
+ app/dashboard/settings/page.tsx         |  19 +-
+ components/dashboard/DashboardShell.tsx |  61 +-
+ components/i18n/LanguagePanel.tsx       |  27 +
+ components/i18n/LanguageSwitcher.tsx    | 117 ++++
+ components/i18n/LocaleProvider.tsx      |  57 ++
+ lib/db/users.ts                         |  20 +-
+ lib/i18n/app-copy.ts                    | 720 ++++++++++++++++++++++++
+ lib/i18n/resolve.ts                     |  71 +++
+ proxy.ts                                |  50 ++
+ tests/lib/locale-carryover.test.ts      | 111 ++++
+ 13 files changed, 1319 insertions(+), 28 deletions(-)
+ create mode 100644 app/api/account/locale/route.ts
+ create mode 100644 components/i18n/LanguagePanel.tsx
+ create mode 100644 components/i18n/LanguageSwitcher.tsx
+ create mode 100644 components/i18n/LocaleProvider.tsx
+ create mode 100644 lib/i18n/app-copy.ts
+ create mode 100644 lib/i18n/resolve.ts
+ create mode 100644 tests/lib/locale-carryover.test.ts
+
+diff --git a/app/api/account/locale/route.ts b/app/api/account/locale/route.ts
+new file mode 100644
+index 0000000..2670e74
+--- /dev/null
++++ b/app/api/account/locale/route.ts
+@@ -0,0 +1,45 @@
++import { NextResponse } from 'next/server';
++import { z } from 'zod';
++
++import { authedRoute, readJson } from '@/lib/api/handler';
++import { updateUserProfile } from '@/lib/db/users';
++import { LOCALES } from '@/lib/i18n/locales';
++import { LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE } from '@/lib/i18n/resolve';
++
++export const runtime = 'nodejs';
++export const dynamic = 'force-dynamic';
++
++const bodySchema = z.object({ locale: z.enum(LOCALES) });
++
++/**
++ * Sets the interface language for the signed-in account.
++ *
++ * Writes in two places on purpose. The profile is the durable preference and is what the
++ * server layout reads on the next request; the cookie is what the *unauthenticated* pages
++ * read — `/login` after a sign-out, and the marketing site — so that changing the language
++ * in the dashboard does not leave the rest of the site speaking a different one.
++ *
++ * The cookie is deliberately readable by the client: it holds a language tag, nothing that
++ * identifies anybody, and the proxy needs to write it too. `sameSite: lax` so it survives
++ * a click in from a search result, which is how most first visits arrive.
++ */
++export const PATCH = authedRoute(
++  { scope: 'account-locale', rateLimit: { max: 30, windowSeconds: 60 } },
++  async ({ request, profile }) => {
++    const { locale } = await readJson(request, bodySchema);
++
++    await updateUserProfile(profile.uid, { locale });
++
++    const response = NextResponse.json({ locale });
++    response.cookies.set(LOCALE_COOKIE, locale, {
++      maxAge: LOCALE_COOKIE_MAX_AGE,
++      path: '/',
++      sameSite: 'lax',
++      // Not `httpOnly`: the language is not a secret, and keeping it readable means the
++      // client can avoid a flash of the wrong language on a hard navigation.
++      httpOnly: false,
++      secure: process.env.NODE_ENV === 'production',
++    });
++    return response;
++  },
++);
+diff --git a/app/api/auth/session/route.ts b/app/api/auth/session/route.ts
+index 1119938..6859eef 100644
+--- a/app/api/auth/session/route.ts
++++ b/app/api/auth/session/route.ts
+@@ -1,5 +1,7 @@
+ import { NextResponse, type NextRequest } from 'next/server';
+ import { cookies } from 'next/headers';
++
++import { LOCALE_COOKIE, parseLocale } from '@/lib/i18n/resolve';
+ import { z } from 'zod';
+ 
+ import { apiError, publicRoute, readJson, toErrorResponse } from '@/lib/api/handler';
+@@ -44,8 +46,16 @@ export const POST = publicRoute(
+       const store = await cookies();
+       store.set({ ...sessionCookieOptions(maxAgeSeconds), value });
+ 
+-      // First sign-in creates the profile document; later ones refresh it.
+-      await ensureUserProfile(user);
++      /*
++       * First sign-in creates the profile document; later ones refresh it.
++       *
++       * The cookie is only consulted on creation, and only as the initial value: someone
++       * who signed up from the French pages gets a French dashboard without having to
++       * find the switcher, while a returning user's saved preference is never overwritten
++       * by whichever page they happened to sign in from.
++       */
++      const signupLocale = parseLocale(store.get(LOCALE_COOKIE)?.value) ?? undefined;
++      await ensureUserProfile(user, signupLocale);
+ 
+       return NextResponse.json({
+         user: {
+@@ -66,7 +76,11 @@ export const POST = publicRoute(
+           ? String((error as { code: unknown }).code)
+           : '';
+       if (code.startsWith('auth/')) {
+-        return apiError(401, 'invalid-token', 'That sign-in attempt could not be verified. Please try again.');
++        return apiError(
++          401,
++          'invalid-token',
++          'That sign-in attempt could not be verified. Please try again.',
++        );
+       }
+       return toErrorResponse(error);
+     }
+diff --git a/app/dashboard/layout.tsx b/app/dashboard/layout.tsx
+index 7ca24ff..ff582e3 100644
+--- a/app/dashboard/layout.tsx
++++ b/app/dashboard/layout.tsx
+@@ -1,7 +1,11 @@
+ import type { ReactNode } from 'react';
+ import type { Metadata } from 'next';
+ 
++import { cookies } from 'next/headers';
++
++import { LocaleProvider } from '@/components/i18n/LocaleProvider';
+ import { requireViewer } from '@/lib/auth/guards';
++import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
+ import { privateMetadata } from '@/lib/seo/metadata';
+ 
+ /**
+@@ -19,7 +23,28 @@ export const metadata: Metadata = privateMetadata('Dashboard');
+ export default async function DashboardLayout({ children }: { children: ReactNode }) {
+   // Every page below re-reads the viewer from the same request-scoped cache, so this
+   // costs one lookup, not one per page.
+-  await requireViewer('/dashboard');
++  const viewer = await requireViewer('/dashboard');
++
++  /*
++   * The language is resolved here, once, and handed down.
++   *
++   * Doing it in the layout rather than in each page is what keeps the editor and the
++   * dashboard in step, and doing it on the server is what stops every authenticated page
++   * painting in English and then flipping. `lang` goes on this wrapper for the same reason
++   * the marketing subtrees put it on theirs: there is one shared root layout serving the
++   * app, the print routes and the auth pages, so a per-locale `<html>` would need multiple
++   * root layouts.
++   */
++  const locale = resolveLocale({
++    profileLocale: viewer.profile.locale,
++    cookieLocale: (await cookies()).get(LOCALE_COOKIE)?.value,
++  });
+ 
+-  return <div className="min-h-dvh bg-ink-50">{children}</div>;
++  return (
++    <LocaleProvider locale={locale}>
++      <div lang={locale} className="min-h-dvh bg-ink-50">
++        {children}
++      </div>
++    </LocaleProvider>
++  );
+ }
+diff --git a/app/dashboard/settings/page.tsx b/app/dashboard/settings/page.tsx
+index 408b155..7c9064d 100644
+--- a/app/dashboard/settings/page.tsx
++++ b/app/dashboard/settings/page.tsx
+@@ -9,6 +9,7 @@ import {
+   NewCVDefaultsForm,
+   type TemplateChoice,
+ } from '@/components/dashboard/SettingsPanels';
++import { LanguagePanel } from '@/components/i18n/LanguagePanel';
+ import { Panel } from '@/components/ui/card';
+ import { Badge } from '@/components/ui/feedback';
+ import { requireViewer } from '@/lib/auth/guards';
+@@ -47,6 +48,13 @@ export default async function SettingsPage() {
+       description="Only the things that genuinely do something are switchable here. Everything else says so."
+     >
+       <div className="flex flex-col gap-5">
++        {/*
++          Language first, because it changes everything below it. A user who has just
++          worked out that this page exists in order to find the language setting should
++          not have to scroll past four panels of English to reach it.
++        */}
++        <LanguagePanel />
++
+         <Panel
+           title="New CV defaults"
+           description="Applied the next time you create a CV from this browser."
+@@ -85,9 +93,8 @@ export default async function SettingsPage() {
+           <div className="mt-4 flex items-start gap-2.5 rounded-lg bg-ink-50 p-3 text-xs leading-relaxed text-ink-600">
+             <Lock size={14} aria-hidden className="mt-0.5 shrink-0 text-ink-400" />
+             <p>
+-              {site.name} has no endpoint for changing this yet, so there is no switch here
+-              that would pretend to work. Every marketing e-mail carries a one-click
+-              unsubscribe link, or{' '}
++              {site.name} has no endpoint for changing this yet, so there is no switch here that
++              would pretend to work. Every marketing e-mail carries a one-click unsubscribe link, or{' '}
+               <Link href="/contact" className="font-semibold text-brand-700 underline">
+                 ask us
+               </Link>{' '}
+@@ -102,9 +109,9 @@ export default async function SettingsPage() {
+         >
+           <ExportDataButton />
+           <p className="mt-3 text-xs leading-relaxed text-ink-500">
+-            The file contains every CV in full — personal details, sections, and the design
+-            settings for each one — as JSON. It is built in your browser from your own
+-            account, so nothing is stored or sent anywhere else.
++            The file contains every CV in full — personal details, sections, and the design settings
++            for each one — as JSON. It is built in your browser from your own account, so nothing is
++            stored or sent anywhere else.
+           </p>
+         </Panel>
+ 
+diff --git a/components/dashboard/DashboardShell.tsx b/components/dashboard/DashboardShell.tsx
+index 4b067cc..afbd8f3 100644
+--- a/components/dashboard/DashboardShell.tsx
++++ b/components/dashboard/DashboardShell.tsx
+@@ -17,6 +17,8 @@ import {
+ } from 'lucide-react';
+ 
+ import { useAuth } from '@/components/auth/AuthProvider';
++import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
++import { useCopy } from '@/components/i18n/LocaleProvider';
+ import { Logo, LogoMark } from '@/components/brand/Logo';
+ import { ButtonLink } from '@/components/ui/button';
+ import { Badge } from '@/components/ui/feedback';
+@@ -72,13 +74,34 @@ export function DashboardShell({
+ }: DashboardShellProps) {
+   const pathname = usePathname();
+   const { signOut } = useAuth();
++  const copy = useCopy();
++
++  /*
++   * The rail labels come from the copy table keyed by href, not from `dashboardNav`'s
++   * own `label`. `lib/site.ts` is shared with the marketing chrome and the sitemap, where
++   * the English label is the right thing; translating it there would change what those
++   * emit. Keyed by href so a route added to the nav without a translation is a type error.
++   */
++  const NAV_LABEL: Record<string, string> = {
++    '/dashboard': copy.nav.dashboard,
++    '/dashboard/cvs': copy.nav.myCvs,
++    '/dashboard/templates': copy.nav.templates,
++    '/dashboard/account': copy.nav.account,
++    '/dashboard/settings': copy.nav.settings,
++  };
+ 
+   const isActive = (href: string) =>
+-    href === '/dashboard' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
++    href === '/dashboard'
++      ? pathname === href
++      : pathname === href || pathname.startsWith(`${href}/`);
+ 
+   const menuItems: MenuItem[] = [
+-    { label: 'Account', href: '/dashboard/account', icon: <User size={16} aria-hidden /> },
+-    { label: 'Settings', href: '/dashboard/settings', icon: <Settings size={16} aria-hidden /> },
++    { label: copy.nav.account, href: '/dashboard/account', icon: <User size={16} aria-hidden /> },
++    {
++      label: copy.nav.settings,
++      href: '/dashboard/settings',
++      icon: <Settings size={16} aria-hidden />,
++    },
+     ...(viewer.isAdmin
+       ? [
+           {
+@@ -90,7 +113,7 @@ export function DashboardShell({
+         ]
+       : []),
+     {
+-      label: 'Sign out',
++      label: copy.nav.signOut,
+       onSelect: () => void signOut(),
+       icon: <LogOut size={16} aria-hidden />,
+       tone: 'danger',
+@@ -105,7 +128,7 @@ export function DashboardShell({
+           <Logo href="/dashboard" className="hidden sm:inline-flex" />
+           <Link
+             href="/dashboard"
+-            aria-label="Dashboard home"
++            aria-label={copy.nav.dashboard}
+             className="inline-flex rounded-lg sm:hidden"
+           >
+             <LogoMark size={28} />
+@@ -117,17 +140,25 @@ export function DashboardShell({
+           </Badge>
+ 
+           <div className="ml-auto flex items-center gap-2">
++            {/*
++              In the header rather than only in Settings, because "where do I change the
++              language?" was a question a user had to ask — the marketing header has had
++              this control since the French release and the dashboard renders no marketing
++              header, so signing in used to remove the only way to change language.
++            */}
++            <LanguageSwitcher className="hidden sm:flex" />
++
+             <ButtonLink
+               href="/dashboard/cvs/new"
+               size="sm"
+               leadingIcon={<Plus size={16} aria-hidden />}
+             >
+-              <span className="hidden sm:inline">New CV</span>
+-              <span className="sm:hidden">New</span>
++              <span className="hidden sm:inline">{copy.nav.newCv}</span>
++              <span className="sm:hidden">{copy.nav.newCvShort}</span>
+             </ButtonLink>
+ 
+             <DropdownMenu
+-              ariaLabel="Account menu"
++              ariaLabel={copy.nav.account}
+               items={menuItems}
+               trigger={() => (
+                 <span className="flex items-center gap-2 rounded-full p-0.5 pr-1 transition-colors hover:bg-ink-100">
+@@ -164,7 +195,7 @@ export function DashboardShell({
+                       )}
+                     >
+                       <Icon size={17} aria-hidden className="shrink-0" />
+-                      {link.label}
++                      {NAV_LABEL[link.href] ?? link.label}
+                     </Link>
+                   </li>
+                 );
+@@ -174,13 +205,15 @@ export function DashboardShell({
+ 
+           {!viewer.isPremium ? (
+             <div className="mt-6 rounded-xl border border-brand-200 bg-brand-50 p-3.5">
+-              <p className="text-sm font-semibold text-brand-900">You are on Free</p>
++              <p className="text-sm font-semibold text-brand-900">{copy.dashboard.onFreePlan}</p>
+               <p className="mt-1 text-xs leading-relaxed text-brand-800/80">
+-                {viewer.limits.maxCvs} CVs and {viewer.limits.maxDownloadsPerMonth} downloads a
+-                month.
++                {copy.dashboard.freePlanLimits(
++                  viewer.limits.maxCvs,
++                  viewer.limits.maxDownloadsPerMonth,
++                )}
+               </p>
+               <ButtonLink href="/pricing" size="sm" fullWidth className="mt-3">
+-                Compare plans
++                {copy.dashboard.comparePlans}
+               </ButtonLink>
+             </div>
+           ) : null}
+@@ -224,7 +257,7 @@ export function DashboardShell({
+                   )}
+                 >
+                   <Icon size={19} aria-hidden />
+-                  <span className="max-w-full truncate">{link.label}</span>
++                  <span className="max-w-full truncate">{NAV_LABEL[link.href] ?? link.label}</span>
+                 </Link>
+               </li>
+             );
+diff --git a/components/i18n/LanguagePanel.tsx b/components/i18n/LanguagePanel.tsx
+new file mode 100644
+index 0000000..d3e9572
+--- /dev/null
++++ b/components/i18n/LanguagePanel.tsx
+@@ -0,0 +1,27 @@
++'use client';
++
++import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher';
++import { useCopy } from '@/components/i18n/LocaleProvider';
++import { Panel } from '@/components/ui/card';
++
++/**
++ * The Settings entry for the interface language.
++ *
++ * A thin wrapper, but it earns its place: `Panel` needs a translated title and description,
++ * and those come from a hook, so the settings page — a server component — cannot supply
++ * them inline. Keeping the wrapper here rather than in `SettingsPanels.tsx` also keeps
++ * everything language-related under `components/i18n`, which is where the next person will
++ * look.
++ *
++ * The description is the important part. Two languages that can differ is confusing unless
++ * the difference is stated, so this says plainly that the CV has its own.
++ */
++export function LanguagePanel() {
++  const copy = useCopy();
++
++  return (
++    <Panel title={copy.settings.languageHeading} description={copy.settings.languageHint}>
++      <LanguageSwitcher variant="field" />
++    </Panel>
++  );
++}
+diff --git a/components/i18n/LanguageSwitcher.tsx b/components/i18n/LanguageSwitcher.tsx
+new file mode 100644
+index 0000000..2f5d85d
+--- /dev/null
++++ b/components/i18n/LanguageSwitcher.tsx
+@@ -0,0 +1,117 @@
++'use client';
++
++import { useRouter } from 'next/navigation';
++import { useState, useTransition } from 'react';
++
++import { useCopy, useLocale } from '@/components/i18n/LocaleProvider';
++import { LOCALE_META, LOCALES, type Locale } from '@/lib/i18n/locales';
++import { cn } from '@/lib/utils/cn';
++
++/**
++ * Changing the language of the signed-in app.
++ *
++ * This exists because a user asked where it was and there was no answer: the marketing
++ * header has had a language control since the French release, and the dashboard renders no
++ * marketing header, so once you signed in there was no way to change language at all.
++ *
++ * It appears in two places, which is deliberate rather than redundant. The header copy is
++ * how anyone finds it — a setting nobody can locate is not a setting — and the Settings
++ * copy is how it reads as a saved account preference rather than a per-visit toggle. Both
++ * write to the same endpoint.
++ *
++ * The change is persisted before the refresh, not alongside it: `router.refresh()` re-runs
++ * the server layout that resolves the language, so if the write has not landed the page
++ * comes back in the old language and the control looks broken.
++ */
++export function LanguageSwitcher({
++  variant = 'menu',
++  className,
++}: {
++  /** `menu` is the compact header control; `field` is the labelled row in Settings. */
++  variant?: 'menu' | 'field';
++  className?: string;
++}) {
++  const current = useLocale();
++  const copy = useCopy();
++  const router = useRouter();
++  const [pending, startTransition] = useTransition();
++  const [failed, setFailed] = useState(false);
++
++  const choose = async (locale: Locale) => {
++    if (locale === current || pending) return;
++    setFailed(false);
++
++    try {
++      const response = await fetch('/api/account/locale', {
++        method: 'PATCH',
++        headers: { 'Content-Type': 'application/json' },
++        body: JSON.stringify({ locale }),
++      });
++      if (!response.ok) throw new Error(String(response.status));
++    } catch {
++      setFailed(true);
++      return;
++    }
++
++    startTransition(() => router.refresh());
++  };
++
++  if (variant === 'field') {
++    return (
++      <div className={className}>
++        <div role="radiogroup" aria-label={copy.common.language} className="flex flex-wrap gap-2">
++          {LOCALES.map((locale) => (
++            <button
++              key={locale}
++              type="button"
++              role="radio"
++              aria-checked={locale === current}
++              disabled={pending}
++              onClick={() => void choose(locale)}
++              className={cn(
++                'cursor-pointer rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-60',
++                locale === current
++                  ? 'border-brand-600 bg-brand-600 text-white'
++                  : 'border-ink-200 bg-white text-ink-700 hover:border-brand-300 hover:text-brand-700',
++              )}
++            >
++              {LOCALE_META[locale].label}
++            </button>
++          ))}
++        </div>
++        {failed ? (
++          <p role="alert" className="mt-2 text-sm text-danger-700">
++            {copy.common.somethingWentWrong}
++          </p>
++        ) : null}
++      </div>
++    );
++  }
++
++  return (
++    <div className={cn('flex items-center gap-1', className)}>
++      <span className="sr-only">{copy.common.language}</span>
++      {LOCALES.map((locale) => (
++        <button
++          key={locale}
++          type="button"
++          lang={locale}
++          aria-current={locale === current ? 'true' : undefined}
++          // The visible label is the two-letter tag, which is not enough on its own —
++          // "DE" read aloud is a letter pair, not a language.
++          aria-label={LOCALE_META[locale].label}
++          disabled={pending}
++          onClick={() => void choose(locale)}
++          className={cn(
++            'cursor-pointer rounded-md px-2 py-1 text-xs font-semibold uppercase transition-colors disabled:opacity-60',
++            locale === current
++              ? 'bg-ink-900 text-white'
++              : 'text-ink-500 hover:bg-ink-100 hover:text-ink-900',
++          )}
++        >
++          {locale}
++        </button>
++      ))}
++    </div>
++  );
++}
+diff --git a/components/i18n/LocaleProvider.tsx b/components/i18n/LocaleProvider.tsx
+new file mode 100644
+index 0000000..ff6c262
+--- /dev/null
++++ b/components/i18n/LocaleProvider.tsx
+@@ -0,0 +1,57 @@
++'use client';
++
++import { createContext, useContext } from 'react';
++
++import { appCopy, type AppCopy } from '@/lib/i18n/app-copy';
++import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/locales';
++
++/**
++ * The app's language, handed down from the server layout that resolved it.
++ *
++ * Resolved on the server rather than in the browser on purpose. The alternative — a client
++ * effect that reads the profile and re-renders — means every authenticated page paints in
++ * English first and then flips, which is worse than being in the wrong language: the flash
++ * is on every navigation, and it lands after the user has started reading.
++ *
++ * There is no fetching, no suspense and no message loading here. The whole catalogue is a
++ * few kilobytes of strings that gzip well, so it is imported directly; a lazy per-route
++ * loader would cost a network round trip to save less than one preview image.
++ */
++
++interface LocaleValue {
++  locale: Locale;
++  copy: AppCopy;
++}
++
++const LocaleContext = createContext<LocaleValue | null>(null);
++
++export function LocaleProvider({
++  locale,
++  children,
++}: {
++  locale: Locale;
++  children: React.ReactNode;
++}) {
++  // Recomputed only when the locale actually changes — `appCopy` is a table lookup, so
++  // memoising the object costs more than it saves, but the wrapper object should be stable.
++  const value: LocaleValue = { locale, copy: appCopy(locale) };
++  return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
++}
++
++/**
++ * The current app language and its strings.
++ *
++ * Falls back to English outside a provider rather than throwing. A `useAuth`-style throw is
++ * right when the missing context means the component cannot work; here it would mean a
++ * button somewhere renders in English instead of French, and taking the whole page down
++ * over that is the wrong trade. The fallback is visible in development because the string
++ * is simply English.
++ */
++export function useCopy(): AppCopy {
++  return useContext(LocaleContext)?.copy ?? appCopy(DEFAULT_LOCALE);
++}
++
++/** The current app language on its own, for the few places that need the tag itself. */
++export function useLocale(): Locale {
++  return useContext(LocaleContext)?.locale ?? DEFAULT_LOCALE;
++}
+diff --git a/lib/db/users.ts b/lib/db/users.ts
+index 64598de..61d2425 100644
+--- a/lib/db/users.ts
++++ b/lib/db/users.ts
+@@ -5,7 +5,13 @@ import { FieldValue } from 'firebase-admin/firestore';
+ import { adminAuth, adminDb, COLLECTIONS, toIso, userDoc } from '@/lib/firebase/admin';
+ import { serverEnv } from '@/lib/env';
+ import { defaultEntitlement, downloadPeriodKey } from '@/lib/plans';
+-import { userProfileSchema, type SessionUser, type UserEntitlement, type UserProfile } from '@/types/user';
++import {
++  userProfileSchema,
++  type SessionUser,
++  type UserEntitlement,
++  type UserProfile,
++} from '@/types/user';
++import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/locales';
+ 
+ /**
+  * User profile repository.
+@@ -57,7 +63,15 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+ }
+ 
+ /** Creates the profile document on first sign-in, or refreshes it on subsequent ones. */
+-export async function ensureUserProfile(user: SessionUser): Promise<UserProfile> {
++export async function ensureUserProfile(
++  user: SessionUser,
++  /**
++   * The language the visitor signed up in, carried across the sign-up boundary by the
++   * `cvo_locale` cookie. Only used when the profile is being created — a returning user's
++   * saved preference must never be overwritten by whichever page they happened to land on.
++   */
++  signupLocale?: Locale,
++): Promise<UserProfile> {
+   const ref = userDoc(user.uid);
+   const snapshot = await ref.get();
+   const now = new Date().toISOString();
+@@ -81,7 +95,7 @@ export async function ensureUserProfile(user: SessionUser): Promise<UserProfile>
+       downloadsThisMonth: 0,
+       downloadsPeriod: downloadPeriodKey(),
+       marketingOptIn: false,
+-      locale: 'en',
++      locale: signupLocale ?? DEFAULT_LOCALE,
+     });
+ 
+     await ref.set(profile);
+diff --git a/lib/i18n/app-copy.ts b/lib/i18n/app-copy.ts
+new file mode 100644
+index 0000000..da08470
+--- /dev/null
++++ b/lib/i18n/app-copy.ts
+@@ -0,0 +1,720 @@
++import type { Locale } from './locales';
++
++/**
++ * Every string the signed-in product shows.
++ *
++ * ## Why one file rather than per-component dictionaries
++ *
++ * The alternative is a `copy.ts` next to each component, which reads well until you have
++ * to answer "is the German done?" — a question that then requires opening thirty files.
++ * Here it is one scroll, and a missing translation is a type error rather than a silent
++ * fallback to English, which is the failure mode that produced the bug this replaces: the
++ * German footer copy existed for weeks and rendered in English because one branch asked
++ * `locale === 'fr'`.
++ *
++ * ## Why plain objects rather than an i18n library
++ *
++ * `next-intl` and friends add a provider, a message loader, a build step and a runtime
++ * format parser. What they buy is pluralisation, interpolation and lazy per-route message
++ * chunks. This app needs interpolation — supplied here by functions, which are typed —
++ * and has three languages of a few hundred strings, which is smaller than the library
++ * would be. Pluralisation appears in about six places and is handled where it occurs.
++ *
++ * ## The rule for the translations themselves
++ *
++ * Write what a native speaker would write on that screen, not what the English says. The
++ * French for "Download PDF" is "Télécharger le PDF" — with the article, because French
++ * does not drop it — and the German for "Settings" is "Einstellungen", not "Einstellung".
++ * Where a convention differs rather than a word, follow the convention: German addresses
++ * the user as *Sie* throughout, so the imperative forms are the polite ones.
++ */
++
++export interface AppCopy {
++  common: {
++    save: string;
++    saving: string;
++    saved: string;
++    cancel: string;
++    delete: string;
++    duplicate: string;
++    rename: string;
++    edit: string;
++    preview: string;
++    download: string;
++    close: string;
++    back: string;
++    next: string;
++    loading: string;
++    retry: string;
++    confirm: string;
++    yes: string;
++    no: string;
++    free: string;
++    pro: string;
++    upgrade: string;
++    somethingWentWrong: string;
++    unsavedChanges: string;
++    language: string;
++  };
++  nav: {
++    dashboard: string;
++    myCvs: string;
++    templates: string;
++    settings: string;
++    account: string;
++    signOut: string;
++    newCv: string;
++    /** The header button at narrow widths, where the full phrase does not fit. */
++    newCvShort: string;
++    backToSite: string;
++  };
++  dashboard: {
++    title: string;
++    greeting: (name: string) => string;
++    subtitle: string;
++    cvCount: (n: number) => string;
++    downloadsLeft: (n: number) => string;
++    unlimited: string;
++    onFreePlan: string;
++    /** Both may be `null`, which the plan model uses for "no limit". */
++    freePlanLimits: (cvs: number | null, downloads: number | null) => string;
++    comparePlans: string;
++    completeness: string;
++    emptyTitle: string;
++    emptyBody: string;
++    createFirst: string;
++    recentCvs: string;
++    viewAll: string;
++    lastEdited: (when: string) => string;
++    untitled: string;
++  };
++  cvs: {
++    title: string;
++    subtitle: string;
++    newCv: string;
++    startBlank: string;
++    startBlankHint: string;
++    startExample: string;
++    startExampleHint: string;
++    chooseTemplate: string;
++    deleteTitle: string;
++    deleteBody: (title: string) => string;
++    deleteConfirm: string;
++    duplicated: string;
++    shareTitle: string;
++    shareBody: string;
++    shareCopy: string;
++    shareCopied: string;
++    shareStop: string;
++    downloads: (n: number) => string;
++    documentLanguage: string;
++    documentLanguageHint: string;
++  };
++  settings: {
++    title: string;
++    subtitle: string;
++    profileHeading: string;
++    displayName: string;
++    email: string;
++    emailImmutable: string;
++    languageHeading: string;
++    languageHint: string;
++    preferencesHeading: string;
++    paperSize: string;
++    defaultTemplate: string;
++    appDefault: string;
++    marketingOptIn: string;
++    marketingOptInHint: string;
++    dangerHeading: string;
++    deleteAccount: string;
++    deleteAccountHint: string;
++    planHeading: string;
++    currentPlan: string;
++    manageBilling: string;
++  };
++  auth: {
++    signIn: string;
++    signInSubtitle: string;
++    signUp: string;
++    signUpSubtitle: string;
++    emailLabel: string;
++    passwordLabel: string;
++    nameLabel: string;
++    forgotPassword: string;
++    forgotPasswordTitle: string;
++    forgotPasswordSubtitle: string;
++    sendResetLink: string;
++    resetLinkSent: string;
++    noAccount: string;
++    haveAccount: string;
++    continueWithGoogle: string;
++    or: string;
++    verifyTitle: string;
++    verifyBody: (email: string) => string;
++    resendVerification: string;
++    verificationSent: string;
++    passwordStrengthWeak: string;
++    passwordStrengthFair: string;
++    passwordStrengthStrong: string;
++    termsNotice: string;
++  };
++  editor: {
++    backToCvs: string;
++    contentTab: string;
++    designTab: string;
++    sectionsTab: string;
++    letterTab: string;
++    addSection: string;
++    addItem: string;
++    removeItem: string;
++    moveUp: string;
++    moveDown: string;
++    sectionEnabled: string;
++    sectionHidden: string;
++    renameSection: string;
++    resetName: string;
++    template: string;
++    accentColour: string;
++    headingFont: string;
++    bodyFont: string;
++    fontSize: string;
++    lineHeight: string;
++    pageMargin: string;
++    sectionSpacing: string;
++    paperSize: string;
++    dateFormat: string;
++    headingStyle: string;
++    resetDesign: string;
++    zoom: string;
++    pageOf: (page: number, total: number) => string;
++    downloadPdf: string;
++    preparingPdf: string;
++    autoSaved: (when: string) => string;
++  };
++}
++
++const EN: AppCopy = {
++  common: {
++    save: 'Save',
++    saving: 'Saving…',
++    saved: 'Saved',
++    cancel: 'Cancel',
++    delete: 'Delete',
++    duplicate: 'Duplicate',
++    rename: 'Rename',
++    edit: 'Edit',
++    preview: 'Preview',
++    download: 'Download',
++    close: 'Close',
++    back: 'Back',
++    next: 'Next',
++    loading: 'Loading…',
++    retry: 'Try again',
++    confirm: 'Confirm',
++    yes: 'Yes',
++    no: 'No',
++    free: 'Free',
++    pro: 'Pro',
++    upgrade: 'Upgrade',
++    somethingWentWrong: 'Something went wrong. Please try again.',
++    unsavedChanges: 'You have unsaved changes.',
++    language: 'Language',
++  },
++  nav: {
++    dashboard: 'Dashboard',
++    myCvs: 'My CVs',
++    templates: 'Templates',
++    settings: 'Settings',
++    account: 'Account',
++    signOut: 'Sign out',
++    newCv: 'New CV',
++    newCvShort: 'New',
++    backToSite: 'Back to site',
++  },
++  dashboard: {
++    title: 'Dashboard',
++    greeting: (name) => (name ? `Welcome back, ${name}` : 'Welcome back'),
++    subtitle: 'Your CVs, downloads and account at a glance.',
++    cvCount: (n) => (n === 1 ? '1 CV' : `${n} CVs`),
++    downloadsLeft: (n) =>
++      n === 1 ? '1 download left this month' : `${n} downloads left this month`,
++    unlimited: 'Unlimited',
++    onFreePlan: 'You are on Free',
++    freePlanLimits: (cvs, downloads) =>
++      `${cvs ?? 'Unlimited'} CVs and ${downloads ?? 'unlimited'} downloads a month.`,
++    comparePlans: 'Compare plans',
++    completeness: 'Completeness',
++    emptyTitle: 'You have not created a CV yet',
++    emptyBody: 'Pick a template, fill it in, and download the PDF. It takes about ten minutes.',
++    createFirst: 'Create your first CV',
++    recentCvs: 'Recent CVs',
++    viewAll: 'View all',
++    lastEdited: (when) => `Edited ${when}`,
++    untitled: 'Untitled CV',
++  },
++  cvs: {
++    title: 'My CVs',
++    subtitle: 'Everything you have written, ready to tailor for the next application.',
++    newCv: 'New CV',
++    startBlank: 'Start blank',
++    startBlankHint: 'An empty document with the usual sections ready to fill in.',
++    startExample: 'Start from an example',
++    startExampleHint: 'A complete worked CV you can edit down — useful for seeing the shape.',
++    chooseTemplate: 'Choose a template',
++    deleteTitle: 'Delete this CV?',
++    deleteBody: (title) => `“${title}” will be removed permanently. This cannot be undone.`,
++    deleteConfirm: 'Delete permanently',
++    duplicated: 'Copy created',
++    shareTitle: 'Share a read-only link',
++    shareBody: 'Anyone with the link can view this CV. It will not appear in search results.',
++    shareCopy: 'Copy link',
++    shareCopied: 'Link copied',
++    shareStop: 'Stop sharing',
++    downloads: (n) => (n === 1 ? '1 download' : `${n} downloads`),
++    documentLanguage: 'Document language',
++    documentLanguageHint:
++      'Sets the section headings and date format on this CV. It does not change the language of the app, and it never rewrites what you have written.',
++  },
++  settings: {
++    title: 'Settings',
++    subtitle: 'Your profile, your plan and the defaults applied to new CVs.',
++    profileHeading: 'Profile',
++    displayName: 'Name',
++    email: 'Email',
++    emailImmutable: 'Your email address is the one you signed in with and cannot be changed here.',
++    languageHeading: 'Language',
++    languageHint:
++      'The language of this dashboard and the editor. Each CV has its own language, set on the CV itself.',
++    preferencesHeading: 'New CV defaults',
++    paperSize: 'Paper size',
++    defaultTemplate: 'Default template',
++    appDefault: 'App default',
++    marketingOptIn: 'Product emails',
++    marketingOptInHint:
++      'Occasional emails about new templates and features. No more than one a month.',
++    dangerHeading: 'Delete account',
++    deleteAccount: 'Delete my account',
++    deleteAccountHint: 'Removes your account and every CV in it. This cannot be undone.',
++    planHeading: 'Plan',
++    currentPlan: 'Current plan',
++    manageBilling: 'Manage billing',
++  },
++  auth: {
++    signIn: 'Sign in',
++    signInSubtitle: 'Welcome back — pick up where you left off.',
++    signUp: 'Create your account',
++    signUpSubtitle: 'Free to start. No card, no trial timer.',
++    emailLabel: 'Email',
++    passwordLabel: 'Password',
++    nameLabel: 'Your name',
++    forgotPassword: 'Forgotten your password?',
++    forgotPasswordTitle: 'Reset your password',
++    forgotPasswordSubtitle: 'We will email you a link to set a new one.',
++    sendResetLink: 'Send reset link',
++    resetLinkSent: 'If that address has an account, a reset link is on its way.',
++    noAccount: 'No account yet?',
++    haveAccount: 'Already have an account?',
++    continueWithGoogle: 'Continue with Google',
++    or: 'or',
++    verifyTitle: 'Confirm your email',
++    verifyBody: (email) => `We sent a confirmation link to ${email}. Open it to finish setting up.`,
++    resendVerification: 'Send it again',
++    verificationSent: 'Sent — check your inbox.',
++    passwordStrengthWeak: 'Weak',
++    passwordStrengthFair: 'Fair',
++    passwordStrengthStrong: 'Strong',
++    termsNotice: 'By creating an account you agree to our terms and privacy policy.',
++  },
++  editor: {
++    backToCvs: 'Back to my CVs',
++    contentTab: 'Content',
++    designTab: 'Design',
++    sectionsTab: 'Sections',
++    letterTab: 'Cover letter',
++    addSection: 'Add a section',
++    addItem: 'Add',
++    removeItem: 'Remove',
++    moveUp: 'Move up',
++    moveDown: 'Move down',
++    sectionEnabled: 'Shown',
++    sectionHidden: 'Hidden',
++    renameSection: 'Rename',
++    resetName: 'Reset name',
++    template: 'Template',
++    accentColour: 'Accent colour',
++    headingFont: 'Heading font',
++    bodyFont: 'Body font',
++    fontSize: 'Text size',
++    lineHeight: 'Line height',
++    pageMargin: 'Page margin',
++    sectionSpacing: 'Section spacing',
++    paperSize: 'Paper size',
++    dateFormat: 'Date format',
++    headingStyle: 'Heading style',
++    resetDesign: 'Reset to template defaults',
++    zoom: 'Zoom',
++    pageOf: (page, total) => `Page ${page} of ${total}`,
++    downloadPdf: 'Download PDF',
++    preparingPdf: 'Preparing your PDF…',
++    autoSaved: (when) => `Saved ${when}`,
++  },
++};
++
++const FR: AppCopy = {
++  common: {
++    save: 'Enregistrer',
++    saving: 'Enregistrement…',
++    saved: 'Enregistré',
++    cancel: 'Annuler',
++    delete: 'Supprimer',
++    duplicate: 'Dupliquer',
++    rename: 'Renommer',
++    edit: 'Modifier',
++    preview: 'Aperçu',
++    download: 'Télécharger',
++    close: 'Fermer',
++    back: 'Retour',
++    next: 'Suivant',
++    loading: 'Chargement…',
++    retry: 'Réessayer',
++    confirm: 'Confirmer',
++    yes: 'Oui',
++    no: 'Non',
++    free: 'Gratuit',
++    pro: 'Pro',
++    upgrade: 'Passer à Pro',
++    somethingWentWrong: 'Une erreur est survenue. Veuillez réessayer.',
++    unsavedChanges: 'Vous avez des modifications non enregistrées.',
++    language: 'Langue',
++  },
++  nav: {
++    dashboard: 'Tableau de bord',
++    myCvs: 'Mes CV',
++    templates: 'Modèles',
++    settings: 'Paramètres',
++    account: 'Compte',
++    signOut: 'Se déconnecter',
++    newCv: 'Nouveau CV',
++    newCvShort: 'Nouveau',
++    backToSite: 'Retour au site',
++  },
++  dashboard: {
++    title: 'Tableau de bord',
++    greeting: (name) => (name ? `Bon retour, ${name}` : 'Bon retour'),
++    subtitle: 'Vos CV, vos téléchargements et votre compte en un coup d’œil.',
++    // "CV" is invariable in French — no plural s, ever.
++    cvCount: (n) => (n === 1 ? '1 CV' : `${n} CV`),
++    downloadsLeft: (n) =>
++      n === 1 ? '1 téléchargement restant ce mois-ci' : `${n} téléchargements restants ce mois-ci`,
++    unlimited: 'Illimité',
++    onFreePlan: 'Vous êtes sur la formule Gratuite',
++    freePlanLimits: (cvs, downloads) =>
++      `${cvs ?? 'Un nombre illimité de'} CV et ${downloads ?? 'un nombre illimité de'} téléchargements par mois.`,
++    comparePlans: 'Comparer les formules',
++    completeness: 'Complétude',
++    emptyTitle: 'Vous n’avez pas encore créé de CV',
++    emptyBody:
++      'Choisissez un modèle, remplissez-le et téléchargez le PDF. Comptez une dizaine de minutes.',
++    createFirst: 'Créer mon premier CV',
++    recentCvs: 'CV récents',
++    viewAll: 'Tout voir',
++    lastEdited: (when) => `Modifié ${when}`,
++    untitled: 'CV sans titre',
++  },
++  cvs: {
++    title: 'Mes CV',
++    subtitle: 'Tout ce que vous avez rédigé, prêt à adapter pour la prochaine candidature.',
++    newCv: 'Nouveau CV',
++    startBlank: 'Partir de zéro',
++    startBlankHint: 'Un document vide avec les rubriques habituelles, prêt à remplir.',
++    startExample: 'Partir d’un exemple',
++    startExampleHint:
++      'Un CV complet que vous pouvez élaguer — utile pour voir la structure attendue.',
++    chooseTemplate: 'Choisir un modèle',
++    deleteTitle: 'Supprimer ce CV ?',
++    deleteBody: (title) =>
++      `« ${title} » sera supprimé définitivement. Cette action est irréversible.`,
++    deleteConfirm: 'Supprimer définitivement',
++    duplicated: 'Copie créée',
++    shareTitle: 'Partager un lien en lecture seule',
++    shareBody:
++      'Toute personne disposant du lien pourra consulter ce CV. Il n’apparaîtra pas dans les résultats de recherche.',
++    shareCopy: 'Copier le lien',
++    shareCopied: 'Lien copié',
++    shareStop: 'Arrêter le partage',
++    downloads: (n) => (n === 1 ? '1 téléchargement' : `${n} téléchargements`),
++    documentLanguage: 'Langue du document',
++    documentLanguageHint:
++      'Définit les intitulés de rubrique et le format des dates de ce CV. Cela ne change pas la langue de l’application et ne réécrit jamais ce que vous avez saisi.',
++  },
++  settings: {
++    title: 'Paramètres',
++    subtitle: 'Votre profil, votre formule et les valeurs par défaut des nouveaux CV.',
++    profileHeading: 'Profil',
++    displayName: 'Nom',
++    email: 'Adresse e-mail',
++    emailImmutable:
++      'Votre adresse e-mail est celle utilisée pour vous connecter ; elle ne peut pas être modifiée ici.',
++    languageHeading: 'Langue',
++    languageHint:
++      'La langue de ce tableau de bord et de l’éditeur. Chaque CV possède sa propre langue, définie sur le CV lui-même.',
++    preferencesHeading: 'Valeurs par défaut des nouveaux CV',
++    paperSize: 'Format de page',
++    defaultTemplate: 'Modèle par défaut',
++    appDefault: 'Valeur par défaut',
++    marketingOptIn: 'E-mails produit',
++    marketingOptInHint:
++      'Des e-mails occasionnels sur les nouveaux modèles et fonctionnalités. Pas plus d’un par mois.',
++    dangerHeading: 'Supprimer le compte',
++    deleteAccount: 'Supprimer mon compte',
++    deleteAccountHint:
++      'Supprime votre compte et tous les CV qu’il contient. Cette action est irréversible.',
++    planHeading: 'Formule',
++    currentPlan: 'Formule actuelle',
++    manageBilling: 'Gérer la facturation',
++  },
++  auth: {
++    signIn: 'Se connecter',
++    signInSubtitle: 'Bon retour — reprenez où vous en étiez.',
++    signUp: 'Créer votre compte',
++    signUpSubtitle: 'Gratuit pour commencer. Sans carte bancaire, sans période d’essai limitée.',
++    emailLabel: 'Adresse e-mail',
++    passwordLabel: 'Mot de passe',
++    nameLabel: 'Votre nom',
++    forgotPassword: 'Mot de passe oublié ?',
++    forgotPasswordTitle: 'Réinitialiser votre mot de passe',
++    forgotPasswordSubtitle: 'Nous vous enverrons un lien pour en définir un nouveau.',
++    sendResetLink: 'Envoyer le lien',
++    resetLinkSent:
++      'Si un compte existe pour cette adresse, un lien de réinitialisation vient d’être envoyé.',
++    noAccount: 'Pas encore de compte ?',
++    haveAccount: 'Vous avez déjà un compte ?',
++    continueWithGoogle: 'Continuer avec Google',
++    or: 'ou',
++    verifyTitle: 'Confirmez votre adresse e-mail',
++    verifyBody: (email) =>
++      `Nous avons envoyé un lien de confirmation à ${email}. Ouvrez-le pour terminer la configuration.`,
++    resendVerification: 'Renvoyer',
++    verificationSent: 'Envoyé — vérifiez votre boîte de réception.',
++    passwordStrengthWeak: 'Faible',
++    passwordStrengthFair: 'Moyen',
++    passwordStrengthStrong: 'Fort',
++    termsNotice:
++      'En créant un compte, vous acceptez nos conditions d’utilisation et notre politique de confidentialité.',
++  },
++  editor: {
++    backToCvs: 'Retour à mes CV',
++    contentTab: 'Contenu',
++    designTab: 'Mise en forme',
++    sectionsTab: 'Rubriques',
++    letterTab: 'Lettre de motivation',
++    addSection: 'Ajouter une rubrique',
++    addItem: 'Ajouter',
++    removeItem: 'Supprimer',
++    moveUp: 'Monter',
++    moveDown: 'Descendre',
++    sectionEnabled: 'Affichée',
++    sectionHidden: 'Masquée',
++    renameSection: 'Renommer',
++    resetName: 'Rétablir l’intitulé',
++    template: 'Modèle',
++    accentColour: 'Couleur d’accentuation',
++    headingFont: 'Police des titres',
++    bodyFont: 'Police du texte',
++    fontSize: 'Taille du texte',
++    lineHeight: 'Interligne',
++    pageMargin: 'Marge de page',
++    sectionSpacing: 'Espacement des rubriques',
++    paperSize: 'Format de page',
++    dateFormat: 'Format des dates',
++    headingStyle: 'Style des titres',
++    resetDesign: 'Rétablir les réglages du modèle',
++    zoom: 'Zoom',
++    pageOf: (page, total) => `Page ${page} sur ${total}`,
++    downloadPdf: 'Télécharger le PDF',
++    preparingPdf: 'Préparation de votre PDF…',
++    autoSaved: (when) => `Enregistré ${when}`,
++  },
++};
++
++const DE: AppCopy = {
++  common: {
++    save: 'Speichern',
++    saving: 'Wird gespeichert…',
++    saved: 'Gespeichert',
++    cancel: 'Abbrechen',
++    delete: 'Löschen',
++    duplicate: 'Duplizieren',
++    rename: 'Umbenennen',
++    edit: 'Bearbeiten',
++    preview: 'Vorschau',
++    download: 'Herunterladen',
++    close: 'Schließen',
++    back: 'Zurück',
++    next: 'Weiter',
++    loading: 'Wird geladen…',
++    retry: 'Erneut versuchen',
++    confirm: 'Bestätigen',
++    yes: 'Ja',
++    no: 'Nein',
++    free: 'Kostenlos',
++    pro: 'Pro',
++    upgrade: 'Auf Pro upgraden',
++    somethingWentWrong: 'Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.',
++    unsavedChanges: 'Sie haben nicht gespeicherte Änderungen.',
++    language: 'Sprache',
++  },
++  nav: {
++    dashboard: 'Übersicht',
++    myCvs: 'Meine Lebensläufe',
++    templates: 'Vorlagen',
++    settings: 'Einstellungen',
++    account: 'Konto',
++    signOut: 'Abmelden',
++    newCv: 'Neuer Lebenslauf',
++    newCvShort: 'Neu',
++    backToSite: 'Zurück zur Website',
++  },
++  dashboard: {
++    title: 'Übersicht',
++    greeting: (name) => (name ? `Willkommen zurück, ${name}` : 'Willkommen zurück'),
++    subtitle: 'Ihre Lebensläufe, Downloads und Ihr Konto auf einen Blick.',
++    cvCount: (n) => (n === 1 ? '1 Lebenslauf' : `${n} Lebensläufe`),
++    downloadsLeft: (n) =>
++      n === 1 ? 'Noch 1 Download diesen Monat' : `Noch ${n} Downloads diesen Monat`,
++    unlimited: 'Unbegrenzt',
++    onFreePlan: 'Sie nutzen den kostenlosen Tarif',
++    freePlanLimits: (cvs, downloads) =>
++      `${cvs ?? 'Unbegrenzt viele'} Lebensläufe und ${downloads ?? 'unbegrenzt viele'} Downloads pro Monat.`,
++    comparePlans: 'Tarife vergleichen',
++    completeness: 'Vollständigkeit',
++    emptyTitle: 'Sie haben noch keinen Lebenslauf erstellt',
++    emptyBody: 'Vorlage wählen, ausfüllen, PDF herunterladen. Das dauert etwa zehn Minuten.',
++    createFirst: 'Ersten Lebenslauf erstellen',
++    recentCvs: 'Zuletzt bearbeitet',
++    viewAll: 'Alle anzeigen',
++    lastEdited: (when) => `Bearbeitet ${when}`,
++    untitled: 'Unbenannter Lebenslauf',
++  },
++  cvs: {
++    title: 'Meine Lebensläufe',
++    subtitle: 'Alles, was Sie geschrieben haben — bereit für die nächste Bewerbung.',
++    newCv: 'Neuer Lebenslauf',
++    startBlank: 'Leer beginnen',
++    startBlankHint: 'Ein leeres Dokument mit den üblichen Abschnitten, bereit zum Ausfüllen.',
++    startExample: 'Mit einem Beispiel beginnen',
++    startExampleHint:
++      'Ein vollständiger Lebenslauf, den Sie kürzen können — hilfreich, um den Aufbau zu sehen.',
++    chooseTemplate: 'Vorlage wählen',
++    deleteTitle: 'Diesen Lebenslauf löschen?',
++    deleteBody: (title) =>
++      `„${title}“ wird endgültig entfernt. Das lässt sich nicht rückgängig machen.`,
++    deleteConfirm: 'Endgültig löschen',
++    duplicated: 'Kopie erstellt',
++    shareTitle: 'Schreibgeschützten Link teilen',
++    shareBody:
++      'Wer den Link hat, kann diesen Lebenslauf ansehen. In Suchergebnissen erscheint er nicht.',
++    shareCopy: 'Link kopieren',
++    shareCopied: 'Link kopiert',
++    shareStop: 'Teilen beenden',
++    downloads: (n) => (n === 1 ? '1 Download' : `${n} Downloads`),
++    documentLanguage: 'Sprache des Dokuments',
++    documentLanguageHint:
++      'Legt Abschnittsüberschriften und Datumsformat dieses Lebenslaufs fest. Die Sprache der Anwendung ändert sich dadurch nicht, und Ihre Texte bleiben unverändert.',
++  },
++  settings: {
++    title: 'Einstellungen',
++    subtitle: 'Ihr Profil, Ihr Tarif und die Voreinstellungen für neue Lebensläufe.',
++    profileHeading: 'Profil',
++    displayName: 'Name',
++    email: 'E-Mail-Adresse',
++    emailImmutable:
++      'Ihre E-Mail-Adresse ist die, mit der Sie sich anmelden, und kann hier nicht geändert werden.',
++    languageHeading: 'Sprache',
++    languageHint:
++      'Die Sprache dieser Übersicht und des Editors. Jeder Lebenslauf hat seine eigene Sprache, die am Dokument selbst eingestellt wird.',
++    preferencesHeading: 'Voreinstellungen für neue Lebensläufe',
++    paperSize: 'Papierformat',
++    defaultTemplate: 'Standardvorlage',
++    appDefault: 'Standard',
++    marketingOptIn: 'Produkt-E-Mails',
++    marketingOptInHint:
++      'Gelegentliche E-Mails zu neuen Vorlagen und Funktionen. Höchstens eine pro Monat.',
++    dangerHeading: 'Konto löschen',
++    deleteAccount: 'Mein Konto löschen',
++    deleteAccountHint:
++      'Entfernt Ihr Konto und alle darin enthaltenen Lebensläufe. Das lässt sich nicht rückgängig machen.',
++    planHeading: 'Tarif',
++    currentPlan: 'Aktueller Tarif',
++    manageBilling: 'Zahlungen verwalten',
++  },
++  auth: {
++    signIn: 'Anmelden',
++    signInSubtitle: 'Willkommen zurück — machen Sie dort weiter, wo Sie aufgehört haben.',
++    signUp: 'Konto erstellen',
++    signUpSubtitle: 'Kostenlos starten. Ohne Kreditkarte, ohne Testfrist.',
++    emailLabel: 'E-Mail-Adresse',
++    passwordLabel: 'Passwort',
++    nameLabel: 'Ihr Name',
++    forgotPassword: 'Passwort vergessen?',
++    forgotPasswordTitle: 'Passwort zurücksetzen',
++    forgotPasswordSubtitle: 'Wir senden Ihnen einen Link, um ein neues zu vergeben.',
++    sendResetLink: 'Link senden',
++    resetLinkSent:
++      'Falls zu dieser Adresse ein Konto besteht, ist ein Link zum Zurücksetzen unterwegs.',
++    noAccount: 'Noch kein Konto?',
++    haveAccount: 'Sie haben bereits ein Konto?',
++    continueWithGoogle: 'Mit Google fortfahren',
++    or: 'oder',
++    verifyTitle: 'Bestätigen Sie Ihre E-Mail-Adresse',
++    verifyBody: (email) =>
++      `Wir haben einen Bestätigungslink an ${email} gesendet. Öffnen Sie ihn, um die Einrichtung abzuschließen.`,
++    resendVerification: 'Erneut senden',
++    verificationSent: 'Gesendet — bitte prüfen Sie Ihren Posteingang.',
++    passwordStrengthWeak: 'Schwach',
++    passwordStrengthFair: 'Mittel',
++    passwordStrengthStrong: 'Stark',
++    termsNotice:
++      'Mit der Erstellung eines Kontos stimmen Sie unseren Nutzungsbedingungen und der Datenschutzerklärung zu.',
++  },
++  editor: {
++    backToCvs: 'Zurück zu meinen Lebensläufen',
++    contentTab: 'Inhalt',
++    designTab: 'Gestaltung',
++    sectionsTab: 'Abschnitte',
++    letterTab: 'Anschreiben',
++    addSection: 'Abschnitt hinzufügen',
++    addItem: 'Hinzufügen',
++    removeItem: 'Entfernen',
++    moveUp: 'Nach oben',
++    moveDown: 'Nach unten',
++    sectionEnabled: 'Sichtbar',
++    sectionHidden: 'Ausgeblendet',
++    renameSection: 'Umbenennen',
++    resetName: 'Bezeichnung zurücksetzen',
++    template: 'Vorlage',
++    accentColour: 'Akzentfarbe',
++    headingFont: 'Schrift der Überschriften',
++    bodyFont: 'Schrift des Fließtexts',
++    fontSize: 'Schriftgröße',
++    lineHeight: 'Zeilenabstand',
++    pageMargin: 'Seitenrand',
++    sectionSpacing: 'Abstand zwischen Abschnitten',
++    paperSize: 'Papierformat',
++    dateFormat: 'Datumsformat',
++    headingStyle: 'Stil der Überschriften',
++    resetDesign: 'Auf Vorlagenstandard zurücksetzen',
++    zoom: 'Zoom',
++    pageOf: (page, total) => `Seite ${page} von ${total}`,
++    downloadPdf: 'PDF herunterladen',
++    preparingPdf: 'Ihr PDF wird vorbereitet…',
++    autoSaved: (when) => `Gespeichert ${when}`,
++  },
++};
++
++export const APP_COPY: Record<Locale, AppCopy> = { en: EN, fr: FR, de: DE };
++
++/** The strings for `locale`. Typed, so a missing key is a build error, not a blank label. */
++export function appCopy(locale: Locale): AppCopy {
++  return APP_COPY[locale];
++}
+diff --git a/lib/i18n/resolve.ts b/lib/i18n/resolve.ts
+new file mode 100644
+index 0000000..6bd5d0c
+--- /dev/null
++++ b/lib/i18n/resolve.ts
+@@ -0,0 +1,71 @@
++import { DEFAULT_LOCALE, LOCALES, type Locale } from './locales';
++
++/**
++ * Working out what language the signed-in product should be in.
++ *
++ * The marketing site answers this from the URL — `/fr/modeles-de-cv` is French because it
++ * says so. The app cannot: `/dashboard` is one route for everybody, and duplicating every
++ * private route under `/fr` and `/de` would triple the surface for no benefit, since none
++ * of it is indexable and none of it competes for search traffic.
++ *
++ * So the app resolves language from two places, in order:
++ *
++ *   1. `profile.locale` — the account setting, which follows the user across devices.
++ *   2. the `locale` cookie — what the *site* was last browsed in.
++ *
++ * The cookie is what makes signing up work. Someone who reads the French marketing pages
++ * and clicks "Créer mon CV" has no profile yet, so `/register` has nothing to read; the
++ * cookie carries their language across the sign-up boundary and becomes the initial
++ * `profile.locale`. Without it, every French visitor would land in an English dashboard
++ * and have to find the switcher — which is exactly the complaint that prompted this.
++ */
++
++/** The cookie the proxy writes when a visitor is on a localised marketing path. */
++export const LOCALE_COOKIE = 'cvo_locale';
++
++/**
++ * A year. The cookie is a preference, not a session — someone who reads the German pages
++ * in March and signs up in June should still get a German dashboard.
++ */
++export const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
++
++/** Narrows an untrusted string to a `Locale`, or `null` if it is not one. */
++export function parseLocale(value: string | null | undefined): Locale | null {
++  if (!value) return null;
++  return (LOCALES as readonly string[]).includes(value) ? (value as Locale) : null;
++}
++
++/**
++ * The language to render the app in.
++ *
++ * Both inputs are optional and both are untrusted — the cookie is client-writable, and a
++ * profile written before `locale` was an enum may hold anything. An unrecognised value
++ * falls through rather than throwing: the worst outcome of a bad cookie should be an
++ * English page, not a crash on every authenticated route.
++ */
++export function resolveLocale(input: {
++  profileLocale?: string | null;
++  cookieLocale?: string | null;
++}): Locale {
++  return parseLocale(input.profileLocale) ?? parseLocale(input.cookieLocale) ?? DEFAULT_LOCALE;
++}
++
++/**
++ * The best guess at a visitor's language from their browser, used only when nothing else
++ * is known — a first visit to `/register` from a link, with no cookie and no profile.
++ *
++ * Deliberately crude. It reads the primary tag of each entry and takes the first one we
++ * support, ignoring q-values: the ordering of `Accept-Language` already expresses
++ * preference in practice, and mis-ranking a header is a smaller error than shipping a
++ * parser for a field this rarely decisive. Region is dropped, so `de-AT` counts as German.
++ */
++export function localeFromAcceptLanguage(header: string | null | undefined): Locale | null {
++  if (!header) return null;
++  for (const entry of header.split(',')) {
++    const tag = entry.split(';')[0]?.trim().toLowerCase();
++    const primary = tag?.split('-')[0];
++    const match = parseLocale(primary);
++    if (match) return match;
++  }
++  return null;
++}
+diff --git a/proxy.ts b/proxy.ts
+index 8522743..aede6f8 100644
+--- a/proxy.ts
++++ b/proxy.ts
+@@ -1,6 +1,8 @@
+ import { NextResponse, type NextRequest } from 'next/server';
+ 
+ import { SESSION_COOKIE } from '@/lib/auth/session';
++import { alternatesFor, localeOf, normalisePath } from '@/lib/i18n/locales';
++import { LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE } from '@/lib/i18n/resolve';
+ 
+ /**
+  * Edge-of-app routing rules.
+@@ -74,6 +76,54 @@ export function proxy(request: NextRequest): NextResponse {
+   const response = NextResponse.next();
+   // Lets server components render canonical/redirect URLs without re-deriving the path.
+   response.headers.set('x-pathname', pathname);
++
++  /*
++   * Remember the language the *site* is being read in, so it survives into the app.
++   *
++   * The marketing pages get their language from the URL. `/register`, `/login` and the
++   * dashboard cannot: they are one route each, shared by everybody. Without this, a
++   * visitor who read every French page and clicked "Créer mon CV" would land on an English
++   * sign-up form and then an English dashboard, having given no indication whatsoever that
++   * they wanted English.
++   *
++   * Only paths that *express* a language may write it, which is narrower than it first
++   * looks and has to be. The obvious version — write `localeOf(pathname)` on every request
++   * — is wrong in a way that would have been maddening to debug: `localeOf('/dashboard')`
++   * is `'en'`, because the dashboard has no locale prefix, so every visit to the dashboard
++   * would silently reset a French user's preference to English. A path counts as
++   * expressing a language only when it belongs to a translated cluster, which `/dashboard`
++   * and `/login` do not.
++   *
++   * Written only on change, so the great majority of requests carry no `Set-Cookie`.
++   */
++  /*
++   * ...and only on a real navigation.
++   *
++   * Next.js prefetches every link in the viewport, and those prefetches go through this
++   * proxy like any other request. Without this guard a French page that links to an
++   * English one — the pricing page, a blog post — silently rewrote the visitor's language
++   * to English before they clicked anything, and the dashboard's own prefetches undid a
++   * preference the moment it was set. Caught in a browser; `curl` never reproduced it,
++   * because `curl` does not prefetch.
++   *
++   * `sec-fetch-dest: document` is the precise test: it is set by the browser, cannot be
++   * spoofed by page script, and is `empty` for the RSC fetches that caused this.
++   */
++  const isNavigation = request.headers.get('sec-fetch-dest') === 'document';
++  const localised = isNavigation && alternatesFor(normalisePath(pathname));
++  if (localised) {
++    const pathLocale = localeOf(pathname);
++    if (request.cookies.get(LOCALE_COOKIE)?.value !== pathLocale) {
++      response.cookies.set(LOCALE_COOKIE, pathLocale, {
++        maxAge: LOCALE_COOKIE_MAX_AGE,
++        path: '/',
++        sameSite: 'lax',
++        httpOnly: false,
++        secure: process.env.NODE_ENV === 'production',
++      });
++    }
++  }
++
+   return response;
+ }
+ 
+diff --git a/tests/lib/locale-carryover.test.ts b/tests/lib/locale-carryover.test.ts
+new file mode 100644
+index 0000000..b287fed
+--- /dev/null
++++ b/tests/lib/locale-carryover.test.ts
+@@ -0,0 +1,111 @@
++import { describe, expect, it } from 'vitest';
++
++import {
++  LOCALE_COOKIE,
++  localeFromAcceptLanguage,
++  parseLocale,
++  resolveLocale,
++} from '@/lib/i18n/resolve';
++import { alternatesFor, localeOf, normalisePath } from '@/lib/i18n/locales';
++
++/**
++ * Carrying a language from the marketing site into the signed-in app.
++ *
++ * The marketing pages know their language from the URL; `/dashboard`, `/login` and
++ * `/register` are one route each and cannot. This is the seam between the two, and it has
++ * two failure modes that are easy to write and hard to notice:
++ *
++ *   1. Resetting a saved preference from a path that does not express a language.
++ *   2. Letting a *prefetch* count as the user reading a page.
++ *
++ * Both were written and both were caught in a browser rather than here, so both now have
++ * a test. The proxy logic itself is asserted through its inputs — `alternatesFor` and
++ * `localeOf` — because the proxy needs a `NextRequest` and the interesting part is the
++ * decision, not the plumbing.
++ */
++
++describe('resolving the app language', () => {
++  it('prefers the saved account setting over the cookie', () => {
++    // The account is the durable answer: it follows the user to a new device, where the
++    // cookie does not exist at all.
++    expect(resolveLocale({ profileLocale: 'de', cookieLocale: 'fr' })).toBe('de');
++  });
++
++  it('falls back to the cookie when there is no profile yet', () => {
++    // This is the sign-up case, and the whole reason the cookie exists.
++    expect(resolveLocale({ profileLocale: null, cookieLocale: 'fr' })).toBe('fr');
++  });
++
++  it('falls back to English rather than throwing on a bad value', () => {
++    /*
++     * The cookie is client-writable and a profile written before `locale` was an enum may
++     * hold anything. An unrecognised value must degrade to English — the worst outcome of
++     * a hand-edited cookie should be an English page, not a 500 on every signed-in route.
++     */
++    expect(resolveLocale({ profileLocale: 'klingon', cookieLocale: 'nonsense' })).toBe('en');
++    expect(resolveLocale({})).toBe('en');
++    expect(parseLocale('../../etc/passwd')).toBeNull();
++    expect(parseLocale('')).toBeNull();
++  });
++
++  it('reads a browser language when nothing else is known', () => {
++    expect(localeFromAcceptLanguage('de-AT,de;q=0.9,en;q=0.8')).toBe('de');
++    expect(localeFromAcceptLanguage('fr-CA')).toBe('fr');
++    expect(localeFromAcceptLanguage('es-ES,es;q=0.9')).toBeNull();
++    expect(localeFromAcceptLanguage(null)).toBeNull();
++  });
++});
++
++describe('which paths may set the language cookie', () => {
++  it.each([
++    ['/templates', 'en'],
++    ['/pricing', 'en'],
++    ['/fr/modeles-de-cv', 'fr'],
++    ['/fr/tarifs', 'fr'],
++    ['/de/lebenslauf-vorlagen', 'de'],
++    ['/de/preise', 'de'],
++  ])('%s expresses %s', (path, locale) => {
++    expect(alternatesFor(normalisePath(path))).not.toBeNull();
++    expect(localeOf(path)).toBe(locale);
++  });
++
++  it.each(['/dashboard', '/dashboard/cvs', '/login', '/register', '/dashboard/settings'])(
++    '%s expresses no language and must not write the cookie',
++    (path) => {
++      /*
++       * The bug this prevents: `localeOf('/dashboard')` is `'en'`, because the dashboard
++       * carries no locale prefix. A proxy that wrote `localeOf(pathname)` unconditionally
++       * would therefore reset a French user's preference to English every time they opened
++       * their own dashboard — and the symptom would look like "the language setting does
++       * not save", which is nearly impossible to diagnose from a bug report.
++       */
++      expect(alternatesFor(normalisePath(path))).toBeNull();
++    },
++  );
++
++  it('names the cookie something that cannot collide with the session', () => {
++    expect(LOCALE_COOKIE).toBe('cvo_locale');
++  });
++});
++
++describe('the proxy only reacts to real navigations', () => {
++  /*
++   * Next.js prefetches every link in the viewport. Those prefetches reach the proxy like
++   * any other request, so a French page linking to an English one rewrote the visitor's
++   * language before they had clicked anything. `sec-fetch-dest` distinguishes them: the
++   * browser sets it, page script cannot forge it, and it is `empty` for RSC fetches.
++   *
++   * Asserted against the proxy source, because reproducing it properly needs a browser —
++   * `curl` never triggered it, which is exactly why it survived the first round of checks.
++   */
++  it('guards the cookie write on sec-fetch-dest', async () => {
++    const { readFileSync } = await import('node:fs');
++    const { join } = await import('node:path');
++    const proxy = readFileSync(join(process.cwd(), 'proxy.ts'), 'utf8');
++
++    expect(proxy).toContain('sec-fetch-dest');
++    expect(proxy).toMatch(/isNavigation\s*&&/);
++    // And the write itself is still conditional on the path expressing a language.
++    expect(proxy).toContain('alternatesFor(normalisePath(pathname))');
++  });
++});
+-- 
+2.43.0
+

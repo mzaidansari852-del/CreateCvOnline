@@ -1,0 +1,2317 @@
+From 4ce94a637a5a39e189f4f77a65927867b4a444c8 Mon Sep 17 00:00:00 2001
+From: CreateCVOnline <dev@createcvonline.com>
+Date: Sat, 15 Aug 2026 15:43:57 +0000
+Subject: [PATCH 1/3] Make all three template galleries statically rendered
+ (audit 3.4)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+/templates was the most linked page on the site and the only marketing page
+rendered per request: every filter was a next/link writing to the query
+string, and reading searchParams — in the body or in generateMetadata — opts
+a route into dynamic rendering.
+
+The query string was doing two unrelated jobs, so the fix splits them.
+Category becomes a row of links to the six static category pages, which
+already had their own copy and were being competed with by ?category=; plan,
+columns, ATS and search become client-side filtering over cards the server
+has already rendered, matched through data- attributes so the registry never
+reaches the browser. With JavaScript off the page is the full gallery.
+
+The ?category= redirect lives in proxy.ts rather than next.config.ts: a
+redirects() rule forwards the query it matched on and would land on
+/templates/modern?category=modern, inventing a third address.
+
+Writing the regression test against all three galleries rather than just the
+English one is what surfaced the rest of this change. It failed on
+TemplateFilterBar being absent from the French and German pages — the English
+gallery had gained search and filters the localised ones did not have — and
+verifying the fix in a browser turned up four more defects:
+
+- The French and German ItemList pointed at English URLs and English preview
+  images, contradicting the hreflang cluster the pages sit inside.
+- The search box could not match French or German at all. The haystack is the
+  registry's metadata and the registry has one language, so banque, étudiant
+  and minimaliste returned nothing — the three examples the French
+  placeholder itself suggested. lib/i18n/search-terms.ts translates the query
+  rather than the corpus.
+- Splitting a phrase into words is wrong: "two column" as two AND column
+  matched a one-column template whose tagline reads "a two-line name". The
+  registry has 17 two-column templates; the three languages had been
+  returning 20, 17 and 32 for the same question.
+- SiteFooter asked locale === 'fr' before using a translation, so every
+  German page shipped an English footer, blurb included. The German copy had
+  been correct in nav.ts the whole time, which is what made it invisible.
+
+Both new test files assert on the rendered component rather than the copy
+table, because that is the second time a translation has been present and
+unused.
+
+Verified: 1,595 tests; ○ for all three galleries; SEO check 268 pages, 0
+errors, 0 warnings; browser pass over all three locales.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01KqU6xXaZUtNkv28VRtkast
+---
+ app/(marketing)/templates/page.tsx         | 449 +++++----------------
+ app/de/lebenslauf-vorlagen/page.tsx        |  87 ++--
+ app/fr/modeles-de-cv/page.tsx              |  95 +++--
+ components/layout/SiteFooter.tsx           |  31 +-
+ components/marketing/TemplateFilterBar.tsx | 312 ++++++++++++++
+ components/marketing/TemplateStrip.tsx     |  29 ++
+ docs/AUDIT_TEMPLATES.md                    |  74 ++++
+ lib/i18n/search-terms.ts                   | 359 ++++++++++++++++
+ next.config.ts                             |   3 +
+ proxy.ts                                   |  25 ++
+ tests/lib/footer-locale.test.tsx           | 100 +++++
+ tests/lib/search-terms.test.tsx            | 306 ++++++++++++++
+ tests/lib/static-rendering.test.ts         |  60 +++
+ 13 files changed, 1502 insertions(+), 428 deletions(-)
+ create mode 100644 components/marketing/TemplateFilterBar.tsx
+ create mode 100644 lib/i18n/search-terms.ts
+ create mode 100644 tests/lib/footer-locale.test.tsx
+ create mode 100644 tests/lib/search-terms.test.tsx
+
+diff --git a/app/(marketing)/templates/page.tsx b/app/(marketing)/templates/page.tsx
+index 6d4b395..504333c 100644
+--- a/app/(marketing)/templates/page.tsx
++++ b/app/(marketing)/templates/page.tsx
+@@ -10,194 +10,39 @@ import {
+   Section,
+   SectionHeading,
+ } from '@/components/marketing/primitives';
+-import { ButtonLink, buttonClasses } from '@/components/ui/button';
+-import { EmptyState } from '@/components/ui/feedback';
+ import { JsonLd } from '@/components/seo/JsonLd';
++import { TemplateFilterBar } from '@/components/marketing/TemplateFilterBar';
+ import { TemplateGrid } from '@/components/marketing/TemplateStrip';
+ import {
+   FREE_TEMPLATE_COUNT,
+   TEMPLATES,
+   TEMPLATE_CATEGORIES,
+   TEMPLATE_COUNT,
+-  searchTemplates,
++  categoryPath,
++  templatesByCategory,
+ } from '@/lib/cv/template-registry';
+-import { cn } from '@/lib/utils/cn';
+ import { itemListSchema } from '@/lib/seo/schema';
+ import { pageMetadata } from '@/lib/seo/metadata';
+ import { site } from '@/lib/site';
+-import type { TemplateCategory, TemplateDefinition } from '@/types/cv';
+ 
+ import { templateHeading } from './template-copy';
+ 
+ /**
+  * The template gallery.
+  *
+- * Every filter is a `next/link` that writes to the query string, so the page stays a
+- * server component, works with JavaScript disabled, and gives each combination a real
+- * URL that can be crawled, bookmarked and shared. The search box is a plain `GET` form
+- * for the same reason — no client bundle is needed to filter 56 templates.
++ * Statically rendered, which it was not. Every filter used to be a `next/link` writing to
++ * the query string — a defensible design, and it read `searchParams` in both
++ * `generateMetadata` and the body, which opts a route into dynamic rendering. So the most
++ * linked page on the site was re-rendered per request while every other marketing page was
++ * served as static HTML. Audit item 3.4.
++ *
++ * What replaces it splits the two jobs the query string was doing. Category becomes a row
++ * of links to the six static category pages, which already have their own copy and were
++ * being competed with by `?category=`; plan, columns, ATS and search are handled in the
++ * browser by `TemplateFilterBar`, over cards the server has already rendered. With
++ * JavaScript off the page is the full gallery, which is what a crawler should see anyway.
+  */
+ 
+-/* -------------------------------------------------------------------------- */
+-/* Filter state                                                                */
+-/* -------------------------------------------------------------------------- */
+-
+-type PlanFilter = 'free' | 'pro';
+-type ColumnsFilter = 1 | 2;
+-type AtsFilter = 4 | 5;
+-
+-interface Filters {
+-  category: TemplateCategory | null;
+-  plan: PlanFilter | null;
+-  columns: ColumnsFilter | null;
+-  ats: AtsFilter | null;
+-  q: string;
+-}
+-
+-type SearchParams = Record<string, string | string[] | undefined>;
+-
+-const EMPTY_FILTERS: Filters = { category: null, plan: null, columns: null, ats: null, q: '' };
+-
+-function firstValue(value: string | string[] | undefined): string {
+-  const raw = Array.isArray(value) ? value[0] : value;
+-  return typeof raw === 'string' ? raw.trim() : '';
+-}
+-
+-function parseFilters(params: SearchParams): Filters {
+-  const category = firstValue(params.category);
+-  const plan = firstValue(params.plan);
+-  const columns = firstValue(params.columns);
+-  const ats = firstValue(params.ats);
+-
+-  return {
+-    category: TEMPLATE_CATEGORIES.some((entry) => entry.id === category)
+-      ? (category as TemplateCategory)
+-      : null,
+-    plan: plan === 'free' || plan === 'pro' ? plan : null,
+-    columns: columns === '1' ? 1 : columns === '2' ? 2 : null,
+-    ats: ats === '5' ? 5 : ats === '4' ? 4 : null,
+-    q: firstValue(params.q).slice(0, 60),
+-  };
+-}
+-
+-function isFiltered(filters: Filters): boolean {
+-  return Boolean(filters.category || filters.plan || filters.columns || filters.ats || filters.q);
+-}
+-
+-/** Builds the URL for a filter change, preserving everything else. */
+-function hrefFor(filters: Filters, patch: Partial<Filters> = {}): string {
+-  const next = { ...filters, ...patch };
+-  const params = new URLSearchParams();
+-  if (next.category) params.set('category', next.category);
+-  if (next.plan) params.set('plan', next.plan);
+-  if (next.columns) params.set('columns', String(next.columns));
+-  if (next.ats) params.set('ats', String(next.ats));
+-  if (next.q) params.set('q', next.q);
+-  const query = params.toString();
+-  return query ? `/templates?${query}` : '/templates';
+-}
+-
+-function applyFilters(filters: Filters): TemplateDefinition[] {
+-  let results = filters.q ? searchTemplates(filters.q) : TEMPLATES;
+-  if (filters.category) results = results.filter((t) => t.category === filters.category);
+-  if (filters.plan) results = results.filter((t) => (filters.plan === 'pro' ? t.premium : !t.premium));
+-  if (filters.columns) results = results.filter((t) => t.columns === filters.columns);
+-  if (filters.ats) results = results.filter((t) => t.atsScore >= (filters.ats ?? 0));
+-  return results;
+-}
+-
+-/** Human summary of the active filters — used in the heading, the count line and metadata. */
+-function describeFilters(filters: Filters): string[] {
+-  const parts: string[] = [];
+-  if (filters.category) {
+-    parts.push(TEMPLATE_CATEGORIES.find((entry) => entry.id === filters.category)?.label ?? '');
+-  }
+-  if (filters.plan) parts.push(filters.plan === 'free' ? 'free' : 'Pro');
+-  if (filters.columns) parts.push(filters.columns === 1 ? 'one column' : 'two columns');
+-  if (filters.ats) parts.push(filters.ats === 5 ? 'ATS score 5/5' : 'ATS score 4 or better');
+-  if (filters.q) parts.push(`matching “${filters.q}”`);
+-  return parts.filter(Boolean);
+-}
+-
+-/* -------------------------------------------------------------------------- */
+-/* Metadata                                                                    */
+-/* -------------------------------------------------------------------------- */
+-
+-export async function generateMetadata(props: {
+-  searchParams: Promise<SearchParams>;
+-}): Promise<Metadata> {
+-  const filters = parseFilters(await props.searchParams);
+-  const matches = applyFilters(filters);
+-  const description = describeFilters(filters);
+-
+-  if (description.length === 0) {
+-    return pageMetadata({
+-      title: `CV Templates — ${TEMPLATE_COUNT} Professional Designs`,
+-      description: `Browse all ${TEMPLATE_COUNT} professional CV templates: modern, corporate, creative, technology, classic and ATS-friendly designs. Filter by ATS score, column count and plan — ${FREE_TEMPLATE_COUNT} are free.`,
+-      path: '/templates',
+-      keywords: [
+-        'cv templates',
+-        'professional cv templates',
+-        'free cv templates',
+-        'ats cv templates',
+-        'resume templates',
+-        'cv template download',
+-      ],
+-    });
+-  }
+-
+-  const label = description.join(', ');
+-  return pageMetadata({
+-    title: `${label.charAt(0).toUpperCase()}${label.slice(1)} CV templates (${matches.length})`,
+-    description: `${matches.length} of our ${TEMPLATE_COUNT} CV templates match: ${label}. Preview each design at full size, then edit it online and download a PDF.`,
+-    path: hrefFor(filters),
+-    // Search-result URLs are unbounded and thin; facet URLs are finite and worth indexing.
+-    noindex: Boolean(filters.q),
+-  });
+-}
+-
+-/* -------------------------------------------------------------------------- */
+-/* Filter UI                                                                   */
+-/* -------------------------------------------------------------------------- */
+-
+-function chipClass(active: boolean): string {
+-  return cn(
+-    'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors',
+-    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600',
+-    active
+-      ? 'border-brand-600 bg-brand-600 text-white hover:bg-brand-700'
+-      : 'border-ink-200 bg-white text-ink-700 hover:border-brand-300 hover:text-brand-700',
+-  );
+-}
+-
+-function FilterRow({
+-  label,
+-  options,
+-  filters,
+-}: {
+-  label: string;
+-  options: { label: string; patch: Partial<Filters>; active: boolean }[];
+-  filters: Filters;
+-}) {
+-  return (
+-    <div className="flex flex-wrap items-center gap-2">
+-      <span className="w-full text-2xs font-bold tracking-[0.12em] text-ink-500 uppercase sm:w-24">
+-        {label}
+-      </span>
+-      {options.map((option) => (
+-        <Link
+-          key={option.label}
+-          href={hrefFor(filters, option.patch)}
+-          className={chipClass(option.active)}
+-          aria-current={option.active ? 'true' : undefined}
+-        >
+-          {option.label}
+-        </Link>
+-      ))}
+-    </div>
+-  );
+-}
+-
+ /* -------------------------------------------------------------------------- */
+ /* Page copy                                                                   */
+ /* -------------------------------------------------------------------------- */
+@@ -261,19 +106,25 @@ const GALLERY_FAQ = [
+ /* Page                                                                        */
+ /* -------------------------------------------------------------------------- */
+ 
+-export default async function TemplatesPage(props: { searchParams: Promise<SearchParams> }) {
+-  const filters = parseFilters(await props.searchParams);
+-  const matches = applyFilters(filters);
+-  const filtered = isFiltered(filters);
+-  const summary = describeFilters(filters);
+-  const grouped = filters.category === null;
+-
+-  const categoryOptions = TEMPLATE_CATEGORIES.map((entry) => ({
+-    label: entry.label,
+-    patch: { category: filters.category === entry.id ? null : entry.id },
+-    active: filters.category === entry.id,
+-  }));
++/* -------------------------------------------------------------------------- */
++/* Metadata                                                                    */
++/* -------------------------------------------------------------------------- */
+ 
++export const metadata: Metadata = pageMetadata({
++  title: `CV Templates — ${TEMPLATE_COUNT} Professional Designs`,
++  description: `Browse all ${TEMPLATE_COUNT} professional CV templates: modern, corporate, creative, technology, classic and ATS-friendly designs. Filter by ATS score, column count and plan — ${FREE_TEMPLATE_COUNT} are free.`,
++  path: '/templates',
++  keywords: [
++    'cv templates',
++    'professional cv templates',
++    'free cv templates',
++    'ats cv templates',
++    'resume templates',
++    'cv template download',
++  ],
++});
++
++export default function TemplatesPage() {
+   return (
+     <>
+       <Section size="sm">
+@@ -291,16 +142,15 @@ export default async function TemplatesPage(props: { searchParams: Promise<Searc
+           description={
+             <>
+               <p>
+-                Every template below is a real, working layout — not a picture of one. What you
+-                see in each preview is the document you get, rendered by the same code that
+-                produces your PDF, filled with a complete example CV so you can judge how a long
+-                job history actually sits on the page.
++                Every template below is a real, working layout — not a picture of one. What you see
++                in each preview is the document you get, rendered by the same code that produces
++                your PDF, filled with a complete example CV so you can judge how a long job history
++                actually sits on the page.
+               </p>
+               <p className="mt-3">
+                 They are grouped into six families and rated 1–5 for how reliably an applicant
+-                tracking system can read them. Filter by category, plan, column count or ATS
+-                score; each filtered view has its own address, so you can bookmark or share the
+-                shortlist you end up with.
++                tracking system can read them. Each family has its own page, written for it; plan,
++                column count and ATS score filter the list here.
+               </p>
+             </>
+           }
+@@ -312,164 +162,66 @@ export default async function TemplatesPage(props: { searchParams: Promise<Searc
+       </Section>
+ 
+       <Section tone="muted" size="sm" id="browse">
+-        <div className="rounded-2xl border border-ink-200 bg-white p-5 sm:p-6">
+-          <form action="/templates" method="get" role="search" className="flex flex-wrap gap-2">
+-            <label htmlFor="template-search" className="sr-only">
+-              Search templates by name, style or role
+-            </label>
+-            <input
+-              id="template-search"
+-              type="search"
+-              name="q"
+-              defaultValue={filters.q}
+-              maxLength={60}
+-              placeholder="Search templates — “banking”, “student”, “minimal”, “two column”…"
+-              className="h-10 min-w-0 flex-1 rounded-lg border border-ink-200 bg-white px-3 text-sm text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/12 focus:outline-none"
+-            />
+-            {/* Keep the active facets when the form submits — no JavaScript involved. */}
+-            {filters.category ? <input type="hidden" name="category" value={filters.category} /> : null}
+-            {filters.plan ? <input type="hidden" name="plan" value={filters.plan} /> : null}
+-            {filters.columns ? <input type="hidden" name="columns" value={String(filters.columns)} /> : null}
+-            {filters.ats ? <input type="hidden" name="ats" value={String(filters.ats)} /> : null}
+-            <button type="submit" className={buttonClasses({ variant: 'primary', size: 'md' })}>
+-              Search
+-            </button>
+-          </form>
+-
+-          <div className="mt-5 flex flex-col gap-3 border-t border-ink-100 pt-5">
+-            <FilterRow label="Category" filters={filters} options={categoryOptions} />
+-            <FilterRow
+-              label="Plan"
+-              filters={filters}
+-              options={[
+-                {
+-                  label: 'Free',
+-                  patch: { plan: filters.plan === 'free' ? null : 'free' },
+-                  active: filters.plan === 'free',
+-                },
+-                {
+-                  label: 'Pro',
+-                  patch: { plan: filters.plan === 'pro' ? null : 'pro' },
+-                  active: filters.plan === 'pro',
+-                },
+-              ]}
+-            />
+-            <FilterRow
+-              label="Layout"
+-              filters={filters}
+-              options={[
+-                {
+-                  label: 'One column',
+-                  patch: { columns: filters.columns === 1 ? null : 1 },
+-                  active: filters.columns === 1,
+-                },
+-                {
+-                  label: 'Two columns',
+-                  patch: { columns: filters.columns === 2 ? null : 2 },
+-                  active: filters.columns === 2,
+-                },
+-              ]}
+-            />
+-            <FilterRow
+-              label="ATS score"
+-              filters={filters}
+-              options={[
+-                {
+-                  label: '5/5 only',
+-                  patch: { ats: filters.ats === 5 ? null : 5 },
+-                  active: filters.ats === 5,
+-                },
+-                {
+-                  label: '4 and above',
+-                  patch: { ats: filters.ats === 4 ? null : 4 },
+-                  active: filters.ats === 4,
+-                },
+-              ]}
+-            />
+-          </div>
+-
+-          <div className="mt-5 flex flex-wrap items-baseline justify-between gap-3 border-t border-ink-100 pt-4">
+-            <p className="text-sm text-ink-700">
+-              <strong className="font-semibold text-ink-950">
+-                Showing {matches.length} of {TEMPLATE_COUNT} templates
+-              </strong>
+-              {summary.length > 0 ? (
+-                <span className="text-ink-600"> · {summary.join(' · ')}</span>
+-              ) : null}
+-            </p>
+-            {filtered ? (
+-              <Link
+-                href="/templates"
+-                className="text-sm font-semibold text-brand-700 underline underline-offset-2 hover:text-brand-800"
+-              >
+-                Clear all filters
+-              </Link>
+-            ) : null}
+-          </div>
+-        </div>
+-
+-        <div className="mt-10">
+-          {matches.length === 0 ? (
+-            <EmptyState
+-              title="No templates match those filters"
+-              description={
+-                filters.q
+-                  ? `Nothing matches “${filters.q}” with the filters you have applied. Try a broader term — a category, a role or a style — or clear the filters and browse all ${TEMPLATE_COUNT} designs.`
+-                  : `That combination does not exist yet. Loosening one filter — usually the ATS score or the column count — will bring results back.`
+-              }
+-              action={
+-                <ButtonLink href="/templates" size="md">
+-                  Show all {TEMPLATE_COUNT} templates
+-                </ButtonLink>
+-              }
+-              secondaryAction={
+-                filters.category ? (
+-                  <ButtonLink
+-                    href={hrefFor(EMPTY_FILTERS, { category: filters.category })}
+-                    size="md"
+-                    variant="outline"
+-                  >
+-                    Keep the category only
+-                  </ButtonLink>
+-                ) : (
+-                  <ButtonLink href={hrefFor(EMPTY_FILTERS, { ats: 5 })} size="md" variant="outline">
+-                    Browse ATS-safe templates
+-                  </ButtonLink>
+-                )
+-              }
+-            />
+-          ) : grouped ? (
+-            <div className="flex flex-col gap-14">
+-              {TEMPLATE_CATEGORIES.map((category) => {
+-                const group = matches.filter((template) => template.category === category.id);
+-                if (group.length === 0) return null;
+-                return (
+-                  <section key={category.id} id={category.slug} className="scroll-mt-24">
+-                    <div className="flex flex-wrap items-end justify-between gap-4">
+-                      <div className="max-w-2xl">
+-                        <h2 className="text-2xl font-bold tracking-tight text-ink-950">
+-                          {category.label} CV templates
+-                        </h2>
+-                        <p className="mt-2 text-[15px] leading-relaxed text-ink-600">
+-                          {category.blurb}
+-                        </p>
+-                      </div>
+-                      <Link
+-                        href={hrefFor(filters, { category: category.id })}
+-                        className="text-sm font-semibold text-brand-700 underline underline-offset-2 hover:text-brand-800"
+-                      >
+-                        See all {group.length} {category.label.toLowerCase()} templates
+-                      </Link>
++        {/*
++          Category is a row of links, not a filter.
++          
++          `?category=modern` and `/templates/modern` were two addresses for one list, and the
++          second is the one with its own copy, its own title and its own place in the sitemap.
++          Sending the category chips there instead of to a query view is what stops the two
++          competing — `proxy.ts` redirects the old query URLs to match. It lives in the proxy
++          rather than in `next.config.ts` because a `redirects()` rule forwards the query it
++          matched on, landing on `/templates/modern?category=modern` — a third address.
++        */}
++        <nav aria-label="Template categories" className="mb-6 flex flex-wrap items-center gap-2">
++          <span className="w-24 shrink-0 text-xs font-bold tracking-[0.08em] text-ink-500 uppercase">
++            Category
++          </span>
++          {TEMPLATE_CATEGORIES.map((category) => (
++            <Link
++              key={category.id}
++              href={categoryPath(category.id)}
++              className="rounded-full border border-ink-200 bg-white px-3 py-1.5 text-[13px] font-medium text-ink-700 transition-colors hover:border-brand-300 hover:text-brand-700"
++            >
++              {category.label}
++              <span className="ml-1.5 text-ink-400">{templatesByCategory(category.id).length}</span>
++            </Link>
++          ))}
++        </nav>
++
++        <TemplateFilterBar total={TEMPLATE_COUNT} freeCount={FREE_TEMPLATE_COUNT}>
++          <div className="flex flex-col gap-14">
++            {TEMPLATE_CATEGORIES.map((category) => {
++              const group = templatesByCategory(category.id);
++              if (group.length === 0) return null;
++              return (
++                <section
++                  key={category.id}
++                  id={category.slug}
++                  data-template-group=""
++                  className="scroll-mt-24"
++                >
++                  <div className="flex flex-wrap items-end justify-between gap-4">
++                    <div className="max-w-2xl">
++                      <h2 className="text-2xl font-bold tracking-tight text-ink-950">
++                        {category.label} CV templates
++                      </h2>
++                      <p className="mt-2 text-[15px] leading-relaxed text-ink-600">
++                        {category.blurb}
++                      </p>
+                     </div>
+-                    <TemplateGrid templates={group} className="mt-6" />
+-                  </section>
+-                );
+-              })}
+-            </div>
+-          ) : (
+-            <TemplateGrid templates={matches} />
+-          )}
+-        </div>
++                    <Link
++                      href={categoryPath(category.id)}
++                      className="text-sm font-semibold text-brand-700 underline underline-offset-2 hover:text-brand-800"
++                    >
++                      See all {group.length} {category.label.toLowerCase()} templates
++                    </Link>
++                  </div>
++                  <TemplateGrid templates={group} className="mt-6" />
++                </section>
++              );
++            })}
++          </div>
++        </TemplateFilterBar>
+       </Section>
+ 
+       <Section size="sm">
+@@ -479,7 +231,8 @@ export default async function TemplatesPage(props: { searchParams: Promise<Searc
+             {
+               label: 'ATS CV templates',
+               href: '/ats-cv',
+-              description: 'The layouts built to be read by software first, and why they look plain.',
++              description:
++                'The layouts built to be read by software first, and why they look plain.',
+             },
+             {
+               label: 'CV templates by format',
+@@ -532,12 +285,12 @@ export default async function TemplatesPage(props: { searchParams: Promise<Searc
+       <JsonLd
+         nodes={[
+           itemListSchema(
+-            matches.map((template) => ({
++            TEMPLATES.map((template) => ({
+               name: templateHeading(template),
+               path: `/templates/${template.slug}`,
+               description: template.tagline,
+             })),
+-            summary.length > 0 ? `CV templates: ${summary.join(', ')}` : 'All CV templates',
++            'All CV templates',
+           ),
+         ]}
+       />
+diff --git a/app/de/lebenslauf-vorlagen/page.tsx b/app/de/lebenslauf-vorlagen/page.tsx
+index a2a4e36..7b4f18f 100644
+--- a/app/de/lebenslauf-vorlagen/page.tsx
++++ b/app/de/lebenslauf-vorlagen/page.tsx
+@@ -6,8 +6,10 @@ import { Badge } from '@/components/ui/feedback';
+ import { ButtonLink } from '@/components/ui/button';
+ import { CtaBanner, Section, SectionHeading } from '@/components/marketing/primitives';
+ import { JsonLd } from '@/components/seo/JsonLd';
++import { TemplateFilterBar } from '@/components/marketing/TemplateFilterBar';
+ import { TemplateGrid } from '@/components/marketing/TemplateStrip';
+-import { hasPreview } from '@/components/cv/TemplateImage';
++import { hasPreview, previewSrc } from '@/components/cv/TemplateImage';
++import { templatePath } from '@/lib/i18n/locales';
+ import {
+   FREE_TEMPLATE_COUNT,
+   TEMPLATES,
+@@ -36,9 +38,10 @@ export const metadata: Metadata = pageMetadata({
+ /**
+  * The German gallery — the page the whole German subtree exists to rank.
+  *
+- * Statically rendered, like its French counterpart and unlike the English one, because it
+- * has no `searchParams` filter: the filtering is done by linking to six real indexable
+- * category URLs, which is what a German searcher is querying for anyway.
++ * Statically rendered, as all three galleries now are. Category is a row of links to the
++ * six real indexable category URLs, which is what a German searcher queries for anyway;
++ * plan, columns, ATS and search are filtered in the browser by `TemplateFilterBar` over
++ * cards the server has already rendered. Audit item 3.4.
+  */
+ export default function GermanTemplatesPage() {
+   const singleColumn = TEMPLATES.filter((template) => template.columns === 1).length;
+@@ -50,9 +53,7 @@ export default function GermanTemplatesPage() {
+           <h1 className="font-display text-4xl font-extrabold tracking-tight text-balance text-ink-950 sm:text-5xl">
+             {DE.gallery.heading}
+           </h1>
+-          <p className="mt-4 text-lg leading-relaxed text-pretty text-ink-600">
+-            {DE.gallery.lede}
+-          </p>
++          <p className="mt-4 text-lg leading-relaxed text-pretty text-ink-600">{DE.gallery.lede}</p>
+ 
+           <div className="mt-6 flex flex-wrap items-center gap-2">
+             <Badge tone="brand">
+@@ -77,11 +78,16 @@ export default function GermanTemplatesPage() {
+         </div>
+       </Section>
+ 
+-      <Section tone="muted" size="sm">
++      <Section tone="muted" size="sm" id="durchsuchen">
++        {/*
++          Category stays a row of links rather than becoming a filter chip: each category
++          is a real page with its own copy and its own place in the sitemap, and a filtered
++          view of this page competing with it is duplication rather than a feature.
++        */}
+         <h2 className="text-xs font-bold tracking-[0.12em] text-ink-950 uppercase">
+           {DE.gallery.browseByCategory}
+         </h2>
+-        <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
++        <ul className="mt-4 mb-6 flex flex-wrap gap-x-5 gap-y-2">
+           {TEMPLATE_CATEGORIES.map((category) => (
+             <li key={category.id}>
+               <Link
+@@ -96,29 +102,39 @@ export default function GermanTemplatesPage() {
+             </li>
+           ))}
+         </ul>
+-      </Section>
+ 
+-      {TEMPLATE_CATEGORIES.map((category) => {
+-        const templates = templatesByCategory(category.id);
+-        return (
+-          <Section key={category.id} size="sm">
+-            <SectionHeading
+-              align="left"
+-              title={DE.categories[category.id].heading}
+-              description={DE.categories[category.id].lede}
+-            />
+-            <TemplateGrid className="mt-8" templates={templates} columns={4} locale="de" />
+-            <p className="mt-6 text-sm">
+-              <Link
+-                href={`/de/lebenslauf-vorlagen/${DE_CATEGORY_SLUG[category.id]}`}
+-                className="font-medium text-brand-700 underline underline-offset-2"
+-              >
+-                {DE.categories[category.id].heading} — alle ansehen
+-              </Link>
+-            </p>
+-          </Section>
+-        );
+-      })}
++        <TemplateFilterBar total={TEMPLATE_COUNT} freeCount={FREE_TEMPLATE_COUNT} locale="de">
++          <div className="flex flex-col gap-14">
++            {TEMPLATE_CATEGORIES.map((category) => {
++              const templates = templatesByCategory(category.id);
++              if (templates.length === 0) return null;
++              return (
++                <section
++                  key={category.id}
++                  id={DE_CATEGORY_SLUG[category.id]}
++                  data-template-group=""
++                  className="scroll-mt-24"
++                >
++                  <SectionHeading
++                    align="left"
++                    title={DE.categories[category.id].heading}
++                    description={DE.categories[category.id].lede}
++                  />
++                  <TemplateGrid className="mt-8" templates={templates} columns={4} locale="de" />
++                  <p className="mt-6 text-sm">
++                    <Link
++                      href={`/de/lebenslauf-vorlagen/${DE_CATEGORY_SLUG[category.id]}`}
++                      className="font-medium text-brand-700 underline underline-offset-2"
++                    >
++                      {DE.categories[category.id].heading} — alle ansehen
++                    </Link>
++                  </p>
++                </section>
++              );
++            })}
++          </div>
++        </TemplateFilterBar>
++      </Section>
+ 
+       <Section tone="muted" size="sm">
+         <div className="mx-auto max-w-3xl">
+@@ -147,13 +163,18 @@ export default function GermanTemplatesPage() {
+             type: 'CollectionPage',
+             inLanguage: 'de',
+           }),
++          /*
++           * The list points at the German pages, not the English ones — see the note on
++           * the French gallery. A `CollectionPage` in one language whose members are all
++           * URLs in another contradicts the hreflang cluster it sits inside.
++           */
+           itemListSchema(
+             TEMPLATES.map((template) => ({
+               name: template.name,
+-              path: `/templates/${template.slug}`,
++              path: templatePath(template.slug, 'de'),
+               description: template.tagline,
+               image: hasPreview(template.slug)
+-                ? absoluteUrl(`/previews/${template.slug}-card.webp`)
++                ? absoluteUrl(previewSrc(template.slug, 'card', 'de'))
+                 : undefined,
+             })),
+             DE.gallery.heading,
+diff --git a/app/fr/modeles-de-cv/page.tsx b/app/fr/modeles-de-cv/page.tsx
+index 8f693bf..014ae72 100644
+--- a/app/fr/modeles-de-cv/page.tsx
++++ b/app/fr/modeles-de-cv/page.tsx
+@@ -6,8 +6,10 @@ import { Badge } from '@/components/ui/feedback';
+ import { ButtonLink } from '@/components/ui/button';
+ import { CtaBanner, Section, SectionHeading } from '@/components/marketing/primitives';
+ import { JsonLd } from '@/components/seo/JsonLd';
++import { TemplateFilterBar } from '@/components/marketing/TemplateFilterBar';
+ import { TemplateGrid } from '@/components/marketing/TemplateStrip';
+-import { hasPreview } from '@/components/cv/TemplateImage';
++import { hasPreview, previewSrc } from '@/components/cv/TemplateImage';
++import { templatePath } from '@/lib/i18n/locales';
+ import {
+   FREE_TEMPLATE_COUNT,
+   TEMPLATES,
+@@ -36,11 +38,11 @@ export const metadata: Metadata = pageMetadata({
+ /**
+  * The French gallery — the page the whole French subtree exists to rank.
+  *
+- * Statically rendered, unlike its English counterpart, because it has no `searchParams`
+- * filter. The English `/templates` reads `?category=` in both `generateMetadata` and the
+- * page body, which forces it dynamic; audit item 3.4 is still open on that. Here the
+- * filtering is done by linking to the six category pages, which are real indexable URLs
+- * and are what a French searcher is actually querying for.
++ * Statically rendered, as all three galleries now are. Category is a row of links to the
++ * six real indexable category URLs — which is what a French searcher actually queries for
++ * — and the remaining facets are filtered in the browser by `TemplateFilterBar`, over
++ * cards the server has already rendered. Nothing here reads the query string, which is
++ * what would opt the route into per-request rendering. Audit item 3.4.
+  */
+ export default function FrenchTemplatesPage() {
+   const singleColumn = TEMPLATES.filter((template) => template.columns === 1).length;
+@@ -52,9 +54,7 @@ export default function FrenchTemplatesPage() {
+           <h1 className="font-display text-4xl font-extrabold tracking-tight text-balance text-ink-950 sm:text-5xl">
+             {FR.gallery.heading}
+           </h1>
+-          <p className="mt-4 text-lg leading-relaxed text-pretty text-ink-600">
+-            {FR.gallery.lede}
+-          </p>
++          <p className="mt-4 text-lg leading-relaxed text-pretty text-ink-600">{FR.gallery.lede}</p>
+ 
+           <div className="mt-6 flex flex-wrap items-center gap-2">
+             <Badge tone="brand">
+@@ -79,11 +79,17 @@ export default function FrenchTemplatesPage() {
+         </div>
+       </Section>
+ 
+-      <Section tone="muted" size="sm">
++      <Section tone="muted" size="sm" id="parcourir">
++        {/*
++          Category stays a row of links rather than becoming a filter chip, for the same
++          reason it does on the English gallery: each category is a real page with its own
++          copy and its own place in the sitemap, and a filtered view of this page competing
++          with it is duplication rather than a feature.
++        */}
+         <h2 className="text-xs font-bold tracking-[0.12em] text-ink-950 uppercase">
+           {FR.gallery.browseByCategory}
+         </h2>
+-        <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
++        <ul className="mt-4 mb-6 flex flex-wrap gap-x-5 gap-y-2">
+           {TEMPLATE_CATEGORIES.map((category) => (
+             <li key={category.id}>
+               <Link
+@@ -98,29 +104,39 @@ export default function FrenchTemplatesPage() {
+             </li>
+           ))}
+         </ul>
+-      </Section>
+ 
+-      {TEMPLATE_CATEGORIES.map((category) => {
+-        const templates = templatesByCategory(category.id);
+-        return (
+-          <Section key={category.id} size="sm">
+-            <SectionHeading
+-              align="left"
+-              title={FR.categories[category.id].heading}
+-              description={FR.categories[category.id].lede}
+-            />
+-            <TemplateGrid className="mt-8" templates={templates} columns={4} locale="fr" />
+-            <p className="mt-6 text-sm">
+-              <Link
+-                href={`/fr/modeles-de-cv/${FR_CATEGORY_SLUG[category.id]}`}
+-                className="font-medium text-brand-700 underline underline-offset-2"
+-              >
+-                {FR.categories[category.id].heading} — tout voir
+-              </Link>
+-            </p>
+-          </Section>
+-        );
+-      })}
++        <TemplateFilterBar total={TEMPLATE_COUNT} freeCount={FREE_TEMPLATE_COUNT} locale="fr">
++          <div className="flex flex-col gap-14">
++            {TEMPLATE_CATEGORIES.map((category) => {
++              const templates = templatesByCategory(category.id);
++              if (templates.length === 0) return null;
++              return (
++                <section
++                  key={category.id}
++                  id={FR_CATEGORY_SLUG[category.id]}
++                  data-template-group=""
++                  className="scroll-mt-24"
++                >
++                  <SectionHeading
++                    align="left"
++                    title={FR.categories[category.id].heading}
++                    description={FR.categories[category.id].lede}
++                  />
++                  <TemplateGrid className="mt-8" templates={templates} columns={4} locale="fr" />
++                  <p className="mt-6 text-sm">
++                    <Link
++                      href={`/fr/modeles-de-cv/${FR_CATEGORY_SLUG[category.id]}`}
++                      className="font-medium text-brand-700 underline underline-offset-2"
++                    >
++                      {FR.categories[category.id].heading} — tout voir
++                    </Link>
++                  </p>
++                </section>
++              );
++            })}
++          </div>
++        </TemplateFilterBar>
++      </Section>
+ 
+       <Section tone="muted" size="sm">
+         <div className="mx-auto max-w-3xl">
+@@ -149,13 +165,22 @@ export default function FrenchTemplatesPage() {
+             type: 'CollectionPage',
+             inLanguage: 'fr',
+           }),
++          /*
++           * The list points at the French pages, not the English ones.
++           *
++           * It was emitting `/templates/{slug}` and the English preview image — a French
++           * `CollectionPage` whose every member was an English URL. That contradicts the
++           * hreflang cluster it sits inside and invites Google to treat the French page as
++           * a thin wrapper around English content. `templatePath` and `previewSrc` both
++           * take the locale; the French previews were generated for exactly this.
++           */
+           itemListSchema(
+             TEMPLATES.map((template) => ({
+               name: template.name,
+-              path: `/templates/${template.slug}`,
++              path: templatePath(template.slug, 'fr'),
+               description: template.tagline,
+               image: hasPreview(template.slug)
+-                ? absoluteUrl(`/previews/${template.slug}-card.webp`)
++                ? absoluteUrl(previewSrc(template.slug, 'card', 'fr'))
+                 : undefined,
+             })),
+             FR.gallery.heading,
+diff --git a/components/layout/SiteFooter.tsx b/components/layout/SiteFooter.tsx
+index efa4594..62bb2c4 100644
+--- a/components/layout/SiteFooter.tsx
++++ b/components/layout/SiteFooter.tsx
+@@ -5,8 +5,8 @@ import { usePathname } from 'next/navigation';
+ 
+ import { Logo } from '@/components/brand/Logo';
+ import { footerNav, site } from '@/lib/site';
+-import { FOOTER, FR_NAV_CATEGORIES } from '@/lib/i18n/nav';
+-import { localeOf } from '@/lib/i18n/locales';
++import { FOOTER, NAV_CATEGORIES } from '@/lib/i18n/nav';
++import { TEMPLATE_ROOT, localeOf } from '@/lib/i18n/locales';
+ import type { TemplateCategory } from '@/types/cv';
+ import {
+   TEMPLATE_CATEGORIES,
+@@ -18,20 +18,27 @@ import {
+ export function SiteFooter() {
+   const year = new Date().getFullYear();
+   /*
+-   * Follows the page it sits on, like the header. The French footer is a different shape
++   * Follows the page it sits on, like the header. A localised footer is a different shape
+    * rather than a translation: the English one links fourteen guide pages that exist only
+-   * in English, and a French menu leading to English pages is worse than a shorter menu.
++   * in English, and a French or German menu leading to English pages is worse than a
++   * shorter menu.
++   *
++   * Keyed on whether a translation exists rather than on `locale === 'fr'`, which is what
++   * it used to say. German copy was written at the same time as the German pages and then
++   * never rendered — every German page shipped an English footer, down to a "Free CV
++   * builder" link pointing at an English-only guide.
+    */
+   const locale = localeOf(usePathname() ?? '/');
+   const copy = FOOTER[locale];
+-  const groups = locale === 'fr' ? copy.columns : footerNav;
++  const groups = copy.columns.length > 0 ? copy.columns : footerNav;
++  const navCategories = NAV_CATEGORIES[locale];
+   const categoryHref = (id: TemplateCategory) =>
+-    locale === 'fr'
+-      ? `/fr/modeles-de-cv/${FR_NAV_CATEGORIES.find((entry) => entry.id === id)?.slug ?? id}`
++    navCategories
++      ? `${TEMPLATE_ROOT[locale]}/${navCategories.find((entry) => entry.id === id)?.slug ?? id}`
+       : categoryPath(id);
+   const categoryLabel = (id: TemplateCategory, fallback: string) =>
+-    locale === 'fr'
+-      ? (FR_NAV_CATEGORIES.find((entry) => entry.id === id)?.label ?? fallback)
++    navCategories
++      ? (navCategories.find((entry) => entry.id === id)?.label ?? fallback)
+       : `${fallback} CV templates`;
+ 
+   return (
+@@ -40,10 +47,10 @@ export function SiteFooter() {
+         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,3fr)]">
+           <div className="max-w-sm">
+             <Logo />
++            {/* `FOOTER[locale].blurb` — the English wording, written out, was the reason
++                this paragraph stayed English on the French and German pages. */}
+             <p className="mt-4 text-sm leading-relaxed text-ink-600">
+-              {site.name} is an online CV and resume builder with {TEMPLATE_COUNT} professional
+-              templates, a real-time editor and instant PDF download. Start free — no card, no
+-              trial timer.
++              {site.name} {copy.blurb(TEMPLATE_COUNT)}
+             </p>
+             <ul className="mt-5 flex items-center gap-3">
+               <SocialLink href={site.social.linkedin} label="LinkedIn">
+diff --git a/components/marketing/TemplateFilterBar.tsx b/components/marketing/TemplateFilterBar.tsx
+new file mode 100644
+index 0000000..41fdb59
+--- /dev/null
++++ b/components/marketing/TemplateFilterBar.tsx
+@@ -0,0 +1,312 @@
++'use client';
++
++import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
++
++import type { Locale } from '@/lib/i18n/locales';
++import { expandQuery } from '@/lib/i18n/search-terms';
++import { cn } from '@/lib/utils/cn';
++
++/**
++ * Filtering for the template gallery, done in the browser over server-rendered cards.
++ *
++ * ## Why not `?plan=free` on the server
++ *
++ * That is what this replaces, and it cost the gallery its static rendering. Reading
++ * `searchParams` in a page — in `generateMetadata` *or* in the body — opts the whole route
++ * into dynamic rendering, so `/templates`, one of the most-linked pages on the site, was
++ * re-rendered from scratch on every request while every other marketing page was served
++ * from the edge as static HTML. Audit item 3.4.
++ *
++ * ## Why the filtering reads the DOM
++ *
++ * The obvious client-side version passes the template list to the browser as props. That
++ * ships the registry — sixty-one entries with their descriptions, features and keywords —
++ * as serialised RSC payload, which is a large fraction of what the images already cost.
++ *
++ * Instead the server renders every card once, with its facets in `data-` attributes, and
++ * this component hides the ones that do not match. The browser learns nothing it was not
++ * already sent as HTML, and with JavaScript off the page is simply the full unfiltered
++ * gallery — which is exactly what a crawler should see anyway.
++ *
++ * Category is deliberately *not* a facet here. Each category has its own static page with
++ * its own copy, and a `?category=` view competing with it was the specific duplication the
++ * audit flagged. `proxy.ts` redirects the query form to the real page — it has to be the
++ * proxy rather than `next.config.ts`, because a `redirects()` rule forwards the query it
++ * matched on to the destination and would land on `/templates/modern?category=modern`,
++ * inventing a third address instead of removing one.
++ */
++
++type Plan = 'free' | 'pro' | null;
++type Columns = 1 | 2 | null;
++type Ats = 4 | 5 | null;
++
++/**
++ * The filter chrome, per language.
++ *
++ * The counts and the empty state are functions rather than templates with placeholders
++ * because the three languages put the numbers in different places: French says
++ * "Affichage de 20 modèles sur 61", German "20 von 61 Vorlagen". Interpolating into a
++ * single English-shaped sentence is how you get word order that reads as translated.
++ */
++const COPY = {
++  en: {
++    searchLabel: 'Search templates by name, style or role',
++    searchPlaceholder: 'Search templates — “banking”, “student”, “minimal”, “two column”…',
++    plan: 'Plan',
++    free: 'Free',
++    pro: 'Pro',
++    layout: 'Layout',
++    oneColumn: 'One column',
++    twoColumns: 'Two columns',
++    ats: 'ATS score',
++    atsFive: '5/5 only',
++    atsFour: '4 and above',
++    showing: (shown: number, total: number) => `Showing ${shown} of ${total} templates`,
++    freeSuffix: (n: number) => `${n} are free`,
++    clear: 'Clear all filters',
++    emptyTitle: 'No templates match those filters',
++    emptyBody:
++      'Loosening one filter — usually the ATS score or the column count — will bring results back.',
++    showAll: (total: number) => `Show all ${total} templates`,
++  },
++  fr: {
++    searchLabel: 'Rechercher un modèle par nom, style ou métier',
++    searchPlaceholder: 'Rechercher un modèle — « banque », « étudiant », « minimaliste »…',
++    plan: 'Formule',
++    free: 'Gratuit',
++    pro: 'Pro',
++    layout: 'Mise en page',
++    oneColumn: 'Une colonne',
++    twoColumns: 'Deux colonnes',
++    ats: 'Score ATS',
++    atsFive: '5/5 uniquement',
++    atsFour: '4 et plus',
++    showing: (shown: number, total: number) => `Affichage de ${shown} modèles sur ${total}`,
++    freeSuffix: (n: number) => `${n} sont gratuits`,
++    clear: 'Réinitialiser les filtres',
++    emptyTitle: 'Aucun modèle ne correspond à ces filtres',
++    emptyBody:
++      'Assouplir un filtre — en général le score ATS ou le nombre de colonnes — fera réapparaître des résultats.',
++    showAll: (total: number) => `Afficher les ${total} modèles`,
++  },
++  de: {
++    searchLabel: 'Vorlagen nach Name, Stil oder Beruf durchsuchen',
++    searchPlaceholder: 'Vorlagen durchsuchen — „Bank“, „Studium“, „minimalistisch“…',
++    plan: 'Tarif',
++    free: 'Kostenlos',
++    pro: 'Pro',
++    layout: 'Layout',
++    oneColumn: 'Einspaltig',
++    twoColumns: 'Zweispaltig',
++    ats: 'ATS-Score',
++    atsFive: 'Nur 5/5',
++    atsFour: '4 und mehr',
++    showing: (shown: number, total: number) => `${shown} von ${total} Vorlagen`,
++    freeSuffix: (n: number) => `${n} davon kostenlos`,
++    clear: 'Alle Filter zurücksetzen',
++    emptyTitle: 'Keine Vorlage passt zu diesen Filtern',
++    emptyBody:
++      'Wenn Sie einen Filter lockern — meist den ATS-Score oder die Spaltenzahl — erscheinen wieder Ergebnisse.',
++    showAll: (total: number) => `Alle ${total} Vorlagen anzeigen`,
++  },
++} satisfies Record<Locale, unknown>;
++
++export function TemplateFilterBar({
++  total,
++  freeCount,
++  locale = 'en',
++  children,
++}: {
++  total: number;
++  freeCount: number;
++  locale?: Locale;
++  /** The server-rendered gallery. Cards carry `data-template-card` and their facets. */
++  children: React.ReactNode;
++}) {
++  const copy = COPY[locale];
++  const searchId = useId();
++  const region = useRef<HTMLDivElement>(null);
++  const [query, setQuery] = useState('');
++  const [plan, setPlan] = useState<Plan>(null);
++  const [columns, setColumns] = useState<Columns>(null);
++  const [ats, setAts] = useState<Ats>(null);
++  const [shown, setShown] = useState(total);
++
++  const filtered = Boolean(query.trim() || plan || columns || ats);
++
++  const apply = useCallback(() => {
++    const root = region.current;
++    if (!root) return;
++
++    /*
++     * The typed words, each already expanded to the English tokens it can satisfy — see
++     * `search-terms.ts`. The haystack on each card is English because the registry is;
++     * translating the query is what makes `banque` find the banking template.
++     */
++    const words = expandQuery(query, locale);
++    let visible = 0;
++
++    for (const card of root.querySelectorAll<HTMLElement>('[data-template-card]')) {
++      const haystack = card.dataset.search ?? '';
++      const matches =
++        (!plan || card.dataset.plan === plan) &&
++        (!columns || card.dataset.columns === String(columns)) &&
++        (!ats || Number(card.dataset.ats ?? 0) >= ats) &&
++        // Every word must be satisfied by one of its variants, so a second word narrows.
++        words.every((variants) => variants.some((variant) => haystack.includes(variant)));
++
++      card.hidden = !matches;
++      if (matches) visible += 1;
++    }
++
++    // A category heading with nothing under it is worse than no heading: it reads as a
++    // category that has been emptied rather than one that never matched.
++    for (const group of root.querySelectorAll<HTMLElement>('[data-template-group]')) {
++      const any = group.querySelector('[data-template-card]:not([hidden])');
++      group.hidden = !any;
++    }
++
++    setShown(visible);
++  }, [ats, columns, locale, plan, query]);
++
++  useEffect(apply, [apply]);
++
++  const clear = () => {
++    setQuery('');
++    setPlan(null);
++    setColumns(null);
++    setAts(null);
++  };
++
++  const rows = useMemo(
++    () => [
++      {
++        label: copy.plan,
++        options: [
++          {
++            label: copy.free,
++            active: plan === 'free',
++            toggle: () => setPlan(plan === 'free' ? null : 'free'),
++          },
++          {
++            label: copy.pro,
++            active: plan === 'pro',
++            toggle: () => setPlan(plan === 'pro' ? null : 'pro'),
++          },
++        ],
++      },
++      {
++        label: copy.layout,
++        options: [
++          {
++            label: copy.oneColumn,
++            active: columns === 1,
++            toggle: () => setColumns(columns === 1 ? null : 1),
++          },
++          {
++            label: copy.twoColumns,
++            active: columns === 2,
++            toggle: () => setColumns(columns === 2 ? null : 2),
++          },
++        ],
++      },
++      {
++        label: copy.ats,
++        options: [
++          { label: copy.atsFive, active: ats === 5, toggle: () => setAts(ats === 5 ? null : 5) },
++          { label: copy.atsFour, active: ats === 4, toggle: () => setAts(ats === 4 ? null : 4) },
++        ],
++      },
++    ],
++    [ats, columns, copy, plan],
++  );
++
++  return (
++    <>
++      <div className="rounded-2xl border border-ink-200 bg-white p-5 sm:p-6">
++        <div role="search" className="flex flex-wrap gap-2">
++          <label htmlFor={searchId} className="sr-only">
++            {copy.searchLabel}
++          </label>
++          <input
++            id={searchId}
++            type="search"
++            value={query}
++            onChange={(event) => setQuery(event.target.value)}
++            maxLength={60}
++            placeholder={copy.searchPlaceholder}
++            className="h-10 min-w-0 flex-1 rounded-lg border border-ink-200 bg-white px-3 text-sm text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/12 focus:outline-none"
++          />
++        </div>
++
++        <div className="mt-5 flex flex-col gap-3 border-t border-ink-100 pt-5">
++          {rows.map((row) => (
++            <div key={row.label} className="flex flex-wrap items-center gap-2">
++              <span className="w-24 shrink-0 text-xs font-bold tracking-[0.08em] text-ink-500 uppercase">
++                {row.label}
++              </span>
++              {row.options.map((option) => (
++                <button
++                  key={option.label}
++                  type="button"
++                  aria-pressed={option.active}
++                  onClick={option.toggle}
++                  className={cn(
++                    'cursor-pointer rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors',
++                    option.active
++                      ? 'border-brand-600 bg-brand-600 text-white'
++                      : 'border-ink-200 bg-white text-ink-700 hover:border-brand-300 hover:text-brand-700',
++                  )}
++                >
++                  {option.label}
++                </button>
++              ))}
++            </div>
++          ))}
++        </div>
++
++        <div className="mt-5 flex flex-wrap items-baseline justify-between gap-3 border-t border-ink-100 pt-4">
++          {/*
++            Announced politely rather than assertively: a count that interrupts on every
++            keystroke is worse for a screen-reader user than one they can check when they
++            stop typing.
++          */}
++          <p aria-live="polite" className="text-sm text-ink-700">
++            <strong className="font-semibold text-ink-950">{copy.showing(shown, total)}</strong>
++            {!filtered ? (
++              <span className="text-ink-600"> · {copy.freeSuffix(freeCount)}</span>
++            ) : null}
++          </p>
++          {filtered ? (
++            <button
++              type="button"
++              onClick={clear}
++              className="cursor-pointer text-sm font-semibold text-brand-700 underline underline-offset-2 hover:text-brand-800"
++            >
++              {copy.clear}
++            </button>
++          ) : null}
++        </div>
++      </div>
++
++      <div ref={region} className="mt-10">
++        {children}
++        {shown === 0 ? (
++          <div className="rounded-2xl border border-dashed border-ink-300 bg-white p-10 text-center">
++            <p className="text-base font-semibold text-ink-950">{copy.emptyTitle}</p>
++            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-ink-600">
++              {copy.emptyBody}
++            </p>
++            <button
++              type="button"
++              onClick={clear}
++              className="mt-5 cursor-pointer rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
++            >
++              {copy.showAll(total)}
++            </button>
++          </div>
++        ) : null}
++      </div>
++    </>
++  );
++}
+diff --git a/components/marketing/TemplateStrip.tsx b/components/marketing/TemplateStrip.tsx
+index 96fc35a..46fff35 100644
+--- a/components/marketing/TemplateStrip.tsx
++++ b/components/marketing/TemplateStrip.tsx
+@@ -104,6 +104,35 @@ export function TemplateCard({
+   return (
+     <Link
+       href={templatePath(template.slug, locale)}
++      /*
++       * The card's facets, in the DOM.
++       *
++       * `TemplateFilterBar` filters by reading these rather than by being handed the
++       * registry, which keeps sixty-one template records out of the client bundle. The
++       * search haystack is built here, on the server, for the same reason.
++       */
++      data-template-card=""
++      data-plan={template.premium ? 'pro' : 'free'}
++      data-columns={template.columns}
++      data-ats={template.atsScore}
++      /*
++       * The haystack carries the card's own words in *this* page's language as well as the
++       * registry's English ones. The registry has a single language, so a French visitor
++       * typing `entreprise`, `gratuit` or `deux colonnes` is searching text that does not
++       * exist on the page they are looking at. `search-terms.ts` translates the rest of the
++       * query vocabulary; these four are free to add here and exact rather than mapped.
++       */
++      data-search={[
++        template.name,
++        template.tagline,
++        template.category,
++        ...template.keywords,
++        copy.category[template.category],
++        template.columns === 1 ? copy.oneColumn : copy.twoColumns,
++        template.premium ? copy.pro : copy.free,
++      ]
++        .join(' ')
++        .toLowerCase()}
+       className={cn(
+         'group flex flex-col rounded-xl border border-ink-200 bg-white p-3 transition-all duration-200',
+         'hover:-translate-y-1 hover:border-brand-300 hover:shadow-card-hover',
+diff --git a/docs/AUDIT_TEMPLATES.md b/docs/AUDIT_TEMPLATES.md
+index c4ef789..426cb97 100644
+--- a/docs/AUDIT_TEMPLATES.md
++++ b/docs/AUDIT_TEMPLATES.md
+@@ -991,3 +991,77 @@ sets of category slugs. Three languages made that untenable, so it now iterates
+ 
+ **Still English across all three:** `/register`, `/login`, the editor and the dashboard.
+ That is the product behind the sign-up rather than the pages that rank.
++
++---
++
++## Record — 3.4 The template gallery, statically rendered
++
++`/templates` is the most linked page on the site and was the only marketing page rendered
++per request. Every filter was a `next/link` writing to the query string, which reads well
++until you notice what it costs: reading `searchParams` in a page — in the body *or* in
++`generateMetadata` — opts the whole route into dynamic rendering. It did both.
++
++The query string was doing two unrelated jobs, and the fix splits them.
++
++**Category became links.** `?category=modern` and `/templates/modern` were two addresses
++for one list, and only one of them has copy written for it, a title, and a place in the
++sitemap. The chips now point at the six category pages. The old query URLs redirect —
++from `proxy.ts`, not `next.config.ts`, because a `redirects()` rule forwards the query it
++matched on and would land on `/templates/modern?category=modern`, inventing a third address
++instead of removing one.
++
++**Plan, columns, ATS and search became client-side filtering over server-rendered cards.**
++The obvious version passes the template list to the browser as props, which ships sixty-one
++registry entries as RSC payload. Instead each card carries its facets in `data-` attributes
++and `TemplateFilterBar` hides the ones that do not match. The browser learns nothing it was
++not already sent as HTML, and with JavaScript off the page is the full unfiltered gallery —
++which is what a crawler should see anyway.
++
++All three galleries now build as `○`.
++
++### What the test found, which is the part worth recording
++
++The assertion was written against all three galleries rather than just the English one, on
++the theory that whoever reintroduces a query filter in French will be copying English. It
++failed immediately — not on `searchParams`, but on `TemplateFilterBar` being absent from
++the French and German pages. The English gallery had gained search and filters that the
++localised ones did not have, and the filter bar's labels were hardcoded English besides.
++
++So the localised galleries were restructured to the same shape and the bar was translated.
++Three further defects surfaced while verifying that in a browser:
++
++**The French and German `ItemList` pointed at English URLs.** Every member of a French
++`CollectionPage` was `/templates/{slug}`, with the English preview image — contradicting the
++hreflang cluster the page sits inside. `templatePath()` and `previewSrc()` both already took
++a locale; nothing was using them here.
++
++**The search box could not match French or German.** The haystack is the registry's
++metadata and the registry has one language, so `banque`, `étudiant` and `minimaliste`
++returned nothing — and those were the three examples the French placeholder itself
++suggested. `lib/i18n/search-terms.ts` translates the query instead of the corpus: the
++rendered page is unchanged, the cost is a few hundred bytes, and the whole vocabulary is one
++readable file. The terms are drawn from the tokens the registry actually produces, so a
++translation pointing at a word no template carries is a test failure rather than dead copy.
++
++**Splitting a phrase into words is wrong.** `two column` as `two` AND `column` matched
++*Modern Creative* — one column, tagline "a two-line name over a diagonal accent wash" —
++because adding the card's own "one column" text to the haystack put `column` on every card.
++Measured against the registry: seventeen templates are two-column, and the split query
++returned twenty. Recognised phrases are now looked up whole. The three languages had been
++returning 20, 17 and 32 for the same question.
++
++### And one found by accident
++
++Checking the German page in a browser turned up `Free CV builder` in its footer. The German
++footer copy had been written alongside the German pages and never rendered: `SiteFooter`
++asked `locale === 'fr'` before using a translation. Every German page had shipped an English
++footer, blurb included. The copy was correct in `nav.ts` the entire time, which is exactly
++what made it invisible — reviewing the copy file showed nothing wrong.
++
++That is the second time in this project that a translation was present and unused. Both
++tests for it therefore assert on the rendered component, not on the copy table.
++
++**Verified:** 1,595 tests; `○` for all three galleries; 268 pages audited by the SEO check
++with 0 errors and 0 warnings; and a browser pass over all three locales confirming 61 cards,
++correct facet counts, locale-correct structured data, and every term the placeholder
++advertises returning results.
+diff --git a/lib/i18n/search-terms.ts b/lib/i18n/search-terms.ts
+new file mode 100644
+index 0000000..b10e7c9
+--- /dev/null
++++ b/lib/i18n/search-terms.ts
+@@ -0,0 +1,359 @@
++import type { Locale } from './locales';
++
++/**
++ * Making the gallery search work in French and German.
++ *
++ * ## The bug this fixes
++ *
++ * Each template card carries a search haystack in `data-search`, built on the server from
++ * the template's name, tagline, category and keywords — all of which are written in
++ * English, because they are the registry's own metadata and the registry has one language.
++ * So the search box on `/fr/modeles-de-cv` matched English words only. Typing `banque`,
++ * `étudiant` or `minimaliste` returned nothing — and those were the three examples the
++ * French placeholder itself suggested. The German box was the same: `Studium`,
++ * `minimalistisch` and `kreativ` all returned nothing.
++ *
++ * ## Why a query-side map rather than a translated haystack
++ *
++ * The alternative is translating sixty-one templates' keyword lists into both languages and
++ * emitting a per-locale haystack. That is a much larger surface to write and keep true, it
++ * grows the HTML of every card on every localised page, and most of those keywords are
++ * words nobody searches for. Mapping at query time instead keeps the rendered page
++ * identical, costs a few hundred bytes in the client bundle, and puts the whole translation
++ * in one file where it can be read end to end.
++ *
++ * The vocabulary below is not invented: it is the actual token set the registry produces
++ * (`name`, `tagline`, `category`, `keywords` across all templates), translated. A French
++ * word that maps to a token no template carries would be dead weight, so there are none.
++ *
++ * ## Matching, and why phrases stay whole
++ *
++ * A query is split into words and every word is expanded to itself plus its translations; a
++ * card matches when *each* word has at least one variant present in its haystack, so extra
++ * words narrow the result rather than widening it.
++ *
++ * Multi-word terms are the exception, and they have to be, because splitting them is
++ * actively wrong. `two column` split into `two` AND `column` matches *Modern Creative* — a
++ * one-column template whose tagline reads "a two-line name over a diagonal accent wash" and
++ * whose card says "one column". Measured against the registry: seventeen templates are
++ * two-column, and the split query returned twenty. So a query the table recognises as a
++ * phrase is looked up whole and matched as a contiguous substring, and any translation that
++ * is itself a phrase is matched the same way.
++ */
++
++/**
++ * French query word → the English tokens it should match.
++ *
++ * Accented and unaccented spellings are both listed as keys: people type `etudiant` as
++ * often as `étudiant`, and a search box that punishes a missing accent is a broken one.
++ * Plurals are listed where the singular is not a prefix of them.
++ */
++const FR_TERMS: Record<string, string[]> = {
++  // Style and layout
++  moderne: ['modern'],
++  modernes: ['modern'],
++  classique: ['classic', 'traditional'],
++  classiques: ['classic', 'traditional'],
++  créatif: ['creative'],
++  creatif: ['creative'],
++  créative: ['creative'],
++  creative: ['creative'],
++  créatifs: ['creative'],
++  entreprise: ['corporate', 'business'],
++  professionnel: ['professional'],
++  professionnelle: ['professional'],
++  simple: ['simple', 'plain'],
++  sobre: ['plain', 'clean', 'minimal'],
++  épuré: ['clean', 'minimal'],
++  epure: ['clean', 'minimal'],
++  minimaliste: ['minimalist', 'minimal'],
++  élégant: ['elegant'],
++  elegant: ['elegant'],
++  élégante: ['elegant'],
++  formel: ['formal'],
++  formelle: ['formal'],
++  traditionnel: ['traditional'],
++  traditionnelle: ['traditional'],
++  compact: ['compact'],
++  compacte: ['compact'],
++  colonne: ['column'],
++  colonnes: ['column'],
++  une: ['one'],
++  deux: ['two'],
++  page: ['page'],
++  photo: ['photo'],
++  latérale: ['sidebar'],
++  laterale: ['sidebar'],
++  bandeau: ['sidebar'],
++  couleur: ['coloured'],
++  coloré: ['coloured'],
++  colore: ['coloured'],
++  éditorial: ['editorial'],
++  editorial: ['editorial'],
++  magazine: ['magazine'],
++  portfolio: ['portfolio'],
++  visuel: ['visual'],
++  visuelle: ['visual'],
++  fonctionnel: ['functional'],
++  fonctionnelle: ['functional'],
++  europass: ['europass'],
++  académique: ['academic'],
++  academique: ['academic'],
++  universitaire: ['academic'],
++
++  // Roles and sectors
++  banque: ['banking', 'finance'],
++  bancaire: ['banking', 'finance'],
++  finance: ['finance', 'banking'],
++  comptable: ['accountant'],
++  comptabilité: ['accountant'],
++  comptabilite: ['accountant'],
++  ingénieur: ['engineer'],
++  ingenieur: ['engineer'],
++  développeur: ['developer'],
++  developpeur: ['developer'],
++  programmeur: ['programmer', 'developer'],
++  informatique: ['technology', 'software', 'tech'],
++  logiciel: ['software'],
++  technologie: ['technology'],
++  technique: ['tech', 'technology'],
++  données: ['data'],
++  donnees: ['data'],
++  analyste: ['analyst'],
++  sécurité: ['security'],
++  securite: ['security'],
++  scientifique: ['scientist', 'research'],
++  recherche: ['research'],
++  administrateur: ['administrator'],
++  designer: ['designer', 'design'],
++  graphiste: ['graphic', 'designer'],
++  graphique: ['graphic'],
++  photographe: ['photographer'],
++  artistique: ['art', 'creative'],
++  contenu: ['content'],
++  créateur: ['creator', 'content'],
++  createur: ['creator', 'content'],
++  rédacteur: ['content', 'editorial'],
++  redacteur: ['content', 'editorial'],
++  marketing: ['marketing'],
++  commercial: ['sales'],
++  commerciale: ['sales'],
++  ventes: ['sales'],
++  vente: ['sales'],
++  conseil: ['consulting', 'consultant'],
++  consultant: ['consultant', 'consulting'],
++  gestion: ['management', 'manager'],
++  responsable: ['manager', 'management'],
++  directeur: ['director', 'executive'],
++  direction: ['executive', 'director'],
++  cadre: ['executive', 'senior'],
++  dirigeant: ['executive'],
++  opérations: ['operations'],
++  operations: ['operations'],
++  produit: ['product'],
++  juridique: ['legal'],
++  droit: ['legal'],
++  avocat: ['legal'],
++  public: ['government'],
++  gouvernement: ['government'],
++  administration: ['government', 'administrator'],
++  étudiant: ['student', 'entry'],
++  etudiant: ['student', 'entry'],
++  étudiante: ['student', 'entry'],
++  débutant: ['entry', 'student'],
++  debutant: ['entry', 'student'],
++  stage: ['entry', 'student'],
++  senior: ['senior', 'executive'],
++  compétences: ['skills'],
++  competences: ['skills'],
++  expérience: ['experience'],
++  experience: ['experience'],
++  ressources: ['human resources'],
++  humaines: ['human resources'],
++};
++
++/**
++ * German query word → the English tokens it should match.
++ *
++ * German compounds are the reason this list is longer than it looks like it needs to be:
++ * a user types `Personalwesen`, not `Personal Wesen`, so the compound has to be a key in
++ * its own right. Matching is case-insensitive, so nouns are listed lower-cased.
++ */
++const DE_TERMS: Record<string, string[]> = {
++  // Style and layout
++  lebenslauf: ['cv', 'resume'],
++  vorlage: ['template'],
++  vorlagen: ['template'],
++  modern: ['modern'],
++  klassisch: ['classic', 'traditional'],
++  klassische: ['classic', 'traditional'],
++  kreativ: ['creative'],
++  kreative: ['creative'],
++  unternehmen: ['corporate', 'business'],
++  professionell: ['professional'],
++  professionelle: ['professional'],
++  einfach: ['simple', 'plain'],
++  schlicht: ['plain', 'simple'],
++  schlichte: ['plain', 'simple'],
++  sauber: ['clean'],
++  minimalistisch: ['minimalist', 'minimal'],
++  minimalistische: ['minimalist', 'minimal'],
++  elegant: ['elegant'],
++  elegante: ['elegant'],
++  formell: ['formal'],
++  formelle: ['formal'],
++  traditionell: ['traditional'],
++  traditionelle: ['traditional'],
++  kompakt: ['compact'],
++  kompakte: ['compact'],
++  spalte: ['column'],
++  spalten: ['column'],
++  spaltig: ['column'],
++  einspaltig: ['one column'],
++  zweispaltig: ['two columns'],
++  eine: ['one'],
++  zwei: ['two'],
++  seite: ['page'],
++  foto: ['photo'],
++  seitenleiste: ['sidebar'],
++  farbig: ['coloured'],
++  farbe: ['coloured'],
++  redaktionell: ['editorial'],
++  magazin: ['magazine'],
++  portfolio: ['portfolio'],
++  visuell: ['visual'],
++  funktional: ['functional'],
++  europass: ['europass'],
++  akademisch: ['academic'],
++  akademische: ['academic'],
++  wissenschaftlich: ['academic', 'research'],
++
++  // Roles and sectors
++  bank: ['banking', 'finance'],
++  banken: ['banking', 'finance'],
++  finanzen: ['finance', 'banking'],
++  buchhalter: ['accountant'],
++  buchhaltung: ['accountant'],
++  ingenieur: ['engineer'],
++  entwickler: ['developer'],
++  programmierer: ['programmer', 'developer'],
++  informatik: ['technology', 'software', 'tech'],
++  technik: ['tech', 'technology'],
++  technologie: ['technology'],
++  daten: ['data'],
++  analyst: ['analyst'],
++  sicherheit: ['security'],
++  wissenschaftler: ['scientist', 'research'],
++  forschung: ['research'],
++  administrator: ['administrator'],
++  designer: ['designer', 'design'],
++  grafik: ['graphic'],
++  grafiker: ['graphic', 'designer'],
++  fotograf: ['photographer'],
++  kunst: ['art', 'creative'],
++  inhalt: ['content'],
++  inhalte: ['content'],
++  redakteur: ['content', 'editorial'],
++  vertrieb: ['sales'],
++  verkauf: ['sales'],
++  beratung: ['consulting', 'consultant'],
++  berater: ['consultant', 'consulting'],
++  leitung: ['management', 'manager'],
++  verwaltung: ['management', 'administrator'],
++  führungskraft: ['executive', 'manager'],
++  fuehrungskraft: ['executive', 'manager'],
++  geschäftsführer: ['executive', 'director'],
++  geschaeftsfuehrer: ['executive', 'director'],
++  betrieb: ['operations'],
++  produkt: ['product'],
++  recht: ['legal'],
++  jurist: ['legal'],
++  anwalt: ['legal'],
++  behörde: ['government'],
++  behoerde: ['government'],
++  öffentlich: ['government'],
++  oeffentlich: ['government'],
++  student: ['student', 'entry'],
++  studium: ['student', 'entry'],
++  studentin: ['student', 'entry'],
++  berufseinsteiger: ['entry', 'student'],
++  einsteiger: ['entry', 'student'],
++  praktikum: ['entry', 'student'],
++  kenntnisse: ['skills'],
++  fähigkeiten: ['skills'],
++  faehigkeiten: ['skills'],
++  erfahrung: ['experience'],
++  personal: ['human resources'],
++  personalwesen: ['human resources'],
++};
++
++const TERMS: Partial<Record<Locale, Record<string, string[]>>> = {
++  fr: FR_TERMS,
++  de: DE_TERMS,
++};
++
++/**
++ * Whole queries that must not be split into words.
++ *
++ * These are the ones where the individual words appear all over the corpus but the phrase
++ * means something specific. `two column` is the case that forced this: `two` occurs in
++ * taglines like "a two-line name" and "a two-tone split header", and `column` is on every
++ * card because the card itself says "one column" or "two columns" — so the split query
++ * matched three one-column templates. Looked up whole and matched as a contiguous string,
++ * it returns exactly the seventeen two-column templates the registry actually has.
++ *
++ * English is in the table too, for the same reason: this is about how the corpus reads, not
++ * about translation.
++ */
++const PHRASES: Partial<Record<Locale, Record<string, string[]>>> = {
++  en: {
++    'one column': ['one column'],
++    'single column': ['one column'],
++    'two column': ['two columns'],
++    'two columns': ['two columns'],
++    'human resources': ['human resources'],
++  },
++  fr: {
++    'une colonne': ['one column'],
++    'deux colonnes': ['two columns'],
++    'sur une colonne': ['one column'],
++    'sur deux colonnes': ['two columns'],
++    'ressources humaines': ['human resources'],
++    'une seule colonne': ['one column'],
++  },
++  de: {
++    /*
++     * Both the compound and the English phrase, because the German card says
++     * "Zweispaltig" as one word while the registry keywords say "two column". Listing only
++     * the English form found a single template — the one whose keywords happen to spell it
++     * out — rather than all seventeen.
++     */
++    'eine spalte': ['one column', 'einspaltig'],
++    'einer spalte': ['one column', 'einspaltig'],
++    'zwei spalten': ['two columns', 'zweispaltig'],
++    'zwei spaltig': ['two columns', 'zweispaltig'],
++  },
++};
++
++/**
++ * The query, expanded into the groups of haystack strings that can satisfy it.
++ *
++ * Returns one group per unit of the query — normally per typed word, but a recognised
++ * phrase is a single unit. A card matches when every group has at least one member present
++ * in its haystack, so extra words narrow the result set, as a user expects.
++ */
++export function expandQuery(query: string, locale: Locale): string[][] {
++  const normalised = query.trim().toLowerCase().replace(/\s+/g, ' ');
++  if (!normalised) return [];
++
++  // A phrase is one unit. Checked against this locale and against English, because a
++  // French visitor may well type an English phrase they saw in a job ad.
++  const phrase = PHRASES[locale]?.[normalised] ?? PHRASES.en?.[normalised];
++  if (phrase) return [[normalised, ...phrase]];
++
++  const table = TERMS[locale];
++  return normalised.split(' ').map((word) => {
++    const synonyms = table?.[word];
++    return synonyms ? [word, ...synonyms] : [word];
++  });
++}
+diff --git a/next.config.ts b/next.config.ts
+index 9ac2b2b..d3d2dc4 100644
+--- a/next.config.ts
++++ b/next.config.ts
+@@ -91,6 +91,9 @@ const nextConfig: NextConfig = {
+       { source: '/cv-template', destination: '/cv-templates', permanent: true },
+       { source: '/resume-template', destination: '/resume-templates', permanent: true },
+       { source: '/curriculum-vitae', destination: '/professional-cv', permanent: true },
++      // `/templates?category=…` is consolidated in `proxy.ts` instead: a `redirects()` rule
++      // forwards the unconsumed query onto the destination, which recreates the second
++      // address the redirect exists to remove.
+     ];
+   },
+ };
+diff --git a/proxy.ts b/proxy.ts
+index c67e2e6..8522743 100644
+--- a/proxy.ts
++++ b/proxy.ts
+@@ -22,6 +22,21 @@ import { SESSION_COOKIE } from '@/lib/auth/session';
+ const PROTECTED_PREFIXES = ['/dashboard', '/admin', '/account'];
+ const AUTH_PAGES = ['/login', '/register', '/forgot-password'];
+ 
++/**
++ * The six category slugs, for consolidating the gallery's old query-string views.
++ *
++ * `/templates?category=modern` and `/templates/modern` were two addresses for one list,
++ * and only the second has its own copy, title and sitemap entry. Those query URLs exist in
++ * the wild and in Google's index, so they get a permanent redirect rather than being left
++ * to compete — audit item 3.4.
++ *
++ * This lives here rather than in `next.config.ts` because a `redirects()` rule forwards
++ * the query it matched on to the destination: the result is `/templates/modern?category=
++ * modern`, a third address, which is the opposite of the point. Clearing `url.search` is
++ * only possible with the URL in hand.
++ */
++const CATEGORY_SLUGS = new Set(['modern', 'corporate', 'creative', 'technology', 'classic', 'ats']);
++
+ export function proxy(request: NextRequest): NextResponse {
+   const { pathname, search } = request.nextUrl;
+   const hasSession = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
+@@ -37,6 +52,16 @@ export function proxy(request: NextRequest): NextResponse {
+     return NextResponse.redirect(url);
+   }
+ 
++  if (pathname === '/templates') {
++    const category = request.nextUrl.searchParams.get('category');
++    if (category && CATEGORY_SLUGS.has(category)) {
++      const url = request.nextUrl.clone();
++      url.pathname = `/templates/${category}`;
++      url.search = '';
++      return NextResponse.redirect(url, 308);
++    }
++  }
++
+   // Someone already signed in has no use for the sign-in form.
+   if (hasSession && AUTH_PAGES.includes(pathname)) {
+     const url = request.nextUrl.clone();
+diff --git a/tests/lib/footer-locale.test.tsx b/tests/lib/footer-locale.test.tsx
+new file mode 100644
+index 0000000..53c3afe
+--- /dev/null
++++ b/tests/lib/footer-locale.test.tsx
+@@ -0,0 +1,100 @@
++import { cleanup, render, screen } from '@testing-library/react';
++import { afterEach, describe, expect, it, vi } from 'vitest';
++
++import { FOOTER } from '@/lib/i18n/nav';
++import { LOCALES } from '@/lib/i18n/locales';
++import { SiteFooter } from '@/components/layout/SiteFooter';
++import { TEMPLATE_COUNT } from '@/lib/cv/template-registry';
++
++/**
++ * The footer, in the language of the page it sits under.
++ *
++ * This exists because of a specific and easily repeated mistake: the German footer copy was
++ * written at the same time as the German pages, and then never rendered. `SiteFooter` asked
++ * `locale === 'fr'` before using the translation, so every German page shipped an English
++ * footer — including a "Free CV builder" link to a guide that only exists in English. The
++ * translation was present and correct in `nav.ts` the whole time, which is what made it
++ * invisible: reviewing the copy file showed nothing wrong.
++ *
++ * So these assertions deliberately go through the rendered component rather than reading
++ * the copy table. A test that checks `FOOTER.de` is populated would have passed throughout.
++ */
++
++const PATHS: Record<string, string> = {
++  en: '/templates',
++  fr: '/fr/modeles-de-cv',
++  de: '/de/lebenslauf-vorlagen',
++};
++
++const pathname = vi.hoisted(() => ({ current: '/' }));
++vi.mock('next/navigation', () => ({ usePathname: () => pathname.current }));
++
++function renderAt(locale: string) {
++  pathname.current = PATHS[locale]!;
++  return render(<SiteFooter />);
++}
++
++afterEach(cleanup);
++
++describe('site footer', () => {
++  it.each(LOCALES)('renders the %s blurb, not the English one', (locale) => {
++    renderAt(locale);
++    // `blurb` is a function of the template count, so this also catches a stale hardcoded
++    // number surviving in the markup.
++    const expected = FOOTER[locale].blurb(TEMPLATE_COUNT);
++    expect(screen.getByText(new RegExp(escapeRegex(expected.slice(0, 60))))).toBeTruthy();
++  });
++
++  it.each(LOCALES)('uses the %s column labels', (locale) => {
++    const { container } = renderAt(locale);
++    const text = container.textContent ?? '';
++    const columns = FOOTER[locale].columns;
++    // English has no translated columns by design — it uses the full `footerNav`, which is
++    // the long-form menu the guide pages hang off.
++    if (columns.length === 0) {
++      expect(locale).toBe('en');
++      expect(text).toContain('Free CV builder');
++      return;
++    }
++    for (const column of columns) {
++      expect(text, `${locale}: column “${column.label}”`).toContain(column.label);
++    }
++  });
++
++  it('keeps English-only guide links off the translated pages', () => {
++    /*
++     * The specific leak. These pages exist in English alone, so linking them from a German
++     * footer sends a German visitor to an English page and dilutes the hreflang cluster.
++     */
++    const englishOnly = ['Free CV builder', 'CV advice by profession', 'Resume examples'];
++    for (const locale of ['fr', 'de'] as const) {
++      const { container } = renderAt(locale);
++      for (const label of englishOnly) {
++        expect(container.textContent ?? '', `${locale}: ${label}`).not.toContain(label);
++      }
++      cleanup();
++    }
++  });
++
++  it('points category links at the pages for that language', () => {
++    for (const [locale, root] of [
++      ['fr', '/fr/modeles-de-cv/'],
++      ['de', '/de/lebenslauf-vorlagen/'],
++    ] as const) {
++      const { container } = renderAt(locale);
++      const hrefs = [...container.querySelectorAll('a')].map((a) => a.getAttribute('href') ?? '');
++      const categoryLinks = hrefs.filter(
++        (h) => h.includes('modeles-de-cv/') || h.includes('lebenslauf-vorlagen/'),
++      );
++      expect(categoryLinks.length, `${locale}: category links`).toBeGreaterThan(0);
++      for (const href of categoryLinks) {
++        expect(href, `${locale}: ${href}`).toContain(root);
++      }
++      cleanup();
++    }
++  });
++});
++
++function escapeRegex(value: string): string {
++  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
++}
+diff --git a/tests/lib/search-terms.test.tsx b/tests/lib/search-terms.test.tsx
+new file mode 100644
+index 0000000..a90b0e5
+--- /dev/null
++++ b/tests/lib/search-terms.test.tsx
+@@ -0,0 +1,306 @@
++import { cleanup, render } from '@testing-library/react';
++import { describe, expect, it } from 'vitest';
++
++import { TemplateCard } from '@/components/marketing/TemplateStrip';
++import { expandQuery } from '@/lib/i18n/search-terms';
++import { TEMPLATES } from '@/lib/cv/template-registry';
++import type { Locale } from '@/lib/i18n/locales';
++
++/**
++ * The gallery search, tested against the haystack the cards actually carry.
++ *
++ * `TemplateCard` builds `data-search` from the template's English metadata plus the card's
++ * own localised facet words, and `TemplateFilterBar` matches `expandQuery` against it. The
++ * interesting behaviour is the interaction between those two, so the haystack is rebuilt
++ * here exactly as the card builds it rather than being stubbed — a stub would keep passing
++ * after someone changes what the card emits.
++ */
++
++/** The facet words each locale's card prints, mirroring `CARD_COPY` in `TemplateStrip`. */
++const FACETS: Record<
++  Locale,
++  { one: string; two: string; free: string; pro: string; category: Record<string, string> }
++> = {
++  en: {
++    one: 'one column',
++    two: 'two columns',
++    free: 'Free',
++    pro: 'Pro',
++    category: {
++      modern: 'modern',
++      corporate: 'corporate',
++      creative: 'creative',
++      technology: 'technology',
++      classic: 'classic',
++      ats: 'ATS-friendly',
++    },
++  },
++  fr: {
++    one: 'une colonne',
++    two: 'deux colonnes',
++    free: 'Gratuit',
++    pro: 'Pro',
++    category: {
++      modern: 'moderne',
++      corporate: 'entreprise',
++      creative: 'créatif',
++      technology: 'informatique',
++      classic: 'classique',
++      ats: 'compatible ATS',
++    },
++  },
++  de: {
++    one: 'einspaltig',
++    two: 'zweispaltig',
++    free: 'Kostenlos',
++    pro: 'Pro',
++    category: {
++      modern: 'modern',
++      corporate: 'business',
++      creative: 'kreativ',
++      technology: 'IT',
++      classic: 'klassisch',
++      ats: 'ATS-tauglich',
++    },
++  },
++};
++
++function haystack(template: (typeof TEMPLATES)[number], locale: Locale): string {
++  const f = FACETS[locale];
++  return [
++    template.name,
++    template.tagline,
++    template.category,
++    ...template.keywords,
++    f.category[template.category],
++    template.columns === 1 ? f.one : f.two,
++    template.premium ? f.pro : f.free,
++  ]
++    .join(' ')
++    .toLowerCase();
++}
++
++/** The same predicate `TemplateFilterBar.apply` uses. */
++function search(query: string, locale: Locale) {
++  const words = expandQuery(query, locale);
++  return TEMPLATES.filter((template) => {
++    const hay = haystack(template, locale);
++    return words.every((variants) => variants.some((variant) => hay.includes(variant)));
++  });
++}
++
++const TWO_COLUMN = TEMPLATES.filter((t) => t.columns === 2).length;
++const ONE_COLUMN = TEMPLATES.filter((t) => t.columns === 1).length;
++const FREE = TEMPLATES.filter((t) => !t.premium).length;
++
++describe('gallery search', () => {
++  it('returns everything for an empty query', () => {
++    for (const locale of ['en', 'fr', 'de'] as const) {
++      expect(expandQuery('   ', locale)).toEqual([]);
++      expect(search('', locale)).toHaveLength(TEMPLATES.length);
++    }
++  });
++
++  /*
++   * The regression this whole module exists for. The French placeholder suggests these
++   * words by name, and every one of them returned nothing before the query was translated:
++   * the haystack is the registry's English metadata and the registry has one language.
++   */
++  it.each([
++    ['banque', 'fr'],
++    ['étudiant', 'fr'],
++    ['etudiant', 'fr'],
++    ['minimaliste', 'fr'],
++    ['moderne', 'fr'],
++    ['ingénieur', 'fr'],
++    ['développeur', 'fr'],
++    ['comptable', 'fr'],
++    ['avocat', 'fr'],
++    ['studium', 'de'],
++    ['minimalistisch', 'de'],
++    ['kreativ', 'de'],
++    ['entwickler', 'de'],
++    ['buchhalter', 'de'],
++    ['lebenslauf', 'de'],
++    ['vertrieb', 'de'],
++  ] as [string, Locale][])('finds something for %s (%s)', (term, locale) => {
++    expect(search(term, locale).length).toBeGreaterThan(0);
++  });
++
++  it('suggests only search terms that work', () => {
++    // Whatever the placeholder advertises has to return results, in every language.
++    const advertised: Record<Locale, string[]> = {
++      en: ['banking', 'student', 'minimal', 'two column'],
++      fr: ['banque', 'étudiant', 'minimaliste'],
++      de: ['bank', 'studium', 'minimalistisch'],
++    };
++    for (const [locale, terms] of Object.entries(advertised) as [Locale, string[]][]) {
++      for (const term of terms) {
++        expect(search(term, locale).length, `${locale}: “${term}”`).toBeGreaterThan(0);
++      }
++    }
++  });
++
++  /*
++   * `two column` split into `two` AND `column` matched three one-column templates, because
++   * `two` appears in taglines like "a two-line name" and "a two-tone split header" while
++   * `column` is on every card. Phrases are looked up whole for exactly this reason, and the
++   * expected numbers come from the registry rather than from a previous run.
++   */
++  it.each([
++    ['two column', 'en', TWO_COLUMN],
++    ['two columns', 'en', TWO_COLUMN],
++    ['one column', 'en', ONE_COLUMN],
++    ['single column', 'en', ONE_COLUMN],
++    ['deux colonnes', 'fr', TWO_COLUMN],
++    ['une colonne', 'fr', ONE_COLUMN],
++    ['zweispaltig', 'de', TWO_COLUMN],
++    ['einspaltig', 'de', ONE_COLUMN],
++    ['zwei spalten', 'de', TWO_COLUMN],
++    ['eine spalte', 'de', ONE_COLUMN],
++  ] as [string, Locale, number][])(
++    '“%s” (%s) matches exactly the right column count',
++    (query, locale, want) => {
++      const found = search(query, locale);
++      expect(found).toHaveLength(want);
++      const expectedColumns = want === TWO_COLUMN ? 2 : 1;
++      expect(found.every((t) => t.columns === expectedColumns)).toBe(true);
++    },
++  );
++
++  it('matches the plan word in each language', () => {
++    expect(search('free', 'en').length).toBeGreaterThanOrEqual(FREE);
++    expect(search('gratuit', 'fr')).toHaveLength(FREE);
++    expect(search('kostenlos', 'de')).toHaveLength(FREE);
++  });
++
++  it('narrows rather than widens as words are added', () => {
++    // Two words is an AND. A user who types more expects fewer results, not more.
++    for (const locale of ['en', 'fr', 'de'] as const) {
++      const one = search('modern', locale).length;
++      const two = search('modern creative', locale).length;
++      expect(two).toBeLessThanOrEqual(one);
++    }
++  });
++
++  it('leaves an unknown word untranslated instead of dropping it', () => {
++    // A word with no entry must still be searched for literally, not silently ignored —
++    // ignoring it would turn a zero-result query into the whole catalogue.
++    expect(expandQuery('kajgshdf', 'fr')).toEqual([['kajgshdf']]);
++    expect(search('kajgshdf', 'fr')).toHaveLength(0);
++  });
++
++  it('is testing the haystack the card actually renders', () => {
++    /*
++     * `FACETS` above restates the localised words `TemplateStrip` prints on a card. That
++     * duplication is what makes the rest of this file readable, and it is also exactly the
++     * kind of copy that goes stale in silence — every assertion here would keep passing
++     * against a haystack the product no longer emits. So the copy is checked against a
++     * real rendered card, in every language, and this test fails the moment they diverge.
++     */
++    for (const locale of ['en', 'fr', 'de'] as const) {
++      for (const template of [TEMPLATES[0]!, TEMPLATES[1]!, TEMPLATES.at(-1)!]) {
++        const { container } = render(<TemplateCard template={template} locale={locale} />);
++        const card = container.querySelector('[data-template-card]');
++        expect(card, `${locale} ${template.slug}`).not.toBeNull();
++        expect(card!.getAttribute('data-search'), `${locale} ${template.slug}`).toBe(
++          haystack(template, locale),
++        );
++        cleanup();
++      }
++    }
++  });
++
++  it('keeps every mapped term pointing at vocabulary that exists', () => {
++    /*
++     * A translation for a word no template carries is dead weight that reads as coverage.
++     * Every mapping is checked against the real corpus in its own locale.
++     */
++    const dead: string[] = [];
++    for (const locale of ['fr', 'de'] as const) {
++      const corpus = TEMPLATES.map((t) => haystack(t, locale)).join(' ');
++      for (const word of SAMPLE_KEYS[locale]) {
++        const variants = expandQuery(word, locale).flat();
++        if (!variants.some((v) => corpus.includes(v))) dead.push(`${locale}: ${word}`);
++      }
++    }
++    expect(dead).toEqual([]);
++  });
++});
++
++/** A spread of keys from each table — style words, role words and compounds. */
++const SAMPLE_KEYS: Record<'fr' | 'de', string[]> = {
++  fr: [
++    'moderne',
++    'classique',
++    'créatif',
++    'entreprise',
++    'minimaliste',
++    'élégant',
++    'photo',
++    'banque',
++    'finance',
++    'comptable',
++    'ingénieur',
++    'développeur',
++    'informatique',
++    'données',
++    'analyste',
++    'sécurité',
++    'recherche',
++    'designer',
++    'graphiste',
++    'photographe',
++    'marketing',
++    'commercial',
++    'conseil',
++    'gestion',
++    'directeur',
++    'cadre',
++    'produit',
++    'juridique',
++    'gouvernement',
++    'étudiant',
++    'débutant',
++    'senior',
++    'compétences',
++    'expérience',
++    'europass',
++  ],
++  de: [
++    'modern',
++    'klassisch',
++    'kreativ',
++    'unternehmen',
++    'minimalistisch',
++    'elegant',
++    'foto',
++    'bank',
++    'finanzen',
++    'buchhalter',
++    'ingenieur',
++    'entwickler',
++    'informatik',
++    'daten',
++    'analyst',
++    'sicherheit',
++    'forschung',
++    'designer',
++    'grafik',
++    'fotograf',
++    'vertrieb',
++    'beratung',
++    'leitung',
++    'führungskraft',
++    'produkt',
++    'recht',
++    'behörde',
++    'student',
++    'studium',
++    'berufseinsteiger',
++    'kenntnisse',
++    'erfahrung',
++    'europass',
++    'lebenslauf',
++  ],
++};
+diff --git a/tests/lib/static-rendering.test.ts b/tests/lib/static-rendering.test.ts
+index 6e34b9f..ed51c84 100644
+--- a/tests/lib/static-rendering.test.ts
++++ b/tests/lib/static-rendering.test.ts
+@@ -3,6 +3,8 @@ import { join } from 'node:path';
+ 
+ import { describe, expect, it } from 'vitest';
+ 
++import { TEMPLATE_CATEGORIES } from '@/lib/cv/template-registry';
++
+ /**
+  * Keeps the public site statically rendered.
+  *
+@@ -80,6 +82,64 @@ describe('static rendering of the public site', () => {
+     expect(siteHeader).toMatch(/!ready \?/);
+   });
+ 
++  /*
++   * `/templates` is the most linked page on the site and was the only marketing page
++   * rendered per request. Reading `searchParams` — in the body *or* in `generateMetadata`
++   * — is what opts a route into dynamic rendering, and the filters used to be query links,
++   * so it did both. Audit item 3.4.
++   *
++   * Asserted on the source rather than on a build artefact because the failure is silent:
++   * the page keeps working, it just stops being static, and nothing in the output says so
++   * until someone reads the build table.
++   *
++   * The French and German galleries were already static and are held to the same rule —
++   * they are the likeliest place for a query-string filter to be reintroduced, since
++   * whoever adds one there will be copying whatever the English page does.
++   */
++  const GALLERIES = [
++    'app/(marketing)/templates/page.tsx',
++    'app/fr/modeles-de-cv/page.tsx',
++    'app/de/lebenslauf-vorlagen/page.tsx',
++  ];
++
++  it.each(GALLERIES)('keeps searchParams out of %s', (path) => {
++    const gallery = readFileSync(join(process.cwd(), path), 'utf8');
++    /*
++     * Matched on *use*, not on mention. The page's own doc comment explains what was
++     * removed and why, so it names both `searchParams` and `generateMetadata` in prose;
++     * a bare `toContain` fails on the explanation rather than on the code. Excluding the
++     * backticked forms draws that line exactly, and still catches every way the prop can
++     * be read — destructured, typed, or reached through `props`.
++     */
++    expect(gallery).not.toMatch(/(?<!`)\bsearchParams\b(?!`)/);
++    // Static metadata, not a `generateMetadata` that could reach for the query again.
++    expect(gallery).toContain('export const metadata');
++    expect(gallery).not.toMatch(/(?<!`)\bgenerateMetadata\b(?!`)/);
++    // The filtering that replaced it, over cards the server already rendered.
++    expect(gallery).toContain('TemplateFilterBar');
++  });
++
++  it('sends the old ?category= views to the pages written for them', () => {
++    // Two addresses for one list, and only one of them has copy. The redirect has to clear
++    // the query as well as move the path, or it produces a third address.
++    const proxy = readFileSync(join(process.cwd(), 'proxy.ts'), 'utf8');
++    expect(proxy).toContain("pathname === '/templates'");
++    expect(proxy).toContain('CATEGORY_SLUGS');
++    expect(proxy).toContain("url.search = ''");
++
++    /*
++     * The slug list is written out in `proxy.ts` rather than imported, because importing
++     * the registry into the proxy pulls all sixty-one template components into the edge
++     * bundle. That is the right call and it is also a copy that can drift silently — a
++     * renamed category would stop redirecting with nothing to indicate it. So the literal
++     * set is parsed back out and compared against the registry.
++     */
++    const literal = /const CATEGORY_SLUGS = new Set\(\[([^\]]*)\]\)/.exec(proxy);
++    expect(literal, 'CATEGORY_SLUGS should be a literal Set of strings').not.toBeNull();
++    const declared = [...literal![1]!.matchAll(/'([^']+)'/g)].map((m) => m[1]!);
++    expect(declared.sort()).toEqual(TEMPLATE_CATEGORIES.map((c) => c.slug).sort());
++  });
++
+   it('leaves the private layouts free to read the session', () => {
+     // The fix is about *where* the cookie is read, not about avoiding it entirely.
+     const dashboardLayout = 'app/dashboard/layout.tsx';
+-- 
+2.43.0
+

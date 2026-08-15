@@ -10,10 +10,11 @@ import { requireViewer } from '@/lib/auth/guards';
 import { createDefaultCustomization } from '@/lib/cv/defaults';
 import { sampleCvFor } from '@/lib/cv/samples';
 import {
+  templateDefaults,
   FREE_TEMPLATE_COUNT,
-  TEMPLATES,
   TEMPLATE_CATEGORIES,
   TEMPLATE_COUNT,
+  TEMPLATES,
 } from '@/lib/cv/template-registry';
 import { privateMetadata } from '@/lib/seo/metadata';
 import { cn } from '@/lib/utils/cn';
@@ -36,9 +37,7 @@ export default async function DashboardTemplatesPage({
   const category = TEMPLATE_CATEGORIES.some((entry) => entry.id === requested) ? requested : 'all';
 
   const templates =
-    category === 'all'
-      ? TEMPLATES
-      : TEMPLATES.filter((template) => template.category === category);
+    category === 'all' ? TEMPLATES : TEMPLATES.filter((template) => template.category === category);
 
   const canUsePremium = viewer.limits.premiumTemplates;
 
@@ -64,13 +63,20 @@ export default async function DashboardTemplatesPage({
       }
     >
       <div className="flex flex-col gap-5">
-        <nav aria-label="Filter templates by category" className="scroll-thin -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+        <nav
+          aria-label="Filter templates by category"
+          className="scroll-thin -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1"
+        >
           {chips.map((chip) => {
             const active = chip.id === category;
             return (
               <Link
                 key={chip.id}
-                href={chip.id === 'all' ? '/dashboard/templates' : `/dashboard/templates?category=${chip.id}`}
+                href={
+                  chip.id === 'all'
+                    ? '/dashboard/templates'
+                    : `/dashboard/templates?category=${chip.id}`
+                }
                 aria-current={active ? 'true' : undefined}
                 scroll={false}
                 className={cn(
@@ -81,7 +87,9 @@ export default async function DashboardTemplatesPage({
                 )}
               >
                 {chip.label}
-                <span className={cn('ml-1.5 text-[11px]', active ? 'text-white/75' : 'text-ink-400')}>
+                <span
+                  className={cn('ml-1.5 text-[11px]', active ? 'text-white/75' : 'text-ink-400')}
+                >
                   {chip.count}
                 </span>
               </Link>
@@ -107,8 +115,7 @@ export default async function DashboardTemplatesPage({
                 <CVThumbnail
                   cv={sampleCvFor(template.id)}
                   customization={createDefaultCustomization({
-                    templateId: template.id,
-                    accentColor: template.accentDefault,
+                    ...templateDefaults(template),
                   })}
                   width={220}
                   crop={1.15}

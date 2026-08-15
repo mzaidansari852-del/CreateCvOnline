@@ -1,5 +1,10 @@
 import { GENERATED_TEMPLATES } from './templates.generated';
-import type { TemplateCategory, TemplateDefinition } from '@/types/cv';
+import type {
+  CVCustomization,
+  TemplateCategory,
+  TemplateDefinition,
+  TemplateMeta,
+} from '@/types/cv';
 
 /**
  * The template registry.
@@ -128,16 +133,37 @@ export function relatedTemplates(id: string, limit = 6): TemplateDefinition[] {
   const current = findTemplate(id);
   if (!current) return TEMPLATES.slice(0, limit);
 
-  const sameCategory = TEMPLATES.filter(
-    (template) => template.category === current.category && template.id !== current.id,
-  );
+  /*
+   * Siblings are taken as a *cycle* starting after this template, not as the first six in
+   * registry order.
+   *
+   * Taking the first six looks reasonable and quietly orphans a third of the catalogue. A
+   * category holds ten templates, the grid shows six, and every one of the ten was picking
+   * from the same front of the list — so positions seven, eight and nine were linked to by
+   * nobody. Eighteen of the fifty-six pages received no internal link from any related grid,
+   * which on a domain with no external links is most of the PageRank they were ever going
+   * to get.
+   *
+   * Rotating makes in-degree equal out-degree: every template links to the six after it and
+   * is linked to by the six before it. Still deterministic, so the pages stay prerenderable.
+   */
+  const siblings = TEMPLATES.filter((template) => template.category === current.category);
+  const at = siblings.findIndex((template) => template.id === current.id);
+  const rotated = at === -1 ? siblings : [...siblings.slice(at + 1), ...siblings.slice(0, at)];
+
+  if (rotated.length >= limit) return rotated.slice(0, limit);
+
+  // Small category: top up from the closest ATS scores elsewhere, offset so that those
+  // templates are not all pointing at the same handful either.
   const others = TEMPLATES.filter(
     (template) => template.category !== current.category && template.id !== current.id,
   ).sort(
     (a, b) => Math.abs(a.atsScore - current.atsScore) - Math.abs(b.atsScore - current.atsScore),
   );
+  const offset = Math.max(0, at) % Math.max(1, others.length);
+  const topUp = [...others.slice(offset), ...others.slice(0, offset)];
 
-  return [...sameCategory, ...others].slice(0, limit);
+  return [...rotated, ...topUp].slice(0, limit);
 }
 
 /** Free-text search across name, tagline, keywords and category. */
@@ -154,3 +180,26 @@ export function searchTemplates(query: string): TemplateDefinition[] {
 
 export const TEMPLATE_COUNT = TEMPLATES.length;
 export const FREE_TEMPLATE_COUNT = TEMPLATES.filter((template) => !template.premium).length;
+
+/**
+ * The starting customization for a template: accent, typeface pairing and page metrics.
+ *
+ * Call sites used to pass `{ templateId, accentColor: template.accentDefault }` by hand,
+ * which is how the fonts would have been forgotten in nineteen places. One function, so a
+ * template's design defaults arrive together or not at all.
+ */
+export function templateDefaults(
+  template: TemplateDefinition | TemplateMeta,
+): Pick<
+  CVCustomization,
+  'templateId' | 'accentColor' | 'headingFont' | 'bodyFont' | 'lineHeight' | 'pageMargin'
+> {
+  return {
+    templateId: template.id,
+    accentColor: template.accentDefault,
+    headingFont: template.fonts.heading,
+    bodyFont: template.fonts.body,
+    lineHeight: template.metrics.lineHeight,
+    pageMargin: template.metrics.pageMargin,
+  };
+}

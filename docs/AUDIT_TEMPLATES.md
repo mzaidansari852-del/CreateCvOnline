@@ -577,3 +577,161 @@ about it.
 
 The canonical check takes thirty seconds and invalidates everything else if it is wrong.
 The images are the difference between competing for image search and not appearing in it.
+
+---
+
+## Record — 3.6 and 4.1 as built
+
+### 3.6 — related links were orphaning a third of the catalogue
+
+`relatedTemplates()` took the first six siblings in registry order. A category holds ten
+templates and the grid shows six, so all ten were picking from the same front of the list:
+positions seven, eight and nine were linked to by nobody. Measured on the pre-change code,
+inbound links ranged 0–15 and **fifteen of the fifty-six template pages received no internal
+link from any related grid**. On a domain with no external links that is most of the
+PageRank those pages were ever going to get.
+
+The fix is to take the siblings as a *cycle* starting after the current template rather than
+from the front. In-degree then equals out-degree by construction: every template links to
+the six after it and is linked to by the six before it. Still deterministic, so the pages
+stay prerenderable. Small categories top up from the closest ATS scores elsewhere, offset by
+position so those templates do not all point at the same handful either.
+
+### 4.1 — fonts, and what "recommended" turned out to mean
+
+The audit asked for `recommendedFonts`. What shipped is `fonts: { heading, body }` on
+`TemplateMeta` — required, not optional, so a new template cannot be added without deciding
+how it is typeset. All 56 were rendering in the same Inter/Inter default, which is the real
+reason a shopper scrolling the gallery saw six designs rather than fifty-six: type does more
+for perceived difference than column count does.
+
+Three decisions worth recording:
+
+- **Where the pairing is applied.** Nineteen call sites were assembling
+  `{ templateId, accentColor: template.accentDefault }` by hand. Adding a third field to
+  nineteen places is how the twentieth gets forgotten, so they all now call
+  `templateDefaults(template)`. A test greps the tree for the old shape and fails on
+  reintroduction.
+- **When the editor overrides your fonts.** Switching template is meant to be a non-event.
+  But a template that renders in whatever face the previous one used is not a different
+  design. The rule: the incoming pairing is applied only when the outgoing one still matches
+  *some* template's defaults — not just the current template's, because the user may have
+  arrived here from another. Once you pick a font yourself, no template switch touches it
+  again.
+- **Which constraints are testable.** Same-category pairings must not repeat (that is the
+  side-by-side comparison the change exists to lose). ATS templates are held to conventional
+  faces. Classic templates are held to `kind: 'serif'` read off the font table itself, so
+  adding a face cannot silently widen the definition. No single pairing may cover more than
+  six of the 56.
+
+35 distinct pairings across 56 templates; 12 of the 15 available faces are in use. All 168
+preview images were regenerated — the typeface changes every one of them.
+
+### 4.2 / 4.3 / 4.5 — measured, and one of the three was a different bug
+
+Everything below was measured from the rendered documents at `/template-preview/<slug>`,
+not read out of the source. Two of the findings only exist at that level.
+
+**4.2 and 4.5 were exactly as described.** All 56 templates rendered at `line-height: 1.5`
+and `pageMargin: 44` — the schema defaults, untouched. Measuring the typographic *measure*
+(characters per line of running body text) gave the number that mattered:
+
+| | n | median cpl | range |
+| --- | --- | --- | --- |
+| One column | 40 | 92 | 72–135 |
+| Two column | 16 | 70 | 60–81 |
+
+The two-column templates were already set at the ideal 60–75 measure. The one-column ones
+were running long, and the classic serif family — Academic and Elegant Serif at 135
+characters — was running very long.
+
+The first attempt was a formula: derive each margin from its measured line length to hit a
+target. It produced a worse catalogue than it started with. Targeting 88 cpl clamped 17
+templates at the 72px ceiling; relaxing to 95 cpl piled 21 onto the floor instead. Margin
+is a weak lever on measure — at 10.5px on a 210mm page the line length is set by font size,
+and even the maximum margin only recovers about 15% — so optimising for it just drove
+everything to the clamps and deleted the variation 4.5 exists to create.
+
+What shipped instead: `pageMargin` is banded by *what kind of document the template is* — a
+Legal CV is a document and wants a document's margin, a portfolio page is a poster — and
+spread inside each band by measured line length so the widest-set templates still get the
+most relief. 20 distinct values, no value on more than 5 templates. `lineHeight` is then
+derived from the measure that *resulted*, in five bands from 1.36 to 1.60: the longer the
+line, the more help the eye needs finding the start of the next one.
+
+**4.3's premise held, but only when measured the way the audit measured it.** Counting
+distinct size/weight/case combinations says 40 of 56 are unique, which looks solved — and
+is misleading, because the combinations differ by 0.05em. Counting the audit's way, as a
+*band*, 31 of 56 still sat between 1.9em and 2.35em and 38 of 56 at weight 700.
+
+**And measuring it turned up a defect nobody had reported: no font in the catalogue ships
+a weight 800.** `fontWeight: 800` appeared 29 times across 26 templates. Every one was
+synthesised — the browser smearing the 700 outline — which is precisely why 700 and 800
+looked identical on the page. The same applied to `600` on Roboto, Lato, Merriweather,
+Libre Baskerville and the three system faces. Weight was not a design variable at all; it
+was two variables pretending to be five.
+
+That cannot be fixed per template, because the user can put any of the fifteen faces on any
+template. It has to resolve at render time against whichever face is active — the same
+shape as `contrastAgainst()` resolving a colour against whatever surface it lands on. So:
+`FONT_WEIGHTS` is read off each face's own `googleSpec`, and `headingWeight(c, n)` /
+`bodyWeight(c, n)` snap a request to the nearest cut that exists. Ties resolve toward 700,
+which is the one rule that gets both awkward cases right — 600 on Arial wants the bold,
+800 on Lato wants the bold too, because Black overshoots by more than Bold undershoots.
+
+With real weights available, the masthead was rebuilt on two rules: size scales to the
+*kind* of face it is set in (display serifs were cut to be set large; Arial at 3.4em is a
+shout), and weight comes down as size goes up. Measured after:
+
+| | audit | now |
+| --- | --- | --- |
+| Sitting in 1.9–2.35em | 34/56 | 20/56 |
+| At weight 700 | 34/56 | 17/56 |
+| Distinct size + weight + case + face | — | 53/56 |
+| Faces the name is set in | 1 | 15 |
+
+One thing the rendered check caught that the numbers alone would have got wrong: Graphic
+Designer and Modern Creative appeared to wrap their names onto four lines. They do not —
+the name is deliberately stacked in two spans, and `getClientRects()` returns one rect per
+line *per span*. Looking at the picture settled in a second what the metric could not.
+
+### 4.4 — the eleven pairs, measured on the pictures
+
+"Too close to sell as separate products" is a claim about what a shopper sees, so it was
+measured on the rendered thumbnails rather than the component files. Two signals per
+template: the downscaled greyscale page (typeface, weight, density, colour) and the row and
+column ink profile (where the blocks are, which survives a font change and so stops new
+type from scoring as a new design). Distance is the mean of the two, over all 1,540 pairs.
+
+Across the catalogue, mean pair distance went from **0.753 to 0.776** — the Phase 4 work
+separated the catalogue overall. Six of the audit's named pairs moved a long way apart:
+
+| Pair | before | after | rank of 1,540 |
+| --- | --- | --- | --- |
+| Software Engineer ↔ ATS Simple | 0.524 | 0.765 | #87 → #732 |
+| Modern ATS ↔ Software Engineer | 0.582 | 0.711 | #208 → #531 |
+| Simple Classic ↔ Tech Minimal | 0.580 | 0.702 | #195 → #487 |
+| HR ↔ Government | 0.651 | 0.698 | #380 → #475 |
+| Modern ATS ↔ ATS Simple | 0.411 | 0.533 | #19 → #72 |
+| ATS CV ↔ ATS Resume | 0.589 | 0.594 | #220 → #166 |
+
+**Measuring after the change also caught two regressions the change itself caused**, which
+is the whole reason for measuring after. Banding masthead size by face *kind* gave three
+display serifs nearly the same treatment: Executive Classic and Elegant Serif collapsed
+from 0.747 apart to 0.310, and Modern Elegant closed on Elegant Serif from 0.596 to 0.437.
+A rule that separates templates on average can still fuse the two that were already
+closest. Fixed by using case rather than size on Executive Classic — small letterspaced
+capitals read nothing like a 3.1em title-case line, whatever the face — and by moving
+Modern Elegant off Playfair onto Lora. Both pairs are now clear.
+
+**What remains is not a typography problem.** Five pairs sit under 0.25, and they are one
+cluster: Banking, Modern Corporate, Cybersecurity, Art Director and Content Creator are
+two-column layouts whose blocks land in the same places. Different faces, different
+margins, same page. That is what 4.4 means by "differentiate, or merge and retire", and it
+needs layout work, not font work. It is still open.
+
+`tests/cv/distinctiveness.test.ts` now runs this measurement over the committed previews on
+every test run: no pair may fall below 0.15, the cluster under 0.25 may not grow past five,
+every audit-named pair must stay above 0.45, and the catalogue mean must stay above 0.74.
+The count is pinned rather than asserted-to-zero so the open work stays visible and a sixth
+pair cannot appear quietly.

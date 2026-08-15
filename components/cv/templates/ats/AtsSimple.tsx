@@ -1,5 +1,12 @@
 import { contactEntries, SectionContent } from '@/components/cv/parts';
-import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVData, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +20,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#1f2937',
+  fonts: { heading: 'open-sans', body: 'open-sans' },
+  metrics: { lineHeight: 1.48, pageMargin: 68 },
   tagline: 'Plain single column with exactly one piece of colour: the section headings.',
   description:
     'ATS Simple keeps the bones of a plain-text CV and spends its entire colour budget in one place — section headings set in your accent with a fine rule beneath, which gives a recruiter something to scan without giving a parser anything to misread. Contact details sit on two short left-aligned lines, direct contact first and links second, so a long email address and a LinkedIn URL never collide in one wrapped run. Everything below the header is a single flow of body text with no icons, panels or graphics.',
@@ -73,9 +82,9 @@ export default function AtsSimple({ cv, customization: c }: CVTemplateProps) {
       <header>
         <h1
           style={{
-            fontSize: '1.9em',
+            fontSize: '2em',
             lineHeight: 1.14,
-            fontWeight: 700,
+            fontWeight: headingWeight(c, 700),
             color: ink,
           }}
         >
@@ -103,7 +112,7 @@ export default function AtsSimple({ cv, customization: c }: CVTemplateProps) {
             className="cv-section-title"
             style={{
               fontSize: '1em',
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 700),
               color: accentText,
               textTransform: headingTransform(c),
               letterSpacing: headingTracking(c),

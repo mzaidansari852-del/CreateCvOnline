@@ -1,10 +1,12 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
-  mutedOn,
+  bodyWeight,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
   tint,
 } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
@@ -20,6 +22,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: true,
   accentDefault: '#a1662f',
+  fonts: { heading: 'lora', body: 'lato' },
+  metrics: { lineHeight: 1.42, pageMargin: 38 },
   tagline: 'A centred masthead between double rules, with rule-flanked section headings.',
   description:
     'Modern Elegant centres the whole document: an optional portrait above your name, thin double rules framing it, a letterspaced title beneath and contact details on one centred line. Section headings sit in the middle of the measure flanked by short accent rules, giving the page an editorial rhythm that suits a hospitality, communications or client-facing CV. Experience and education keep their dates in a left gutter, so the centred styling never costs you scannability.',
@@ -82,9 +86,9 @@ export default function ModernElegant({ cv, customization: c }: CVTemplateProps)
         >
           <h1
             style={{
-              fontSize: '2.6em',
+              fontSize: '2.7em',
               lineHeight: 1.1,
-              fontWeight: 500,
+              fontWeight: headingWeight(c, 400),
               letterSpacing: '0.03em',
               color: c.secondaryColor,
             }}
@@ -96,7 +100,7 @@ export default function ModernElegant({ cv, customization: c }: CVTemplateProps)
               style={{
                 marginTop: '0.55em',
                 fontSize: '0.86em',
-                fontWeight: 600,
+                fontWeight: bodyWeight(c, 600),
                 letterSpacing: '0.28em',
                 textTransform: 'uppercase',
                 color: accentText,
@@ -135,7 +139,7 @@ export default function ModernElegant({ cv, customization: c }: CVTemplateProps)
               justifyContent: 'center',
               gap: '0.8em',
               fontSize: '0.95em',
-              fontWeight: 600,
+              fontWeight: headingWeight(c, 600),
               textTransform: headingTransform(c),
               letterSpacing: headingTracking(c),
               color: c.secondaryColor,

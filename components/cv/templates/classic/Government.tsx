@@ -1,5 +1,14 @@
 import { contactEntries, SectionContent, type ContactIconKey } from '@/components/cv/parts';
-import { mutedOn, fullName, headingTracking, headingTransform, shade, tint } from '@/lib/cv/format';
+import {
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  mutedOn,
+  shade,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +22,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#14532d',
+  fonts: { heading: 'merriweather', body: 'georgia' },
+  metrics: { lineHeight: 1.60, pageMargin: 60 },
   tagline: 'Every section in its own ruled box, with contact details set out as labelled fields.',
   description:
     'Government CV answers a public-sector panel in the format its own paperwork uses: each section sits inside a ruled box with a tinted heading bar, and your contact details are set out as labelled fields rather than a run-on line. Nothing is drawn that has to be interpreted — no icons, no rating bars, no tag pills — so the scoring panel and the parser read the same document. Skills print as plain category-and-list text, which is how competency frameworks expect to receive them.',
@@ -72,9 +83,9 @@ export default function Government({ cv, customization: c }: CVTemplateProps) {
         <div style={{ padding: '0.8em 1em', borderBottom: `1px solid ${frame}` }}>
           <h1
             style={{
-              fontSize: '1.85em',
+              fontSize: '2.25em',
               lineHeight: 1.14,
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 600),
               letterSpacing: '0.01em',
               color: c.secondaryColor,
             }}
@@ -82,7 +93,7 @@ export default function Government({ cv, customization: c }: CVTemplateProps) {
             {name || 'Your Name'}
           </h1>
           {cv.personal.title ? (
-            <p style={{ marginTop: '0.2em', fontSize: '1.02em', fontWeight: 600, color: ink }}>
+            <p style={{ marginTop: '0.2em', fontSize: '1.02em', fontWeight: bodyWeight(c, 600), color: ink }}>
               {cv.personal.title}
             </p>
           ) : null}
@@ -103,7 +114,7 @@ export default function Government({ cv, customization: c }: CVTemplateProps) {
                 borderRight: `1px solid ${hair}`,
                 background: tint(accent, 0.96),
                 fontSize: '0.84em',
-                fontWeight: 700,
+                fontWeight: bodyWeight(c, 700),
                 textTransform: 'uppercase',
                 letterSpacing: '0.07em',
                 color: muted,
@@ -137,7 +148,7 @@ export default function Government({ cv, customization: c }: CVTemplateProps) {
               background: bar,
               borderBottom: `1px solid ${frame}`,
               fontSize: '0.92em',
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 700),
               color: ink,
               textTransform: headingTransform(c),
               letterSpacing: headingTracking(c),

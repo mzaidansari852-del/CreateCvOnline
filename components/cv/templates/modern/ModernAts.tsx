@@ -1,5 +1,13 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { mutedOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  mutedOn,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#1f2937',
+  fonts: { heading: 'inter', body: 'inter' },
+  metrics: { lineHeight: 1.60, pageMargin: 54 },
   tagline: 'The parser-proof member of the Modern family: one column, one rule, no graphics.',
   description:
     'Modern ATS strips the family down to what a parser can read without guessing: one column, a left-aligned name, a single wrapped line of contact text and full-width headings sitting on a plain 1px rule. Nothing is drawn that a text extractor would have to interpret — no icons, no bars, no tinted panels — and skills print as comma-separated text under their category names. Spacing is deliberately generous so the plainness reads as considered rather than unfinished.',
@@ -52,11 +62,11 @@ export default function ModernAts({ cv, customization: c }: CVTemplateProps) {
   return (
     <div style={{ padding: c.pageMargin }}>
       <header>
-        <h1 style={{ fontSize: '1.95em', lineHeight: 1.12, fontWeight: 700, color: c.textColor }}>
+        <h1 style={{ fontSize: '2.05em', lineHeight: 1.12, fontWeight: headingWeight(c, 700), color: c.textColor }}>
           {name || 'Your Name'}
         </h1>
         {cv.personal.title ? (
-          <p style={{ marginTop: '0.15em', fontSize: '1.05em', fontWeight: 600, color: muted }}>
+          <p style={{ marginTop: '0.15em', fontSize: '1.05em', fontWeight: bodyWeight(c, 600), color: muted }}>
             {cv.personal.title}
           </p>
         ) : null}
@@ -83,7 +93,7 @@ export default function ModernAts({ cv, customization: c }: CVTemplateProps) {
             className="cv-section-title"
             style={{
               fontSize: '0.98em',
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 700),
               textTransform: headingTransform(c),
               letterSpacing: headingTracking(c),
               color: c.textColor,

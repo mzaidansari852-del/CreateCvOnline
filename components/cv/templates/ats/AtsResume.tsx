@@ -1,5 +1,5 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import { fullName, headingTracking, headingTransform, headingWeight, tint } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +13,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#000000',
+  fonts: { heading: 'inter', body: 'inter' },
+  metrics: { lineHeight: 1.54, pageMargin: 62 },
   tagline: 'Centred header, ruled headings and a tight rhythm built to land on one page.',
   description:
     'ATS Resume follows the North American convention a recruiter expects to see: name and contact details centred at the top, then left-aligned headings each underlined by a full-width rule. The vertical rhythm and the education and certification entries are deliberately more compact than our other ATS layouts, so ten years of history still fits on one page without dropping the type size. The body remains a single text column, which is what keeps the section order you chose intact when the file is parsed.',
@@ -54,9 +56,9 @@ export default function AtsResume({ cv, customization: c }: CVTemplateProps) {
       <header style={{ textAlign: 'center' }}>
         <h1
           style={{
-            fontSize: '1.85em',
+            fontSize: '1.95em',
             lineHeight: 1.12,
-            fontWeight: 700,
+            fontWeight: headingWeight(c, 700),
             color: ink,
           }}
         >
@@ -84,7 +86,7 @@ export default function AtsResume({ cv, customization: c }: CVTemplateProps) {
             className="cv-section-title"
             style={{
               fontSize: '0.96em',
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 700),
               color: ink,
               textTransform: headingTransform(c),
               letterSpacing: headingTracking(c),

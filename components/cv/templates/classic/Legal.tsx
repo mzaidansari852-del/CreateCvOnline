@@ -1,10 +1,11 @@
 import { contactEntries, ContactIcon, SectionContent } from '@/components/cv/parts';
 import {
-  centredTracking,
   accentOn,
+  centredTracking,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
   tint,
 } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
@@ -20,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#0f172a',
+  fonts: { heading: 'times', body: 'times' },
+  metrics: { lineHeight: 1.60, pageMargin: 62 },
   tagline: 'Justified copy under centred, underlined headings — a CV that reads like a filing.',
   description:
     'Legal CV borrows the conventions of a court document: your name centred in widely spaced capitals above a hairline rule, headings centred and underlined in small caps, and body copy justified to a hard right edge. Spacing is tight and conservative, so admissions, matters and clerkships fit without the document ever looking padded. It is deliberately unfashionable, which is exactly what chambers and firms that still read CVs on paper expect.',
@@ -63,9 +66,9 @@ export default function Legal({ cv, customization: c }: CVTemplateProps) {
         <div style={{ borderBottom: `1px solid ${rule}`, paddingBottom: '0.45em' }}>
           <h1
             style={{
-              fontSize: '1.72em',
+              fontSize: '1.8em',
               lineHeight: 1.2,
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 700),
               textTransform: 'uppercase',
               ...centredTracking('0.2em'),
               color: c.secondaryColor,
@@ -102,7 +105,7 @@ export default function Legal({ cv, customization: c }: CVTemplateProps) {
             style={{
               textAlign: 'center',
               fontSize: '0.96em',
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 700),
               color: c.secondaryColor,
               marginBottom: '0.5em',
             }}

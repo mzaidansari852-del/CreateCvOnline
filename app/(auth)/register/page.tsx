@@ -5,7 +5,7 @@ import { firstParam } from '@/components/auth/shared';
 import { CVThumbnail } from '@/components/cv/CVThumbnail';
 import { Badge } from '@/components/ui/feedback';
 import { createDefaultCustomization, createSampleCV } from '@/lib/cv/defaults';
-import { findTemplate } from '@/lib/cv/template-registry';
+import { findTemplate, templateDefaults } from '@/lib/cv/template-registry';
 import { privateMetadata } from '@/lib/seo/metadata';
 import { site } from '@/lib/site';
 
@@ -47,8 +47,7 @@ export default async function RegisterPage(props: {
           <CVThumbnail
             cv={createSampleCV()}
             customization={createDefaultCustomization({
-              templateId: template.id,
-              accentColor: template.accentDefault,
+              ...templateDefaults(template),
             })}
             width={64}
             className="shrink-0 ring-1 ring-brand-200"
@@ -60,7 +59,11 @@ export default async function RegisterPage(props: {
             </p>
             <p className="mt-0.5 flex flex-wrap items-center gap-2 text-sm font-semibold text-ink-950">
               {template.name}
-              {template.premium ? <Badge tone="accent">Pro</Badge> : <Badge tone="success">Free</Badge>}
+              {template.premium ? (
+                <Badge tone="accent">Pro</Badge>
+              ) : (
+                <Badge tone="success">Free</Badge>
+              )}
             </p>
             <p className="mt-0.5 text-xs leading-relaxed text-ink-600">
               {template.tagline} You can change template at any time.

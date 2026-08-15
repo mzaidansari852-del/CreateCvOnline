@@ -41,6 +41,28 @@ export interface EditorTemplateChoice {
   columns: 1 | 2;
   hasPhoto: boolean;
   accentDefault: string;
+  /** The typeface pairing the template was designed around. */
+  fonts: { heading: FontKey; body: FontKey };
+}
+
+/**
+ * True when the current pair is still some template's default rather than the user's choice.
+ *
+ * Switching template is meant to be a non-event: your content and every other setting
+ * survive it. But a template that renders in whatever face the last one used is not really
+ * a different design — type does more for perceived difference than column count does. So
+ * the incoming pairing is applied only when the outgoing one was never deliberately picked.
+ * Matching *any* template's defaults is the test, not just the current template's, because
+ * the user may have arrived here from another template that set its own pair.
+ */
+function usesTemplateFonts(
+  templates: EditorTemplateChoice[],
+  headingFont: FontKey,
+  bodyFont: FontKey,
+): boolean {
+  return templates.some(
+    (template) => template.fonts.heading === headingFont && template.fonts.body === bodyFont,
+  );
 }
 
 const ACCENT_PRESETS = [
@@ -104,9 +126,23 @@ export function DesignPanel({
             onUpgradeNeeded(`“${template.name}” is a Pro template.`);
             return;
           }
-          // Only the template id changes — every other setting, and all of the content,
-          // is untouched. That is what makes switching template a non-event.
-          set({ templateId: template.id });
+          // The content is never touched, and neither is any setting the user chose for
+          // themselves. The one thing that follows the template is its typeface pairing —
+          // and only while the current pair is still a default nobody picked on purpose.
+          const inherited = usesTemplateFonts(
+            templates,
+            customization.headingFont,
+            customization.bodyFont,
+          );
+          set(
+            inherited
+              ? {
+                  templateId: template.id,
+                  headingFont: template.fonts.heading,
+                  bodyFont: template.fonts.body,
+                }
+              : { templateId: template.id },
+          );
         }}
       />
 

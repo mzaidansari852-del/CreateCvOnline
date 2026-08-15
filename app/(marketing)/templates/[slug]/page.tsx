@@ -19,11 +19,12 @@ import { TemplateImage, hasPreview } from '@/components/cv/TemplateImage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { TemplateGrid } from '@/components/marketing/TemplateStrip';
 import {
-  TEMPLATES,
-  TEMPLATE_CATEGORIES,
   categoryPath,
   getTemplateBySlug,
   relatedTemplates,
+  templateDefaults,
+  TEMPLATE_CATEGORIES,
+  TEMPLATES,
 } from '@/lib/cv/template-registry';
 import { CategoryPage, categoryMetadata } from '../CategoryPage';
 import { categoryBySlug } from '../category-copy';
@@ -168,7 +169,14 @@ function TickList({ items }: { items: string[] }) {
             aria-hidden
             className="mt-0.5 shrink-0 text-brand-600"
           >
-            <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="1.6" opacity="0.35" />
+            <circle
+              cx="12"
+              cy="12"
+              r="9.5"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              opacity="0.35"
+            />
             <path
               d="m8.2 12.3 2.5 2.5 5.1-5.4"
               stroke="currentColor"
@@ -203,8 +211,7 @@ export default async function TemplateDetailPage(props: { params: Promise<{ slug
 
   const cv = sampleCvFor(template.id);
   const customization = createDefaultCustomization({
-    templateId: template.id,
-    accentColor: template.accentDefault,
+    ...templateDefaults(template),
   });
 
   const category = categoryLabel(template.category);
@@ -265,8 +272,8 @@ export default async function TemplateDetailPage(props: { params: Promise<{ slug
             ) : (
               <>
                 <p className="sr-only">
-                  Live preview of the {template.name} template, rendered at full page size with
-                  an example CV. The preview is the same code that generates your PDF.
+                  Live preview of the {template.name} template, rendered at full page size with an
+                  example CV. The preview is the same code that generates your PDF.
                 </p>
                 {/* The sample document has its own headings; hide it from assistive tech. */}
                 <div aria-hidden className="flex justify-center">
@@ -290,7 +297,11 @@ export default async function TemplateDetailPage(props: { params: Promise<{ slug
           <aside className="rounded-2xl border border-ink-200 bg-white p-6 shadow-card lg:sticky lg:top-24">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-base font-bold text-ink-950">At a glance</h2>
-              {template.premium ? <Badge tone="accent">Pro</Badge> : <Badge tone="success">Free</Badge>}
+              {template.premium ? (
+                <Badge tone="accent">Pro</Badge>
+              ) : (
+                <Badge tone="success">Free</Badge>
+              )}
             </div>
 
             <dl className="mt-4">
@@ -419,8 +430,8 @@ export default async function TemplateDetailPage(props: { params: Promise<{ slug
               </div>
             </dl>
             <p className="mt-4 text-[13px] leading-relaxed text-ink-600">
-              Scores are our own assessment of how a parser handles the layout — never a
-              guarantee about one specific employer’s system.
+              Scores are our own assessment of how a parser handles the layout — never a guarantee
+              about one specific employer’s system.
             </p>
           </div>
         </div>
@@ -468,8 +479,8 @@ export default async function TemplateDetailPage(props: { params: Promise<{ slug
               >
                 CV builder
               </Link>
-              , with the preview updating as you change them. Three of them behave differently
-              in this layout than in the others.
+              , with the preview updating as you change them. Three of them behave differently in
+              this layout than in the others.
             </>
           }
         />
@@ -517,7 +528,8 @@ export default async function TemplateDetailPage(props: { params: Promise<{ slug
               {
                 label: 'ATS CV templates',
                 href: '/ats-cv',
-                description: 'What a parser does with your file, and the layouts built to survive it.',
+                description:
+                  'What a parser does with your file, and the layouts built to survive it.',
               },
               {
                 label: 'CV examples',

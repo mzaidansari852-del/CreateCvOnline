@@ -1,5 +1,13 @@
 import { contactEntries, ContactList, SectionContent } from '@/components/cv/parts';
-import { mutedOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  mutedOn,
+  tint,
+} from '@/lib/cv/format';
 import { splitSections, visibleSections } from '@/lib/cv/sections';
 import type { CVCustomization, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 2,
   hasPhoto: false,
   accentDefault: '#1e293b',
+  fonts: { heading: 'libre-baskerville', body: 'libre-baskerville' },
+  metrics: { lineHeight: 1.42, pageMargin: 42 },
   tagline: 'Two columns divided by a single rule — no fills, no tints, no shaded sidebar.',
   description:
     'Formal CV splits the page with one hairline instead of a colour block: a narrow left column carries contact details, skills, languages and certifications, while the wide column keeps your experience and education in a single uninterrupted reading order. Because nothing is filled or tinted, the document photocopies and faxes as cleanly as it prints, and a parser sees two ordinary blocks of text rather than a graphic. Headings are identical on both sides of the rule, which is what stops a two-column CV from looking improvised.',
@@ -67,9 +77,9 @@ export default function Formal({ cv, customization: c }: CVTemplateProps) {
       <header style={{ borderBottom: `1.5px solid ${accent}`, paddingBottom: '0.5em' }}>
         <h1
           style={{
-            fontSize: '1.9em',
+            fontSize: '2.6em',
             lineHeight: 1.14,
-            fontWeight: 700,
+            fontWeight: headingWeight(c, 500),
             letterSpacing: '0.02em',
             color: c.secondaryColor,
           }}
@@ -77,7 +87,7 @@ export default function Formal({ cv, customization: c }: CVTemplateProps) {
           {name || 'Your Name'}
         </h1>
         {cv.personal.title ? (
-          <p style={{ marginTop: '0.15em', fontSize: '1.02em', fontWeight: 600, color: muted }}>
+          <p style={{ marginTop: '0.15em', fontSize: '1.02em', fontWeight: bodyWeight(c, 600), color: muted }}>
             {cv.personal.title}
           </p>
         ) : null}
@@ -171,7 +181,7 @@ function FormalHeading({ label, c, color }: { label: string; c: CVCustomization;
       className="cv-section-title"
       style={{
         fontSize: '0.9em',
-        fontWeight: 700,
+        fontWeight: headingWeight(c, 700),
         color,
         textTransform: headingTransform(c),
         letterSpacing: headingTracking(c),

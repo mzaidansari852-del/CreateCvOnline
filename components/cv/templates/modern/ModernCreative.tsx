@@ -1,5 +1,13 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { accentOn, mutedOn, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  bodyWeight,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  mutedOn,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: true,
   accentDefault: '#7c3aed',
+  fonts: { heading: 'poppins', body: 'poppins' },
+  metrics: { lineHeight: 1.42, pageMargin: 40 },
   tagline: 'A two-line name over a diagonal accent wash, with numbered sections below.',
   description:
     'Modern Creative breaks your name across two lines — surname in the accent colour — over a soft diagonal wash, with a large portrait anchoring the top-right corner. Below the hero, every section is numbered 01, 02, 03 in oversized tinted digits, which gives a portfolio CV a sense of sequence without adding a single bar or box. Projects render as paired cards and skills as tags, so a body of work reads as work rather than as another list.',
@@ -69,7 +79,7 @@ export default function ModernCreative({ cv, customization: c }: CVTemplateProps
       >
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1
-            style={{ fontSize: '3em', lineHeight: 1.02, fontWeight: 800, letterSpacing: '-0.02em' }}
+            style={{ fontSize: '2.8em', lineHeight: 1.02, fontWeight: headingWeight(c, 500), letterSpacing: '-0.02em' }}
           >
             {first || last ? (
               <>
@@ -91,7 +101,7 @@ export default function ModernCreative({ cv, customization: c }: CVTemplateProps
               style={{
                 marginTop: '0.55em',
                 fontSize: '1.05em',
-                fontWeight: 600,
+                fontWeight: bodyWeight(c, 600),
                 letterSpacing: '0.05em',
                 color: c.secondaryColor,
               }}
@@ -149,7 +159,7 @@ export default function ModernCreative({ cv, customization: c }: CVTemplateProps
                 style={{
                   fontSize: '2em',
                   lineHeight: 1,
-                  fontWeight: 800,
+                  fontWeight: headingWeight(c, 800),
                   letterSpacing: '-0.04em',
                   color: tint(accent, 0.6),
                 }}
@@ -159,7 +169,7 @@ export default function ModernCreative({ cv, customization: c }: CVTemplateProps
               <span
                 style={{
                   fontSize: '1.06em',
-                  fontWeight: 700,
+                  fontWeight: headingWeight(c, 700),
                   textTransform: headingTransform(c),
                   letterSpacing: headingTracking(c),
                   color: c.secondaryColor,

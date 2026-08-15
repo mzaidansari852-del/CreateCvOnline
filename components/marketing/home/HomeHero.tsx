@@ -4,7 +4,12 @@ import { CVThumbnail } from '@/components/cv/CVThumbnail';
 import { ArrowIcon, CheckIcon } from '@/components/marketing/home/icons';
 import { ButtonLink } from '@/components/ui/button';
 import { createDefaultCustomization, createSampleCV } from '@/lib/cv/defaults';
-import { atsSafeTemplates, getTemplate, TEMPLATE_COUNT } from '@/lib/cv/template-registry';
+import {
+  atsSafeTemplates,
+  getTemplate,
+  templateDefaults,
+  TEMPLATE_COUNT,
+} from '@/lib/cv/template-registry';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -37,8 +42,7 @@ function FannedPreview() {
               <CVThumbnail
                 cv={cv}
                 customization={createDefaultCustomization({
-                  templateId: template.id,
-                  accentColor: template.accentDefault,
+                  ...templateDefaults(template),
                 })}
                 width={width}
                 className="ring-1 ring-ink-900/5"
@@ -72,12 +76,7 @@ function FannedPreview() {
 export function HomeHero() {
   const atsPerfect = atsSafeTemplates().length;
 
-  const trust = [
-    `${TEMPLATE_COUNT} templates`,
-    'ATS-friendly',
-    'Free to start',
-    'No card',
-  ];
+  const trust = [`${TEMPLATE_COUNT} templates`, 'ATS-friendly', 'Free to start', 'No card'];
 
   return (
     <section className="relative isolate overflow-hidden bg-gradient-to-b from-brand-50 via-white to-white">
@@ -105,9 +104,9 @@ export function HomeHero() {
             </h1>
 
             <p className="mt-5 max-w-xl text-base leading-relaxed text-pretty text-ink-600 sm:text-lg">
-              Choose one of {TEMPLATE_COUNT} recruiter-ready designs, type into structured
-              fields, and watch a real A4 page build itself next to you. When it reads well,
-              export a clean PDF whose text a recruiter — and a parser — can actually select.
+              Choose one of {TEMPLATE_COUNT} recruiter-ready designs, type into structured fields,
+              and watch a real A4 page build itself next to you. When it reads well, export a clean
+              PDF whose text a recruiter — and a parser — can actually select.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">

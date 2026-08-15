@@ -1,5 +1,5 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform } from '@/lib/cv/format';
+import { fullName, headingTracking, headingTransform, headingWeight } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +13,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#000000',
+  fonts: { heading: 'arial', body: 'arial' },
+  metrics: { lineHeight: 1.60, pageMargin: 64 },
   tagline: 'One column, one rule, one ink — the most literal reading of what a parser wants.',
   description:
     'ATS CV strips the document back to what a resume parser actually reads: a left-aligned name, one wrapped line of plain-text contact details, a single hairline rule, then bold headings in the order you set them. There are no icons, tables, floats or shaded panels, so the whole page is one uninterrupted text flow and every heading maps cleanly to a field. Pick it when the application goes through a portal and you would rather lose the styling than lose a section.',
@@ -52,9 +54,9 @@ export default function AtsClassic({ cv, customization: c }: CVTemplateProps) {
       <header style={{ paddingBottom: '0.62em', borderBottom: `1px solid ${ink}` }}>
         <h1
           style={{
-            fontSize: '1.95em',
+            fontSize: '2.05em',
             lineHeight: 1.14,
-            fontWeight: 700,
+            fontWeight: headingWeight(c, 700),
             color: ink,
           }}
         >
@@ -86,7 +88,7 @@ export default function AtsClassic({ cv, customization: c }: CVTemplateProps) {
             className="cv-section-title"
             style={{
               fontSize: '1em',
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 700),
               color: ink,
               textTransform: headingTransform(c),
               letterSpacing: headingTracking(c),

@@ -1,5 +1,11 @@
 import { ContactIcon, contactEntries, SectionContent } from '@/components/cv/parts';
-import { accentOn, fullName, headingTracking, headingTransform } from '@/lib/cv/format';
+import {
+  accentOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +19,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#111827',
+  fonts: { heading: 'inter', body: 'roboto' },
+  metrics: { lineHeight: 1.54, pageMargin: 48 },
   tagline:
     'Type and space only — left-aligned, tightly set, and impossible for a parser to misread.',
   description:
@@ -55,9 +63,9 @@ export default function TechMinimal({ cv, customization: c }: CVTemplateProps) {
       <header style={{ marginBottom: `${Math.round(c.sectionSpacing * 0.85)}px` }}>
         <h1
           style={{
-            fontSize: '1.9em',
+            fontSize: '2em',
             lineHeight: 1.12,
-            fontWeight: 500,
+            fontWeight: headingWeight(c, 700),
             letterSpacing: '-0.012em',
             color: c.secondaryColor,
           }}
@@ -119,7 +127,7 @@ export default function TechMinimal({ cv, customization: c }: CVTemplateProps) {
             className="cv-section-title"
             style={{
               fontSize: '0.78em',
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 700),
               textTransform: headingTransform(c),
               letterSpacing: headingTracking(c),
               color: c.secondaryColor,

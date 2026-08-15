@@ -1,5 +1,12 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { accentOn, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  bodyWeight,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections, type ResolvedSection } from '@/lib/cv/sections';
 import type { CVCustomization, CVData, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -16,6 +23,8 @@ export const meta: TemplateMeta = {
   columns: 2,
   hasPhoto: true,
   accentDefault: '#f59e0b',
+  fonts: { heading: 'poppins', body: 'inter' },
+  metrics: { lineHeight: 1.36, pageMargin: 30 },
   tagline: 'A poster masthead over a two-column grid of section blocks.',
   description:
     'Graphic Designer treats the top third of the page like a poster: your name is set huge across two lines, your job title runs beside it as a column of letterspaced words, and a solid accent bar closes the masthead. Below it the sections are dealt into two independent columns, which fits a lot of short blocks — tools, awards, education, certifications — onto a single page. That grid is deliberately graphic and will confuse a strict CV parser, so treat this as the copy you email or hand over in person.',
@@ -69,9 +78,9 @@ export default function GraphicDesigner({ cv, customization: c }: CVTemplateProp
           style={{
             flex: 1,
             minWidth: 0,
-            fontSize: '3.4em',
+            fontSize: '2.6em',
             lineHeight: 0.9,
-            fontWeight: 800,
+            fontWeight: headingWeight(c, 500),
             letterSpacing: '-0.035em',
             color: c.secondaryColor,
           }}
@@ -104,7 +113,7 @@ export default function GraphicDesigner({ cv, customization: c }: CVTemplateProp
                 key={index}
                 style={{
                   fontSize: '0.72em',
-                  fontWeight: 700,
+                  fontWeight: bodyWeight(c, 700),
                   letterSpacing: '0.3em',
                   textTransform: 'uppercase',
                   color: accentText,
@@ -181,7 +190,7 @@ function PosterColumn({
             className="cv-section-title"
             style={{
               fontSize: '0.86em',
-              fontWeight: 800,
+              fontWeight: headingWeight(c, 800),
               color: c.secondaryColor,
               textTransform: headingTransform(c),
               letterSpacing: headingTracking(c),

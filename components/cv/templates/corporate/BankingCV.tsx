@@ -1,9 +1,11 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
-  mutedOn,
+  bodyWeight,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
   readableOn,
   tint,
 } from '@/lib/cv/format';
@@ -20,6 +22,8 @@ export const meta: TemplateMeta = {
   columns: 2,
   hasPhoto: false,
   accentDefault: '#0b2545',
+  fonts: { heading: 'source-serif', body: 'source-serif' },
+  metrics: { lineHeight: 1.48, pageMargin: 48 },
   tagline: 'A navy masthead over a 68/32 split — credentials right, deal history left.',
   description:
     'Banking CV opens with a solid navy masthead that reverses your name and one centred contact row out of the colour, then drops straight into a 68/32 body divided by a hairline rule. Skills, certifications and languages sit in the narrow right column so a hiring manager can check regulatory credentials at a glance, leaving the wide column entirely for coverage and transaction history. The colour band is confined to the top of the first page, so later pages stay plain white and print without a solid ink block.',
@@ -75,9 +79,9 @@ export default function BankingCV({ cv, customization: c }: CVTemplateProps) {
       >
         <h1
           style={{
-            fontSize: '2.1em',
+            fontSize: '2.6em',
             lineHeight: 1.1,
-            fontWeight: 700,
+            fontWeight: headingWeight(c, 500),
             color: onBand,
             letterSpacing: '0.02em',
           }}
@@ -89,7 +93,7 @@ export default function BankingCV({ cv, customization: c }: CVTemplateProps) {
             style={{
               marginTop: '0.3em',
               fontSize: '0.92em',
-              fontWeight: 600,
+              fontWeight: bodyWeight(c, 600),
               color: bandMuted,
               textTransform: 'uppercase',
               letterSpacing: '0.16em',
@@ -201,7 +205,7 @@ function BankingHeading({
       className="cv-section-title"
       style={{
         fontSize: '0.95em',
-        fontWeight: 800,
+        fontWeight: headingWeight(c, 800),
         color: c.secondaryColor,
         textTransform: headingTransform(c),
         letterSpacing: headingTracking(c),

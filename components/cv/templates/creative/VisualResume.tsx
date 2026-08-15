@@ -1,10 +1,12 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
-  mutedOn,
+  bodyWeight,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
   shade,
   tint,
 } from '@/lib/cv/format';
@@ -21,6 +23,8 @@ export const meta: TemplateMeta = {
   columns: 2,
   hasPhoto: true,
   accentDefault: '#2563eb',
+  fonts: { heading: 'poppins', body: 'roboto' },
+  metrics: { lineHeight: 1.42, pageMargin: 36 },
   tagline: 'Level bars, a photo column and a gradient rail that runs the height of every page.',
   description:
     'Visual Resume turns proficiency into something you can see at a glance: the 34% left column carries your portrait above skill and language level bars, while a gradient rail runs down the outside edge of every page of the PDF. The right column keeps the reading matter — name, contact and a timeline experience section where each role is pinned to a dated node. It is the most graphic template in the set, so treat the bars as a design decision rather than an ATS-safe one and keep a plain-text CV for portals.',
@@ -104,7 +108,7 @@ export default function VisualResume({ cv, customization: c }: CVTemplateProps) 
                 alignItems: 'center',
                 gap: '0.45em',
                 fontSize: '0.82em',
-                fontWeight: 700,
+                fontWeight: headingWeight(c, 700),
                 color: c.secondaryColor,
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),
@@ -145,9 +149,9 @@ export default function VisualResume({ cv, customization: c }: CVTemplateProps) 
         <header style={{ marginBottom: `${c.sectionSpacing}px` }}>
           <h1
             style={{
-              fontSize: '2.4em',
+              fontSize: '2.6em',
               lineHeight: 1.06,
-              fontWeight: 800,
+              fontWeight: headingWeight(c, 500),
               color: c.secondaryColor,
               letterSpacing: '-0.02em',
             }}
@@ -156,7 +160,7 @@ export default function VisualResume({ cv, customization: c }: CVTemplateProps) 
           </h1>
           {cv.personal.title ? (
             <p
-              style={{ marginTop: '0.2em', fontSize: '1.08em', fontWeight: 600, color: accentText }}
+              style={{ marginTop: '0.2em', fontSize: '1.08em', fontWeight: bodyWeight(c, 600), color: accentText }}
             >
               {cv.personal.title}
             </p>
@@ -192,7 +196,7 @@ export default function VisualResume({ cv, customization: c }: CVTemplateProps) 
               className="cv-section-title"
               style={{
                 fontSize: '1em',
-                fontWeight: 800,
+                fontWeight: headingWeight(c, 800),
                 color: c.secondaryColor,
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),

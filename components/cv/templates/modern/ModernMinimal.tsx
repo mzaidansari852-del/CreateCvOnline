@@ -1,10 +1,12 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
+  bodyWeight,
   centredTracking,
-  mutedOn,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
 } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
@@ -19,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#111827',
+  fonts: { heading: 'ibm-plex-sans', body: 'ibm-plex-sans' },
+  metrics: { lineHeight: 1.54, pageMargin: 46 },
   tagline: 'No rules, no boxes, no icons — the hierarchy is carried entirely by space.',
   description:
     'Modern Minimal takes every rule, panel and icon off the page and lets spacing do the work: a light, widely tracked name over one centred line of contact details, then small grey labels announcing each section with nothing drawn underneath them. Skills print as plain text and education collapses to one line per degree, which keeps a long career inside two pages without shrinking the type. With no decoration to misread, it also parses cleanly in every applicant tracking system.',
@@ -59,9 +63,9 @@ export default function ModernMinimal({ cv, customization: c }: CVTemplateProps)
       <header style={{ textAlign: 'center', marginBottom: `${c.sectionSpacing * 1.8}px` }}>
         <h1
           style={{
-            fontSize: '2.5em',
+            fontSize: '2.75em',
             lineHeight: 1.18,
-            fontWeight: 300,
+            fontWeight: headingWeight(c, 500),
             ...centredTracking('0.15em'),
             color: c.textColor,
           }}
@@ -74,7 +78,7 @@ export default function ModernMinimal({ cv, customization: c }: CVTemplateProps)
             style={{
               marginTop: '0.9em',
               fontSize: '0.86em',
-              fontWeight: 400,
+              fontWeight: bodyWeight(c, 400),
               letterSpacing: '0.26em',
               textTransform: 'uppercase',
               color: muted,
@@ -107,7 +111,7 @@ export default function ModernMinimal({ cv, customization: c }: CVTemplateProps)
             className="cv-section-title"
             style={{
               fontSize: '0.74em',
-              fontWeight: 600,
+              fontWeight: headingWeight(c, 600),
               textTransform: headingTransform(c),
               letterSpacing: headingTracking(c),
               color: muted,

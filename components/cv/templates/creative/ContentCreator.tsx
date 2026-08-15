@@ -1,9 +1,11 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
+  bodyWeight,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
   shade,
   tint,
 } from '@/lib/cv/format';
@@ -20,6 +22,8 @@ export const meta: TemplateMeta = {
   columns: 2,
   hasPhoto: true,
   accentDefault: '#f43f5e',
+  fonts: { heading: 'poppins', body: 'open-sans' },
+  metrics: { lineHeight: 1.36, pageMargin: 32 },
   tagline: 'A social-profile header: gradient banner, overlapping avatar, handle-style title.',
   description:
     'Content Creator opens the way a social profile does — a rounded gradient banner, a circular avatar overlapping its lower edge, and your name with a handle-style title underneath. The narrow right column stacks bordered mini-cards for skills, languages, certifications and interests, so a brand or agency can scan your toolkit without scrolling past your best work. The banner and cards are decoration rather than structure, but the two-column body still parses less cleanly than a plain layout, so keep a simple version for portal uploads.',
@@ -87,9 +91,9 @@ export default function ContentCreator({ cv, customization: c }: CVTemplateProps
           <div style={{ flex: 1, minWidth: 0, paddingTop: '0.7em' }}>
             <h1
               style={{
-                fontSize: '2.05em',
+                fontSize: '2.15em',
                 lineHeight: 1.08,
-                fontWeight: 800,
+                fontWeight: headingWeight(c, 600),
                 letterSpacing: '-0.02em',
                 color: c.secondaryColor,
               }}
@@ -101,7 +105,7 @@ export default function ContentCreator({ cv, customization: c }: CVTemplateProps
                 style={{
                   marginTop: '0.15em',
                   fontSize: '0.98em',
-                  fontWeight: 600,
+                  fontWeight: bodyWeight(c, 600),
                   color: accentText,
                 }}
               >
@@ -152,7 +156,7 @@ export default function ContentCreator({ cv, customization: c }: CVTemplateProps
                 className="cv-section-title"
                 style={{
                   fontSize: '0.92em',
-                  fontWeight: 800,
+                  fontWeight: headingWeight(c, 800),
                   color: c.secondaryColor,
                   borderLeft: `3px solid ${accent}`,
                   paddingLeft: '0.55em',
@@ -204,7 +208,7 @@ export default function ContentCreator({ cv, customization: c }: CVTemplateProps
                     className="cv-section-title"
                     style={{
                       fontSize: '0.78em',
-                      fontWeight: 800,
+                      fontWeight: headingWeight(c, 800),
                       color: cardInk,
                       marginBottom: '0.5em',
                       textTransform: headingTransform(c),

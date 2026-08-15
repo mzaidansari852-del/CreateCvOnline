@@ -1,5 +1,12 @@
 import { ContactIcon, SectionContent, contactEntries } from '@/components/cv/parts';
-import { accentOn, fullName, headingTracking, headingTransform } from '@/lib/cv/format';
+import {
+  accentOn,
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVData, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +20,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#1f3a5f',
+  fonts: { heading: 'lato', body: 'lato' },
+  metrics: { lineHeight: 1.42, pageMargin: 58 },
   tagline: 'A split header over a solid accent rule, then plain single-column text.',
   description:
     'Business Professional sets your name and title on the left of the header with contact details right-aligned across two lines, then separates the header from the body with one solid accent rule the full width of the page. Everything below that rule is deliberately ordinary: a single column, bold accent headings with no underlines, and skills written out as comma-separated lists rather than drawn as bars — which is the form applicant tracking systems index most reliably.',
@@ -67,9 +76,9 @@ export default function BusinessProfessional({ cv, customization: c }: CVTemplat
         <div style={{ minWidth: 0 }}>
           <h1
             style={{
-              fontSize: '2.25em',
+              fontSize: '2.5em',
               lineHeight: 1.06,
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 500),
               color: c.secondaryColor,
               letterSpacing: '-0.01em',
             }}
@@ -81,7 +90,7 @@ export default function BusinessProfessional({ cv, customization: c }: CVTemplat
               style={{
                 marginTop: '0.2em',
                 fontSize: '1.05em',
-                fontWeight: 600,
+                fontWeight: bodyWeight(c, 600),
                 color: accentText,
               }}
             >
@@ -105,7 +114,7 @@ export default function BusinessProfessional({ cv, customization: c }: CVTemplat
               className="cv-section-title"
               style={{
                 fontSize: '0.95em',
-                fontWeight: 700,
+                fontWeight: headingWeight(c, 700),
                 color: accentText,
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),

@@ -1,7 +1,15 @@
 import type { CSSProperties } from 'react';
 
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  tint,
+} from '@/lib/cv/format';
 import { splitSections, visibleSections } from '@/lib/cv/sections';
 import type { CVCustomization, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -15,6 +23,8 @@ export const meta: TemplateMeta = {
   columns: 2,
   hasPhoto: false,
   accentDefault: '#9333ea',
+  fonts: { heading: 'poppins', body: 'inter' },
+  metrics: { lineHeight: 1.36, pageMargin: 40 },
   tagline:
     'A gradient rail down the page edge, with research and shipped work given equal billing.',
   description:
@@ -85,9 +95,9 @@ export default function AiEngineer({ cv, customization: c }: CVTemplateProps) {
       >
         <h1
           style={{
-            fontSize: '2.2em',
+            fontSize: '2.4em',
             lineHeight: 1.08,
-            fontWeight: 700,
+            fontWeight: headingWeight(c, 600),
             letterSpacing: '-0.02em',
             color: c.secondaryColor,
           }}
@@ -95,7 +105,7 @@ export default function AiEngineer({ cv, customization: c }: CVTemplateProps) {
           {name || 'Your Name'}
         </h1>
         {cv.personal.title ? (
-          <p style={{ fontSize: '1.1em', fontWeight: 600, color: accentText, marginTop: '0.18em' }}>
+          <p style={{ fontSize: '1.1em', fontWeight: bodyWeight(c, 600), color: accentText, marginTop: '0.18em' }}>
             {cv.personal.title}
           </p>
         ) : null}
@@ -202,7 +212,7 @@ function Heading({ label, accent, c }: { label: string; accent: string; c: CVCus
         alignItems: 'center',
         gap: '0.55em',
         fontSize: '0.92em',
-        fontWeight: 800,
+        fontWeight: headingWeight(c, 800),
         color: c.secondaryColor,
         textTransform: headingTransform(c),
         letterSpacing: headingTracking(c),

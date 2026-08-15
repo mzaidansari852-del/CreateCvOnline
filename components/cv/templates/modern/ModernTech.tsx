@@ -1,11 +1,13 @@
 import { ContactIcon, SectionContent, type ContactIconKey } from '@/components/cv/parts';
 import {
   accentOn,
-  mutedOn,
+  bodyWeight,
   ensureProtocol,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
   prettyUrl,
   tint,
 } from '@/lib/cv/format';
@@ -22,6 +24,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#0ea5e9',
+  fonts: { heading: 'ibm-plex-sans', body: 'roboto' },
+  metrics: { lineHeight: 1.54, pageMargin: 44 },
   tagline: 'A bordered header card with key: value contact rows and // section markers.',
   description:
     'Modern Tech frames your identity inside a bordered card: name, role and contact details set out as key: value pairs across two columns, the way a config file reads. Section headings are prefixed with a // comment marker in the accent colour and separated by dashed rules, and skills group themselves by category into tags so a reader can take in a stack at a glance. Everything stays in one column, so the layout survives the parser on the other side of the job board.',
@@ -148,13 +152,13 @@ export default function ModernTech({ cv, customization: c }: CVTemplateProps) {
         }}
       >
         <h1
-          style={{ fontSize: '1.95em', lineHeight: 1.12, fontWeight: 700, color: c.secondaryColor }}
+          style={{ fontSize: '2.1em', lineHeight: 1.12, fontWeight: headingWeight(c, 600), color: c.secondaryColor }}
         >
           {name || 'Your Name'}
         </h1>
         {cv.personal.title ? (
           <p
-            style={{ marginTop: '0.12em', fontSize: '1.02em', fontWeight: 600, color: accentText }}
+            style={{ marginTop: '0.12em', fontSize: '1.02em', fontWeight: bodyWeight(c, 600), color: accentText }}
           >
             {cv.personal.title}
           </p>
@@ -183,7 +187,7 @@ export default function ModernTech({ cv, customization: c }: CVTemplateProps) {
                 }}
               >
                 {c.showIcons ? <ContactIcon name={row.icon} size="0.95em" color={accent} /> : null}
-                <span style={{ color: accentText, fontWeight: 600 }}>{row.key}:</span>
+                <span style={{ color: accentText, fontWeight: bodyWeight(c, 600) }}>{row.key}:</span>
                 {row.href ? (
                   <a href={row.href} style={{ color: c.textColor, minWidth: 0 }}>
                     {row.value}
@@ -212,7 +216,7 @@ export default function ModernTech({ cv, customization: c }: CVTemplateProps) {
               className="cv-section-title"
               style={{
                 fontSize: '0.96em',
-                fontWeight: 700,
+                fontWeight: headingWeight(c, 700),
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),
                 color: c.secondaryColor,
@@ -221,7 +225,7 @@ export default function ModernTech({ cv, customization: c }: CVTemplateProps) {
             >
               <span
                 aria-hidden
-                style={{ color: accentText, marginRight: '0.4em', fontWeight: 700 }}
+                style={{ color: accentText, marginRight: '0.4em', fontWeight: headingWeight(c, 700) }}
               >
                 {'//'}
               </span>

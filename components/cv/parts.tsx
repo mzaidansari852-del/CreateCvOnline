@@ -15,6 +15,7 @@ import type { CSSProperties, ReactNode } from 'react';
 
 import {
   WHITE,
+  bodyWeight,
   bulletLines,
   contrastAgainst,
   graphicOn,
@@ -118,7 +119,8 @@ function useTone(props: PartProps) {
     gap: props.gap ?? 0.95,
     marker: props.marker ?? '\u2022',
     showTags: props.showTags ?? true,
-    secondaryWeight: props.strongSecondary ? 700 : 600,
+    strong: bodyWeight(props.c, 700),
+    secondaryWeight: bodyWeight(props.c, props.strongSecondary ? 700 : 600),
   };
 }
 
@@ -349,6 +351,7 @@ export function LevelDots({
 
 /** Two-line entry head used by most "stack" style templates. */
 export function EntryHead({
+  c,
   primary,
   secondary,
   meta,
@@ -362,6 +365,7 @@ export function EntryHead({
   secondaryWeight = 600,
   accentTarget = 'secondary',
 }: {
+  c: CVCustomization;
   primary: string;
   secondary?: string;
   meta?: string;
@@ -388,11 +392,11 @@ export function EntryHead({
 
   const titleBlock = (
     <div style={{ minWidth: 0 }}>
-      <div style={{ fontSize: `${primarySize}em`, fontWeight: 700, color: primaryColor }}>
+      <div style={{ fontSize: `${primarySize}em`, fontWeight: bodyWeight(c, 700), color: primaryColor }}>
         {primary}
       </div>
       {secondary ? (
-        <div style={{ fontWeight: secondaryWeight, color: secondaryColor, marginTop: '0.05em' }}>
+        <div style={{ fontWeight: bodyWeight(c, secondaryWeight), color: secondaryColor, marginTop: '0.05em' }}>
           {secondary}
         </div>
       ) : null}
@@ -434,11 +438,11 @@ export function EntryHead({
   if (layout === 'inline') {
     return (
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '0.45em' }}>
-        <span style={{ fontSize: `${primarySize}em`, fontWeight: 700, color: primaryColor }}>
+        <span style={{ fontSize: `${primarySize}em`, fontWeight: bodyWeight(c, 700), color: primaryColor }}>
           {primary}
         </span>
         {secondary ? (
-          <span style={{ fontWeight: secondaryWeight, color: secondaryColor }}>· {secondary}</span>
+          <span style={{ fontWeight: bodyWeight(c, secondaryWeight), color: secondaryColor }}>· {secondary}</span>
         ) : null}
         {meta ? (
           <span style={{ color: muted, fontSize: '0.92em', marginLeft: 'auto' }}>{meta}</span>
@@ -461,8 +465,18 @@ export function EntryHead({
 
 export function ExperienceContent(props: PartProps & { showDuration?: boolean }) {
   const { cv, c, accent, variant = 'stack', showDuration = false } = props;
-  const { surface, accentText, color, muted, rule, gap, marker, showTags, secondaryWeight } =
-    useTone(props);
+  const {
+    surface,
+    accentText,
+    color,
+    muted,
+    rule,
+    gap,
+    marker,
+    showTags,
+    secondaryWeight,
+    strong,
+  } = useTone(props);
   const items = cv.experience.filter((item) => item.role || item.company || item.description);
   if (items.length === 0) return null;
 
@@ -507,6 +521,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
               }}
             />
             <EntryHead
+              c={c}
               surface={surface}
               primary={item.role}
               secondary={[item.company, item.location].filter(Boolean).join(' · ')}
@@ -556,9 +571,9 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
               ) : null}
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '1.06em', fontWeight: 700, color }}>{item.role}</div>
+              <div style={{ fontSize: '1.06em', fontWeight: strong, color }}>{item.role}</div>
               {item.company ? (
-                <div style={{ fontWeight: 600, color: accentText, marginTop: '0.05em' }}>
+                <div style={{ fontWeight: secondaryWeight, color: accentText, marginTop: '0.05em' }}>
                   {item.company}
                 </div>
               ) : null}
@@ -592,6 +607,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
             }}
           >
             <EntryHead
+              c={c}
               surface={surface}
               primary={item.role}
               secondary={item.company}
@@ -629,7 +645,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
             className="cv-block"
             style={{ marginTop: index === 0 ? 0 : `${gap}em` }}
           >
-            <div style={{ fontWeight: 700, color }}>
+            <div style={{ fontWeight: strong, color }}>
               {item.role}
               {item.company ? `, ${item.company}` : ''}
             </div>
@@ -662,6 +678,7 @@ export function ExperienceContent(props: PartProps & { showDuration?: boolean })
       {items.map((item, index) => (
         <div key={item.id} className="cv-block" style={{ marginTop: index === 0 ? 0 : `${gap}em` }}>
           <EntryHead
+            c={c}
             surface={surface}
             primary={item.role}
             secondary={item.company}
@@ -746,7 +763,7 @@ function ExperienceBody({
 
 export function EducationContent(props: PartProps) {
   const { cv, c, accent, variant = 'stack' } = props;
-  const { surface, accentText, color, muted, gap } = useTone(props);
+  const { surface, accentText, color, muted, gap, strong, secondaryWeight } = useTone(props);
   const items = cv.education.filter((item) => item.degree || item.institution || item.field);
   if (items.length === 0) return null;
 
@@ -762,8 +779,8 @@ export function EducationContent(props: PartProps) {
             className="cv-block"
             style={{ marginTop: index === 0 ? 0 : `${gap * 0.7}em` }}
           >
-            <div style={{ fontWeight: 700, color }}>{degreeLine(item)}</div>
-            <div style={{ color: accentText, fontWeight: 600 }}>{item.institution}</div>
+            <div style={{ fontWeight: strong, color }}>{degreeLine(item)}</div>
+            <div style={{ color: accentText, fontWeight: secondaryWeight }}>{item.institution}</div>
             <div style={{ color: muted, fontSize: '0.9em', marginTop: '0.05em' }}>
               {[
                 formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat),
@@ -796,8 +813,8 @@ export function EducationContent(props: PartProps) {
               {formatDateRange(item.startDate, item.endDate, item.current, c.dateFormat)}
             </div>
             <div>
-              <div style={{ fontWeight: 700, color }}>{degreeLine(item)}</div>
-              <div style={{ color: accentText, fontWeight: 600 }}>
+              <div style={{ fontWeight: strong, color }}>{degreeLine(item)}</div>
+              <div style={{ color: accentText, fontWeight: secondaryWeight }}>
                 {[item.institution, item.location].filter(Boolean).join(' · ')}
               </div>
               {item.grade ? (
@@ -824,7 +841,7 @@ export function EducationContent(props: PartProps) {
             className="cv-block"
             style={{ marginTop: index === 0 ? 0 : `${gap * 0.55}em` }}
           >
-            <span style={{ fontWeight: 700, color }}>{degreeLine(item)}</span>
+            <span style={{ fontWeight: strong, color }}>{degreeLine(item)}</span>
             {item.institution ? <span style={{ color: muted }}> — {item.institution}</span> : null}
             <span style={{ color: muted }}>
               {' '}
@@ -841,6 +858,7 @@ export function EducationContent(props: PartProps) {
       {items.map((item, index) => (
         <div key={item.id} className="cv-block" style={{ marginTop: index === 0 ? 0 : `${gap}em` }}>
           <EntryHead
+            c={c}
             surface={surface}
             primary={degreeLine(item)}
             secondary={item.institution}
@@ -870,7 +888,7 @@ export function EducationContent(props: PartProps) {
 
 export function SkillsContent(props: PartProps & { columns?: number; display?: string }) {
   const { cv, c, accent, columns = 2 } = props;
-  const { surface, color, muted, gap } = useTone(props);
+  const { surface, color, muted, gap, strong } = useTone(props);
   const display = props.display ?? c.skillDisplay;
   const items = cv.skills.filter((item) => item.name);
   if (items.length === 0) return null;
@@ -888,7 +906,7 @@ export function SkillsContent(props: PartProps & { columns?: number; display?: s
               className="cv-block"
               style={{ marginTop: index === 0 ? 0 : `${gap * 0.6}em` }}
             >
-              <div style={{ fontWeight: 700, color, fontSize: '0.92em', marginBottom: '0.15em' }}>
+              <div style={{ fontWeight: strong, color, fontSize: '0.92em', marginBottom: '0.15em' }}>
                 {group.category}
               </div>
               <Tags
@@ -922,7 +940,7 @@ export function SkillsContent(props: PartProps & { columns?: number; display?: s
               className="cv-block"
               style={{ marginTop: index === 0 ? 0 : '0.28em', display: 'flex', gap: '0.4em' }}
             >
-              <span style={{ fontWeight: 700, color, whiteSpace: 'nowrap' }}>
+              <span style={{ fontWeight: strong, color, whiteSpace: 'nowrap' }}>
                 {group.category}:
               </span>
               <span style={{ color: muted }}>
@@ -976,7 +994,7 @@ export function SkillsContent(props: PartProps & { columns?: number; display?: s
       <div>
         {grouped.map((group, index) => (
           <div key={group.category} style={{ marginTop: index === 0 ? 0 : `${gap * 0.7}em` }}>
-            <div style={{ fontWeight: 700, color, fontSize: '0.92em', marginBottom: '0.3em' }}>
+            <div style={{ fontWeight: strong, color, fontSize: '0.92em', marginBottom: '0.3em' }}>
               {group.category}
             </div>
             <div style={grid}>{group.items.map(renderRow)}</div>
@@ -995,7 +1013,7 @@ export function SkillsContent(props: PartProps & { columns?: number; display?: s
 
 export function LanguagesContent(props: PartProps) {
   const { cv, accent, variant = 'stack' } = props;
-  const { surface, color, muted } = useTone(props);
+  const { surface, color, muted, secondaryWeight } = useTone(props);
   const items = cv.languages.filter((item) => item.name);
   if (items.length === 0) return null;
 
@@ -1058,7 +1076,7 @@ export function LanguagesContent(props: PartProps) {
       >
         {items.map((item) => (
           <div key={item.id} className="cv-block">
-            <span style={{ color, fontWeight: 600 }}>{item.name}</span>
+            <span style={{ color, fontWeight: secondaryWeight }}>{item.name}</span>
             <span style={{ color: muted }}> — {languageLabel(item.level)}</span>
           </div>
         ))}
@@ -1088,7 +1106,7 @@ export function LanguagesContent(props: PartProps) {
 
 export function ProjectsContent(props: PartProps) {
   const { cv, c, accent, variant = 'stack' } = props;
-  const { surface, accentText, color, muted, gap, rule, marker, showTags } = useTone(props);
+  const { surface, accentText, color, muted, gap, rule, marker, showTags, strong } = useTone(props);
   const items = cv.projects.filter((item) => item.name || item.description);
   if (items.length === 0) return null;
 
@@ -1111,7 +1129,7 @@ export function ProjectsContent(props: PartProps) {
               padding: '0.55em 0.7em',
             }}
           >
-            <div style={{ fontWeight: 700, color }}>{item.name}</div>
+            <div style={{ fontWeight: strong, color }}>{item.name}</div>
             {item.role ? (
               <div style={{ color: accentText, fontSize: '0.9em' }}>{item.role}</div>
             ) : null}
@@ -1142,7 +1160,7 @@ export function ProjectsContent(props: PartProps) {
             className="cv-block"
             style={{ marginTop: index === 0 ? 0 : `${gap * 0.6}em` }}
           >
-            <span style={{ fontWeight: 700, color }}>{item.name}</span>
+            <span style={{ fontWeight: strong, color }}>{item.name}</span>
             {item.url ? <span style={{ color: accentText }}> · {prettyUrl(item.url)}</span> : null}
             {item.description ? (
               <div style={{ color: muted, marginTop: '0.1em' }}>{item.description}</div>
@@ -1158,6 +1176,7 @@ export function ProjectsContent(props: PartProps) {
       {items.map((item, index) => (
         <div key={item.id} className="cv-block" style={{ marginTop: index === 0 ? 0 : `${gap}em` }}>
           <EntryHead
+            c={c}
             surface={surface}
             primary={item.name}
             secondary={item.role || undefined}
@@ -1203,7 +1222,7 @@ export function ProjectsContent(props: PartProps) {
 
 export function CertificationsContent(props: PartProps) {
   const { cv, c, accent, variant = 'stack' } = props;
-  const { surface, color, muted, gap, secondaryWeight } = useTone(props);
+  const { surface, color, muted, gap, secondaryWeight, strong } = useTone(props);
   const items = cv.certifications.filter((item) => item.name);
   if (items.length === 0) return null;
 
@@ -1212,7 +1231,7 @@ export function CertificationsContent(props: PartProps) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4em' }}>
         {items.map((item) => (
           <div key={item.id} className="cv-block">
-            <div style={{ fontWeight: 700, color }}>{item.name}</div>
+            <div style={{ fontWeight: strong, color }}>{item.name}</div>
             <div style={{ color: muted, fontSize: '0.9em', fontWeight: secondaryWeight }}>
               {[item.issuer, formatPartialDate(item.date, c.dateFormat)]
                 .filter(Boolean)
@@ -1233,6 +1252,7 @@ export function CertificationsContent(props: PartProps) {
           style={{ marginTop: index === 0 ? 0 : `${gap * 0.65}em` }}
         >
           <EntryHead
+            c={c}
             surface={surface}
             primary={item.name}
             secondary={item.issuer || undefined}
@@ -1256,7 +1276,7 @@ export function CertificationsContent(props: PartProps) {
 
 export function AwardsContent(props: PartProps) {
   const { cv, c, accent, variant = 'stack' } = props;
-  const { surface, color, muted, gap } = useTone(props);
+  const { surface, color, muted, gap, secondaryWeight } = useTone(props);
   const items = cv.awards.filter((item) => item.title);
   if (items.length === 0) return null;
 
@@ -1265,7 +1285,7 @@ export function AwardsContent(props: PartProps) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35em' }}>
         {items.map((item) => (
           <div key={item.id} className="cv-block">
-            <span style={{ fontWeight: 600, color }}>{item.title}</span>
+            <span style={{ fontWeight: secondaryWeight, color }}>{item.title}</span>
             <span style={{ color: muted }}>
               {[item.issuer, formatPartialDate(item.date, 'year-only')].filter(Boolean).length > 0
                 ? ` — ${[item.issuer, formatPartialDate(item.date, 'year-only')].filter(Boolean).join(', ')}`
@@ -1286,6 +1306,7 @@ export function AwardsContent(props: PartProps) {
           style={{ marginTop: index === 0 ? 0 : `${gap * 0.65}em` }}
         >
           <EntryHead
+            c={c}
             surface={surface}
             primary={item.title}
             secondary={item.issuer || undefined}
@@ -1319,6 +1340,7 @@ export function VolunteerContent(props: PartProps) {
           style={{ marginTop: index === 0 ? 0 : `${gap * (variant === 'compact' ? 0.6 : 1)}em` }}
         >
           <EntryHead
+            c={c}
             surface={surface}
             primary={item.role}
             secondary={[item.organization, item.location].filter(Boolean).join(' · ')}
@@ -1342,7 +1364,7 @@ export function VolunteerContent(props: PartProps) {
 
 export function PublicationsContent(props: PartProps) {
   const { cv, c, variant = 'stack' } = props;
-  const { accentText, color, muted, gap } = useTone(props);
+  const { accentText, color, muted, gap, strong } = useTone(props);
   const items = cv.publications.filter((item) => item.title);
   if (items.length === 0) return null;
 
@@ -1359,9 +1381,9 @@ export function PublicationsContent(props: PartProps) {
               marginTop: index === 0 ? 0 : `${gap * 0.6}em`,
             }}
           >
-            <span style={{ color: accentText, fontWeight: 700 }}>{index + 1}.</span>
+            <span style={{ color: accentText, fontWeight: strong }}>{index + 1}.</span>
             <span>
-              <span style={{ fontWeight: 700, color }}>{item.title}</span>
+              <span style={{ fontWeight: strong, color }}>{item.title}</span>
               <span style={{ color: muted }}>
                 {[item.authors, item.publisher, formatPartialDate(item.date, c.dateFormat)]
                   .filter(Boolean)
@@ -1386,7 +1408,7 @@ export function PublicationsContent(props: PartProps) {
           className="cv-block"
           style={{ marginTop: index === 0 ? 0 : `${gap * 0.65}em` }}
         >
-          <div style={{ fontWeight: 700, color }}>{item.title}</div>
+          <div style={{ fontWeight: strong, color }}>{item.title}</div>
           <div style={{ color: muted, fontSize: '0.92em' }}>
             {[item.authors, item.publisher, formatPartialDate(item.date, c.dateFormat)]
               .filter(Boolean)
@@ -1408,7 +1430,7 @@ export function PublicationsContent(props: PartProps) {
 
 export function InterestsContent(props: PartProps) {
   const { cv, accent, variant = 'inline' } = props;
-  const { surface, color, muted } = useTone(props);
+  const { surface, color, muted, secondaryWeight } = useTone(props);
   const items = cv.interests.filter((item) => item.name);
   if (items.length === 0) return null;
 
@@ -1428,7 +1450,7 @@ export function InterestsContent(props: PartProps) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25em' }}>
         {items.map((item) => (
           <div key={item.id} className="cv-block">
-            <span style={{ color, fontWeight: 600 }}>{item.name}</span>
+            <span style={{ color, fontWeight: secondaryWeight }}>{item.name}</span>
             {item.description ? <span style={{ color: muted }}> — {item.description}</span> : null}
           </div>
         ))}
@@ -1441,7 +1463,7 @@ export function InterestsContent(props: PartProps) {
 
 export function ReferencesContent(props: PartProps) {
   const { cv, variant = 'stack' } = props;
-  const { accentText, color, muted, gap } = useTone(props);
+  const { accentText, color, muted, gap, strong } = useTone(props);
   const items = cv.references.filter((item) => item.name);
   if (items.length === 0) return null;
 
@@ -1456,7 +1478,7 @@ export function ReferencesContent(props: PartProps) {
       >
         {items.map((item) => (
           <div key={item.id} className="cv-block">
-            <div style={{ fontWeight: 700, color }}>{item.name}</div>
+            <div style={{ fontWeight: strong, color }}>{item.name}</div>
             <div style={{ color: muted, fontSize: '0.92em' }}>
               {[item.role, item.company].filter(Boolean).join(', ')}
             </div>
@@ -1477,7 +1499,7 @@ export function ReferencesContent(props: PartProps) {
           className="cv-block"
           style={{ marginTop: index === 0 ? 0 : `${gap * 0.6}em` }}
         >
-          <div style={{ fontWeight: 700, color }}>{item.name}</div>
+          <div style={{ fontWeight: strong, color }}>{item.name}</div>
           <div style={{ color: muted, fontSize: '0.92em' }}>
             {[item.role, item.company, item.relationship].filter(Boolean).join(' · ')}
           </div>
@@ -1491,7 +1513,7 @@ export function ReferencesContent(props: PartProps) {
 }
 
 export function CustomSectionContent(props: PartProps & { sectionId: string }) {
-  const { cv, accent, sectionId } = props;
+  const { cv, c, accent, sectionId } = props;
   const { surface, accentText, color, muted, gap } = useTone(props);
   const section = cv.customSections.find((entry) => entry.id === customSectionKey(sectionId));
   const items = section?.items.filter((item) => item.heading || item.description) ?? [];
@@ -1502,6 +1524,7 @@ export function CustomSectionContent(props: PartProps & { sectionId: string }) {
       {items.map((item, index) => (
         <div key={item.id} className="cv-block" style={{ marginTop: index === 0 ? 0 : `${gap}em` }}>
           <EntryHead
+            c={c}
             surface={surface}
             primary={item.heading}
             secondary={item.subheading || undefined}
@@ -1871,7 +1894,7 @@ export function Photo({
         <span
           style={{
             fontSize: size * 0.34,
-            fontWeight: 700,
+            fontWeight: bodyWeight(c, 700),
             color: initialsColour,
             letterSpacing: '0.02em',
           }}

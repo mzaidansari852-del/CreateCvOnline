@@ -1,10 +1,11 @@
 import { contactEntries, ContactIcon, SectionContent } from '@/components/cv/parts';
 import {
-  centredTracking,
   accentOn,
+  centredTracking,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
   tint,
 } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
@@ -20,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#1e3a8a',
+  fonts: { heading: 'libre-baskerville', body: 'source-serif' },
+  metrics: { lineHeight: 1.54, pageMargin: 66 },
   tagline: 'Numbered sections and hanging-indent publications, built to run to four pages.',
   description:
     'Academic CV is designed for a document that keeps going: section headings are numbered so a reviewer can refer to "section 4" on a six-page CV, and each is closed by a rule across the full measure. Publications are set with a hanging indent, which keeps a long author list readable instead of letting it merge into the entry above. The line rhythm is deliberately dense, so adding teaching, grants and conference sections costs you less paper than it would in a modern layout.',
@@ -63,9 +66,9 @@ export default function Academic({ cv, customization: c }: CVTemplateProps) {
       <header style={{ textAlign: 'center', marginBottom: `${spacing}px` }}>
         <h1
           style={{
-            fontSize: '1.82em',
+            fontSize: '2.8em',
             lineHeight: 1.14,
-            fontWeight: 600,
+            fontWeight: headingWeight(c, 500),
             ...centredTracking('0.05em'),
             color: c.secondaryColor,
           }}
@@ -92,7 +95,7 @@ export default function Academic({ cv, customization: c }: CVTemplateProps) {
             className="cv-section-title"
             style={{
               fontSize: '0.98em',
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 700),
               fontVariant: 'small-caps',
               textTransform: headingTransform(c),
               letterSpacing: headingTracking(c),

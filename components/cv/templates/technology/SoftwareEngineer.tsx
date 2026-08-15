@@ -1,5 +1,13 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#2563eb',
+  fonts: { heading: 'ibm-plex-sans', body: 'ibm-plex-sans' },
+  metrics: { lineHeight: 1.54, pageMargin: 38 },
   tagline: 'One column, ruled headings and a stack written as prose — built to be parsed.',
   description:
     'Software Engineer is the plain-text-safe end of the technology set: no photo, no columns, no bars. Your name and role sit on the left of the header with contact details right-aligned opposite, separated from the body by a single accent rule, and each section heading is a bold uppercase line over a hairline. Skills are written out as "Languages: TypeScript, Go, Python" rather than drawn, so an applicant tracking system indexes the stack as text and a human still reads it in one pass.',
@@ -64,9 +74,9 @@ export default function SoftwareEngineer({ cv, customization: c }: CVTemplatePro
         <div style={{ minWidth: 0 }}>
           <h1
             style={{
-              fontSize: '2.1em',
+              fontSize: '2.3em',
               lineHeight: 1.08,
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 600),
               color: c.secondaryColor,
               letterSpacing: '-0.015em',
             }}
@@ -78,7 +88,7 @@ export default function SoftwareEngineer({ cv, customization: c }: CVTemplatePro
               style={{
                 marginTop: '0.15em',
                 fontSize: '1.05em',
-                fontWeight: 600,
+                fontWeight: bodyWeight(c, 600),
                 color: accentText,
               }}
             >
@@ -122,7 +132,7 @@ export default function SoftwareEngineer({ cv, customization: c }: CVTemplatePro
               className="cv-section-title"
               style={{
                 fontSize: '0.94em',
-                fontWeight: 700,
+                fontWeight: headingWeight(c, 700),
                 color: c.secondaryColor,
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),

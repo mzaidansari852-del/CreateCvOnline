@@ -1,5 +1,13 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: true,
   accentDefault: '#7c3aed',
+  fonts: { heading: 'ibm-plex-sans', body: 'ibm-plex-sans' },
+  metrics: { lineHeight: 1.42, pageMargin: 32 },
   tagline: 'Your projects get the big type and a tinted card grid; everything else stays compact.',
   description:
     'Portfolio Style inverts the usual hierarchy: the header shrinks to a single line and the Projects section takes the space, rendered as a grid of cards on a tinted panel at a larger type size than the rest of the document. Experience, education and certifications sit underneath in compact form, so a page that would normally list four jobs instead shows the work you actually want discussed. Headings are set in lowercase with a thick highlighter swipe under the text — deliberately expressive, which is why the ATS score is low; send it to a person, not a portal.',
@@ -71,9 +81,9 @@ export default function PortfolioStyle({ cv, customization: c }: CVTemplateProps
           >
             <h1
               style={{
-                fontSize: '1.7em',
+                fontSize: '1.9em',
                 lineHeight: 1.12,
-                fontWeight: 700,
+                fontWeight: headingWeight(c, 700),
                 color: c.secondaryColor,
                 letterSpacing: '-0.015em',
               }}
@@ -81,7 +91,7 @@ export default function PortfolioStyle({ cv, customization: c }: CVTemplateProps
               {name || 'Your Name'}
             </h1>
             {cv.personal.title ? (
-              <p style={{ fontWeight: 600, color: accentText }}>{cv.personal.title}</p>
+              <p style={{ fontWeight: bodyWeight(c, 600), color: accentText }}>{cv.personal.title}</p>
             ) : null}
           </div>
           <div style={{ marginTop: '0.25em' }}>
@@ -142,7 +152,7 @@ export default function PortfolioStyle({ cv, customization: c }: CVTemplateProps
                   display: 'inline-block',
                   fontSize: promoted ? '1.5em' : '1.12em',
                   lineHeight: 1.2,
-                  fontWeight: 700,
+                  fontWeight: headingWeight(c, 700),
                   color: promoted ? accent : c.secondaryColor,
                   textTransform: headingCase,
                   letterSpacing: tracking,

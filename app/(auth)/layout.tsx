@@ -3,7 +3,12 @@ import Link from 'next/link';
 import { Logo } from '@/components/brand/Logo';
 import { CVThumbnail } from '@/components/cv/CVThumbnail';
 import { createDefaultCustomization, createSampleCV } from '@/lib/cv/defaults';
-import { DEFAULT_TEMPLATE_ID, TEMPLATES, getTemplate } from '@/lib/cv/template-registry';
+import {
+  getTemplate,
+  templateDefaults,
+  DEFAULT_TEMPLATE_ID,
+  TEMPLATES,
+} from '@/lib/cv/template-registry';
 import { site } from '@/lib/site';
 
 /**
@@ -38,8 +43,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   const cv = createSampleCV();
   const template = getTemplate(DEFAULT_TEMPLATE_ID);
   const customization = createDefaultCustomization({
-    templateId: template.id,
-    accentColor: template.accentDefault,
+    ...templateDefaults(template),
   });
   const year = new Date().getFullYear();
 
@@ -119,7 +123,14 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                     aria-hidden
                     className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-brand-500/20 text-brand-300"
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                    >
                       <path d="m5 12.5 4.5 4.5L19 7" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </span>

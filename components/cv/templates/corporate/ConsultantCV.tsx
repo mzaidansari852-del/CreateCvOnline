@@ -1,5 +1,13 @@
 import { ContactIcon, SectionContent, contactEntries } from '@/components/cv/parts';
-import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVData, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#b45309',
+  fonts: { heading: 'ibm-plex-sans', body: 'ibm-plex-sans' },
+  metrics: { lineHeight: 1.48, pageMargin: 48 },
   tagline: 'Section labels sit in a ruled left margin so the text column runs uninterrupted.',
   description:
     'Consultant CV moves every section label into a ruled left margin, so the body runs as one uninterrupted column of text from the first line to the last — the structure of a well-set case document rather than a form. Your name sits large on the left of the header with contact details aligned to the same baseline on the right, and the line beneath it works as a positioning statement. It suits a CV that will be read closely rather than skimmed.',
@@ -72,9 +82,9 @@ export default function ConsultantCV({ cv, customization: c }: CVTemplateProps) 
         <div style={{ minWidth: 0 }}>
           <h1
             style={{
-              fontSize: '2.45em',
+              fontSize: '2.7em',
               lineHeight: 1.04,
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 500),
               color: c.secondaryColor,
               letterSpacing: '-0.022em',
             }}
@@ -86,7 +96,7 @@ export default function ConsultantCV({ cv, customization: c }: CVTemplateProps) 
               style={{
                 marginTop: '0.32em',
                 fontSize: '1.05em',
-                fontWeight: 600,
+                fontWeight: bodyWeight(c, 600),
                 color: accentText,
               }}
             >
@@ -116,7 +126,7 @@ export default function ConsultantCV({ cv, customization: c }: CVTemplateProps) 
                 className="cv-section-title"
                 style={{
                   fontSize: '0.78em',
-                  fontWeight: 700,
+                  fontWeight: headingWeight(c, 700),
                   lineHeight: 1.5,
                   textAlign: 'right',
                   color: labelInk,

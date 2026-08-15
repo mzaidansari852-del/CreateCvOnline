@@ -9,10 +9,11 @@ import { Alert } from '@/components/ui/feedback';
 import { requireViewer } from '@/lib/auth/guards';
 import { createDefaultCustomization, createMinimalCV } from '@/lib/cv/defaults';
 import {
-  DEFAULT_TEMPLATE_ID,
   findTemplate,
-  TEMPLATES,
+  templateDefaults,
+  DEFAULT_TEMPLATE_ID,
   TEMPLATE_CATEGORIES,
+  TEMPLATES,
 } from '@/lib/cv/template-registry';
 import { usageSnapshot } from '@/lib/entitlements';
 import { privateMetadata } from '@/lib/seo/metadata';
@@ -67,8 +68,7 @@ export default async function NewCVPage({
       <CVThumbnail
         cv={previewCV}
         customization={createDefaultCustomization({
-          templateId: template.id,
-          accentColor: template.accentDefault,
+          ...templateDefaults(template),
         })}
         width={140}
         rounded={false}
@@ -99,15 +99,14 @@ export default async function NewCVPage({
               </ButtonLink>
             }
           >
-            We have selected a free template instead. Upgrade to unlock all{' '}
-            {TEMPLATES.length} designs, or pick any of the free ones below.
+            We have selected a free template instead. Upgrade to unlock all {TEMPLATES.length}{' '}
+            designs, or pick any of the free ones below.
           </Alert>
         ) : null}
 
         {requestedId && !requested ? (
           <Alert tone="warning" title="That template does not exist">
-            The link you followed points at a template we no longer publish. Pick another
-            one below.
+            The link you followed points at a template we no longer publish. Pick another one below.
           </Alert>
         ) : null}
 

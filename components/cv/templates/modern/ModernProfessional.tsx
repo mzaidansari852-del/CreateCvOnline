@@ -1,5 +1,13 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: true,
   accentDefault: '#1f3af5',
+  fonts: { heading: 'open-sans', body: 'inter' },
+  metrics: { lineHeight: 1.54, pageMargin: 52 },
   tagline: 'A tinted header band over a clean single column — the safest modern choice.',
   description:
     'Modern Professional pairs a soft accent header with an uncluttered single-column body, so the design reads as contemporary without introducing anything an applicant tracking system can trip over. Contact details sit beside your name at the top where recruiters look first, and every section heading is separated by a thin accent rule that guides the eye down the page.',
@@ -64,9 +74,9 @@ export default function ModernProfessional({ cv, customization: c }: CVTemplateP
         <div style={{ minWidth: 0, flex: 1 }}>
           <h1
             style={{
-              fontSize: '2.35em',
+              fontSize: '2.65em',
               lineHeight: 1.08,
-              fontWeight: 800,
+              fontWeight: headingWeight(c, 500),
               color: c.secondaryColor,
               letterSpacing: '-0.015em',
             }}
@@ -78,7 +88,7 @@ export default function ModernProfessional({ cv, customization: c }: CVTemplateP
               style={{
                 fontSize: '1.14em',
                 color: accentText,
-                fontWeight: 600,
+                fontWeight: bodyWeight(c, 600),
                 marginTop: '0.15em',
               }}
             >
@@ -114,7 +124,7 @@ export default function ModernProfessional({ cv, customization: c }: CVTemplateP
               className="cv-section-title"
               style={{
                 fontSize: '0.98em',
-                fontWeight: 800,
+                fontWeight: headingWeight(c, 800),
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),
                 color: c.secondaryColor,

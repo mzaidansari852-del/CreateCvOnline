@@ -1,10 +1,11 @@
 import { contactEntries, ContactIcon, SectionContent } from '@/components/cv/parts';
 import {
-  centredTracking,
   accentOn,
+  centredTracking,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
   tint,
 } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
@@ -20,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#1f2937',
+  fonts: { heading: 'source-serif', body: 'source-serif' },
+  metrics: { lineHeight: 1.60, pageMargin: 58 },
   tagline:
     'Centred capitals and ruled headings — the CV shape employers have expected for decades.',
   description:
@@ -62,9 +65,9 @@ export default function ClassicProfessional({ cv, customization: c }: CVTemplate
       <header style={{ textAlign: 'center', marginBottom: `${c.sectionSpacing}px` }}>
         <h1
           style={{
-            fontSize: '1.95em',
+            fontSize: '2.35em',
             lineHeight: 1.16,
-            fontWeight: 700,
+            fontWeight: headingWeight(c, 600),
             textTransform: 'uppercase',
             ...centredTracking('0.15em'),
             color: c.secondaryColor,
@@ -100,7 +103,7 @@ export default function ClassicProfessional({ cv, customization: c }: CVTemplate
             style={{
               textAlign: 'center',
               fontSize: '0.95em',
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 700),
               textTransform: headingTransform(c),
               ...centredTracking(headingTracking(c)),
               color: c.secondaryColor,

@@ -1,9 +1,11 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
+  bodyWeight,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
   readableOn,
   tint,
 } from '@/lib/cv/format';
@@ -20,6 +22,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#334155',
+  fonts: { heading: 'ibm-plex-sans', body: 'lato' },
+  metrics: { lineHeight: 1.42, pageMargin: 46 },
   tagline: 'Numbered accent squares turn the document into an ordered sequence of steps.',
   description:
     'Operations CV numbers every section with a filled accent square, so the page reads as an ordered process rather than a stack of unrelated headings. Experience and education both use a left date gutter, keeping the timeline in one narrow column and the substance in another — which helps when roles overlap or run across sites and shift patterns. Skills print as plain text flowed into three columns, fitting a long list of systems, methodologies and equipment into a few lines instead of a page.',
@@ -64,7 +68,7 @@ export default function OperationsCV({ cv, customization: c }: CVTemplateProps) 
           <p
             style={{
               fontSize: '0.78em',
-              fontWeight: 700,
+              fontWeight: bodyWeight(c, 700),
               color: accentText,
               textTransform: 'uppercase',
               letterSpacing: '0.18em',
@@ -76,9 +80,9 @@ export default function OperationsCV({ cv, customization: c }: CVTemplateProps) 
         ) : null}
         <h1
           style={{
-            fontSize: '2.15em',
+            fontSize: '2.35em',
             lineHeight: 1.08,
-            fontWeight: 700,
+            fontWeight: headingWeight(c, 600),
             color: c.secondaryColor,
             letterSpacing: '-0.012em',
           }}
@@ -121,7 +125,7 @@ export default function OperationsCV({ cv, customization: c }: CVTemplateProps) 
                 gap: '0.6em',
                 marginBottom: '0.6em',
                 fontSize: '0.95em',
-                fontWeight: 700,
+                fontWeight: headingWeight(c, 700),
                 color: c.secondaryColor,
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),
@@ -140,7 +144,7 @@ export default function OperationsCV({ cv, customization: c }: CVTemplateProps) 
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '0.8em',
-                  fontWeight: 700,
+                  fontWeight: headingWeight(c, 700),
                   letterSpacing: '0.02em',
                 }}
               >

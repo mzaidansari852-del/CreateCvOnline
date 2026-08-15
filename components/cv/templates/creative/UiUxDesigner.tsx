@@ -1,5 +1,13 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, shade, tint } from '@/lib/cv/format';
+import {
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  shade,
+  tint,
+} from '@/lib/cv/format';
 import { splitSections, visibleSections } from '@/lib/cv/sections';
 import type { CVCustomization, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 2,
   hasPhoto: false,
   accentDefault: '#6366f1',
+  fonts: { heading: 'inter', body: 'inter' },
+  metrics: { lineHeight: 1.42, pageMargin: 44 },
   tagline: 'A design-system look: a component-card header and chip section labels.',
   description:
     'UI/UX Designer borrows the vocabulary of a design system — the header is a bordered component card with your job title in a label chip, and every section heading is a rounded badge instead of a rule. Skills render as tags and projects as cards, which is how most product designers want their work indexed by a hiring manager skimming for tools and outcomes. The body is two columns, but the wide column keeps the whole career narrative in order, so it parses noticeably better than most graphical creative layouts.',
@@ -96,9 +106,9 @@ export default function UiUxDesigner({ cv, customization: c }: CVTemplateProps) 
             </span>
             <h1
               style={{
-                fontSize: '2.15em',
+                fontSize: '2.35em',
                 lineHeight: 1.05,
-                fontWeight: 700,
+                fontWeight: headingWeight(c, 600),
                 letterSpacing: '-0.02em',
                 color: c.secondaryColor,
               }}
@@ -113,7 +123,7 @@ export default function UiUxDesigner({ cv, customization: c }: CVTemplateProps) 
                 maxWidth: '42%',
                 textAlign: 'right',
                 fontSize: '0.74em',
-                fontWeight: 700,
+                fontWeight: bodyWeight(c, 700),
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
                 color: shade(accent, 0.25),
@@ -225,7 +235,7 @@ function ChipHeading({ label, accent, c }: { label: string; accent: string; c: C
       style={{
         display: 'inline-block',
         fontSize: '0.76em',
-        fontWeight: 700,
+        fontWeight: headingWeight(c, 700),
         color: shade(accent, 0.3),
         background: tint(accent, 0.88),
         borderRadius: 6,

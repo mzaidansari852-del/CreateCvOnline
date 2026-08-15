@@ -1,5 +1,13 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: true,
   accentDefault: '#6d28d9',
+  fonts: { heading: 'poppins', body: 'open-sans' },
+  metrics: { lineHeight: 1.48, pageMargin: 42 },
   tagline: 'Every section is a bordered card with its own tinted heading strip.',
   description:
     'Human Resources CV boxes each section into a bordered card topped by a tinted heading strip, which makes a document that mixes policy work, HRIS experience and headcount numbers easy to read block by block. The header pairs a photo with a two-column contact grid, so everything a people team checks first sits above the first card. Card spacing is driven entirely by the section-spacing control, so the whole document tightens to one page without deleting content.',
@@ -66,9 +76,9 @@ export default function HumanResourcesCV({ cv, customization: c }: CVTemplatePro
         <div style={{ minWidth: 0, flex: 1 }}>
           <h1
             style={{
-              fontSize: '2.1em',
+              fontSize: '2.2em',
               lineHeight: 1.1,
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 600),
               color: c.secondaryColor,
               letterSpacing: '-0.01em',
             }}
@@ -80,7 +90,7 @@ export default function HumanResourcesCV({ cv, customization: c }: CVTemplatePro
               style={{
                 marginTop: '0.15em',
                 fontSize: '1.05em',
-                fontWeight: 600,
+                fontWeight: bodyWeight(c, 600),
                 color: accentText,
               }}
             >
@@ -120,7 +130,7 @@ export default function HumanResourcesCV({ cv, customization: c }: CVTemplatePro
                 borderTopRightRadius: CARD_RADIUS - 1,
                 padding: '0.42em 0.9em',
                 fontSize: '0.92em',
-                fontWeight: 700,
+                fontWeight: headingWeight(c, 700),
                 color: c.secondaryColor,
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),

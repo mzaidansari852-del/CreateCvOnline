@@ -1,9 +1,11 @@
 import { contactEntries, ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
-  mutedOn,
+  bodyWeight,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
   readableOn,
   shade,
   tint,
@@ -21,6 +23,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: true,
   accentDefault: '#db2777',
+  fonts: { heading: 'poppins', body: 'lato' },
+  metrics: { lineHeight: 1.54, pageMargin: 56 },
   tagline: 'A two-tone split header: tinted name panel beside a solid accent photo panel.',
   description:
     'Marketing CV splits the header in two — a tinted panel carrying your name and title beside a solid accent panel holding the photo and contact details reversed out of the colour. Section headings are set in small solid pills rather than rules, which gives the page the feel of a brand system without pushing the body out of a single readable column. Skills render as tags and projects as a two-up card grid, so channels, tools and campaigns read as a kit rather than a list.',
@@ -83,9 +87,9 @@ export default function MarketingCV({ cv, customization: c }: CVTemplateProps) {
         >
           <h1
             style={{
-              fontSize: '2.5em',
+              fontSize: '2.75em',
               lineHeight: 1.05,
-              fontWeight: 800,
+              fontWeight: headingWeight(c, 500),
               color: c.secondaryColor,
               letterSpacing: '-0.02em',
             }}
@@ -97,7 +101,7 @@ export default function MarketingCV({ cv, customization: c }: CVTemplateProps) {
               style={{
                 marginTop: '0.35em',
                 fontSize: '0.92em',
-                fontWeight: 700,
+                fontWeight: bodyWeight(c, 700),
                 color: shade(accent, 0.2),
                 textTransform: 'uppercase',
                 letterSpacing: '0.14em',
@@ -165,7 +169,7 @@ export default function MarketingCV({ cv, customization: c }: CVTemplateProps) {
                 padding: '0.18em 0.85em',
                 marginBottom: '0.6em',
                 fontSize: '0.82em',
-                fontWeight: 700,
+                fontWeight: headingWeight(c, 700),
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),
               }}

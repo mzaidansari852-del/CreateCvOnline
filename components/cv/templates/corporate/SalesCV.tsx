@@ -1,5 +1,13 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#b91c1c',
+  fonts: { heading: 'inter', body: 'roboto' },
+  metrics: { lineHeight: 1.48, pageMargin: 54 },
   tagline: 'Three headline wins in a strip under your name, before the job history starts.',
   description:
     'Sales CV leads with numbers: directly beneath the header, up to three achievements from your most recent role appear in a tinted strip as separate callouts, so quota attainment lands before the reader reaches the first job entry. When that role has no achievements recorded the strip is omitted completely, leaving an ordinary clean header rather than an empty band. Section headings are marked with a small accent triangle instead of a full rule, which keeps the page tight enough for a long list of territories, accounts and targets.',
@@ -65,9 +75,9 @@ export default function SalesCV({ cv, customization: c }: CVTemplateProps) {
       >
         <h1
           style={{
-            fontSize: '2.35em',
+            fontSize: '2.6em',
             lineHeight: 1.06,
-            fontWeight: 800,
+            fontWeight: headingWeight(c, 500),
             color: c.secondaryColor,
             letterSpacing: '-0.018em',
           }}
@@ -79,7 +89,7 @@ export default function SalesCV({ cv, customization: c }: CVTemplateProps) {
             style={{
               marginTop: '0.2em',
               fontSize: '1.02em',
-              fontWeight: 700,
+              fontWeight: bodyWeight(c, 700),
               color: accentText,
               textTransform: 'uppercase',
               letterSpacing: '0.1em',
@@ -126,7 +136,7 @@ export default function SalesCV({ cv, customization: c }: CVTemplateProps) {
               <div
                 style={{
                   fontSize: '0.72em',
-                  fontWeight: 800,
+                  fontWeight: bodyWeight(c, 800),
                   color: accentText,
                   textTransform: 'uppercase',
                   letterSpacing: '0.13em',
@@ -161,7 +171,7 @@ export default function SalesCV({ cv, customization: c }: CVTemplateProps) {
                 gap: '0.55em',
                 marginBottom: '0.55em',
                 fontSize: '0.95em',
-                fontWeight: 800,
+                fontWeight: headingWeight(c, 800),
                 color: c.secondaryColor,
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),

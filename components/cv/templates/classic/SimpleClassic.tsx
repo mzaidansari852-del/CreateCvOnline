@@ -1,5 +1,12 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { mutedOn, fullName, headingTracking, headingTransform } from '@/lib/cv/format';
+import {
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  mutedOn,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +20,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#111827',
+  fonts: { heading: 'lora', body: 'lora' },
+  metrics: { lineHeight: 1.54, pageMargin: 56 },
   tagline: 'Bold headings, plain text and nothing else — the safe answer when in doubt.',
   description:
     'Simple Classic is what to send when the employer has not told you what they want: one column of black text, bold headings with a blank line above them, and not a single rule, box or tinted panel on the page. Skills are listed as text under their category names, roles read as short paragraphs and each degree takes one line, so a two-page career fits without shrinking the type. There is nothing here for a parser to misread and nothing a photocopier can lose.',
@@ -52,12 +61,12 @@ export default function SimpleClassic({ cv, customization: c }: CVTemplateProps)
   return (
     <div style={{ padding: c.pageMargin }}>
       <header>
-        <h1 style={{ fontSize: '1.7em', lineHeight: 1.15, fontWeight: 700, color: c.textColor }}>
+        <h1 style={{ fontSize: '2.15em', lineHeight: 1.15, fontWeight: headingWeight(c, 600), color: c.textColor }}>
           {name || 'Your Name'}
         </h1>
         {cv.personal.title ? (
           <p
-            style={{ marginTop: '0.1em', fontSize: '1.02em', fontWeight: 600, color: c.textColor }}
+            style={{ marginTop: '0.1em', fontSize: '1.02em', fontWeight: bodyWeight(c, 600), color: c.textColor }}
           >
             {cv.personal.title}
           </p>
@@ -87,7 +96,7 @@ export default function SimpleClassic({ cv, customization: c }: CVTemplateProps)
             className="cv-section-title"
             style={{
               fontSize: '1em',
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 700),
               color: c.textColor,
               textTransform: headingTransform(c),
               letterSpacing: headingTracking(c),

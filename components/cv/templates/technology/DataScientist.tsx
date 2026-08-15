@@ -1,10 +1,12 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
-  mutedOn,
+  bodyWeight,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
   tint,
 } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
@@ -20,6 +22,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#7c3aed',
+  fonts: { heading: 'ibm-plex-sans', body: 'lato' },
+  metrics: { lineHeight: 1.48, pageMargin: 36 },
   tagline: 'Bracketed headings, dated gutters and skill bars — a CV shaped like a notebook.',
   description:
     'Data Scientist brackets every section title in the accent colour and prints your toolkit as a two-column grid of proficiency bars, so a reviewer can size up the stack without reading a comma-separated wall of libraries. Experience and education both use a dated left gutter, which fixes the reading order to the timeline and leaves the right-hand space for what you actually built. Publications sit in their own tinted panel with the paper count called out beside the heading, for applications where the research record is the point.',
@@ -68,7 +72,7 @@ export default function DataScientist({ cv, customization: c }: CVTemplateProps)
 
   const bracket = {
     color: accentText,
-    fontWeight: 400,
+    fontWeight: bodyWeight(c, 400),
     fontSize: '1.5em',
     lineHeight: 1,
   } as const;
@@ -88,9 +92,9 @@ export default function DataScientist({ cv, customization: c }: CVTemplateProps)
         <div style={{ minWidth: 0 }}>
           <h1
             style={{
-              fontSize: '2.25em',
+              fontSize: '2.5em',
               lineHeight: 1.1,
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 500),
               letterSpacing: '-0.015em',
               color: c.secondaryColor,
             }}
@@ -139,7 +143,7 @@ export default function DataScientist({ cv, customization: c }: CVTemplateProps)
                 alignItems: 'baseline',
                 gap: '0.3em',
                 fontSize: '0.98em',
-                fontWeight: 700,
+                fontWeight: headingWeight(c, 700),
                 lineHeight: 1.35,
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),
@@ -159,7 +163,7 @@ export default function DataScientist({ cv, customization: c }: CVTemplateProps)
                   style={{
                     fontFamily: MONO,
                     fontSize: '0.8em',
-                    fontWeight: 500,
+                    fontWeight: headingWeight(c, 500),
                     letterSpacing: '0.02em',
                     color: accentText,
                     textTransform: 'none',

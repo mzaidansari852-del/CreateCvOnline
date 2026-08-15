@@ -1,10 +1,12 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
-  mutedOn,
+  bodyWeight,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
   tint,
 } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
@@ -20,6 +22,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: true,
   accentDefault: '#1d4ed8',
+  fonts: { heading: 'open-sans', body: 'open-sans' },
+  metrics: { lineHeight: 1.54, pageMargin: 44 },
   tagline: 'A conventional corporate layout with an edge-to-edge contact strip under the header.',
   description:
     'IT Professional follows the layout corporate IT departments expect: your name on the left, a photo top right, and one tinted strip running edge to edge beneath them carrying every contact detail in a single line. Everything under that strip is a plain single column with chevron-marked headings and a hairline rule reaching to the page edge, so the structure is obvious to a reader skimming twenty applications and unambiguous to the parser that indexed them first. Skills sit in a three-column grid, which fits a long support or infrastructure toolset onto one page.',
@@ -70,9 +74,9 @@ export default function ItProfessional({ cv, customization: c }: CVTemplateProps
         <div style={{ minWidth: 0 }}>
           <h1
             style={{
-              fontSize: '2.25em',
+              fontSize: '2.55em',
               lineHeight: 1.1,
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 500),
               letterSpacing: '-0.01em',
               color: c.secondaryColor,
             }}
@@ -84,7 +88,7 @@ export default function ItProfessional({ cv, customization: c }: CVTemplateProps
               style={{
                 marginTop: '0.25em',
                 fontSize: '1.05em',
-                fontWeight: 600,
+                fontWeight: bodyWeight(c, 600),
                 color: accentText,
               }}
             >
@@ -141,7 +145,7 @@ export default function ItProfessional({ cv, customization: c }: CVTemplateProps
                 alignItems: 'center',
                 gap: '0.55em',
                 fontSize: '0.96em',
-                fontWeight: 700,
+                fontWeight: headingWeight(c, 700),
                 lineHeight: 1.35,
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),

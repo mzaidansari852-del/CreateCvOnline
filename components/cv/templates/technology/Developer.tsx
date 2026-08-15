@@ -1,10 +1,12 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
-  mutedOn,
+  bodyWeight,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
   tint,
 } from '@/lib/cv/format';
 import { splitSections, visibleSections } from '@/lib/cv/sections';
@@ -20,6 +22,8 @@ export const meta: TemplateMeta = {
   columns: 2,
   hasPhoto: false,
   accentDefault: '#16a34a',
+  fonts: { heading: 'roboto', body: 'roboto' },
+  metrics: { lineHeight: 1.36, pageMargin: 32 },
   tagline:
     'A tinted, bordered sidebar box beside your experience — structure without a colour band.',
   description:
@@ -68,9 +72,9 @@ export default function Developer({ cv, customization: c }: CVTemplateProps) {
         >
           <h1
             style={{
-              fontSize: '2.05em',
+              fontSize: '2.2em',
               lineHeight: 1.08,
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 600),
               color: c.secondaryColor,
               letterSpacing: '-0.015em',
             }}
@@ -79,10 +83,10 @@ export default function Developer({ cv, customization: c }: CVTemplateProps) {
           </h1>
           {cv.personal.title ? (
             <>
-              <span aria-hidden style={{ color: accentText, fontWeight: 700, fontSize: '1.2em' }}>
+              <span aria-hidden style={{ color: accentText, fontWeight: bodyWeight(c, 700), fontSize: '1.2em' }}>
                 /
               </span>
-              <p style={{ fontSize: '1.04em', fontWeight: 600, color: accentText }}>
+              <p style={{ fontSize: '1.04em', fontWeight: bodyWeight(c, 600), color: accentText }}>
                 {cv.personal.title}
               </p>
             </>
@@ -137,7 +141,7 @@ export default function Developer({ cv, customization: c }: CVTemplateProps) {
                   className="cv-section-title"
                   style={{
                     fontSize: '0.96em',
-                    fontWeight: 700,
+                    fontWeight: headingWeight(c, 700),
                     // Small caps keep the sidebar quieter than the chevroned main headings
                     // while still reading as a heading at any heading-case setting.
                     fontVariantCaps: 'all-small-caps',
@@ -182,7 +186,7 @@ export default function Developer({ cv, customization: c }: CVTemplateProps) {
                 className="cv-section-title"
                 style={{
                   fontSize: '1em',
-                  fontWeight: 700,
+                  fontWeight: headingWeight(c, 700),
                   color: c.secondaryColor,
                   textTransform: headingTransform(c),
                   letterSpacing: headingTracking(c),

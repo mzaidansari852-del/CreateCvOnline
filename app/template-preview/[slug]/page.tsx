@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 
 import { CVDocument } from '@/components/cv/CVDocument';
 import { PAPER } from '@/lib/cv/format';
-import { TEMPLATES, getTemplateBySlug } from '@/lib/cv/template-registry';
+import { getTemplateBySlug, templateDefaults, TEMPLATES } from '@/lib/cv/template-registry';
 import { createDefaultCustomization } from '@/lib/cv/defaults';
 import { sampleCvFor } from '@/lib/cv/samples';
 import { privateMetadata } from '@/lib/seo/metadata';
@@ -37,9 +37,7 @@ export function generateStaticParams() {
   return TEMPLATES.map((template) => ({ slug: template.slug }));
 }
 
-export default async function TemplatePreviewPage(props: {
-  params: Promise<{ slug: string }>;
-}) {
+export default async function TemplatePreviewPage(props: { params: Promise<{ slug: string }> }) {
   const { slug } = await props.params;
   const template = getTemplateBySlug(slug);
   if (!template) notFound();
@@ -47,8 +45,7 @@ export default async function TemplatePreviewPage(props: {
   // The CV this template is for, not the one every template used to show.
   const cv = sampleCvFor(template.id);
   const customization = createDefaultCustomization({
-    templateId: template.id,
-    accentColor: template.accentDefault,
+    ...templateDefaults(template),
   });
   const paper = PAPER[customization.paperSize];
 

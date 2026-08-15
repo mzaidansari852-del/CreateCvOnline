@@ -1,10 +1,12 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
-  mutedOn,
+  bodyWeight,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
   readableOn,
   tint,
 } from '@/lib/cv/format';
@@ -21,6 +23,8 @@ export const meta: TemplateMeta = {
   columns: 2,
   hasPhoto: false,
   accentDefault: '#0891b2',
+  fonts: { heading: 'inter', body: 'inter' },
+  metrics: { lineHeight: 1.36, pageMargin: 36 },
   tagline: 'Your stack across the top, then employment on the left and projects on the right.',
   description:
     'Full Stack Developer opens with a rail of your first eight technologies directly beneath your name, so the stack is read before a single line of prose. Underneath, the page splits: employment history runs down a wide left column under filled accent tabs, while projects, education and the shorter sections sit in a narrower right column under outlined tabs of the same shape. The two tab styles make it obvious at a glance which column is your job history and which is supporting evidence.',
@@ -75,9 +79,9 @@ export default function FullStackDeveloper({ cv, customization: c }: CVTemplateP
       >
         <h1
           style={{
-            fontSize: '2.3em',
+            fontSize: '2.55em',
             lineHeight: 1.08,
-            fontWeight: 800,
+            fontWeight: headingWeight(c, 500),
             letterSpacing: '-0.02em',
             color: c.secondaryColor,
           }}
@@ -90,7 +94,7 @@ export default function FullStackDeveloper({ cv, customization: c }: CVTemplateP
             style={{
               marginTop: '0.2em',
               fontSize: '1.08em',
-              fontWeight: 600,
+              fontWeight: bodyWeight(c, 600),
               color: accentText,
             }}
           >
@@ -128,7 +132,7 @@ export default function FullStackDeveloper({ cv, customization: c }: CVTemplateP
               key={skill.id}
               style={{
                 fontSize: '0.8em',
-                fontWeight: 600,
+                fontWeight: bodyWeight(c, 600),
                 lineHeight: 1.7,
                 padding: '0 0.55em',
                 borderRadius: 3,
@@ -243,7 +247,7 @@ function SectionTab({
       style={{
         display: 'inline-block',
         fontSize: '0.82em',
-        fontWeight: 700,
+        fontWeight: headingWeight(c, 700),
         lineHeight: 1.5,
         textTransform: headingTransform(c),
         letterSpacing: headingTracking(c),

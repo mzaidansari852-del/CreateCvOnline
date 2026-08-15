@@ -1,5 +1,12 @@
 import { contactEntries, ContactIcon, Photo, SectionContent } from '@/components/cv/parts';
-import { mutedOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  mutedOn,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +20,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: true,
   accentDefault: '#262626',
+  fonts: { heading: 'libre-baskerville', body: 'lato' },
+  metrics: { lineHeight: 1.42, pageMargin: 42 },
   tagline: 'A hairline gallery frame around a centred, letterspaced document.',
   description:
     'Photographer frames the whole page in a hairline border, then centres a large portrait, your name in wide letterspaced type and every heading beneath it, so the document reads like a print hung in a gallery. Colour is kept almost entirely out of the design — the accent survives only in the rules and list marks — which means a black-and-white print loses nothing at all. Centred headings and the frame are what make it beautiful and also what make it unsuitable for applicant tracking systems, so keep it for clients, galleries and agents.',
@@ -86,9 +95,9 @@ export default function Photographer({ cv, customization: c }: CVTemplateProps) 
 
           <h1
             style={{
-              fontSize: '1.8em',
+              fontSize: '2.7em',
               lineHeight: 1.25,
-              fontWeight: 500,
+              fontWeight: headingWeight(c, 500),
               letterSpacing: '0.3em',
               textIndent: '0.3em',
               textTransform: 'uppercase',
@@ -169,7 +178,7 @@ export default function Photographer({ cv, customization: c }: CVTemplateProps) 
               className="cv-section-title"
               style={{
                 fontSize: '0.7em',
-                fontWeight: 700,
+                fontWeight: headingWeight(c, 700),
                 textAlign: 'center',
                 textTransform: headingTransform(c),
                 letterSpacing: tracking,

@@ -1,5 +1,13 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#1b4332',
+  fonts: { heading: 'merriweather', body: 'open-sans' },
+  metrics: { lineHeight: 1.48, pageMargin: 52 },
   tagline: 'Ledger-straight alignment: a fixed date column, tinted heading bands, no graphics.',
   description:
     'Finance CV lines every entry up on the same grid — role and employer on the left, dates locked to a fixed right-hand column — so a reader scanning ten years of positions never loses the timeline. Section headings sit on a pale tinted band that separates blocks without adding artwork a parser has to guess at, and skills print as comma-separated category lines instead of bars, which is the format audit and controllership reviewers expect. It suits a long history where the dates carry as much weight as the job titles.',
@@ -69,9 +79,9 @@ export default function FinanceCV({ cv, customization: c }: CVTemplateProps) {
         <div style={{ minWidth: 0 }}>
           <h1
             style={{
-              fontSize: '2.05em',
+              fontSize: '2.6em',
               lineHeight: 1.1,
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 500),
               color: c.secondaryColor,
               letterSpacing: '-0.012em',
             }}
@@ -83,7 +93,7 @@ export default function FinanceCV({ cv, customization: c }: CVTemplateProps) {
               style={{
                 marginTop: '0.22em',
                 fontSize: '0.9em',
-                fontWeight: 600,
+                fontWeight: bodyWeight(c, 600),
                 color: accentText,
                 textTransform: 'uppercase',
                 letterSpacing: '0.12em',
@@ -123,7 +133,7 @@ export default function FinanceCV({ cv, customization: c }: CVTemplateProps) {
                 borderLeft: `3px solid ${accent}`,
                 padding: `4px ${GUTTER}`,
                 fontSize: '0.88em',
-                fontWeight: 700,
+                fontWeight: headingWeight(c, 700),
                 color: c.secondaryColor,
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),

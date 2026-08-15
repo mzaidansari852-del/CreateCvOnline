@@ -16,9 +16,10 @@ import { ButtonLink } from '@/components/ui/button';
 import { createDefaultCustomization, createSampleCV } from '@/lib/cv/defaults';
 import { PAPER } from '@/lib/cv/format';
 import {
-  DEFAULT_TEMPLATE_ID,
   getTemplate,
   getTemplateBySlug,
+  templateDefaults,
+  DEFAULT_TEMPLATE_ID,
 } from '@/lib/cv/template-registry';
 import { pageMetadata } from '@/lib/seo/metadata';
 import type { TemplateDefinition } from '@/types/cv';
@@ -194,13 +195,11 @@ export default function ResumeBuilderPage() {
   const letterWidth = Math.round(PAPER.letter.width * scale);
 
   const a4Customization = createDefaultCustomization({
-    templateId: paperDemo.id,
-    accentColor: paperDemo.accentDefault,
+    ...templateDefaults(paperDemo),
     paperSize: 'a4',
   });
   const letterCustomization = createDefaultCustomization({
-    templateId: paperDemo.id,
-    accentColor: paperDemo.accentDefault,
+    ...templateDefaults(paperDemo),
     paperSize: 'letter',
   });
 
@@ -231,9 +230,9 @@ export default function ResumeBuilderPage() {
           </h1>
           <p className="mt-5 text-base leading-relaxed text-pretty text-ink-600 sm:text-lg">
             Most builders hand you the same document whichever country you are applying in. A US
-            resume is a different artefact from a European CV: shorter, printed on different
-            paper, and stripped of personal details that are normal elsewhere. Here is the
-            distinction in full, and how to set the builder up for it.
+            resume is a different artefact from a European CV: shorter, printed on different paper,
+            and stripped of personal details that are normal elsewhere. Here is the distinction in
+            full, and how to set the builder up for it.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <ButtonLink href="/register" size="lg">
@@ -358,8 +357,8 @@ export default function ResumeBuilderPage() {
             <h3 className="text-base font-bold text-ink-950">Under 10 years: one page</h3>
             <p className="mt-2 text-sm leading-relaxed text-ink-600">
               If you are shrinking the type below about 10pt or the margins below 12 mm to make it
-              fit, you are not fitting a page — you are hiding text. Cut a role instead, or
-              compress the oldest one to a single line.
+              fit, you are not fitting a page — you are hiding text. Cut a role instead, or compress
+              the oldest one to a single line.
             </p>
           </article>
           <article className="rounded-xl border border-ink-200 bg-white p-6">
@@ -374,8 +373,8 @@ export default function ResumeBuilderPage() {
             <h3 className="text-base font-bold text-ink-950">Three pages: change document</h3>
             <p className="mt-2 text-sm leading-relaxed text-ink-600">
               Past two pages you are writing a CV. That is correct for academia, medicine and some
-              federal roles — and wrong for a commercial application, where the third page is
-              rarely reached.
+              federal roles — and wrong for a commercial application, where the third page is rarely
+              reached.
             </p>
           </article>
         </div>
@@ -395,7 +394,10 @@ export default function ResumeBuilderPage() {
               <ul className="mt-3 flex flex-col gap-2.5">
                 {block.points.map((point) => (
                   <li key={point} className="flex gap-2.5 text-sm leading-relaxed text-ink-700">
-                    <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-brand-500" />
+                    <span
+                      aria-hidden
+                      className="mt-2 size-1.5 shrink-0 rounded-full bg-brand-500"
+                    />
                     {point}
                   </li>
                 ))}

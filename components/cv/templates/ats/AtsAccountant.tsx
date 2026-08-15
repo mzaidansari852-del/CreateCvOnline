@@ -1,5 +1,13 @@
 import { contactEntries, SectionContent } from '@/components/cv/parts';
-import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVData, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#0f5132',
+  fonts: { heading: 'georgia', body: 'arial' },
+  metrics: { lineHeight: 1.54, pageMargin: 52 },
   tagline: 'Dates flush right in their own column, certifications given real weight.',
   description:
     'Accountant CV pushes every date to a flush right column and sets the document in tabular figures, so employment periods, qualification years and exam dates line up down the right edge the way a finance reviewer reads them. Certifications are handled as a first-class section with the awarding body picked out in the accent colour, which matters when part-qualified or chartered status is the first thing checked. The right-hand alignment is done with flex rather than a table, so nothing collapses into gibberish when the file is parsed.',
@@ -78,9 +88,9 @@ export default function AtsAccountant({ cv, customization: c }: CVTemplateProps)
       >
         <h1
           style={{
-            fontSize: '1.68em',
+            fontSize: '1.7em',
             lineHeight: 1.12,
-            fontWeight: 700,
+            fontWeight: headingWeight(c, 700),
             color: ink,
           }}
         >
@@ -92,7 +102,7 @@ export default function AtsAccountant({ cv, customization: c }: CVTemplateProps)
               fontSize: '1em',
               marginTop: '0.1em',
               color: accentText,
-              fontWeight: 600,
+              fontWeight: bodyWeight(c, 600),
             }}
           >
             {cv.personal.title}

@@ -1,10 +1,12 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
-  mutedOn,
+  bodyWeight,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
   tint,
 } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
@@ -20,6 +22,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#ea580c',
+  fonts: { heading: 'roboto', body: 'open-sans' },
+  metrics: { lineHeight: 1.54, pageMargin: 42 },
   tagline: 'A pipeline rail down the page with a node marking every stage of your career.',
   description:
     'DevOps Engineer runs a continuous accent rail down the left edge of the document and drops a square node beside each section heading, so the page reads as a pipeline rather than a pile of boxes. Contact details are compressed into a single rounded bar at the top, which leaves the whole width below for tooling, platforms and incident work. Skills print as tags rather than rated bars, because an infrastructure CV usually needs to list forty technologies without turning into a chart.',
@@ -86,9 +90,9 @@ export default function DevOpsEngineer({ cv, customization: c }: CVTemplateProps
         <div style={{ minWidth: 0 }}>
           <h1
             style={{
-              fontSize: '1.85em',
+              fontSize: '1.95em',
               lineHeight: 1.12,
-              fontWeight: 800,
+              fontWeight: headingWeight(c, 700),
               letterSpacing: '-0.015em',
               color: c.secondaryColor,
             }}
@@ -96,7 +100,7 @@ export default function DevOpsEngineer({ cv, customization: c }: CVTemplateProps
             {name || 'Your Name'}
           </h1>
           {cv.personal.title ? (
-            <p style={{ marginTop: '0.1em', fontWeight: 600, color: accentText }}>
+            <p style={{ marginTop: '0.1em', fontWeight: bodyWeight(c, 600), color: accentText }}>
               {cv.personal.title}
             </p>
           ) : null}
@@ -151,7 +155,7 @@ export default function DevOpsEngineer({ cv, customization: c }: CVTemplateProps
               className="cv-section-title"
               style={{
                 fontSize: '0.95em',
-                fontWeight: 800,
+                fontWeight: headingWeight(c, 800),
                 lineHeight: 1.35,
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),

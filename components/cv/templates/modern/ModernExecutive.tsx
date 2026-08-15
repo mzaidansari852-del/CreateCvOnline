@@ -1,10 +1,12 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
-  mutedOn,
   accentOn,
+  bodyWeight,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
   readableOn,
   shade,
   tint,
@@ -22,6 +24,8 @@ export const meta: TemplateMeta = {
   columns: 2,
   hasPhoto: true,
   accentDefault: '#1f3af5',
+  fonts: { heading: 'poppins', body: 'lato' },
+  metrics: { lineHeight: 1.42, pageMargin: 46 },
   tagline: 'A full-height dark sidebar keeps contact details out of the way of your story.',
   description:
     'Modern Executive moves everything scannable — contact details, skills, languages, certifications — into a dark full-height sidebar, leaving the whole main column for the narrative of your career. The experience section uses a timeline so a long tenure at one company reads as progression rather than repetition. The sidebar band continues across every page of the exported PDF.',
@@ -97,9 +101,9 @@ export default function ModernExecutive({ cv, customization: c }: CVTemplateProp
 
         <h1
           style={{
-            fontSize: '1.6em',
+            fontSize: '1.85em',
             lineHeight: 1.14,
-            fontWeight: 800,
+            fontWeight: headingWeight(c, 700),
             color: onDark,
             textAlign: 'center',
           }}
@@ -111,7 +115,7 @@ export default function ModernExecutive({ cv, customization: c }: CVTemplateProp
             style={{
               textAlign: 'center',
               color: accentOnDark,
-              fontWeight: 600,
+              fontWeight: bodyWeight(c, 600),
               marginTop: '0.3em',
               fontSize: '0.98em',
             }}
@@ -171,7 +175,7 @@ export default function ModernExecutive({ cv, customization: c }: CVTemplateProp
               className="cv-section-title"
               style={{
                 fontSize: '1.02em',
-                fontWeight: 800,
+                fontWeight: headingWeight(c, 800),
                 color: c.secondaryColor,
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),
@@ -213,7 +217,7 @@ function SidebarHeading({
       className="cv-section-title"
       style={{
         fontSize: '0.88em',
-        fontWeight: 800,
+        fontWeight: headingWeight(c, 800),
         color: onDark,
         textTransform: headingTransform(c),
         letterSpacing: headingTracking(c),

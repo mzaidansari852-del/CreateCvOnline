@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { templateDefaults } from '@/lib/cv/template-registry';
 import { CVThumbnail } from '@/components/cv/CVThumbnail';
 import { TemplateImage, hasPreview } from '@/components/cv/TemplateImage';
 import { Badge } from '@/components/ui/feedback';
@@ -32,8 +33,7 @@ export function TemplateCard({
 }) {
   const cv = createSampleCV();
   const customization = createDefaultCustomization({
-    templateId: template.id,
-    accentColor: template.accentDefault,
+    ...templateDefaults(template),
   });
 
   return (
@@ -87,11 +87,7 @@ export function TemplateCard({
             {template.columns === 1 ? 'one column' : 'two columns'}
           </p>
         </div>
-        {template.premium ? (
-          <Badge tone="accent">Pro</Badge>
-        ) : (
-          <Badge tone="success">Free</Badge>
-        )}
+        {template.premium ? <Badge tone="accent">Pro</Badge> : <Badge tone="success">Free</Badge>}
       </div>
     </Link>
   );

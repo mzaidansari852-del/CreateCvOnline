@@ -1,9 +1,11 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
-  mutedOn,
+  bodyWeight,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
   readableOn,
   shade,
   tint,
@@ -21,6 +23,8 @@ export const meta: TemplateMeta = {
   columns: 2,
   hasPhoto: true,
   accentDefault: '#0f4c81',
+  fonts: { heading: 'ibm-plex-sans', body: 'open-sans' },
+  metrics: { lineHeight: 1.36, pageMargin: 34 },
   tagline: 'A dark masthead over a hairline-split body — structure without a coloured sidebar.',
   description:
     'Modern Corporate opens with a full-width dark band carrying your name, title, a two-column contact grid and an optional photo, then drops into a body split 63/37 by nothing more than a hairline rule — there is no coloured sidebar competing with the text. Dates sit in their own gutter beside every role and degree, so a reader follows the chronology in a single vertical scan while skills, languages, certifications and awards stay parked on the right. Because only the masthead is filled, the document still prints economically.',
@@ -86,9 +90,9 @@ export default function ModernCorporate({ cv, customization: c }: CVTemplateProp
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1
             style={{
-              fontSize: '2.1em',
+              fontSize: '2.25em',
               lineHeight: 1.1,
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 600),
               letterSpacing: '0.005em',
               color: onBand,
             }}
@@ -100,7 +104,7 @@ export default function ModernCorporate({ cv, customization: c }: CVTemplateProp
               style={{
                 marginTop: '0.25em',
                 fontSize: '1.02em',
-                fontWeight: 600,
+                fontWeight: bodyWeight(c, 600),
                 letterSpacing: '0.06em',
                 textTransform: 'uppercase',
                 color: bandAccent,
@@ -230,7 +234,7 @@ function SectionHeading({
         alignItems: 'center',
         gap: '0.55em',
         fontSize: '0.9em',
-        fontWeight: 700,
+        fontWeight: headingWeight(c, 700),
         textTransform: headingTransform(c),
         letterSpacing: headingTracking(c),
         color,

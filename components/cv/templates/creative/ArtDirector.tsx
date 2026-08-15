@@ -1,10 +1,12 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
-  mutedOn,
   accentOn,
+  bodyWeight,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
   readableOn,
   tint,
 } from '@/lib/cv/format';
@@ -21,6 +23,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: true,
   accentDefault: '#0f172a',
+  fonts: { heading: 'playfair', body: 'lato' },
+  metrics: { lineHeight: 1.42, pageMargin: 36 },
   tagline: 'An editorial spread: dark masthead, bleeding photo, titles hung in the margin.',
   description:
     'Art Director is built like the opening spread of a magazine — a full-width masthead with your name reversed out of it, a photo bleeding off the right edge, and body sections whose titles hang in a wide left margin beside the text. The whitespace and hairline rules are the design, so it rewards copy that has been edited down rather than an exhaustive job history. The hanging-title grid and heavy header make it a poor fit for automated screening, so send a plain single-column version through job portals.',
@@ -82,9 +86,9 @@ export default function ArtDirector({ cv, customization: c }: CVTemplateProps) {
         >
           <h1
             style={{
-              fontSize: '2.9em',
+              fontSize: '3.3em',
               lineHeight: 1.02,
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 400),
               letterSpacing: '-0.02em',
               color: onBand,
             }}
@@ -96,7 +100,7 @@ export default function ArtDirector({ cv, customization: c }: CVTemplateProps) {
               style={{
                 marginTop: '0.45em',
                 fontSize: '0.82em',
-                fontWeight: 600,
+                fontWeight: bodyWeight(c, 600),
                 letterSpacing: '0.26em',
                 textTransform: 'uppercase',
                 color: bandMuted,
@@ -156,7 +160,7 @@ export default function ArtDirector({ cv, customization: c }: CVTemplateProps) {
               className="cv-section-title"
               style={{
                 fontSize: '0.72em',
-                fontWeight: 700,
+                fontWeight: headingWeight(c, 700),
                 lineHeight: 1.45,
                 color: accentText,
                 textTransform: headingTransform(c),

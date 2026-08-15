@@ -1,11 +1,13 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
-  centredTracking,
   accentOn,
-  mutedOn,
+  bodyWeight,
+  centredTracking,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
   tint,
 } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
@@ -21,6 +23,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#7f1d1d',
+  fonts: { heading: 'playfair', body: 'lora' },
+  metrics: { lineHeight: 1.42, pageMargin: 52 },
   tagline: 'A masthead name with the job title set opposite it, over an indented statement.',
   description:
     'Executive Classic opens with your name at close to three times body size and the job title ranged right on the same baseline, so the top of the page reads as a masthead rather than a form. Your summary is then pulled out as an indented statement in larger type — the paragraph a board-level reader will actually finish — and everything below it is kept deliberately quiet. Section headings are small caps over a hairline that stops at 60% of the measure, which marks the structure without ruling the page into boxes.',
@@ -75,10 +79,11 @@ export default function ExecutiveClassic({ cv, customization: c }: CVTemplatePro
         >
           <h1
             style={{
-              fontSize: '3em',
-              lineHeight: 1.04,
-              fontWeight: 700,
-              letterSpacing: '-0.02em',
+              fontSize: '2.05em',
+              lineHeight: 1.12,
+              fontWeight: headingWeight(c, 600),
+              textTransform: 'uppercase',
+              ...centredTracking('0.18em'),
               color: c.secondaryColor,
               minWidth: 0,
             }}
@@ -90,7 +95,7 @@ export default function ExecutiveClassic({ cv, customization: c }: CVTemplatePro
               style={{
                 textAlign: 'right',
                 fontSize: '0.98em',
-                fontWeight: 600,
+                fontWeight: bodyWeight(c, 600),
                 letterSpacing: '0.14em',
                 textTransform: 'uppercase',
                 color: accentText,
@@ -136,7 +141,7 @@ export default function ExecutiveClassic({ cv, customization: c }: CVTemplatePro
                 style={{
                   textAlign: 'center',
                   fontSize: '0.76em',
-                  fontWeight: 600,
+                  fontWeight: headingWeight(c, 600),
                   ...centredTracking('0.3em'),
                   textTransform: headingTransform(c),
                   color: muted,
@@ -170,7 +175,7 @@ export default function ExecutiveClassic({ cv, customization: c }: CVTemplatePro
               className="cv-section-title"
               style={{
                 fontSize: '1em',
-                fontWeight: 700,
+                fontWeight: headingWeight(c, 700),
                 fontVariant: 'small-caps',
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),

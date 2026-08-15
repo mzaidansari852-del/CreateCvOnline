@@ -1,5 +1,13 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: true,
   accentDefault: '#059669',
+  fonts: { heading: 'lato', body: 'lato' },
+  metrics: { lineHeight: 1.54, pageMargin: 48 },
   tagline: 'A hairline spine with accent markers threads every section into one continuous read.',
   description:
     'Modern Clean runs a single hairline down the left of the page and marks each section with a small accent dot, so the eye follows one unbroken line from your summary to your final qualification. Dates sit in their own narrow column beside each role and degree, which makes progression legible in a two-second scan. Underneath the decoration the document is one linear text flow, so it parses exactly as it reads.',
@@ -74,9 +84,9 @@ export default function ModernClean({ cv, customization: c }: CVTemplateProps) {
         <div style={{ minWidth: 0, flex: 1 }}>
           <h1
             style={{
-              fontSize: '2.2em',
+              fontSize: '2.4em',
               lineHeight: 1.08,
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 600),
               color: c.secondaryColor,
               letterSpacing: '-0.018em',
             }}
@@ -88,7 +98,7 @@ export default function ModernClean({ cv, customization: c }: CVTemplateProps) {
               style={{
                 fontSize: '1.05em',
                 color: accentText,
-                fontWeight: 600,
+                fontWeight: bodyWeight(c, 600),
                 marginTop: '0.18em',
               }}
             >
@@ -149,7 +159,7 @@ export default function ModernClean({ cv, customization: c }: CVTemplateProps) {
                 className="cv-section-title"
                 style={{
                   fontSize: '0.95em',
-                  fontWeight: 700,
+                  fontWeight: headingWeight(c, 700),
                   textTransform: headingTransform(c),
                   letterSpacing: headingTracking(c),
                   color: c.secondaryColor,

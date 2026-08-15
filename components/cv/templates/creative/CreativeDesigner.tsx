@@ -1,5 +1,13 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  tint,
+} from '@/lib/cv/format';
 import { splitSections, visibleSections } from '@/lib/cv/sections';
 import type { CVCustomization, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 2,
   hasPhoto: true,
   accentDefault: '#ef476f',
+  fonts: { heading: 'poppins', body: 'lato' },
+  metrics: { lineHeight: 1.42, pageMargin: 42 },
   tagline: 'A pale accent sidebar carries the details while your name takes the main column.',
   description:
     'Creative Designer keeps the personality in the layout rather than in the typography: a light accent sidebar holds your photo, contact details, skills and languages, while the main column opens with an oversized name and runs a single, uninterrupted narrative beneath it. Because the band is a soft tint rather than a dark block it prints cleanly on an office laser printer and survives being photocopied. The two-column structure is still harder for older parsers than a plain single column, so keep a simpler version for portal applications.',
@@ -118,9 +128,9 @@ export default function CreativeDesigner({ cv, customization: c }: CVTemplatePro
         <header style={{ marginBottom: `${c.sectionSpacing * 1.1}px` }}>
           <h1
             style={{
-              fontSize: '3.05em',
+              fontSize: '2.6em',
               lineHeight: 0.98,
-              fontWeight: 800,
+              fontWeight: headingWeight(c, 500),
               letterSpacing: '-0.025em',
               color: c.secondaryColor,
             }}
@@ -132,7 +142,7 @@ export default function CreativeDesigner({ cv, customization: c }: CVTemplatePro
               style={{
                 marginTop: '0.5em',
                 fontSize: '0.92em',
-                fontWeight: 700,
+                fontWeight: bodyWeight(c, 700),
                 letterSpacing: '0.2em',
                 textTransform: 'uppercase',
                 color: accentText,
@@ -209,7 +219,7 @@ function DotHeading({
         alignItems: 'baseline',
         gap: '0.5em',
         fontSize: size,
-        fontWeight: 800,
+        fontWeight: headingWeight(c, 800),
         color,
         textTransform: headingTransform(c),
         letterSpacing: headingTracking(c),

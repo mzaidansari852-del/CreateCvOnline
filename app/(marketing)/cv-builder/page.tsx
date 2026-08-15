@@ -19,11 +19,12 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { ButtonLink } from '@/components/ui/button';
 import { createDefaultCustomization, createSampleCV } from '@/lib/cv/defaults';
 import {
+  getTemplate,
+  getTemplateBySlug,
+  templateDefaults,
   DEFAULT_TEMPLATE_ID,
   FREE_TEMPLATE_COUNT,
   TEMPLATE_COUNT,
-  getTemplate,
-  getTemplateBySlug,
 } from '@/lib/cv/template-registry';
 import { PLANS } from '@/lib/plans';
 import { pageMetadata } from '@/lib/seo/metadata';
@@ -212,8 +213,7 @@ export default function CvBuilderPage() {
   const sampleCv = createSampleCV();
   const previewTemplate = getTemplate(DEFAULT_TEMPLATE_ID);
   const previewCustomization = createDefaultCustomization({
-    templateId: previewTemplate.id,
-    accentColor: previewTemplate.accentDefault,
+    ...templateDefaults(previewTemplate),
   });
 
   const showcase = pickTemplates([
@@ -245,8 +245,8 @@ export default function CvBuilderPage() {
             </h1>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-pretty text-ink-600 sm:text-lg">
               Most builders sell you a screenshot. This page walks through what is actually on the
-              screen — the split editor, the live page beside it, and every control in between —
-              and is honest about the things the tool does not do.
+              screen — the split editor, the live page beside it, and every control in between — and
+              is honest about the things the tool does not do.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <ButtonLink href="/register" size="lg">
@@ -344,7 +344,10 @@ export default function CvBuilderPage() {
           <TemplateGrid templates={showcase} columns={4} />
         </div>
         <p className="mt-8 text-sm text-ink-600">
-          <Link href="/templates" className="font-medium text-brand-700 underline underline-offset-2">
+          <Link
+            href="/templates"
+            className="font-medium text-brand-700 underline underline-offset-2"
+          >
             See all {TEMPLATE_COUNT} templates
           </Link>{' '}
           or narrow it down to{' '}
@@ -364,10 +367,7 @@ export default function CvBuilderPage() {
         />
         <ul className="mt-10 grid gap-4 sm:grid-cols-2">
           {deliberateOmissions.map((item) => (
-            <li
-              key={item.title}
-              className="rounded-xl border border-ink-200 bg-white p-5"
-            >
+            <li key={item.title} className="rounded-xl border border-ink-200 bg-white p-5">
               <h3 className="text-base font-semibold text-ink-950">{item.title}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-ink-600">{item.description}</p>
             </li>

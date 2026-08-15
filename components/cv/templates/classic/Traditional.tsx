@@ -1,5 +1,12 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +20,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#374151',
+  fonts: { heading: 'georgia', body: 'georgia' },
+  metrics: { lineHeight: 1.60, pageMargin: 64 },
   tagline: 'Headings sit out in the left margin, so every line of content shares one clean edge.',
   description:
     'Traditional CV sets each section heading in a fixed left-hand margin and aligns all of the content to a single indent beside it — the way typed CVs were laid out long before templates existed. There is exactly one rule on the page, beneath the header, so structure comes from alignment rather than decoration. It reads quickly because the eye only ever tracks one left edge, and it parses cleanly because underneath the alignment it is still one linear column.',
@@ -66,9 +75,9 @@ export default function Traditional({ cv, customization: c }: CVTemplateProps) {
       >
         <h1
           style={{
-            fontSize: '1.8em',
+            fontSize: '1.95em',
             lineHeight: 1.14,
-            fontWeight: 700,
+            fontWeight: headingWeight(c, 700),
             letterSpacing: '0.01em',
             color: c.secondaryColor,
           }}
@@ -109,7 +118,7 @@ export default function Traditional({ cv, customization: c }: CVTemplateProps) {
             className="cv-section-title"
             style={{
               fontSize: '0.7em',
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 700),
               lineHeight: 1.34,
               paddingTop: '0.3em',
               textTransform: headingTransform(c),

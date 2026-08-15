@@ -411,6 +411,36 @@ export interface TemplateMeta {
   columns: 1 | 2;
   hasPhoto: boolean;
   accentDefault: string;
+  /**
+   * The typeface pairing this design was drawn for.
+   *
+   * Every template rendered in Inter until this existed, which is why fifty-six layouts
+   * read as fifty-six arrangements of the same document rather than fifty-six designs.
+   * Type does more for perceived difference than column count does: a serif Academic CV and
+   * a geometric-sans Modern Tech are recognisably different things before you read a word,
+   * and two one-column layouts in the same face are not, however carefully the rules and
+   * spacing differ.
+   *
+   * Applied when a template is chosen, and only while the user has not picked their own —
+   * see `DesignPanel`. It is a starting point, not a constraint.
+   */
+  fonts: { heading: FontKey; body: FontKey };
+  /**
+   * The page metrics this design was drawn for.
+   *
+   * Both were frozen at the schema default on all fifty-six templates — 1.5 leading, 44px
+   * margins — which meant the one design variable that changes how a page *feels* before
+   * you read it was doing no work at all.
+   *
+   * They are set from measurement rather than taste. `pageMargin` is banded by what kind
+   * of document the template is (a Legal CV is a document and wants a document's margin; a
+   * portfolio page is a poster and does not) and spread inside each band by measured line
+   * length, so the widest-set templates get the most relief. `lineHeight` then follows the
+   * measure that results: the longer a line, the more help the eye needs finding the start
+   * of the next one. `tests/cv/metrics.test.ts` holds both to the measurements in
+   * `docs/AUDIT_TEMPLATES.md`.
+   */
+  metrics: { lineHeight: number; pageMargin: number };
   /** Short marketing line used in cards and meta descriptions. */
   tagline: string;
   description: string;

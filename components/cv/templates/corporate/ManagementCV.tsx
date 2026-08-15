@@ -1,9 +1,11 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
+  bodyWeight,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
   shade,
   tint,
 } from '@/lib/cv/format';
@@ -20,6 +22,8 @@ export const meta: TemplateMeta = {
   columns: 2,
   hasPhoto: true,
   accentDefault: '#0b3d3b',
+  fonts: { heading: 'inter', body: 'open-sans' },
+  metrics: { lineHeight: 1.42, pageMargin: 38 },
   tagline: 'A tinted right-hand band carries your toolkit; the wide left column tells the story.',
   description:
     'Management CV keeps the narrative — summary, roles, education — in a wide left column and moves skills, languages, certifications and interests into a softly tinted band down the right that continues onto every page of the exported PDF. The header spans both columns with your photo on the far right, so the top of the document reads as one piece rather than two stacked panels. Each main-column heading carries a leading accent bar, which gives a long record clear entry points without adding rules across the page.',
@@ -74,9 +78,9 @@ export default function ManagementCV({ cv, customization: c }: CVTemplateProps) 
         <div style={{ minWidth: 0 }}>
           <h1
             style={{
-              fontSize: '2.15em',
+              fontSize: '2.3em',
               lineHeight: 1.06,
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 600),
               color: c.secondaryColor,
               letterSpacing: '-0.015em',
             }}
@@ -88,7 +92,7 @@ export default function ManagementCV({ cv, customization: c }: CVTemplateProps) 
               style={{
                 marginTop: '0.18em',
                 fontSize: '1.05em',
-                fontWeight: 600,
+                fontWeight: bodyWeight(c, 600),
                 color: accentText,
               }}
             >
@@ -140,7 +144,7 @@ export default function ManagementCV({ cv, customization: c }: CVTemplateProps) 
                 className="cv-section-title"
                 style={{
                   fontSize: '0.98em',
-                  fontWeight: 700,
+                  fontWeight: headingWeight(c, 700),
                   lineHeight: 1.3,
                   color: c.secondaryColor,
                   textTransform: headingTransform(c),
@@ -190,7 +194,7 @@ export default function ManagementCV({ cv, customization: c }: CVTemplateProps) 
                   className="cv-section-title"
                   style={{
                     fontSize: '0.85em',
-                    fontWeight: 800,
+                    fontWeight: headingWeight(c, 800),
                     color: sidebarInk,
                     textTransform: headingTransform(c),
                     letterSpacing: headingTracking(c),

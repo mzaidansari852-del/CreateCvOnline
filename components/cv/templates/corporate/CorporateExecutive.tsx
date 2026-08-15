@@ -1,10 +1,12 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
-  centredTracking,
   accentOn,
+  bodyWeight,
+  centredTracking,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
   tint,
 } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
@@ -20,6 +22,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#14304f',
+  fonts: { heading: 'source-serif', body: 'lato' },
+  metrics: { lineHeight: 1.42, pageMargin: 44 },
   tagline: 'A double-ruled letterhead over a formal single column.',
   description:
     'Corporate Executive opens with a bordered letterhead: your name set in wide capitals inside a double rule, the title beneath it, and contact details on one centred line under a hairline. Below the letterhead the document is deliberately plain — a single column with small underlined section labels, the format boards, partners and search firms expect to receive. Nothing is hidden in a sidebar, so the printed page and the parsed text say the same thing in the same order.',
@@ -74,9 +78,9 @@ export default function CorporateExecutive({ cv, customization: c }: CVTemplateP
         >
           <h1
             style={{
-              fontSize: '2em',
+              fontSize: '2.45em',
               lineHeight: 1.2,
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 600),
               textTransform: 'uppercase',
               ...centredTracking('0.16em'),
               color: c.secondaryColor,
@@ -89,7 +93,7 @@ export default function CorporateExecutive({ cv, customization: c }: CVTemplateP
               style={{
                 marginTop: '0.4em',
                 fontSize: '0.92em',
-                fontWeight: 600,
+                fontWeight: bodyWeight(c, 600),
                 textTransform: 'uppercase',
                 letterSpacing: '0.2em',
                 color: accentText,
@@ -127,7 +131,7 @@ export default function CorporateExecutive({ cv, customization: c }: CVTemplateP
               className="cv-section-title"
               style={{
                 fontSize: '0.85em',
-                fontWeight: 700,
+                fontWeight: headingWeight(c, 700),
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),
                 color: accentText,

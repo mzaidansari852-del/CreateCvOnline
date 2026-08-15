@@ -1,5 +1,13 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  tint,
+} from '@/lib/cv/format';
 import { splitSections, visibleSections } from '@/lib/cv/sections';
 import type { CVCustomization, CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 2,
   hasPhoto: false,
   accentDefault: '#dc2626',
+  fonts: { heading: 'roboto', body: 'roboto' },
+  metrics: { lineHeight: 1.36, pageMargin: 40 },
   tagline: 'Two working columns and tightened spacing to keep a long career on one page.',
   description:
     'Modern Compact exists for the CV that runs to 1.2 pages and needs to be one. Section spacing is cut by 40%, each role condenses to a single headline row plus its bullets, and a 40% side column absorbs skills, languages, certifications, awards and interests so the main column carries nothing but your roles, education and projects. Both columns are plain text on white, separated by a hairline rather than a coloured panel, so nothing on the page reads as a graphic block.',
@@ -77,9 +87,9 @@ export default function ModernCompact({ cv, customization: c }: CVTemplateProps)
         <div style={{ minWidth: 0 }}>
           <h1
             style={{
-              fontSize: '1.95em',
+              fontSize: '2.1em',
               lineHeight: 1.04,
-              fontWeight: 800,
+              fontWeight: headingWeight(c, 600),
               color: c.secondaryColor,
               letterSpacing: '-0.02em',
             }}
@@ -87,7 +97,7 @@ export default function ModernCompact({ cv, customization: c }: CVTemplateProps)
             {fullName(cv) || 'Your Name'}
           </h1>
           {cv.personal.title ? (
-            <p style={{ fontSize: '1em', fontWeight: 600, color: accentText, marginTop: '0.08em' }}>
+            <p style={{ fontSize: '1em', fontWeight: bodyWeight(c, 600), color: accentText, marginTop: '0.08em' }}>
               {cv.personal.title}
             </p>
           ) : null}
@@ -188,7 +198,7 @@ function CompactHeading({
       className="cv-section-title"
       style={{
         fontSize: '0.8em',
-        fontWeight: 800,
+        fontWeight: headingWeight(c, 800),
         lineHeight: 1.3,
         color: c.secondaryColor,
         textTransform: headingTransform(c),

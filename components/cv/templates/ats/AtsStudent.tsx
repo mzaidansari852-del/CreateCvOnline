@@ -1,5 +1,13 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#1d4ed8',
+  fonts: { heading: 'lato', body: 'lato' },
+  metrics: { lineHeight: 1.54, pageMargin: 58 },
   tagline: 'Education sits on a soft tinted panel in larger type, wherever you place it.',
   description:
     'Student CV is built for a first application, where a degree and a couple of modules carry more weight than two summer jobs. The education section is set on a very light tinted panel in slightly larger type so it anchors the page, and the summary is italicised to read as a short objective statement — the section order itself stays entirely under your control. Spacing is generous, which stops a genuinely short CV from looking like an unfinished one.',
@@ -56,9 +66,9 @@ export default function AtsStudent({ cv, customization: c }: CVTemplateProps) {
       <header>
         <h1
           style={{
-            fontSize: '2.05em',
+            fontSize: '2.15em',
             lineHeight: 1.12,
-            fontWeight: 700,
+            fontWeight: headingWeight(c, 600),
             color: ink,
           }}
         >
@@ -70,7 +80,7 @@ export default function AtsStudent({ cv, customization: c }: CVTemplateProps) {
               fontSize: '1.08em',
               marginTop: '0.14em',
               color: accentText,
-              fontWeight: 600,
+              fontWeight: bodyWeight(c, 600),
             }}
           >
             {cv.personal.title}
@@ -112,7 +122,7 @@ export default function AtsStudent({ cv, customization: c }: CVTemplateProps) {
               className="cv-section-title"
               style={{
                 fontSize: emphasised ? '1.06em' : '1.02em',
-                fontWeight: 700,
+                fontWeight: headingWeight(c, 700),
                 color: accentText,
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),

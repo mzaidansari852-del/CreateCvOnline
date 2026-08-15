@@ -1,10 +1,12 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
-  mutedOn,
+  bodyWeight,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
   tint,
 } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
@@ -20,6 +22,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: true,
   accentDefault: '#4f46e5',
+  fonts: { heading: 'inter', body: 'lato' },
+  metrics: { lineHeight: 1.54, pageMargin: 50 },
   tagline: 'Three headline outcomes in a bordered row before the reader reaches your history.',
   description:
     'Product Manager lifts up to three achievements from your most recent role into a bordered impact row directly beneath the header, so the outcomes you are hired to repeat are read first rather than found on the second page. Section headings are set large with a short accent underline instead of a full-width rule, which keeps the page calm while still breaking it into obvious blocks. Projects render as two-up cards, a better fit for a portfolio of launches than another bulleted list.',
@@ -77,9 +81,9 @@ export default function ProductManager({ cv, customization: c }: CVTemplateProps
         <div style={{ minWidth: 0, flex: 1 }}>
           <h1
             style={{
-              fontSize: '2.3em',
+              fontSize: '2.6em',
               lineHeight: 1.08,
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 500),
               letterSpacing: '-0.02em',
               color: c.secondaryColor,
             }}
@@ -88,7 +92,7 @@ export default function ProductManager({ cv, customization: c }: CVTemplateProps
           </h1>
           {cv.personal.title ? (
             <p
-              style={{ marginTop: '0.2em', fontSize: '1.08em', fontWeight: 600, color: accentText }}
+              style={{ marginTop: '0.2em', fontSize: '1.08em', fontWeight: bodyWeight(c, 600), color: accentText }}
             >
               {cv.personal.title}
             </p>
@@ -129,7 +133,7 @@ export default function ProductManager({ cv, customization: c }: CVTemplateProps
               <div
                 style={{
                   fontSize: '0.72em',
-                  fontWeight: 700,
+                  fontWeight: bodyWeight(c, 700),
                   letterSpacing: '0.14em',
                   color: accentText,
                 }}
@@ -156,7 +160,7 @@ export default function ProductManager({ cv, customization: c }: CVTemplateProps
             className="cv-section-title"
             style={{
               fontSize: '1.3em',
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 700),
               lineHeight: 1.25,
               textTransform: headingTransform(c),
               letterSpacing: headingTracking(c),

@@ -1,5 +1,13 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
-import { accentOn, fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  accentOn,
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +21,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: true,
   accentDefault: '#0d9488',
+  fonts: { heading: 'lora', body: 'lato' },
+  metrics: { lineHeight: 1.54, pageMargin: 46 },
   tagline: 'Portrait, name and contact share one header line above a plain, parser-safe column.',
   description:
     'Creative Professional keeps the personality of a design CV — a portrait, a strong accent colour, a marker bar above every heading — without pushing anything into a second column that an applicant tracking system would have to reassemble. The header divides into three: photo on the left, name and role in the middle, contact details stacked on the right, so the top of the page stays readable even when you list six links. Skills are scored with five dots instead of bars, which stays legible when the CV is printed in greyscale.',
@@ -74,9 +84,9 @@ export default function CreativeProfessional({ cv, customization: c }: CVTemplat
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1
             style={{
-              fontSize: '2.15em',
+              fontSize: '2.8em',
               lineHeight: 1.1,
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 500),
               color: c.secondaryColor,
               letterSpacing: '-0.012em',
             }}
@@ -88,7 +98,7 @@ export default function CreativeProfessional({ cv, customization: c }: CVTemplat
               style={{
                 marginTop: '0.25em',
                 fontSize: '1.02em',
-                fontWeight: 600,
+                fontWeight: bodyWeight(c, 600),
                 color: accentText,
                 letterSpacing: '0.03em',
               }}
@@ -121,7 +131,7 @@ export default function CreativeProfessional({ cv, customization: c }: CVTemplat
               className="cv-section-title"
               style={{
                 fontSize: '0.98em',
-                fontWeight: 700,
+                fontWeight: headingWeight(c, 700),
                 color: c.secondaryColor,
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),

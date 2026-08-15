@@ -139,6 +139,74 @@ export function fontLabel(key: FontKey): string {
   return FONT_BY_KEY.get(key)?.label ?? key;
 }
 
+/**
+ * The weights a face can actually render, read off the same `googleSpec` that loads it.
+ *
+ * This exists because the catalogue was asking for weights that do not exist. Twenty-six
+ * of the fifty-six templates requested a weight their face never loads — `fontWeight: 800`
+ * appeared twenty-nine times and *no* family in the picker ships an 800 — so the browser
+ * synthesised it by smearing the 700 outline. Faux bold is why 700 and 800 looked the same
+ * on the page: 800 was 700, blurred. The same happened to `600` on Roboto, Lato,
+ * Merriweather, Libre Baskerville and the three system faces.
+ *
+ * A face's real weights are not a detail a template can hardcode, because the user can put
+ * any of the fifteen faces on any template. So the weight has to be resolved at render time
+ * against whichever face is actually active — the same shape as `contrastAgainst()`
+ * resolving a colour against whatever surface it lands on.
+ *
+ * System faces get `[400, 700]`: regular and bold are the two cuts of Arial, Georgia and
+ * Times that can be relied on to exist locally.
+ */
+const SYSTEM_WEIGHTS: readonly number[] = [400, 700];
+
+export const FONT_WEIGHTS: Record<FontKey, readonly number[]> = Object.fromEntries(
+  CV_FONTS.map((font) => {
+    if (!font.googleSpec) return [font.key, SYSTEM_WEIGHTS];
+    // `Source+Serif+4:opsz,wght@8..60,300;8..60,400;…` — the weight is the last number in
+    // each tuple, so read the axis list rather than every number in the string.
+    const axes = font.googleSpec.split('@')[1] ?? '';
+    const weights = axes
+      .split(';')
+      .map((tuple) => Number(tuple.split(',').pop()))
+      .filter((weight) => Number.isFinite(weight) && weight >= 100 && weight <= 900);
+    return [font.key, weights.length ? [...new Set(weights)].sort((a, b) => a - b) : SYSTEM_WEIGHTS];
+  }),
+) as Record<FontKey, readonly number[]>;
+
+/**
+ * The closest weight `face` can really draw.
+ *
+ * Ties resolve toward 700, the canonical bold. That single rule gets both awkward cases
+ * right: 600 on a face that has only 400 and 700 wants the bold, because the intent was
+ * emphasis — while 800 on Lato, which has 700 and 900, wants the bold too, because Black
+ * overshoots by more than Bold undershoots.
+ */
+export function weightOn(face: FontKey, desired: number): number {
+  const available = FONT_WEIGHTS[face] ?? SYSTEM_WEIGHTS;
+  let best = available[0]!;
+  for (const weight of available) {
+    const gap = Math.abs(weight - desired);
+    const bestGap = Math.abs(best - desired);
+    const closer = gap < bestGap;
+    const tieNearerBold = gap === bestGap && Math.abs(weight - 700) < Math.abs(best - 700);
+    if (closer || tieNearerBold) best = weight;
+  }
+  return best;
+}
+
+/**
+ * Resolve a weight against the heading face. Use inside `h1`–`h6`, which `document-css.ts`
+ * sets to `--cv-font-heading`.
+ */
+export function headingWeight(c: { headingFont: FontKey }, desired: number): number {
+  return weightOn(c.headingFont, desired);
+}
+
+/** Resolve a weight against the body face — everything that is not a heading element. */
+export function bodyWeight(c: { bodyFont: FontKey }, desired: number): number {
+  return weightOn(c.bodyFont, desired);
+}
+
 /** Google Fonts stylesheet URL covering exactly the families a document needs. */
 export function googleFontsHref(keys: FontKey[]): string | null {
   const specs = Array.from(new Set(keys))

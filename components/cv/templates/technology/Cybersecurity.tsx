@@ -1,10 +1,11 @@
 import { ContactIcon, SectionContent, contactEntries } from '@/components/cv/parts';
 import {
   accentOn,
-  mutedOn,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
   readableOn,
   shade,
 } from '@/lib/cv/format';
@@ -21,6 +22,8 @@ export const meta: TemplateMeta = {
   columns: 2,
   hasPhoto: false,
   accentDefault: '#22c55e',
+  fonts: { heading: 'ibm-plex-sans', body: 'roboto' },
+  metrics: { lineHeight: 1.42, pageMargin: 44 },
   tagline: 'A dark banner and a monospaced contact block over a certification-first sidebar.',
   description:
     'Cybersecurity CV reverses your name out of a solid dark banner and sets the contact details beneath it as a monospaced key–value block, the shape security teams read all day. The body splits 70/30 with certifications at the very top of the narrow column, because the CISSP, OSCP or CISM line is usually what decides whether the rest of the page gets read. Skills and languages follow underneath as tags, leaving the wide column free for incident, audit and engineering detail.',
@@ -98,9 +101,9 @@ export default function Cybersecurity({ cv, customization: c }: CVTemplateProps)
       >
         <h1
           style={{
-            fontSize: '2.2em',
+            fontSize: '2.45em',
             lineHeight: 1.1,
-            fontWeight: 700,
+            fontWeight: headingWeight(c, 600),
             letterSpacing: '0.01em',
             color: onBanner,
           }}
@@ -265,7 +268,7 @@ function SectionHeading({
       className="cv-section-title"
       style={{
         fontSize: size,
-        fontWeight: 800,
+        fontWeight: headingWeight(c, 800),
         lineHeight: 1.3,
         textTransform: headingTransform(c),
         letterSpacing: headingTracking(c),

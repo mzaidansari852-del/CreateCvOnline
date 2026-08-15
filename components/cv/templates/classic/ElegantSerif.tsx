@@ -1,10 +1,11 @@
 import { ContactList, Photo, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
-  mutedOn,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
   shade,
   tint,
 } from '@/lib/cv/format';
@@ -21,6 +22,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: true,
   accentDefault: '#4a3728',
+  fonts: { heading: 'garamond', body: 'garamond' },
+  metrics: { lineHeight: 1.54, pageMargin: 68 },
   tagline: 'A portrait inside a double hairline frame, over centred small-caps headings.',
   description:
     'Elegant Serif treats the top of the CV as a title page: a portrait centred above your name, the role in italics beneath it, and the whole block held inside two hairline rules set a fraction apart. Section headings are centred small caps with a rule that spans only the words themselves, so the structure is marked without cutting the page into bands. It is built for a serif body font — EB Garamond, Lora or Libre Baskerville — and prints as calmly as it reads on screen.',
@@ -92,9 +95,9 @@ export default function ElegantSerif({ cv, customization: c }: CVTemplateProps) 
 
           <h1
             style={{
-              fontSize: '2.1em',
+              fontSize: '3.1em',
               lineHeight: 1.2,
-              fontWeight: 600,
+              fontWeight: headingWeight(c, 400),
               textTransform: 'uppercase',
               letterSpacing: '0.12em',
               color: c.secondaryColor,
@@ -142,7 +145,7 @@ export default function ElegantSerif({ cv, customization: c }: CVTemplateProps) 
             style={{
               textAlign: 'center',
               fontSize: '0.94em',
-              fontWeight: 600,
+              fontWeight: headingWeight(c, 600),
               lineHeight: 1.8,
               color: c.secondaryColor,
               marginBottom: '0.75em',

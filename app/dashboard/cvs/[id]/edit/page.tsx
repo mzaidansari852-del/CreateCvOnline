@@ -34,6 +34,7 @@ const TEMPLATE_CHOICES: EditorTemplateChoice[] = TEMPLATES.map((template) => ({
   columns: template.columns,
   hasPhoto: template.hasPhoto,
   accentDefault: template.accentDefault,
+  fonts: template.fonts,
 }));
 
 export default async function EditCVPage(props: { params: Promise<{ id: string }> }) {

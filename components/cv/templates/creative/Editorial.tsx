@@ -1,11 +1,13 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
 import {
-  centredTracking,
   accentOn,
-  mutedOn,
+  bodyWeight,
+  centredTracking,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
   tint,
 } from '@/lib/cv/format';
 import { type ResolvedSection, visibleSections } from '@/lib/cv/sections';
@@ -21,6 +23,8 @@ export const meta: TemplateMeta = {
   columns: 2,
   hasPhoto: false,
   accentDefault: '#1c1917',
+  fonts: { heading: 'playfair', body: 'source-serif' },
+  metrics: { lineHeight: 1.42, pageMargin: 38 },
   tagline: 'A masthead name, a standfirst summary and two text columns — a CV set like a feature.',
   description:
     'Editorial borrows the anatomy of a magazine opener: your name is a masthead ruled top and bottom across the full width, and your summary runs underneath as a standfirst in larger type with generous side margins. Everything after it flows into two text columns, alternating left and right in your chosen section order, each heading opening with an oversized accent initial. No photo, no icons-as-decoration — the typography does the work, which makes it a strong choice when the CV is read rather than scanned by software.',
@@ -68,9 +72,9 @@ export default function Editorial({ cv, customization: c }: CVTemplateProps) {
       <header style={{ borderTop: `6px solid ${accent}`, paddingTop: '0.5em' }}>
         <h1
           style={{
-            fontSize: '3em',
+            fontSize: '2.6em',
             lineHeight: 1.02,
-            fontWeight: 700,
+            fontWeight: headingWeight(c, 500),
             letterSpacing: '-0.025em',
             textAlign: 'center',
             color: c.secondaryColor,
@@ -96,7 +100,7 @@ export default function Editorial({ cv, customization: c }: CVTemplateProps) {
           <p
             style={{
               fontSize: '0.9em',
-              fontWeight: 600,
+              fontWeight: bodyWeight(c, 600),
               textTransform: 'uppercase',
               letterSpacing: '0.18em',
               color: accentText,
@@ -129,7 +133,7 @@ export default function Editorial({ cv, customization: c }: CVTemplateProps) {
             className="cv-section-title"
             style={{
               fontSize: '0.74em',
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 700),
               textAlign: 'center',
               textTransform: 'uppercase',
               ...centredTracking('0.22em'),
@@ -202,7 +206,7 @@ function Column({
                 alignItems: 'baseline',
                 gap: '0.04em',
                 fontSize: '0.96em',
-                fontWeight: 700,
+                fontWeight: headingWeight(c, 700),
                 color: c.secondaryColor,
                 textTransform: headingTransform(c),
                 letterSpacing: headingTracking(c),

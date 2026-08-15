@@ -1,5 +1,5 @@
 import { CV_EXAMPLES, CV_EXAMPLES_BY_SLUG } from '@/content/examples';
-import { getTemplate } from '@/lib/cv/template-registry';
+import { templateDefaults, getTemplate } from '@/lib/cv/template-registry';
 import { createDefaultCustomization } from '@/lib/cv/defaults';
 import type { CVCustomization } from '@/types/cv';
 import type { CvExample } from '@/types/cv-example';
@@ -55,8 +55,7 @@ export function getRelatedExamples(slug: string, limit = 2): CvExample[] {
 export function getExampleCustomization(example: CvExample): CVCustomization {
   const template = getTemplate(example.templateId);
   return createDefaultCustomization({
-    templateId: template.id,
-    accentColor: template.accentDefault,
+    ...templateDefaults(template),
     showPhoto: false,
     paperSize: 'a4',
   });

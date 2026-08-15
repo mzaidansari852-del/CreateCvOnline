@@ -1,10 +1,12 @@
 import { contactEntries, ContactIcon, SectionContent } from '@/components/cv/parts';
 import {
   accentOn,
-  mutedOn,
+  bodyWeight,
   fullName,
   headingTracking,
   headingTransform,
+  headingWeight,
+  mutedOn,
   tint,
 } from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
@@ -20,6 +22,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#334155',
+  fonts: { heading: 'garamond', body: 'source-serif' },
+  metrics: { lineHeight: 1.48, pageMargin: 54 },
   tagline: 'Name left, contact ranged right, and a date gutter running down the whole page.',
   description:
     'Timeless divides the header rather than centring it — name and role on the left, contact details ranged right — and then gives every role and every degree its own left-hand date gutter, so a reader can follow your chronology down one edge without re-reading the job titles. Section headings are set in letterspaced capitals over a 2px rule that runs the full measure, the only heavy line on the page. Margins are wider than usual to hold the line length in the comfortable range even at the smallest font size.',
@@ -74,9 +78,9 @@ export default function Timeless({ cv, customization: c }: CVTemplateProps) {
         <div style={{ minWidth: 0 }}>
           <h1
             style={{
-              fontSize: '2.05em',
+              fontSize: '3em',
               lineHeight: 1.12,
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 400),
               letterSpacing: '0.01em',
               color: c.secondaryColor,
             }}
@@ -88,7 +92,7 @@ export default function Timeless({ cv, customization: c }: CVTemplateProps) {
               style={{
                 marginTop: '0.3em',
                 fontSize: '0.96em',
-                fontWeight: 600,
+                fontWeight: bodyWeight(c, 600),
                 textTransform: 'uppercase',
                 letterSpacing: '0.12em',
                 color: accentText,
@@ -141,7 +145,7 @@ export default function Timeless({ cv, customization: c }: CVTemplateProps) {
             className="cv-section-title"
             style={{
               fontSize: '0.94em',
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 700),
               color: c.secondaryColor,
               textTransform: headingTransform(c),
               letterSpacing: tracking,

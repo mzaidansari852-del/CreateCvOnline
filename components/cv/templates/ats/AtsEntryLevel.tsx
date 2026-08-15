@@ -1,5 +1,12 @@
 import { ContactList, SectionContent } from '@/components/cv/parts';
-import { fullName, headingTracking, headingTransform, tint } from '@/lib/cv/format';
+import {
+  bodyWeight,
+  fullName,
+  headingTracking,
+  headingTransform,
+  headingWeight,
+  tint,
+} from '@/lib/cv/format';
 import { visibleSections } from '@/lib/cv/sections';
 import type { CVTemplateProps, TemplateMeta } from '@/types/cv';
 
@@ -13,6 +20,8 @@ export const meta: TemplateMeta = {
   columns: 1,
   hasPhoto: false,
   accentDefault: '#334155',
+  fonts: { heading: 'roboto', body: 'roboto' },
+  metrics: { lineHeight: 1.54, pageMargin: 56 },
   tagline: 'Compact one-page rhythm that treats projects and volunteering as real experience.',
   description:
     'Entry-Level Resume tightens the section rhythm to three quarters of the usual spacing and reduces the header to two lines under one heavy rule, which buys back the space a first CV normally wastes on decoration. Projects and volunteer sections are styled identically to work experience, because for most entry-level candidates that is the experience. Headings are small, widely tracked capitals with no rules at all, so the page stays quiet and a parser sees nothing but text.',
@@ -65,16 +74,16 @@ export default function AtsEntryLevel({ cv, customization: c }: CVTemplateProps)
         >
           <h1
             style={{
-              fontSize: '1.8em',
+              fontSize: '1.9em',
               lineHeight: 1.1,
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 700),
               color: ink,
             }}
           >
             {name || 'Your Name'}
           </h1>
           {cv.personal.title ? (
-            <p style={{ fontSize: '1em', color: metaInk, fontWeight: 600 }}>{cv.personal.title}</p>
+            <p style={{ fontSize: '1em', color: metaInk, fontWeight: bodyWeight(c, 600) }}>{cv.personal.title}</p>
           ) : null}
         </div>
         <div style={{ marginTop: '0.3em' }}>
@@ -96,7 +105,7 @@ export default function AtsEntryLevel({ cv, customization: c }: CVTemplateProps)
             className="cv-section-title"
             style={{
               fontSize: '0.82em',
-              fontWeight: 700,
+              fontWeight: headingWeight(c, 700),
               color: c.secondaryColor,
               textTransform: headingTransform(c),
               letterSpacing: tracking,

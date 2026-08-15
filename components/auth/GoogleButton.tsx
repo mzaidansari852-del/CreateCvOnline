@@ -11,7 +11,14 @@ import { cn } from '@/lib/utils/cn';
  */
 export function GoogleG({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 48 48" className="shrink-0" aria-hidden focusable="false">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      className="shrink-0"
+      aria-hidden
+      focusable="false"
+    >
       <path
         fill="#4285F4"
         d="M46.98 24.55c0-1.57-.15-3.09-.4-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65Z"
@@ -38,15 +45,18 @@ export function GoogleG({ size = 18 }: { size?: number }) {
  * Presentational on purpose: the surrounding form owns the `signInWithGoogle()` call so
  * that a failure lands in the same error `Alert` as an e-mail/password failure, rather
  * than in a second error surface the user has to look for.
+ *
+ * `label` has no default: a default would be one English string that no caller passes
+ * through the copy table, and it would be invisible until a fourth screen used it.
  */
 export function GoogleButton({
-  label = 'Continue with Google',
+  label,
   onClick,
   loading = false,
   disabled = false,
   className,
 }: {
-  label?: string;
+  label: string;
   onClick: () => void;
   loading?: boolean;
   disabled?: boolean;

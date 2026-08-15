@@ -1,12 +1,19 @@
 import Link from 'next/link';
 
 import { Alert } from '@/components/ui/feedback';
+import type { AppCopy } from '@/lib/i18n/app-copy';
 
 /**
  * The small pieces every auth screen needs.
  *
  * Kept in one module so the redirect rule, the "not configured" explanation and the
  * e-mail check cannot drift apart between the four forms.
+ *
+ * The two components take their strings as a prop rather than calling `useCopy()`. This
+ * module has no `'use client'` — `safeNextPath` and `firstParam` are called by the auth
+ * *pages*, which are server components, and marking the file would turn those helpers
+ * into client references that throw when the server calls them. Every caller of the
+ * components is a client component that already has the copy in hand.
  */
 
 /** Where a successful sign-in lands when nothing better is asked for. */
@@ -60,24 +67,24 @@ export function isEmail(value: string): boolean {
  * Shown in place of a working form when the Firebase environment variables are missing.
  * Without it a submit would fail with an opaque SDK error, or nothing at all.
  */
-export function NotConfiguredAlert() {
+export function NotConfiguredAlert({ copy }: { copy: AppCopy }) {
   return (
-    <Alert tone="warning" title="Sign-in is not configured on this deployment">
+    <Alert tone="warning" title={copy.auth.notConfiguredTitle}>
       <p>
-        No Firebase credentials were found, so accounts cannot be created or used yet. Copy{' '}
+        {copy.auth.notConfiguredIntro}{' '}
         <code className="rounded bg-warning-100 px-1 py-0.5 font-mono text-2xs">.env.example</code>{' '}
-        to{' '}
-        <code className="rounded bg-warning-100 px-1 py-0.5 font-mono text-2xs">.env.local</code>,
-        fill in the{' '}
+        {copy.auth.notConfiguredTo}{' '}
+        <code className="rounded bg-warning-100 px-1 py-0.5 font-mono text-2xs">.env.local</code>
+        {copy.auth.notConfiguredFill}{' '}
         <code className="rounded bg-warning-100 px-1 py-0.5 font-mono text-2xs">
           NEXT_PUBLIC_FIREBASE_*
         </code>{' '}
-        values and restart the server.
+        {copy.auth.notConfiguredRestart}
       </p>
       <p className="mt-1.5">
-        Everything that does not need an account still works —{' '}
+        {copy.auth.notConfiguredStillWorks}{' '}
         <Link href="/templates" className="font-semibold underline underline-offset-2">
-          browse the templates
+          {copy.auth.notConfiguredBrowseLink}
         </Link>
         .
       </p>
@@ -86,7 +93,7 @@ export function NotConfiguredAlert() {
 }
 
 /** The "or" rule between a provider button and an e-mail form. */
-export function OrDivider({ label = 'or continue with e-mail' }: { label?: string }) {
+export function OrDivider({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3">
       <span className="h-px flex-1 bg-ink-200" aria-hidden />

@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { RefreshCw } from 'lucide-react';
 
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/feedback';
 import { site } from '@/lib/site';
@@ -20,6 +21,10 @@ export default function DashboardError({
   error: Error & { digest?: string };
   retry: () => void;
 }) {
+  // The dashboard layout resolved the language before this boundary was ever reachable,
+  // so the provider is always above it and the fallback to English never applies here.
+  const copy = useCopy();
+
   useEffect(() => {
     console.error('[dashboard]', error);
   }, [error]);
@@ -28,25 +33,23 @@ export default function DashboardError({
     <div className="grid min-h-dvh place-items-center p-6">
       <div className="w-full max-w-lg">
         <EmptyState
-          title="That page did not load"
+          title={copy.dashboard.errorTitle}
           description={
-            error.digest
-              ? `Something went wrong on our side. Quote reference ${error.digest} if you contact support.`
-              : 'Something went wrong on our side. Your CVs are safe — nothing was changed.'
+            error.digest ? copy.dashboard.errorBodyWithRef(error.digest) : copy.dashboard.errorBody
           }
           action={
             <Button onClick={retry} leadingIcon={<RefreshCw size={15} aria-hidden />}>
-              Try again
+              {copy.common.retry}
             </Button>
           }
           secondaryAction={
             <ButtonLink href="/dashboard" variant="outline">
-              Back to the dashboard
+              {copy.dashboard.backToDashboard}
             </ButtonLink>
           }
         />
         <p className="mt-4 text-center text-xs text-ink-500">
-          If it keeps happening, e-mail {site.supportEmail}.
+          {copy.dashboard.errorSupport(site.supportEmail)}
         </p>
       </div>
     </div>

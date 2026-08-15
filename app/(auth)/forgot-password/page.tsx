@@ -1,24 +1,37 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 
 import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
+import { appCopy } from '@/lib/i18n/app-copy';
+import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { privateMetadata } from '@/lib/seo/metadata';
 import { site } from '@/lib/site';
 
-export const metadata: Metadata = privateMetadata(
-  'Reset your password',
-  `Request a password reset link for your ${site.name} account.`,
-);
+/** No profile exists yet on this screen, so the cookie is the only source of language. */
+async function authCopy() {
+  const cookieLocale = (await cookies()).get(LOCALE_COOKIE)?.value;
+  return appCopy(resolveLocale({ profileLocale: null, cookieLocale }));
+}
 
-export default function ForgotPasswordPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = await authCopy();
+  return privateMetadata(
+    copy.auth.forgotPasswordTitle,
+    copy.auth.forgotPasswordMetaDescription(site.name),
+  );
+}
+
+export default async function ForgotPasswordPage() {
+  const copy = await authCopy();
+
   return (
     <div className="flex flex-col gap-7">
       <div>
         <h1 className="font-display text-3xl leading-tight font-extrabold tracking-tight text-ink-950">
-          Reset your password
+          {copy.auth.forgotPasswordTitle}
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-ink-600">
-          Give us the address on your account and we will e-mail you a link to choose a new
-          password. Your CVs are untouched.
+          {copy.auth.forgotPasswordSubtitle}
         </p>
       </div>
 

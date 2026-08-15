@@ -2,17 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Copy,
-  Download,
-  Eye,
-  Link2,
-  MoreHorizontal,
-  Pencil,
-  Share2,
-  Trash2,
-} from 'lucide-react';
+import { Copy, Download, Eye, Link2, MoreHorizontal, Pencil, Share2, Trash2 } from 'lucide-react';
 
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Button, ButtonLink, Spinner } from '@/components/ui/button';
 import { Alert } from '@/components/ui/feedback';
 import { Field, Input, Switch } from '@/components/ui/form';
@@ -40,6 +32,9 @@ export interface CVActionTarget {
   shareId: string | null;
 }
 
+/** Matches the server's own cap, and is quoted back to the user when they exceed it. */
+const TITLE_MAX_LENGTH = 120;
+
 export function CVActions({
   cv,
   canShare,
@@ -58,6 +53,7 @@ export function CVActions({
   const router = useRouter();
   const toast = useToast();
   const showError = useApiErrorToast();
+  const copy = useCopy();
 
   const [busy, setBusy] = useState<null | 'download' | 'duplicate' | 'rename' | 'delete' | 'share'>(
     null,
@@ -80,11 +76,11 @@ export function CVActions({
     try {
       await downloadCVPdf(cv.id, cv.title);
       trackEvent('cv_downloaded', { cv_id: cv.id });
-      toast.success('PDF ready', 'Your download should start automatically.');
+      toast.success(copy.cvs.pdfReadyTitle, copy.cvs.pdfReadyBody);
       // The download counter moved, so the quota meters need re-reading.
       router.refresh();
     } catch (error) {
-      showError(error, 'Could not create the PDF');
+      showError(error, copy.cvs.pdfFailed);
     } finally {
       setBusy(null);
     }
@@ -93,15 +89,15 @@ export function CVActions({
   async function handleDuplicate() {
     setBusy('duplicate');
     try {
-      const { cv: copy } = await apiRequest<{ cv: { id: string; title: string } }>(
+      const { cv: created } = await apiRequest<{ cv: { id: string; title: string } }>(
         `/api/cvs/${cv.id}/duplicate`,
         { method: 'POST' },
       );
       trackEvent('cv_duplicated', { cv_id: cv.id });
-      toast.success('Copy created', `“${copy.title}” is in your list.`);
+      toast.success(copy.cvs.duplicated, copy.cvs.duplicatedBody(created.title));
       router.refresh();
     } catch (error) {
-      showError(error, 'Could not duplicate that CV');
+      showError(error, copy.cvs.duplicateFailed);
     } finally {
       setBusy(null);
     }
@@ -110,11 +106,11 @@ export function CVActions({
   async function handleRename() {
     const title = renameValue.trim();
     if (!title) {
-      setRenameError('Give the CV a name so you can find it later.');
+      setRenameError(copy.cvs.nameRequired);
       return;
     }
-    if (title.length > 120) {
-      setRenameError('Keep the name to 120 characters or fewer.');
+    if (title.length > TITLE_MAX_LENGTH) {
+      setRenameError(copy.cvs.nameTooLong(TITLE_MAX_LENGTH));
       return;
     }
 
@@ -125,11 +121,11 @@ export function CVActions({
         method: 'PATCH',
         body: JSON.stringify({ title }),
       });
-      toast.success('Renamed', `Now called “${title}”.`);
+      toast.success(copy.cvs.renamedTitle, copy.cvs.renamedBody(title));
       setRenameOpen(false);
       router.refresh();
     } catch (error) {
-      showError(error, 'Could not rename that CV');
+      showError(error, copy.cvs.renameFailed);
     } finally {
       setBusy(null);
     }
@@ -140,12 +136,12 @@ export function CVActions({
     try {
       await apiRequest(`/api/cvs/${cv.id}`, { method: 'DELETE' });
       trackEvent('cv_deleted', { cv_id: cv.id });
-      toast.success('CV deleted', `“${cv.title}” has been removed.`);
+      toast.success(copy.cvs.deletedTitle, copy.cvs.deletedBody(cv.title));
       setDeleteOpen(false);
       if (afterDelete === 'redirect') router.replace('/dashboard/cvs');
       router.refresh();
     } catch (error) {
-      showError(error, 'Could not delete that CV');
+      showError(error, copy.cvs.deleteFailed);
     } finally {
       setBusy(null);
     }
@@ -162,14 +158,12 @@ export function CVActions({
       setShareUrl(result.shareUrl);
       if (result.isPublic) trackEvent('cv_shared', { cv_id: cv.id });
       toast.success(
-        result.isPublic ? 'Share link on' : 'Share link off',
-        result.isPublic
-          ? 'Anyone with the link can now view this CV.'
-          : 'The link no longer works.',
+        result.isPublic ? copy.cvs.shareOnTitle : copy.cvs.shareOffTitle,
+        result.isPublic ? copy.cvs.shareOnBody : copy.cvs.shareOffBody,
       );
       router.refresh();
     } catch (error) {
-      showError(error, 'Could not change sharing');
+      showError(error, copy.cvs.shareFailed);
     } finally {
       setBusy(null);
     }
@@ -178,36 +172,36 @@ export function CVActions({
   async function handleCopy() {
     if (!shareUrl) return;
     const copied = await copyToClipboard(shareUrl);
-    if (copied) toast.success('Link copied');
-    else toast.error('Could not copy', 'Select the link and copy it manually.');
+    if (copied) toast.success(copy.cvs.shareCopied);
+    else toast.error(copy.cvs.copyFailedTitle, copy.cvs.copyFailedBody);
   }
 
   const items: MenuItem[] = [
     {
-      label: 'Edit',
+      label: copy.common.edit,
       icon: <Pencil size={16} aria-hidden />,
       onSelect: () => router.push(editHref),
     },
     {
-      label: 'Preview',
+      label: copy.common.preview,
       icon: <Eye size={16} aria-hidden />,
       onSelect: () => router.push(previewHref),
     },
     {
-      label: busy === 'download' ? 'Preparing PDF…' : 'Download PDF',
+      label: busy === 'download' ? copy.cvs.preparingPdf : copy.cvs.downloadPdf,
       icon: <Download size={16} aria-hidden />,
       disabled: busy === 'download',
       onSelect: () => void handleDownload(),
     },
     {
-      label: 'Duplicate',
+      label: copy.common.duplicate,
       icon: <Copy size={16} aria-hidden />,
       disabled: busy === 'duplicate',
       onSelect: () => void handleDuplicate(),
       separatorBefore: true,
     },
     {
-      label: 'Rename…',
+      label: copy.cvs.renameAction,
       icon: <Pencil size={16} aria-hidden />,
       onSelect: () => {
         setRenameValue(cv.title);
@@ -216,12 +210,12 @@ export function CVActions({
       },
     },
     {
-      label: isPublic ? 'Sharing…' : 'Share…',
+      label: isPublic ? copy.cvs.sharingAction : copy.cvs.shareAction,
       icon: <Share2 size={16} aria-hidden />,
       onSelect: () => setShareOpen(true),
     },
     {
-      label: 'Delete…',
+      label: copy.cvs.deleteAction,
       icon: <Trash2 size={16} aria-hidden />,
       tone: 'danger',
       separatorBefore: true,
@@ -234,7 +228,7 @@ export function CVActions({
       {layout === 'bar' ? (
         <>
           <ButtonLink href={editHref} size="sm" leadingIcon={<Pencil size={15} aria-hidden />}>
-            Edit
+            {copy.common.edit}
           </ButtonLink>
           <Button
             size="sm"
@@ -243,7 +237,7 @@ export function CVActions({
             leadingIcon={<Download size={15} aria-hidden />}
             onClick={() => void handleDownload()}
           >
-            Download PDF
+            {copy.cvs.downloadPdf}
           </Button>
           <Button
             size="sm"
@@ -252,19 +246,21 @@ export function CVActions({
             onClick={() => setShareOpen(true)}
             className="hidden sm:inline-flex"
           >
-            Share
+            {copy.cvs.shareShort}
           </Button>
         </>
       ) : null}
 
       <DropdownMenu
-        ariaLabel={`Actions for ${cv.title}`}
+        ariaLabel={copy.cvs.actionsAria(cv.title)}
         items={items}
         trigger={({ open }) => (
           <span
             className={cn(
               'grid size-9 place-items-center rounded-lg border border-ink-200 bg-white text-ink-600 transition-colors',
-              open ? 'border-ink-300 bg-ink-100 text-ink-900' : 'hover:bg-ink-100 hover:text-ink-900',
+              open
+                ? 'border-ink-300 bg-ink-100 text-ink-900'
+                : 'hover:bg-ink-100 hover:text-ink-900',
             )}
           >
             {busy && busy !== 'download' ? (
@@ -279,28 +275,32 @@ export function CVActions({
       <Modal
         open={renameOpen}
         onClose={() => setRenameOpen(false)}
-        title="Rename CV"
-        description="Only you see this name — it is not printed on the document."
+        title={copy.cvs.renameTitle}
+        description={copy.cvs.renameLede}
         size="sm"
         footer={
           <>
-            <Button variant="outline" onClick={() => setRenameOpen(false)} disabled={busy === 'rename'}>
-              Cancel
+            <Button
+              variant="outline"
+              onClick={() => setRenameOpen(false)}
+              disabled={busy === 'rename'}
+            >
+              {copy.common.cancel}
             </Button>
             <Button loading={busy === 'rename'} onClick={() => void handleRename()}>
-              Save name
+              {copy.cvs.renameSave}
             </Button>
           </>
         }
       >
-        <Field label="CV name" error={renameError}>
+        <Field label={copy.cvs.nameLabel} error={renameError}>
           {({ id, describedBy, invalid }) => (
             <Input
               id={id}
               aria-describedby={describedBy}
               invalid={invalid}
               value={renameValue}
-              maxLength={120}
+              maxLength={TITLE_MAX_LENGTH}
               data-autofocus
               onChange={(event) => setRenameValue(event.target.value)}
               onKeyDown={(event) => {
@@ -314,23 +314,22 @@ export function CVActions({
       <Modal
         open={shareOpen}
         onClose={() => setShareOpen(false)}
-        title="Share this CV"
-        description="Publishing creates a read-only page at an unguessable address. Turn it off at any time."
+        title={copy.cvs.shareTitle}
+        description={copy.cvs.shareModalLede}
         size="md"
       >
         <div className="flex flex-col gap-4">
           {canShare ? null : (
             <Alert
               tone="info"
-              title="Public links are a Pro feature"
+              title={copy.cvs.shareProTitle}
               action={
                 <ButtonLink href="/pricing" size="sm">
-                  See plans
+                  {copy.dashboard.seePlans}
                 </ButtonLink>
               }
             >
-              Upgrade to publish your CV at a link you can put in an e-mail or a job
-              application.
+              {copy.cvs.shareProBody}
             </Alert>
           )}
 
@@ -338,23 +337,19 @@ export function CVActions({
             checked={isPublic}
             disabled={busy === 'share' || (!canShare && !isPublic)}
             onCheckedChange={(next) => void handleShareToggle(next)}
-            label="Anyone with the link can view this CV"
-            hint={
-              isPublic
-                ? 'The page is live now.'
-                : 'Nothing is published until you turn this on.'
-            }
+            label={copy.cvs.sharePublicLabel}
+            hint={isPublic ? copy.cvs.shareLiveHint : copy.cvs.shareOffHint}
           />
 
           {busy === 'share' ? (
             <p className="flex items-center gap-2 text-sm text-ink-600">
-              <Spinner size={14} /> Updating the link…
+              <Spinner size={14} /> {copy.cvs.shareUpdating}
             </p>
           ) : null}
 
           {isPublic && shareUrl ? (
             <div className="flex flex-col gap-2">
-              <p className="text-sm font-medium text-ink-800">Your public link</p>
+              <p className="text-sm font-medium text-ink-800">{copy.cvs.publicLinkHeading}</p>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Input readOnly value={shareUrl} className="font-mono text-xs" />
                 <Button
@@ -363,7 +358,7 @@ export function CVActions({
                   onClick={() => void handleCopy()}
                   className="shrink-0"
                 >
-                  Copy link
+                  {copy.cvs.shareCopy}
                 </Button>
               </div>
             </div>
@@ -376,9 +371,10 @@ export function CVActions({
         onClose={() => setDeleteOpen(false)}
         onConfirm={() => void handleDelete()}
         loading={busy === 'delete'}
-        title={`Delete “${cv.title}”?`}
-        description={`“${cv.title}” and everything in it will be permanently removed. This cannot be undone.`}
-        confirmLabel="Delete CV"
+        title={copy.cvs.deleteTitle}
+        description={copy.cvs.deleteBody(cv.title)}
+        confirmLabel={copy.cvs.deleteConfirm}
+        cancelLabel={copy.common.cancel}
       />
     </div>
   );

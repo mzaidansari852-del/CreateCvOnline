@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { PhotoField } from './PhotoField';
 import { RepeatableList, StringList } from './RepeatableList';
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Checkbox, Field, Input, Select, Switch, Textarea } from '@/components/ui/form';
 import { LANGUAGE_LEVELS, SKILL_LEVELS, fullName } from '@/lib/cv/format';
 import { customSectionKey, isCustomSectionId } from '@/lib/cv/sections';
@@ -140,6 +141,7 @@ function AreaField({
 /* -------------------------------------------------------------------------- */
 
 export function PersonalForm({ cv, onChange }: SectionFormProps) {
+  const text = useCopy().editor.forms.personal;
   const personal = cv.personal;
   const set = (patch: Partial<CVData['personal']>) =>
     onChange((current) => ({ ...current, personal: { ...current.personal, ...patch } }));
@@ -148,13 +150,13 @@ export function PersonalForm({ cv, onChange }: SectionFormProps) {
     <div className="flex flex-col gap-5">
       <Grid>
         <TextField
-          label="First name"
+          label={text.firstName}
           value={personal.firstName}
           onChange={(value) => set({ firstName: value })}
           autoComplete="given-name"
         />
         <TextField
-          label="Last name"
+          label={text.lastName}
           value={personal.lastName}
           onChange={(value) => set({ lastName: value })}
           autoComplete="family-name"
@@ -162,60 +164,60 @@ export function PersonalForm({ cv, onChange }: SectionFormProps) {
       </Grid>
 
       <TextField
-        label="Professional title"
+        label={text.title}
         value={personal.title}
         onChange={(value) => set({ title: value })}
-        placeholder="Senior Product Designer"
-        hint="The role you are applying for, not necessarily your current job title."
+        placeholder={text.titlePlaceholder}
+        hint={text.titleHint}
       />
 
       <Grid>
         <TextField
-          label="Email"
+          label={text.email}
           type="email"
           value={personal.email}
           onChange={(value) => set({ email: value })}
           autoComplete="email"
-          placeholder="you@example.com"
+          placeholder={text.emailPlaceholder}
         />
         <TextField
-          label="Phone"
+          label={text.phone}
           type="tel"
           value={personal.phone}
           onChange={(value) => set({ phone: value })}
           autoComplete="tel"
-          placeholder="+212 6 12 34 56 78"
+          placeholder={text.phonePlaceholder}
         />
       </Grid>
 
       <TextField
-        label="Location"
+        label={text.location}
         value={personal.location}
         onChange={(value) => set({ location: value })}
-        placeholder="Casablanca, Morocco"
-        hint="City and country is enough. A full street address is unnecessary and best left off."
+        placeholder={text.locationPlaceholder}
+        hint={text.locationHint}
       />
 
       <Grid>
         <TextField
-          label="Website"
+          label={text.website}
           value={personal.website}
           onChange={(value) => set({ website: value })}
-          placeholder="yoursite.com"
+          placeholder={text.websitePlaceholder}
         />
         <TextField
-          label="LinkedIn"
+          label={text.linkedin}
           value={personal.linkedin}
           onChange={(value) => set({ linkedin: value })}
-          placeholder="linkedin.com/in/you"
+          placeholder={text.linkedinPlaceholder}
         />
       </Grid>
 
       <TextField
-        label="GitHub"
+        label={text.github}
         value={personal.github}
         onChange={(value) => set({ github: value })}
-        placeholder="github.com/you"
+        placeholder={text.githubPlaceholder}
       />
 
       <PhotoField
@@ -227,11 +229,11 @@ export function PersonalForm({ cv, onChange }: SectionFormProps) {
       />
 
       <TextField
-        label="…or paste a photo URL"
+        label={text.photoUrl}
         value={personal.photoUrl}
         onChange={(value) => set({ photoUrl: value })}
         placeholder="https://…"
-        hint="Only needed if the image is already hosted somewhere public. Uploading above is easier and produces a smaller PDF."
+        hint={text.photoUrlHint}
       />
 
       <div className="rounded-xl border border-ink-200 p-4">
@@ -239,27 +241,28 @@ export function PersonalForm({ cv, onChange }: SectionFormProps) {
           items={personal.links}
           onChange={(links) => set({ links })}
           createItem={() => ({ id: uid(), label: '', url: '' })}
-          summary={(item) => ({ title: item.label || 'Link', subtitle: item.url })}
-          addLabel="Add another link"
-          emptyTitle="No extra links"
-          emptyDescription="Add a portfolio, Dribbble, Behance, ORCID or anything else worth putting on the page."
-          itemNoun="link"
+          summary={(item) => ({ title: item.label || text.linkFallback, subtitle: item.url })}
+          addLabel={text.links.add}
+          emptyTitle={text.links.emptyTitle}
+          emptyDescription={text.links.emptyBody}
+          deleteTitle={text.links.deleteTitle}
+          untitledLabel={text.links.untitled}
           max={8}
         >
           {(item, update) => (
             <Grid>
               <TextField
-                label="Label"
+                label={text.linkLabel}
                 value={item.label}
                 onChange={(value) => update({ label: value })}
-                placeholder="Portfolio"
+                placeholder={text.linkLabelPlaceholder}
                 maxLength={40}
               />
               <TextField
-                label="URL"
+                label={text.linkUrl}
                 value={item.url}
                 onChange={(value) => update({ url: value })}
-                placeholder="yourportfolio.com"
+                placeholder={text.linkUrlPlaceholder}
               />
             </Grid>
           )}
@@ -274,23 +277,24 @@ export function PersonalForm({ cv, onChange }: SectionFormProps) {
 /* -------------------------------------------------------------------------- */
 
 export function SummaryForm({ cv, onChange }: SectionFormProps) {
+  const text = useCopy().editor.forms.summary;
   const words = cv.summary.trim() ? cv.summary.trim().split(/\s+/).length : 0;
 
   return (
     <div className="flex flex-col gap-2">
       <AreaField
-        label="Professional summary"
+        label={text.label}
         value={cv.summary}
         onChange={(summary) => onChange((current) => ({ ...current, summary }))}
         rows={7}
         maxLength={3000}
-        placeholder="Three or four sentences: who you are, the value you bring, and one result that proves it."
-        hint="Aim for 50–90 words. Lead with your discipline and years of experience, then the single achievement you would want read first."
+        placeholder={text.placeholder}
+        hint={text.hint}
       />
       <p className="text-xs text-ink-500">
-        {words} word{words === 1 ? '' : 's'}
-        {words > 0 && words < 40 ? ' — a little short; add a concrete result.' : ''}
-        {words > 110 ? ' — long enough that a recruiter will skim past it. Try trimming.' : ''}
+        {text.wordCount(words)}
+        {words > 0 && words < 40 ? text.tooShort : ''}
+        {words > 110 ? text.tooLong : ''}
       </p>
     </div>
   );
@@ -301,6 +305,7 @@ export function SummaryForm({ cv, onChange }: SectionFormProps) {
 /* -------------------------------------------------------------------------- */
 
 export function ExperienceForm({ cv, onChange }: SectionFormProps) {
+  const text = useCopy().editor.forms.experience;
   return (
     <RepeatableList
       items={cv.experience}
@@ -321,80 +326,84 @@ export function ExperienceForm({ cv, onChange }: SectionFormProps) {
         title: item.role || item.company,
         subtitle: [item.company, item.startDate].filter(Boolean).join(' · '),
       })}
-      addLabel="Add a role"
-      emptyTitle="No work experience yet"
-      emptyDescription="Add your most recent role first. Internships, freelance work and significant volunteering all count."
-      itemNoun="role"
+      addLabel={text.list.add}
+      emptyTitle={text.list.emptyTitle}
+      emptyDescription={text.list.emptyBody}
+      deleteTitle={text.list.deleteTitle}
+      untitledLabel={text.list.untitled}
     >
       {(item, update) => (
         <div className="flex flex-col gap-4">
           <Grid>
             <TextField
-              label="Job title"
+              label={text.role}
               value={item.role}
               onChange={(value) => update({ role: value })}
-              placeholder="Senior Product Designer"
+              placeholder={text.rolePlaceholder}
             />
             <TextField
-              label="Company"
+              label={text.company}
               value={item.company}
               onChange={(value) => update({ company: value })}
-              placeholder="Atlas Cloud"
+              placeholder={text.companyPlaceholder}
             />
           </Grid>
 
           <Grid columns={3}>
             <TextField
-              label="Location"
+              label={text.location}
               value={item.location}
               onChange={(value) => update({ location: value })}
-              placeholder="Casablanca, MA"
+              placeholder={text.locationPlaceholder}
             />
             <MonthField
-              label="Start date"
+              label={text.startDate}
               value={item.startDate}
               onChange={(value) => update({ startDate: value })}
             />
             <MonthField
-              label="End date"
+              label={text.endDate}
               value={item.endDate}
               onChange={(value) => update({ endDate: value })}
               disabled={item.current}
-              hint={item.current ? 'Shown as “Present”.' : undefined}
+              hint={item.current ? text.presentHint : undefined}
             />
           </Grid>
 
           <Checkbox
-            label="I currently work here"
+            label={text.current}
             checked={item.current}
             onChange={(event) =>
-              update({ current: event.target.checked, endDate: event.target.checked ? '' : item.endDate })
+              update({
+                current: event.target.checked,
+                endDate: event.target.checked ? '' : item.endDate,
+              })
             }
           />
 
           <AreaField
-            label="What the role involved"
+            label={text.description}
             value={item.description}
             onChange={(value) => update({ description: value })}
             rows={3}
             maxLength={3000}
-            placeholder="One or two lines of context: the scope of the role, team size, who you served."
-            hint="Context, not achievements — those go below."
+            placeholder={text.descriptionPlaceholder}
+            hint={text.descriptionHint}
           />
 
           <StringList
             values={item.achievements}
             onChange={(achievements) => update({ achievements })}
-            label="Achievements"
-            placeholder="Rebuilt onboarding, lifting activation from 34% to 58% in two quarters."
-            addLabel="Add an achievement"
+            label={text.achievements}
+            placeholder={text.achievementPlaceholder}
+            addLabel={text.addAchievement}
           />
 
           <TagsField
             values={item.tags}
             onChange={(tags) => update({ tags })}
-            label="Tags"
-            hint="Optional keywords shown as small chips by some templates. ATS templates hide them."
+            label={text.tags}
+            hint={text.tagsHint}
           />
         </div>
       )}
@@ -413,6 +422,7 @@ function TagsField({
   label: string;
   hint?: string;
 }) {
+  const copy = useCopy();
   return (
     <Field label={label} hint={hint}>
       {({ id, describedBy }) => (
@@ -420,7 +430,7 @@ function TagsField({
           id={id}
           aria-describedby={describedBy}
           value={values.join(', ')}
-          placeholder="Design systems, Onboarding, B2B SaaS"
+          placeholder={copy.editor.forms.experience.tagsPlaceholder}
           onChange={(event) =>
             onChange(
               event.target.value
@@ -441,6 +451,7 @@ function TagsField({
 /* -------------------------------------------------------------------------- */
 
 export function EducationForm({ cv, onChange }: SectionFormProps) {
+  const text = useCopy().editor.forms.education;
   return (
     <RepeatableList
       items={cv.education}
@@ -461,76 +472,80 @@ export function EducationForm({ cv, onChange }: SectionFormProps) {
         title: [item.degree, item.field].filter(Boolean).join(', ') || item.institution,
         subtitle: item.institution,
       })}
-      addLabel="Add a qualification"
-      emptyTitle="No education added"
-      emptyDescription="List your highest qualification first. Early in a career this section belongs near the top of the CV."
-      itemNoun="qualification"
+      addLabel={text.list.add}
+      emptyTitle={text.list.emptyTitle}
+      emptyDescription={text.list.emptyBody}
+      deleteTitle={text.list.deleteTitle}
+      untitledLabel={text.list.untitled}
       max={20}
     >
       {(item, update) => (
         <div className="flex flex-col gap-4">
           <Grid>
             <TextField
-              label="Degree"
+              label={text.degree}
               value={item.degree}
               onChange={(value) => update({ degree: value })}
-              placeholder="BSc"
+              placeholder={text.degreePlaceholder}
             />
             <TextField
-              label="Field of study"
+              label={text.field}
               value={item.field}
               onChange={(value) => update({ field: value })}
-              placeholder="Computer Science"
+              placeholder={text.fieldPlaceholder}
             />
           </Grid>
           <Grid>
             <TextField
-              label="Institution"
+              label={text.institution}
               value={item.institution}
               onChange={(value) => update({ institution: value })}
-              placeholder="Université Mohammed V"
+              placeholder={text.institutionPlaceholder}
             />
             <TextField
-              label="Location"
+              label={text.location}
               value={item.location}
               onChange={(value) => update({ location: value })}
-              placeholder="Rabat, Morocco"
+              placeholder={text.locationPlaceholder}
             />
           </Grid>
           <Grid columns={3}>
             <MonthField
-              label="Start date"
+              label={text.startDate}
               value={item.startDate}
               onChange={(value) => update({ startDate: value })}
             />
             <MonthField
-              label="End date"
+              label={text.endDate}
               value={item.endDate}
               onChange={(value) => update({ endDate: value })}
               disabled={item.current}
             />
             <TextField
-              label="Grade"
+              label={text.grade}
               value={item.grade}
               onChange={(value) => update({ grade: value })}
-              placeholder="First class / 3.7 GPA"
+              placeholder={text.gradePlaceholder}
             />
           </Grid>
           <Checkbox
-            label="I am still studying here"
+            label={text.current}
             checked={item.current}
             onChange={(event) =>
-              update({ current: event.target.checked, endDate: event.target.checked ? '' : item.endDate })
+              update({
+                current: event.target.checked,
+                endDate: event.target.checked ? '' : item.endDate,
+              })
             }
           />
           <AreaField
-            label="Notes"
+            label={text.notes}
             value={item.description}
             onChange={(value) => update({ description: value })}
             rows={2}
             maxLength={2000}
-            placeholder="Thesis title, relevant modules, or a prize."
-            hint="Worth filling in for a recent graduate; safe to leave empty later on."
+            placeholder={text.notesPlaceholder}
+            hint={text.notesHint}
           />
         </div>
       )}
@@ -543,6 +558,7 @@ export function EducationForm({ cv, onChange }: SectionFormProps) {
 /* -------------------------------------------------------------------------- */
 
 export function SkillsForm({ cv, onChange }: SectionFormProps) {
+  const text = useCopy().editor.forms.skills;
   return (
     <RepeatableList
       items={cv.skills}
@@ -554,30 +570,31 @@ export function SkillsForm({ cv, onChange }: SectionFormProps) {
           .filter(Boolean)
           .join(' · '),
       })}
-      addLabel="Add a skill"
-      emptyTitle="No skills listed"
-      emptyDescription="Five to fifteen is the useful range. Group them into categories and the templates will lay them out for you."
-      itemNoun="skill"
+      addLabel={text.list.add}
+      emptyTitle={text.list.emptyTitle}
+      emptyDescription={text.list.emptyBody}
+      deleteTitle={text.list.deleteTitle}
+      untitledLabel={text.list.untitled}
       max={80}
     >
       {(item, update) => (
         <Grid columns={3}>
           <TextField
-            label="Skill"
+            label={text.name}
             value={item.name}
             onChange={(value) => update({ name: value })}
-            placeholder="Figma"
+            placeholder={text.namePlaceholder}
             maxLength={80}
           />
           <TextField
-            label="Category"
+            label={text.category}
             value={item.category}
             onChange={(value) => update({ category: value })}
-            placeholder="Tools"
-            hint="Optional grouping."
+            placeholder={text.categoryPlaceholder}
+            hint={text.categoryHint}
             maxLength={60}
           />
-          <Field label="Level">
+          <Field label={text.level}>
             {({ id }) => (
               <Select
                 id={id}
@@ -603,6 +620,7 @@ export function SkillsForm({ cv, onChange }: SectionFormProps) {
 /* -------------------------------------------------------------------------- */
 
 export function LanguagesForm({ cv, onChange }: SectionFormProps) {
+  const text = useCopy().editor.forms.languages;
   return (
     <RepeatableList
       items={cv.languages}
@@ -616,22 +634,23 @@ export function LanguagesForm({ cv, onChange }: SectionFormProps) {
         title: item.name,
         subtitle: LANGUAGE_LEVELS.find((level) => level.value === item.level)?.label,
       })}
-      addLabel="Add a language"
-      emptyTitle="No languages listed"
-      emptyDescription="Worth adding for any international application, and expected on a European CV."
-      itemNoun="language"
+      addLabel={text.list.add}
+      emptyTitle={text.list.emptyTitle}
+      emptyDescription={text.list.emptyBody}
+      deleteTitle={text.list.deleteTitle}
+      untitledLabel={text.list.untitled}
       max={20}
     >
       {(item, update) => (
         <Grid>
           <TextField
-            label="Language"
+            label={text.name}
             value={item.name}
             onChange={(value) => update({ name: value })}
-            placeholder="French"
+            placeholder={text.namePlaceholder}
             maxLength={60}
           />
-          <Field label="Proficiency" hint="Mapped to the CEFR scale by templates that show one.">
+          <Field label={text.level} hint={text.levelHint}>
             {({ id, describedBy }) => (
               <Select
                 id={id}
@@ -658,6 +677,7 @@ export function LanguagesForm({ cv, onChange }: SectionFormProps) {
 /* -------------------------------------------------------------------------- */
 
 export function ProjectsForm({ cv, onChange }: SectionFormProps) {
+  const text = useCopy().editor.forms.projects;
   return (
     <RepeatableList
       items={cv.projects}
@@ -674,63 +694,64 @@ export function ProjectsForm({ cv, onChange }: SectionFormProps) {
         tags: [],
       })}
       summary={(item) => ({ title: item.name, subtitle: item.role || item.url })}
-      addLabel="Add a project"
-      emptyTitle="No projects added"
-      emptyDescription="Side projects, open-source work and notable client deliverables. Especially valuable if your job titles undersell what you can do."
-      itemNoun="project"
+      addLabel={text.list.add}
+      emptyTitle={text.list.emptyTitle}
+      emptyDescription={text.list.emptyBody}
+      deleteTitle={text.list.deleteTitle}
+      untitledLabel={text.list.untitled}
       max={30}
     >
       {(item, update) => (
         <div className="flex flex-col gap-4">
           <Grid>
             <TextField
-              label="Project name"
+              label={text.name}
               value={item.name}
               onChange={(value) => update({ name: value })}
-              placeholder="Souk Kit"
+              placeholder={text.namePlaceholder}
             />
             <TextField
-              label="Your role"
+              label={text.role}
               value={item.role}
               onChange={(value) => update({ role: value })}
-              placeholder="Creator"
+              placeholder={text.rolePlaceholder}
             />
           </Grid>
           <Grid columns={3}>
             <MonthField
-              label="Start"
+              label={text.start}
               value={item.startDate}
               onChange={(value) => update({ startDate: value })}
             />
             <MonthField
-              label="End"
+              label={text.end}
               value={item.endDate}
               onChange={(value) => update({ endDate: value })}
             />
             <TextField
-              label="Link"
+              label={text.link}
               value={item.url}
               onChange={(value) => update({ url: value })}
-              placeholder="github.com/you/project"
+              placeholder={text.linkPlaceholder}
             />
           </Grid>
           <AreaField
-            label="Description"
+            label={text.description}
             value={item.description}
             onChange={(value) => update({ description: value })}
             rows={3}
             maxLength={2000}
-            placeholder="What it is, who it is for, and what you built."
+            placeholder={text.descriptionPlaceholder}
           />
           <StringList
             values={item.highlights}
             onChange={(highlights) => update({ highlights })}
-            label="Highlights"
-            placeholder="4.1k GitHub stars and 60+ contributors."
-            addLabel="Add a highlight"
+            label={text.highlights}
+            placeholder={text.highlightPlaceholder}
+            addLabel={text.addHighlight}
             max={12}
           />
-          <TagsField values={item.tags} onChange={(tags) => update({ tags })} label="Tags" />
+          <TagsField values={item.tags} onChange={(tags) => update({ tags })} label={text.tags} />
         </div>
       )}
     </RepeatableList>
@@ -742,6 +763,7 @@ export function ProjectsForm({ cv, onChange }: SectionFormProps) {
 /* -------------------------------------------------------------------------- */
 
 export function CertificationsForm({ cv, onChange }: SectionFormProps) {
+  const text = useCopy().editor.forms.certifications;
   return (
     <RepeatableList
       items={cv.certifications}
@@ -756,42 +778,47 @@ export function CertificationsForm({ cv, onChange }: SectionFormProps) {
         url: '',
       })}
       summary={(item) => ({ title: item.name, subtitle: item.issuer })}
-      addLabel="Add a certification"
-      emptyTitle="No certifications"
-      emptyDescription="Licences, professional certifications and credentials that a recruiter can verify."
-      itemNoun="certification"
+      addLabel={text.list.add}
+      emptyTitle={text.list.emptyTitle}
+      emptyDescription={text.list.emptyBody}
+      deleteTitle={text.list.deleteTitle}
+      untitledLabel={text.list.untitled}
       max={30}
     >
       {(item, update) => (
         <div className="flex flex-col gap-4">
           <TextField
-            label="Name"
+            label={text.name}
             value={item.name}
             onChange={(value) => update({ name: value })}
-            placeholder="AWS Certified Solutions Architect – Associate"
+            placeholder={text.namePlaceholder}
           />
           <Grid columns={3}>
             <TextField
-              label="Issuer"
+              label={text.issuer}
               value={item.issuer}
               onChange={(value) => update({ issuer: value })}
-              placeholder="Amazon Web Services"
+              placeholder={text.issuerPlaceholder}
             />
-            <MonthField label="Issued" value={item.date} onChange={(value) => update({ date: value })} />
             <MonthField
-              label="Expires"
+              label={text.issued}
+              value={item.date}
+              onChange={(value) => update({ date: value })}
+            />
+            <MonthField
+              label={text.expires}
               value={item.expiryDate}
               onChange={(value) => update({ expiryDate: value })}
             />
           </Grid>
           <Grid>
             <TextField
-              label="Credential ID"
+              label={text.credentialId}
               value={item.credentialId}
               onChange={(value) => update({ credentialId: value })}
             />
             <TextField
-              label="Verification link"
+              label={text.verification}
               value={item.url}
               onChange={(value) => update({ url: value })}
             />
@@ -803,31 +830,41 @@ export function CertificationsForm({ cv, onChange }: SectionFormProps) {
 }
 
 export function AwardsForm({ cv, onChange }: SectionFormProps) {
+  const text = useCopy().editor.forms.awards;
   return (
     <RepeatableList
       items={cv.awards}
       onChange={(awards) => onChange((current) => ({ ...current, awards }))}
       createItem={() => ({ id: uid(), title: '', issuer: '', date: '', description: '' })}
       summary={(item) => ({ title: item.title, subtitle: item.issuer })}
-      addLabel="Add an award"
-      emptyTitle="No awards"
-      emptyDescription="Recognition, prizes and honours — internal awards count too."
-      itemNoun="award"
+      addLabel={text.list.add}
+      emptyTitle={text.list.emptyTitle}
+      emptyDescription={text.list.emptyBody}
+      deleteTitle={text.list.deleteTitle}
+      untitledLabel={text.list.untitled}
       max={20}
     >
       {(item, update) => (
         <div className="flex flex-col gap-4">
           <Grid columns={3}>
-            <TextField label="Title" value={item.title} onChange={(value) => update({ title: value })} />
             <TextField
-              label="Awarded by"
+              label={text.title}
+              value={item.title}
+              onChange={(value) => update({ title: value })}
+            />
+            <TextField
+              label={text.issuer}
               value={item.issuer}
               onChange={(value) => update({ issuer: value })}
             />
-            <MonthField label="Date" value={item.date} onChange={(value) => update({ date: value })} />
+            <MonthField
+              label={text.date}
+              value={item.date}
+              onChange={(value) => update({ date: value })}
+            />
           </Grid>
           <AreaField
-            label="Description"
+            label={text.description}
             value={item.description}
             onChange={(value) => update({ description: value })}
             rows={2}
@@ -840,6 +877,7 @@ export function AwardsForm({ cv, onChange }: SectionFormProps) {
 }
 
 export function VolunteerForm({ cv, onChange }: SectionFormProps) {
+  const text = useCopy().editor.forms.volunteer;
   return (
     <RepeatableList
       items={cv.volunteer}
@@ -855,49 +893,57 @@ export function VolunteerForm({ cv, onChange }: SectionFormProps) {
         description: '',
       })}
       summary={(item) => ({ title: item.role, subtitle: item.organization })}
-      addLabel="Add volunteering"
-      emptyTitle="No volunteer experience"
-      emptyDescription="Unpaid work that shows initiative, values or skills your paid roles do not."
-      itemNoun="entry"
+      addLabel={text.list.add}
+      emptyTitle={text.list.emptyTitle}
+      emptyDescription={text.list.emptyBody}
+      deleteTitle={text.list.deleteTitle}
+      untitledLabel={text.list.untitled}
       max={20}
     >
       {(item, update) => (
         <div className="flex flex-col gap-4">
           <Grid>
-            <TextField label="Role" value={item.role} onChange={(value) => update({ role: value })} />
             <TextField
-              label="Organisation"
+              label={text.role}
+              value={item.role}
+              onChange={(value) => update({ role: value })}
+            />
+            <TextField
+              label={text.organisation}
               value={item.organization}
               onChange={(value) => update({ organization: value })}
             />
           </Grid>
           <Grid columns={3}>
             <TextField
-              label="Location"
+              label={text.location}
               value={item.location}
               onChange={(value) => update({ location: value })}
             />
             <MonthField
-              label="Start"
+              label={text.start}
               value={item.startDate}
               onChange={(value) => update({ startDate: value })}
             />
             <MonthField
-              label="End"
+              label={text.end}
               value={item.endDate}
               onChange={(value) => update({ endDate: value })}
               disabled={item.current}
             />
           </Grid>
           <Checkbox
-            label="I still volunteer here"
+            label={text.current}
             checked={item.current}
             onChange={(event) =>
-              update({ current: event.target.checked, endDate: event.target.checked ? '' : item.endDate })
+              update({
+                current: event.target.checked,
+                endDate: event.target.checked ? '' : item.endDate,
+              })
             }
           />
           <AreaField
-            label="Description"
+            label={text.description}
             value={item.description}
             onChange={(value) => update({ description: value })}
             rows={3}
@@ -910,6 +956,7 @@ export function VolunteerForm({ cv, onChange }: SectionFormProps) {
 }
 
 export function PublicationsForm({ cv, onChange }: SectionFormProps) {
+  const text = useCopy().editor.forms.publications;
   return (
     <RepeatableList
       items={cv.publications}
@@ -924,32 +971,45 @@ export function PublicationsForm({ cv, onChange }: SectionFormProps) {
         description: '',
       })}
       summary={(item) => ({ title: item.title, subtitle: item.publisher })}
-      addLabel="Add a publication"
-      emptyTitle="No publications"
-      emptyDescription="Papers, articles, books and conference talks. Essential on an academic CV."
-      itemNoun="publication"
+      addLabel={text.list.add}
+      emptyTitle={text.list.emptyTitle}
+      emptyDescription={text.list.emptyBody}
+      deleteTitle={text.list.deleteTitle}
+      untitledLabel={text.list.untitled}
       max={30}
     >
       {(item, update) => (
         <div className="flex flex-col gap-4">
-          <TextField label="Title" value={item.title} onChange={(value) => update({ title: value })} />
+          <TextField
+            label={text.title}
+            value={item.title}
+            onChange={(value) => update({ title: value })}
+          />
           <Grid columns={3}>
             <TextField
-              label="Publisher"
+              label={text.publisher}
               value={item.publisher}
               onChange={(value) => update({ publisher: value })}
             />
-            <MonthField label="Date" value={item.date} onChange={(value) => update({ date: value })} />
-            <TextField label="Link" value={item.url} onChange={(value) => update({ url: value })} />
+            <MonthField
+              label={text.date}
+              value={item.date}
+              onChange={(value) => update({ date: value })}
+            />
+            <TextField
+              label={text.link}
+              value={item.url}
+              onChange={(value) => update({ url: value })}
+            />
           </Grid>
           <TextField
-            label="Authors"
+            label={text.authors}
             value={item.authors}
             onChange={(value) => update({ authors: value })}
-            placeholder="El Fassi, A., Benali, Y."
+            placeholder={text.authorsPlaceholder}
           />
           <AreaField
-            label="Abstract"
+            label={text.abstract}
             value={item.description}
             onChange={(value) => update({ description: value })}
             rows={2}
@@ -966,32 +1026,34 @@ export function PublicationsForm({ cv, onChange }: SectionFormProps) {
 /* -------------------------------------------------------------------------- */
 
 export function InterestsForm({ cv, onChange }: SectionFormProps) {
+  const text = useCopy().editor.forms.interests;
   return (
     <RepeatableList
       items={cv.interests}
       onChange={(interests) => onChange((current) => ({ ...current, interests }))}
       createItem={() => ({ id: uid(), name: '', description: '' })}
       summary={(item) => ({ title: item.name, subtitle: item.description })}
-      addLabel="Add an interest"
-      emptyTitle="No interests"
-      emptyDescription="A short, specific line humanises a CV. “Long-distance running” beats “sport”."
-      itemNoun="interest"
+      addLabel={text.list.add}
+      emptyTitle={text.list.emptyTitle}
+      emptyDescription={text.list.emptyBody}
+      deleteTitle={text.list.deleteTitle}
+      untitledLabel={text.list.untitled}
       max={20}
     >
       {(item, update) => (
         <Grid>
           <TextField
-            label="Interest"
+            label={text.name}
             value={item.name}
             onChange={(value) => update({ name: value })}
             maxLength={60}
           />
           <TextField
-            label="Detail"
+            label={text.detail}
             value={item.description}
             onChange={(value) => update({ description: value })}
             maxLength={200}
-            hint="Optional. Only some templates show it."
+            hint={text.detailHint}
           />
         </Grid>
       )}
@@ -1000,6 +1062,7 @@ export function InterestsForm({ cv, onChange }: SectionFormProps) {
 }
 
 export function ReferencesForm({ cv, onChange }: SectionFormProps) {
+  const text = useCopy().editor.forms.references;
   return (
     <RepeatableList
       items={cv.references}
@@ -1013,41 +1076,53 @@ export function ReferencesForm({ cv, onChange }: SectionFormProps) {
         phone: '',
         relationship: '',
       })}
-      summary={(item) => ({ title: item.name, subtitle: [item.role, item.company].filter(Boolean).join(', ') })}
-      addLabel="Add a referee"
-      emptyTitle="No references listed"
-      emptyDescription="Most employers ask for these later. Only list someone who has agreed to it — and never publish their details on a shared link."
-      itemNoun="referee"
+      summary={(item) => ({
+        title: item.name,
+        subtitle: [item.role, item.company].filter(Boolean).join(', '),
+      })}
+      addLabel={text.list.add}
+      emptyTitle={text.list.emptyTitle}
+      emptyDescription={text.list.emptyBody}
+      deleteTitle={text.list.deleteTitle}
+      untitledLabel={text.list.untitled}
       max={10}
     >
       {(item, update) => (
         <div className="flex flex-col gap-4">
           <Grid>
-            <TextField label="Name" value={item.name} onChange={(value) => update({ name: value })} />
             <TextField
-              label="Relationship"
+              label={text.name}
+              value={item.name}
+              onChange={(value) => update({ name: value })}
+            />
+            <TextField
+              label={text.relationship}
               value={item.relationship}
               onChange={(value) => update({ relationship: value })}
-              placeholder="Direct manager"
+              placeholder={text.relationshipPlaceholder}
             />
           </Grid>
           <Grid>
-            <TextField label="Role" value={item.role} onChange={(value) => update({ role: value })} />
             <TextField
-              label="Company"
+              label={text.role}
+              value={item.role}
+              onChange={(value) => update({ role: value })}
+            />
+            <TextField
+              label={text.company}
               value={item.company}
               onChange={(value) => update({ company: value })}
             />
           </Grid>
           <Grid>
             <TextField
-              label="Email"
+              label={text.email}
               type="email"
               value={item.email}
               onChange={(value) => update({ email: value })}
             />
             <TextField
-              label="Phone"
+              label={text.phone}
               type="tel"
               value={item.phone}
               onChange={(value) => update({ phone: value })}
@@ -1068,6 +1143,7 @@ export function CustomSectionForm({
   onChange,
   sectionId,
 }: SectionFormProps & { sectionId: string }) {
+  const text = useCopy().editor.forms.custom;
   const key = customSectionKey(sectionId);
   const section = cv.customSections.find((entry) => entry.id === key);
   if (!section) return null;
@@ -1083,7 +1159,7 @@ export function CustomSectionForm({
   return (
     <div className="flex flex-col gap-5">
       <TextField
-        label="Section heading"
+        label={text.heading}
         value={section.title}
         onChange={(title) => {
           setSection({ title });
@@ -1102,34 +1178,35 @@ export function CustomSectionForm({
         onChange={(items) => setSection({ items })}
         createItem={() => ({ id: uid(), heading: '', subheading: '', date: '', description: '' })}
         summary={(item) => ({ title: item.heading, subtitle: item.subheading })}
-        addLabel="Add an entry"
-        emptyTitle="Nothing in this section yet"
-        emptyDescription="Each entry has a heading, a subheading, a date and a description — enough for almost anything a standard section does not cover."
-        itemNoun="entry"
+        addLabel={text.list.add}
+        emptyTitle={text.list.emptyTitle}
+        emptyDescription={text.list.emptyBody}
+        deleteTitle={text.list.deleteTitle}
+        untitledLabel={text.list.untitled}
         max={30}
       >
         {(item, update) => (
           <div className="flex flex-col gap-4">
             <Grid columns={3}>
               <TextField
-                label="Heading"
+                label={text.entryHeading}
                 value={item.heading}
                 onChange={(value) => update({ heading: value })}
               />
               <TextField
-                label="Subheading"
+                label={text.entrySubheading}
                 value={item.subheading}
                 onChange={(value) => update({ subheading: value })}
               />
               <TextField
-                label="Date"
+                label={text.entryDate}
                 value={item.date}
                 onChange={(value) => update({ date: value })}
-                placeholder="2024"
+                placeholder={text.entryDatePlaceholder}
               />
             </Grid>
             <AreaField
-              label="Description"
+              label={text.description}
               value={item.description}
               onChange={(value) => update({ description: value })}
               rows={3}
@@ -1147,6 +1224,7 @@ export function CustomSectionForm({
 /* -------------------------------------------------------------------------- */
 
 export function CompetenciesForm({ cv, onChange }: SectionFormProps) {
+  const text = useCopy().editor.forms.competencies;
   return (
     <RepeatableList
       items={cv.competencies}
@@ -1154,36 +1232,37 @@ export function CompetenciesForm({ cv, onChange }: SectionFormProps) {
       createItem={() => ({ id: uid(), name: '', description: '', achievements: [] })}
       summary={(item) => ({
         title: item.name,
-        subtitle: item.description || `${item.achievements.length} points of evidence`,
+        subtitle: item.description || text.evidenceCount(item.achievements.length),
       })}
-      addLabel="Add a competency"
-      emptyTitle="No competencies added"
-      emptyDescription="Three to six areas of expertise, each with the achievements that prove it. This is what a functional or hybrid CV leads with — and what lets the employment history below it stay short."
-      itemNoun="competency"
+      addLabel={text.list.add}
+      emptyTitle={text.list.emptyTitle}
+      emptyDescription={text.list.emptyBody}
+      deleteTitle={text.list.deleteTitle}
+      untitledLabel={text.list.untitled}
       max={10}
     >
       {(item, update) => (
         <div className="flex flex-col gap-4">
           <TextField
-            label="Area of expertise"
+            label={text.name}
             value={item.name}
             onChange={(value) => update({ name: value })}
-            placeholder="Programme delivery"
+            placeholder={text.namePlaceholder}
           />
           <AreaField
-            label="Framing"
+            label={text.framing}
             value={item.description}
             onChange={(value) => update({ description: value })}
             rows={2}
             maxLength={1200}
-            placeholder="One or two lines saying what you mean by it. Optional — the evidence often carries it alone."
+            placeholder={text.framingPlaceholder}
           />
           <StringList
             values={item.achievements}
             onChange={(achievements) => update({ achievements })}
-            label="Evidence"
-            placeholder="Coordinated a 340-pupil curriculum change across four departments to a fixed exam-board deadline."
-            addLabel="Add evidence"
+            label={text.evidence}
+            placeholder={text.evidencePlaceholder}
+            addLabel={text.addEvidence}
             max={12}
           />
         </div>
@@ -1200,6 +1279,7 @@ export function CompetenciesForm({ cv, onChange }: SectionFormProps) {
  * cannot drift apart. What is edited here is only the part that is genuinely per-letter.
  */
 export function CoverLetterForm({ cv, onChange }: SectionFormProps) {
+  const text = useCopy().editor.forms.letter;
   const letter = cv.coverLetter;
   const update = (patch: Partial<typeof letter>) =>
     onChange((current) => ({ ...current, coverLetter: { ...current.coverLetter, ...patch } }));
@@ -1209,86 +1289,86 @@ export function CoverLetterForm({ cv, onChange }: SectionFormProps) {
       <Switch
         checked={letter.enabled}
         onCheckedChange={(enabled) => update({ enabled })}
-        label="Include a cover letter"
-        hint="Exported as the first page of the same PDF, styled to match this CV. Turning it off keeps the draft."
+        label={text.enable}
+        hint={text.enableHint}
       />
 
       <div className={letter.enabled ? '' : 'pointer-events-none opacity-50'}>
         <div className="flex flex-col gap-4">
           <Grid>
             <TextField
-              label="Recipient"
+              label={text.recipient}
               value={letter.recipientName}
               onChange={(value) => update({ recipientName: value })}
-              placeholder="Ms Okafor"
-              hint="Leave blank for “Dear Hiring Manager”."
+              placeholder={text.recipientPlaceholder}
+              hint={text.recipientHint}
             />
             <TextField
-              label="Their role"
+              label={text.recipientRole}
               value={letter.recipientRole}
               onChange={(value) => update({ recipientRole: value })}
-              placeholder="Head of Talent"
+              placeholder={text.recipientRolePlaceholder}
             />
           </Grid>
           <Grid>
             <TextField
-              label="Company"
+              label={text.company}
               value={letter.company}
               onChange={(value) => update({ company: value })}
-              placeholder="Atlas Cloud"
+              placeholder={text.companyPlaceholder}
             />
             <TextField
-              label="Vacancy"
+              label={text.vacancy}
               value={letter.vacancy}
               onChange={(value) => update({ vacancy: value })}
-              placeholder="Senior Product Designer"
+              placeholder={text.vacancyPlaceholder}
             />
           </Grid>
           <Grid>
             <TextField
-              label="Reference"
+              label={text.reference}
               value={letter.reference}
               onChange={(value) => update({ reference: value })}
-              placeholder="REQ-2841"
+              placeholder={text.referencePlaceholder}
             />
             <TextField
-              label="Date"
+              label={text.date}
               value={letter.date}
               onChange={(value) => update({ date: value })}
-              placeholder="2026-08-15"
-              hint="Leave blank to date it on the day you export."
+              placeholder={text.datePlaceholder}
+              hint={text.dateHint}
             />
           </Grid>
           <AreaField
-            label="Company address"
+            label={text.address}
             value={letter.companyAddress}
             onChange={(value) => update({ companyAddress: value })}
             rows={2}
             maxLength={300}
-            placeholder={'18 Rue Lafayette\n75009 Paris'}
+            placeholder={text.addressPlaceholder}
           />
           <AreaField
-            label="Letter"
+            label={text.body}
             value={letter.body}
             onChange={(value) => update({ body: value })}
             rows={12}
             maxLength={8000}
-            placeholder="Three or four short paragraphs: why this role, what you bring to it, and one piece of evidence they will not find on the CV."
-            hint="A blank line starts a new paragraph."
+            placeholder={text.bodyPlaceholder}
+            hint={text.bodyHint}
           />
           <Grid>
             <TextField
-              label="Sign-off"
+              label={text.signOff}
               value={letter.signOff}
               onChange={(value) => update({ signOff: value })}
-              placeholder="Yours sincerely,"
-              hint="Left blank, this follows the convention: “sincerely” to a named person, “faithfully” otherwise."
+              placeholder={text.signOffPlaceholder}
+              hint={text.signOffHint}
             />
             <TextField
-              label="Signature"
+              label={text.signature}
               value={letter.signature}
               onChange={(value) => update({ signature: value })}
-              placeholder={fullName(cv) || 'Your name'}
+              placeholder={fullName(cv) || text.signaturePlaceholder}
             />
           </Grid>
         </div>

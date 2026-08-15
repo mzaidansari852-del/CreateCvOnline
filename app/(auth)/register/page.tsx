@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 
 import { RegisterForm } from '@/components/auth/RegisterForm';
 import { firstParam } from '@/components/auth/shared';
@@ -6,13 +7,21 @@ import { CVThumbnail } from '@/components/cv/CVThumbnail';
 import { Badge } from '@/components/ui/feedback';
 import { createDefaultCustomization, createSampleCV } from '@/lib/cv/defaults';
 import { findTemplate, templateDefaults } from '@/lib/cv/template-registry';
+import { appCopy } from '@/lib/i18n/app-copy';
+import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { privateMetadata } from '@/lib/seo/metadata';
 import { site } from '@/lib/site';
 
-export const metadata: Metadata = privateMetadata(
-  'Create your account',
-  `Create a free ${site.name} account and build a professional CV in minutes.`,
-);
+/** No profile exists yet on this screen, so the cookie is the only source of language. */
+async function authCopy() {
+  const cookieLocale = (await cookies()).get(LOCALE_COOKIE)?.value;
+  return appCopy(resolveLocale({ profileLocale: null, cookieLocale }));
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = await authCopy();
+  return privateMetadata(copy.auth.signUp, copy.auth.signUpMetaDescription(site.name));
+}
 
 /**
  * Sign-up.
@@ -30,16 +39,15 @@ export default async function RegisterPage(props: {
   // An unknown id is ignored rather than faked — the user then simply starts from the
   // default template, which is what the editor would do anyway.
   const template = requestedTemplate ? findTemplate(requestedTemplate) : undefined;
+  const copy = await authCopy();
 
   return (
     <div className="flex flex-col gap-7">
       <div>
         <h1 className="font-display text-3xl leading-tight font-extrabold tracking-tight text-ink-950">
-          Create your free account
+          {copy.auth.signUpHeading}
         </h1>
-        <p className="mt-2 text-sm leading-relaxed text-ink-600">
-          Two saved CVs and five PDF downloads a month, free forever. No card required.
-        </p>
+        <p className="mt-2 text-sm leading-relaxed text-ink-600">{copy.auth.signUpSubtitle}</p>
       </div>
 
       {template ? (
@@ -55,18 +63,18 @@ export default async function RegisterPage(props: {
           />
           <div className="min-w-0">
             <p className="text-xs font-semibold tracking-wide text-brand-700 uppercase">
-              You are starting with
+              {copy.auth.startingWith}
             </p>
             <p className="mt-0.5 flex flex-wrap items-center gap-2 text-sm font-semibold text-ink-950">
               {template.name}
               {template.premium ? (
-                <Badge tone="accent">Pro</Badge>
+                <Badge tone="accent">{copy.common.pro}</Badge>
               ) : (
-                <Badge tone="success">Free</Badge>
+                <Badge tone="success">{copy.common.free}</Badge>
               )}
             </p>
             <p className="mt-0.5 text-xs leading-relaxed text-ink-600">
-              {template.tagline} You can change template at any time.
+              {template.tagline} {copy.auth.changeTemplateAnytime}
             </p>
           </div>
         </div>

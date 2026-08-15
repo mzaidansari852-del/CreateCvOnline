@@ -2,6 +2,7 @@
 
 import { Lock, Plus } from 'lucide-react';
 
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { useCreateCV } from './create-cv';
 import { trackEvent } from '@/lib/analytics/events';
@@ -26,7 +27,8 @@ export function UseTemplateButton({
   canUsePremium: boolean;
   fullWidth?: boolean;
 }) {
-  const { create, creating } = useCreateCV();
+  const copy = useCopy();
+  const { create, creating } = useCreateCV(copy.cvs);
 
   if (premium && !canUsePremium) {
     return (
@@ -36,9 +38,9 @@ export function UseTemplateButton({
         variant="outline"
         fullWidth={fullWidth}
         leadingIcon={<Lock size={14} aria-hidden />}
-        aria-label={`${templateName} is a Pro template — see plans`}
+        aria-label={copy.templates.lockedAria(templateName)}
       >
-        Unlock with Pro
+        {copy.templates.unlockWithPro}
       </ButtonLink>
     );
   }
@@ -55,7 +57,7 @@ export function UseTemplateButton({
         void create({ starter: 'blank', templateId });
       }}
     >
-      Use template
+      {copy.templates.useTemplate}
     </Button>
   );
 }

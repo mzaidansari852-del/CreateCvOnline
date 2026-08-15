@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Lock, Search, Check } from 'lucide-react';
 
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { ButtonLink } from '@/components/ui/button';
 import { Alert } from '@/components/ui/feedback';
 import { Input, SegmentedControl } from '@/components/ui/form';
@@ -50,6 +51,7 @@ export function TemplatePicker({
   onChange: (templateId: string) => void;
   className?: string;
 }) {
+  const copy = useCopy();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [planFilter, setPlanFilter] = useState<PlanFilter>('all');
@@ -73,7 +75,7 @@ export function TemplatePicker({
     });
   }, [templates, query, category, planFilter]);
 
-  const chips = [{ id: 'all', label: 'All' }, ...categories];
+  const chips = [{ id: 'all', label: copy.templates.allFilter }, ...categories];
 
   return (
     <div className={cn('flex flex-col gap-4', className)}>
@@ -88,20 +90,20 @@ export function TemplatePicker({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search templates — “ats”, “executive”, “designer”…"
-            aria-label="Search templates"
+            placeholder={copy.templates.searchPlaceholder}
+            aria-label={copy.templates.searchAria}
             className="pl-9"
           />
         </div>
         <SegmentedControl<PlanFilter>
-          label="Filter by plan"
+          label={copy.templates.planFilterAria}
           value={planFilter}
           onChange={setPlanFilter}
           size="sm"
           options={[
-            { value: 'all', label: 'All' },
-            { value: 'free', label: 'Free' },
-            { value: 'pro', label: 'Pro' },
+            { value: 'all', label: copy.templates.allFilter },
+            { value: 'free', label: copy.common.free },
+            { value: 'pro', label: copy.common.pro },
           ]}
         />
       </div>
@@ -131,28 +133,25 @@ export function TemplatePicker({
       {blockedId ? (
         <Alert
           tone="info"
-          title="That is a Pro template"
+          title={copy.templates.blockedTitle}
           action={
             <ButtonLink href="/pricing" size="sm">
-              See plans
+              {copy.dashboard.seePlans}
             </ButtonLink>
           }
         >
-          Upgrade to unlock every design, or keep going with one of the free templates —
-          the free set includes every ATS-safe layout.
+          {copy.templates.blockedBody}
         </Alert>
       ) : null}
 
       <p className="text-xs text-ink-500" role="status">
-        {visible.length} of {templates.length} templates
+        {copy.templates.showing(visible.length, templates.length)}
       </p>
 
       {visible.length === 0 ? (
         <div className="rounded-xl border border-dashed border-ink-200 bg-ink-50/60 px-6 py-10 text-center">
-          <p className="text-sm font-semibold text-ink-900">No template matches that</p>
-          <p className="mt-1 text-sm text-ink-600">
-            Try a shorter search, or clear the category and plan filters.
-          </p>
+          <p className="text-sm font-semibold text-ink-900">{copy.templates.emptyTitle}</p>
+          <p className="mt-1 text-sm text-ink-600">{copy.templates.emptyBody}</p>
         </div>
       ) : (
         <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
@@ -214,7 +213,7 @@ export function TemplatePicker({
                           : 'bg-success-50 text-success-700',
                       )}
                     >
-                      {template.premium ? 'PRO' : 'FREE'}
+                      {template.premium ? copy.templates.badgePro : copy.templates.badgeFree}
                     </span>
                   </span>
                   <span className="mt-0.5 truncate text-[11px] text-ink-500">

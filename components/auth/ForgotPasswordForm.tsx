@@ -5,13 +5,11 @@ import Link from 'next/link';
 
 import { NotConfiguredAlert, isEmail } from './shared';
 import { authErrorMessage, useAuth } from '@/components/auth/AuthProvider';
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/feedback';
 import { Field, Input } from '@/components/ui/form';
 import { site } from '@/lib/site';
-
-/** The one sentence shown after every submit, whether or not the address is registered. */
-const NEUTRAL_CONFIRMATION = 'If an account exists for that address, a reset link is on its way.';
 
 /**
  * Password reset request.
@@ -25,6 +23,7 @@ const NEUTRAL_CONFIRMATION = 'If an account exists for that address, a reset lin
  */
 export function ForgotPasswordForm() {
   const { resetPassword, configured } = useAuth();
+  const copy = useCopy();
 
   const formRef = useRef<HTMLFormElement>(null);
   const [email, setEmail] = useState('');
@@ -45,12 +44,12 @@ export function ForgotPasswordForm() {
 
     const trimmed = email.trim();
     if (!trimmed) {
-      setFieldError('Enter the e-mail address you signed up with.');
+      setFieldError(copy.auth.emailRequired);
       setInvalidAt(Date.now());
       return;
     }
     if (!isEmail(trimmed)) {
-      setFieldError('That does not look like a valid e-mail address.');
+      setFieldError(copy.auth.emailInvalid);
       setInvalidAt(Date.now());
       return;
     }
@@ -68,7 +67,7 @@ export function ForgotPasswordForm() {
           : '';
       // "No such user" must look exactly like success.
       if (code !== 'auth/user-not-found') {
-        setFormError(authErrorMessage(error));
+        setFormError(authErrorMessage(error, copy));
         setPending(false);
         return;
       }
@@ -81,19 +80,17 @@ export function ForgotPasswordForm() {
   if (sentTo) {
     return (
       <div className="flex flex-col gap-5">
-        <Alert tone="success" title="Check your inbox">
-          {NEUTRAL_CONFIRMATION}
+        {/* The same sentence whether or not the address is registered — see above. */}
+        <Alert tone="success" title={copy.auth.checkInbox}>
+          {copy.auth.resetLinkSent}
         </Alert>
 
         <div className="rounded-xl border border-ink-200 bg-ink-50 p-4 text-sm leading-relaxed text-ink-700">
           <p>
-            We used <span className="font-semibold text-ink-950">{sentTo}</span>. The link is valid
-            for one hour and can only be used once.
+            {copy.auth.resetSentTo} <span className="font-semibold text-ink-950">{sentTo}</span>
+            {copy.auth.resetSentValidity}
           </p>
-          <p className="mt-2">
-            Nothing after a few minutes? Look in your spam or promotions folder — automated mail
-            often lands there — and check the address above for a typo.
-          </p>
+          <p className="mt-2">{copy.auth.resetSentSpam}</p>
         </div>
 
         <div className="flex flex-col gap-3">
@@ -106,13 +103,13 @@ export function ForgotPasswordForm() {
               setPending(false);
             }}
           >
-            Use a different address
+            {copy.auth.useDifferentAddress}
           </Button>
           <Link
             href="/login"
             className="text-center text-sm font-semibold text-brand-700 underline-offset-4 hover:underline"
           >
-            Back to sign in
+            {copy.auth.backToSignIn}
           </Link>
         </div>
       </div>
@@ -121,19 +118,24 @@ export function ForgotPasswordForm() {
 
   return (
     <div className="flex flex-col gap-5">
-      {!configured ? <NotConfiguredAlert /> : null}
+      {!configured ? <NotConfiguredAlert copy={copy} /> : null}
 
       {formError ? (
-        <Alert tone="danger" title="Could not send the reset link">
+        <Alert tone="danger" title={copy.auth.resetFailedTitle}>
           {formError}
         </Alert>
       ) : null}
 
-      <form ref={formRef} onSubmit={(event) => void handleSubmit(event)} noValidate className="flex flex-col gap-4">
+      <form
+        ref={formRef}
+        onSubmit={(event) => void handleSubmit(event)}
+        noValidate
+        className="flex flex-col gap-4"
+      >
         <Field
-          label="E-mail address"
+          label={copy.auth.emailLabel}
           error={fieldError}
-          hint={`The address on your ${site.name} account.`}
+          hint={copy.auth.emailAccountHint(site.name)}
           required
         >
           {({ id, describedBy, invalid }) => (
@@ -152,20 +154,29 @@ export function ForgotPasswordForm() {
               spellCheck={false}
               disabled={!configured || pending}
               required
-              placeholder="you@example.com"
+              placeholder={copy.auth.emailPlaceholder}
             />
           )}
         </Field>
 
-        <Button type="submit" size="lg" fullWidth loading={pending} disabled={!configured || pending}>
-          Send reset link
+        <Button
+          type="submit"
+          size="lg"
+          fullWidth
+          loading={pending}
+          disabled={!configured || pending}
+        >
+          {copy.auth.sendResetLink}
         </Button>
       </form>
 
       <p className="text-center text-sm text-ink-600">
-        Remembered it?{' '}
-        <Link href="/login" className="font-semibold text-brand-700 underline-offset-4 hover:underline">
-          Back to sign in
+        {copy.auth.rememberedIt}{' '}
+        <Link
+          href="/login"
+          className="font-semibold text-brand-700 underline-offset-4 hover:underline"
+        >
+          {copy.auth.backToSignIn}
         </Link>
       </p>
     </div>

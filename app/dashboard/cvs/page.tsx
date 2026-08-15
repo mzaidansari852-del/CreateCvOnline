@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { FilePlus2, LayoutGrid, Rows3 } from 'lucide-react';
 
 import { CVGridCard, CVListRow } from '@/components/dashboard/CVCard';
@@ -9,6 +10,8 @@ import { ButtonLink } from '@/components/ui/button';
 import { Alert, EmptyState } from '@/components/ui/feedback';
 import { requireViewer } from '@/lib/auth/guards';
 import { getCV, listCVs } from '@/lib/db/cvs';
+import { appCopy } from '@/lib/i18n/app-copy';
+import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { privateMetadata } from '@/lib/seo/metadata';
 import { cn } from '@/lib/utils/cn';
 import type { CVSummary } from '@/types/cv';
@@ -21,11 +24,8 @@ export const metadata: Metadata = privateMetadata(
 type ViewKey = 'grid' | 'list';
 type SortKey = 'recent' | 'name' | 'complete';
 
-const SORTS: { key: SortKey; label: string }[] = [
-  { key: 'recent', label: 'Recently edited' },
-  { key: 'name', label: 'Name' },
-  { key: 'complete', label: 'Completeness' },
-];
+/** The order the controls appear in; the labels come from the copy table at render time. */
+const SORT_KEYS: SortKey[] = ['recent', 'name', 'complete'];
 
 function sortSummaries(summaries: CVSummary[], sort: SortKey): CVSummary[] {
   const copy = [...summaries];
@@ -52,6 +52,11 @@ export default async function MyCVsPage({
 }) {
   const viewer = await requireViewer('/dashboard/cvs');
   const query = await searchParams;
+  const locale = resolveLocale({
+    profileLocale: viewer.profile.locale,
+    cookieLocale: (await cookies()).get(LOCALE_COOKIE)?.value,
+  });
+  const copy = appCopy(locale);
 
   const view: ViewKey = query.view === 'list' ? 'list' : 'grid';
   const sort: SortKey =
@@ -64,6 +69,12 @@ export default async function MyCVsPage({
   const limit = viewer.limits.maxCvs;
   const atLimit = limit !== null && summaries.length >= limit;
 
+  const sortLabels: Record<SortKey, string> = {
+    recent: copy.dashboard.recentlyEdited,
+    name: copy.cvs.sortName,
+    complete: copy.dashboard.completeness,
+  };
+
   const controlClasses = (active: boolean) =>
     cn(
       'rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors',
@@ -73,11 +84,11 @@ export default async function MyCVsPage({
   return (
     <DashboardShell
       viewer={viewer}
-      title="My CVs"
+      title={copy.cvs.title}
       description={
         summaries.length === 0
-          ? 'Nothing here yet.'
-          : `${summaries.length} saved${limit === null ? '' : ` of ${limit} on the ${viewer.plan.name} plan`}.`
+          ? copy.cvs.nothingSavedYet
+          : copy.cvs.savedSummary(summaries.length, limit, viewer.plan.name)
       }
       actions={
         <ButtonLink
@@ -85,7 +96,7 @@ export default async function MyCVsPage({
           size="sm"
           leadingIcon={<FilePlus2 size={15} aria-hidden />}
         >
-          New CV
+          {copy.nav.newCv}
         </ButtonLink>
       }
     >
@@ -93,67 +104,78 @@ export default async function MyCVsPage({
         {atLimit ? (
           <Alert
             tone="warning"
-            title={`All ${limit} CV slots on the ${viewer.plan.name} plan are in use`}
+            title={copy.cvs.slotsFullTitle(limit ?? 0, viewer.plan.name)}
             action={
               <ButtonLink href="/pricing" size="sm">
-                See plans
+                {copy.dashboard.seePlans}
               </ButtonLink>
             }
           >
-            Delete or rename an existing CV to reuse a slot, or upgrade to Pro for unlimited
-            CVs.
+            {copy.cvs.slotsFullBody}
           </Alert>
         ) : null}
 
         {summaries.length === 0 ? (
           <EmptyState
             icon={<FilePlus2 size={20} aria-hidden />}
-            title="No CVs in your account"
-            description="Create one from a blank page, from a worked example, or straight from a template you like."
-            action={<ButtonLink href="/dashboard/cvs/new">Create a CV</ButtonLink>}
+            title={copy.cvs.noneTitle}
+            description={copy.cvs.noneBody}
+            action={<ButtonLink href="/dashboard/cvs/new">{copy.cvs.createOne}</ButtonLink>}
             secondaryAction={
               <ButtonLink href="/dashboard/templates" variant="outline">
-                Browse templates
+                {copy.dashboard.browseTemplates}
               </ButtonLink>
             }
           />
         ) : (
           <>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <nav aria-label="Sort CVs" className="inline-flex rounded-lg border border-ink-200 bg-ink-50 p-0.5">
-                {SORTS.map((option) => (
+              <nav
+                aria-label={copy.cvs.sortAria}
+                className="inline-flex rounded-lg border border-ink-200 bg-ink-50 p-0.5"
+              >
+                {SORT_KEYS.map((key) => (
                   <Link
-                    key={option.key}
-                    href={href(view, option.key)}
-                    aria-current={option.key === sort ? 'true' : undefined}
-                    className={controlClasses(option.key === sort)}
+                    key={key}
+                    href={href(view, key)}
+                    aria-current={key === sort ? 'true' : undefined}
+                    className={controlClasses(key === sort)}
                     scroll={false}
                   >
-                    {option.label}
+                    {sortLabels[key]}
                   </Link>
                 ))}
               </nav>
 
-              <nav aria-label="Layout" className="inline-flex rounded-lg border border-ink-200 bg-ink-50 p-0.5">
+              <nav
+                aria-label={copy.cvs.layoutAria}
+                className="inline-flex rounded-lg border border-ink-200 bg-ink-50 p-0.5"
+              >
                 <Link
                   href={href('grid', sort)}
-                  aria-label="Grid view"
+                  aria-label={copy.cvs.gridViewAria}
                   aria-current={view === 'grid' ? 'true' : undefined}
-                  className={cn(controlClasses(view === 'grid'), 'inline-flex items-center gap-1.5')}
+                  className={cn(
+                    controlClasses(view === 'grid'),
+                    'inline-flex items-center gap-1.5',
+                  )}
                   scroll={false}
                 >
                   <LayoutGrid size={15} aria-hidden />
-                  <span className="hidden sm:inline">Grid</span>
+                  <span className="hidden sm:inline">{copy.cvs.gridView}</span>
                 </Link>
                 <Link
                   href={href('list', sort)}
-                  aria-label="List view"
+                  aria-label={copy.cvs.listViewAria}
                   aria-current={view === 'list' ? 'true' : undefined}
-                  className={cn(controlClasses(view === 'list'), 'inline-flex items-center gap-1.5')}
+                  className={cn(
+                    controlClasses(view === 'list'),
+                    'inline-flex items-center gap-1.5',
+                  )}
                   scroll={false}
                 >
                   <Rows3 size={15} aria-hidden />
-                  <span className="hidden sm:inline">List</span>
+                  <span className="hidden sm:inline">{copy.cvs.listView}</span>
                 </Link>
               </nav>
             </div>

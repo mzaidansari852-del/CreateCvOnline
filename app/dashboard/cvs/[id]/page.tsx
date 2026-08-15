@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import type { Metadata } from 'next';
 import { Check, ExternalLink, Minus } from 'lucide-react';
 
@@ -15,6 +16,8 @@ import { findCV } from '@/lib/db/cvs';
 import { completenessScore } from '@/lib/cv/sections';
 import { formatDateTime, formatRelativeTime, PAPER } from '@/lib/cv/format';
 import { getTemplate } from '@/lib/cv/template-registry';
+import { appCopy } from '@/lib/i18n/app-copy';
+import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { privateMetadata } from '@/lib/seo/metadata';
 import { absoluteUrl } from '@/lib/site';
 import { cn } from '@/lib/utils/cn';
@@ -38,41 +41,59 @@ export async function generateMetadata({
 export default async function CVDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const viewer = await requireViewer('/dashboard/cvs');
   const { id } = await params;
+  const locale = resolveLocale({
+    profileLocale: viewer.profile.locale,
+    cookieLocale: (await cookies()).get(LOCALE_COOKIE)?.value,
+  });
+  const copy = appCopy(locale);
 
   const cv = await loadCV(viewer.user.uid, id);
   if (!cv) notFound();
 
   const template = getTemplate(cv.customization.templateId);
-  const checklist = completenessChecklist(cv.data);
+  const checklist = completenessChecklist(cv.data, copy);
   const score = completenessScore(cv.data);
   const shareUrl = cv.isPublic && cv.shareId ? absoluteUrl(`/cv/${cv.shareId}`) : null;
 
   const facts: { label: string; value: React.ReactNode }[] = [
     {
-      label: 'Template',
+      label: copy.cvs.factTemplate,
       value: (
         <span className="flex flex-wrap items-center gap-1.5">
           {template.name}
-          {template.premium ? <Badge tone="accent">Pro</Badge> : <Badge tone="success">Free</Badge>}
+          {template.premium ? (
+            <Badge tone="accent">{copy.common.pro}</Badge>
+          ) : (
+            <Badge tone="success">{copy.common.free}</Badge>
+          )}
         </span>
       ),
     },
-    { label: 'Paper', value: PAPER[cv.customization.paperSize].label },
-    { label: 'Created', value: formatDateTime(cv.createdAt) },
+    { label: copy.settings.paperSize, value: PAPER[cv.customization.paperSize].label },
+    { label: copy.cvs.factCreated, value: formatDateTime(cv.createdAt, locale) },
     {
-      label: 'Last edited',
-      value: `${formatRelativeTime(cv.updatedAt)} · ${formatDateTime(cv.updatedAt)}`,
+      label: copy.cvs.factLastEdited,
+      value: `${formatRelativeTime(cv.updatedAt, locale)} · ${formatDateTime(cv.updatedAt, locale)}`,
     },
     {
-      label: 'PDF downloads',
+      label: copy.cvs.factDownloads,
       value:
         cv.downloadCount === 0
-          ? 'Never downloaded'
-          : `${cv.downloadCount} · last ${cv.lastDownloadedAt ? formatRelativeTime(cv.lastDownloadedAt) : 'unknown'}`,
+          ? copy.cvs.neverDownloaded
+          : copy.cvs.downloadsWithLast(
+              cv.downloadCount,
+              cv.lastDownloadedAt
+                ? formatRelativeTime(cv.lastDownloadedAt, locale)
+                : copy.cvs.unknownTime,
+            ),
     },
     {
-      label: 'Visibility',
-      value: cv.isPublic ? <Badge tone="success">Public link on</Badge> : 'Private',
+      label: copy.cvs.factVisibility,
+      value: cv.isPublic ? (
+        <Badge tone="success">{copy.cvs.publicLinkOn}</Badge>
+      ) : (
+        copy.cvs.privateLabel
+      ),
     },
   ];
 
@@ -80,7 +101,11 @@ export default async function CVDetailPage({ params }: { params: Promise<{ id: s
     <DashboardShell
       viewer={viewer}
       title={cv.title}
-      description={`${template.name} · ${score}% complete · edited ${formatRelativeTime(cv.updatedAt)}`}
+      description={copy.cvs.detailLede(
+        template.name,
+        score,
+        formatRelativeTime(cv.updatedAt, locale),
+      )}
       actions={
         <CVActions
           cv={{ id: cv.id, title: cv.title, isPublic: cv.isPublic, shareId: cv.shareId }}
@@ -91,7 +116,7 @@ export default async function CVDetailPage({ params }: { params: Promise<{ id: s
       }
     >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <section aria-label="CV preview" className="flex justify-center lg:justify-start">
+        <section aria-label={copy.cvs.previewAria} className="flex justify-center lg:justify-start">
           <div className="sm:hidden">
             <CVPagePreview cv={cv.data} customization={cv.customization} maxWidth={300} />
           </div>
@@ -106,11 +131,14 @@ export default async function CVDetailPage({ params }: { params: Promise<{ id: s
             className="rounded-xl border border-ink-200 bg-white p-5 shadow-card"
           >
             <h2 id="details-heading" className="text-base font-semibold text-ink-950">
-              Details
+              {copy.cvs.detailsHeading}
             </h2>
             <dl className="mt-3 flex flex-col gap-2.5 text-sm">
               {facts.map((fact) => (
-                <div key={fact.label} className="flex flex-wrap items-baseline justify-between gap-2">
+                <div
+                  key={fact.label}
+                  className="flex flex-wrap items-baseline justify-between gap-2"
+                >
                   <dt className="text-ink-500">{fact.label}</dt>
                   <dd className="text-right font-medium text-ink-900">{fact.value}</dd>
                 </div>
@@ -119,7 +147,7 @@ export default async function CVDetailPage({ params }: { params: Promise<{ id: s
 
             {shareUrl ? (
               <div className="mt-4 rounded-lg bg-ink-50 p-3">
-                <p className="text-xs font-semibold text-ink-700">Public link</p>
+                <p className="text-xs font-semibold text-ink-700">{copy.cvs.publicLinkHeading}</p>
                 <Link
                   href={`/cv/${cv.shareId}`}
                   className="mt-1 flex items-start gap-1.5 font-mono text-[11px] break-all text-brand-700 hover:text-brand-800"
@@ -127,9 +155,7 @@ export default async function CVDetailPage({ params }: { params: Promise<{ id: s
                   {shareUrl}
                   <ExternalLink size={12} aria-hidden className="mt-0.5 shrink-0" />
                 </Link>
-                <p className="mt-1.5 text-[11px] text-ink-500">
-                  Use the Share action to copy or switch it off.
-                </p>
+                <p className="mt-1.5 text-[11px] text-ink-500">{copy.cvs.publicLinkHint}</p>
               </div>
             ) : null}
           </section>
@@ -139,12 +165,12 @@ export default async function CVDetailPage({ params }: { params: Promise<{ id: s
             className="rounded-xl border border-ink-200 bg-white p-5 shadow-card"
           >
             <h2 id="completeness-heading" className="text-base font-semibold text-ink-950">
-              Completeness
+              {copy.dashboard.completeness}
             </h2>
             <ProgressBar
               value={score}
               tone={score >= 80 ? 'success' : score >= 45 ? 'brand' : 'warning'}
-              label="Overall"
+              label={copy.cvs.overall}
               className="mt-3"
             />
 
@@ -170,7 +196,9 @@ export default async function CVDetailPage({ params }: { params: Promise<{ id: s
                   </span>
                   <span>
                     {check.satisfied ? check.done : check.todo}
-                    <span className="sr-only">{check.satisfied ? ' — done' : ' — missing'}</span>
+                    <span className="sr-only">
+                      {check.satisfied ? copy.cvs.srDone : copy.cvs.srMissing}
+                    </span>
                   </span>
                 </li>
               ))}
@@ -184,7 +212,7 @@ export default async function CVDetailPage({ params }: { params: Promise<{ id: s
                 fullWidth
                 className="mt-4"
               >
-                Fix these in the editor
+                {copy.cvs.fixInEditor}
               </ButtonLink>
             ) : null}
           </section>

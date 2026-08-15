@@ -9,6 +9,7 @@ import type {
   TextareaHTMLAttributes,
 } from 'react';
 
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { cn } from '@/lib/utils/cn';
 
 const controlBase =
@@ -43,9 +44,21 @@ export function FieldError({ children }: { children?: ReactNode }) {
   if (!children) return null;
   return (
     <p className="flex items-start gap-1.5 text-xs font-medium text-danger-600" role="alert">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="mt-px shrink-0" aria-hidden>
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        className="mt-px shrink-0"
+        aria-hidden
+      >
         <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-        <path d="M12 7.5v5.5M12 16.2v.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path
+          d="M12 7.5v5.5M12 16.2v.3"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
       </svg>
       {children}
     </p>
@@ -79,7 +92,11 @@ export function Field({ label, hint, error, required, className, children }: Fie
         </Label>
       ) : null}
       {children({ id, describedBy, invalid: Boolean(error) })}
-      {hint && !error ? <span id={hintId}><FieldHint>{hint}</FieldHint></span> : null}
+      {hint && !error ? (
+        <span id={hintId}>
+          <FieldHint>{hint}</FieldHint>
+        </span>
+      ) : null}
       {error ? (
         <span id={errorId}>
           <FieldError>{error}</FieldError>
@@ -99,7 +116,9 @@ export function Input({
       className={cn(
         controlBase,
         'h-10 px-3',
-        invalid ? 'border-danger-500 focus:border-danger-500 focus:ring-danger-500/12' : 'border-ink-200',
+        invalid
+          ? 'border-danger-500 focus:border-danger-500 focus:ring-danger-500/12'
+          : 'border-ink-200',
         className,
       )}
       aria-invalid={invalid || undefined}
@@ -118,7 +137,9 @@ export function Textarea({
       className={cn(
         controlBase,
         'min-h-24 resize-y px-3 py-2 leading-relaxed',
-        invalid ? 'border-danger-500 focus:border-danger-500 focus:ring-danger-500/12' : 'border-ink-200',
+        invalid
+          ? 'border-danger-500 focus:border-danger-500 focus:ring-danger-500/12'
+          : 'border-ink-200',
         className,
       )}
       aria-invalid={invalid || undefined}
@@ -155,7 +176,13 @@ export function Select({
         fill="none"
         aria-hidden
       >
-        <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        <path
+          d="m6 9 6 6 6-6"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     </div>
   );
@@ -275,9 +302,7 @@ export function SegmentedControl<T extends string>({
             className={cn(
               'flex-1 cursor-pointer rounded-md font-medium transition-colors duration-150',
               size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-[13px]',
-              active
-                ? 'bg-white text-ink-950 shadow-sm'
-                : 'text-ink-600 hover:text-ink-900',
+              active ? 'bg-white text-ink-950 shadow-sm' : 'text-ink-600 hover:text-ink-900',
             )}
           >
             {option.label}
@@ -300,6 +325,7 @@ export function ColorField({
   label: string;
   presets?: string[];
 }) {
+  const copy = useCopy();
   const id = useId();
   return (
     <div className="flex flex-col gap-1.5">
@@ -312,7 +338,7 @@ export function ColorField({
             value={value}
             onChange={(event) => onChange(event.target.value)}
             className="absolute -inset-2 h-[calc(100%+16px)] w-[calc(100%+16px)] cursor-pointer border-0 p-0"
-            aria-label={`${label} colour picker`}
+            aria-label={copy.field.colourPicker(label)}
           />
         </span>
         <Input
@@ -324,7 +350,7 @@ export function ColorField({
             }
           }}
           className="h-9 font-mono text-xs uppercase"
-          aria-label={`${label} hex value`}
+          aria-label={copy.field.hexValue(label)}
           maxLength={7}
         />
       </div>
@@ -336,7 +362,7 @@ export function ColorField({
               type="button"
               onClick={() => onChange(preset)}
               title={preset}
-              aria-label={`Use ${preset}`}
+              aria-label={copy.field.usePreset(preset)}
               aria-pressed={preset.toLowerCase() === value.toLowerCase()}
               className={cn(
                 'size-6 cursor-pointer rounded-full border transition-transform hover:scale-110',

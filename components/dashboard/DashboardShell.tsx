@@ -105,7 +105,7 @@ export function DashboardShell({
     ...(viewer.isAdmin
       ? [
           {
-            label: 'Admin console',
+            label: copy.dashboard.adminConsole,
             href: '/admin',
             icon: <Shield size={16} aria-hidden />,
             separatorBefore: true,
@@ -177,7 +177,7 @@ export function DashboardShell({
 
       <div className="mx-auto flex w-full max-w-[1440px]">
         <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 border-r border-ink-200 bg-white px-3 py-5 lg:block">
-          <nav aria-label="Dashboard">
+          <nav aria-label={copy.nav.dashboard}>
             <ul className="flex flex-col gap-0.5">
               {dashboardNav.map((link) => {
                 const Icon = NAV_ICONS[link.href] ?? FileText;
@@ -239,7 +239,7 @@ export function DashboardShell({
       </div>
 
       <nav
-        aria-label="Dashboard"
+        aria-label={copy.dashboard.tabBarAria}
         className="fixed inset-x-0 bottom-0 z-70 border-t border-ink-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg lg:hidden"
       >
         <ul className="flex items-stretch">

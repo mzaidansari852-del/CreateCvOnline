@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Check, Lock, Search } from 'lucide-react';
 
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Badge } from '@/components/ui/feedback';
 import {
   ColorField,
@@ -80,16 +81,6 @@ const ACCENT_PRESETS = [
   '#111827',
 ];
 
-const CATEGORY_LABELS: Record<TemplateCategory | 'all', string> = {
-  all: 'All',
-  modern: 'Modern',
-  corporate: 'Corporate',
-  creative: 'Creative',
-  technology: 'Tech',
-  classic: 'Classic',
-  ats: 'ATS',
-};
-
 export function DesignPanel({
   customization,
   onChange,
@@ -105,7 +96,9 @@ export function DesignPanel({
   canCustomise: boolean;
   onUpgradeNeeded: (reason: string) => void;
 }) {
-  const set = (patch: Partial<CVCustomization>) => onChange((current) => ({ ...current, ...patch }));
+  const copy = useCopy();
+  const set = (patch: Partial<CVCustomization>) =>
+    onChange((current) => ({ ...current, ...patch }));
 
   const guarded = (patch: Partial<CVCustomization>, reason: string) => {
     if (!canCustomise) {
@@ -123,7 +116,7 @@ export function DesignPanel({
         canUsePremium={canUsePremiumTemplates}
         onSelect={(template) => {
           if (template.premium && !canUsePremium(canUsePremiumTemplates)) {
-            onUpgradeNeeded(`“${template.name}” is a Pro template.`);
+            onUpgradeNeeded(copy.editor.pro.lockedTemplate(template.name));
             return;
           }
           // The content is never touched, and neither is any setting the user chose for
@@ -146,33 +139,33 @@ export function DesignPanel({
         }}
       />
 
-      <Group title="Colour">
+      <Group title={copy.editor.design.colourGroup}>
         <ColorField
-          label="Accent colour"
+          label={copy.editor.accentColour}
           value={customization.accentColor}
           onChange={(accentColor) => set({ accentColor })}
           presets={ACCENT_PRESETS}
         />
         <ColorField
-          label="Heading colour"
+          label={copy.editor.design.headingColour}
           value={customization.secondaryColor}
-          onChange={(secondaryColor) => guarded({ secondaryColor }, 'Heading colour is a Pro control.')}
+          onChange={(secondaryColor) => guarded({ secondaryColor }, copy.editor.pro.headingColour)}
         />
         <ColorField
-          label="Body text"
+          label={copy.editor.design.bodyColour}
           value={customization.textColor}
-          onChange={(textColor) => guarded({ textColor }, 'Body text colour is a Pro control.')}
+          onChange={(textColor) => guarded({ textColor }, copy.editor.pro.bodyColour)}
         />
       </Group>
 
-      <Group title="Typography">
-        <Field label="Heading font">
+      <Group title={copy.editor.design.typographyGroup}>
+        <Field label={copy.editor.headingFont}>
           {({ id }) => (
             <Select
               id={id}
               value={customization.headingFont}
               onChange={(event) =>
-                guarded({ headingFont: event.target.value as FontKey }, 'Font choice is a Pro control.')
+                guarded({ headingFont: event.target.value as FontKey }, copy.editor.pro.font)
               }
             >
               {CV_FONTS.map((font) => (
@@ -184,13 +177,13 @@ export function DesignPanel({
           )}
         </Field>
 
-        <Field label="Body font">
+        <Field label={copy.editor.bodyFont}>
           {({ id }) => (
             <Select
               id={id}
               value={customization.bodyFont}
               onChange={(event) =>
-                guarded({ bodyFont: event.target.value as FontKey }, 'Font choice is a Pro control.')
+                guarded({ bodyFont: event.target.value as FontKey }, copy.editor.pro.font)
               }
             >
               {CV_FONTS.map((font) => (
@@ -203,38 +196,36 @@ export function DesignPanel({
         </Field>
 
         <RangeField
-          label="Text size"
+          label={copy.editor.fontSize}
           value={customization.fontSize}
           min={8.5}
           max={13}
           step={0.25}
           format={(value) => `${value}px`}
-          onChange={(fontSize) => guarded({ fontSize }, 'Text sizing is a Pro control.')}
+          onChange={(fontSize) => guarded({ fontSize }, copy.editor.pro.textSize)}
         />
 
         <RangeField
-          label="Line height"
+          label={copy.editor.lineHeight}
           value={customization.lineHeight}
           min={1.15}
           max={1.9}
           step={0.05}
           format={(value) => value.toFixed(2)}
-          onChange={(lineHeight) => guarded({ lineHeight }, 'Line height is a Pro control.')}
+          onChange={(lineHeight) => guarded({ lineHeight }, copy.editor.pro.lineHeight)}
         />
 
-        <Field label="Section heading style">
+        <Field label={copy.editor.headingStyle}>
           {({ id }) => (
             <SegmentedControl
-              label="Section heading style"
+              label={copy.editor.headingStyle}
               value={customization.headingCase}
               size="sm"
-              onChange={(headingCase) =>
-                guarded({ headingCase }, 'Heading style is a Pro control.')
-              }
+              onChange={(headingCase) => guarded({ headingCase }, copy.editor.pro.headingStyle)}
               options={[
-                { value: 'uppercase', label: 'CAPS' },
-                { value: 'capitalize', label: 'Title' },
-                { value: 'none', label: 'As typed' },
+                { value: 'uppercase', label: copy.editor.design.caseUpper },
+                { value: 'capitalize', label: copy.editor.design.caseTitle },
+                { value: 'none', label: copy.editor.design.caseAsTyped },
               ]}
               className={id ? undefined : undefined}
             />
@@ -242,30 +233,30 @@ export function DesignPanel({
         </Field>
       </Group>
 
-      <Group title="Spacing and page">
+      <Group title={copy.editor.design.spacingGroup}>
         <RangeField
-          label="Space between sections"
+          label={copy.editor.sectionSpacing}
           value={customization.sectionSpacing}
           min={6}
           max={40}
           step={1}
           format={(value) => `${value}px`}
-          onChange={(sectionSpacing) => guarded({ sectionSpacing }, 'Spacing is a Pro control.')}
+          onChange={(sectionSpacing) => guarded({ sectionSpacing }, copy.editor.pro.spacing)}
         />
         <RangeField
-          label="Page margin"
+          label={copy.editor.pageMargin}
           value={customization.pageMargin}
           min={20}
           max={80}
           step={2}
           format={(value) => `${value}px`}
-          onChange={(pageMargin) => guarded({ pageMargin }, 'Margins are a Pro control.')}
+          onChange={(pageMargin) => guarded({ pageMargin }, copy.editor.pro.margins)}
         />
 
         <div>
-          <p className="mb-1.5 text-sm font-medium text-ink-800">Paper size</p>
+          <p className="mb-1.5 text-sm font-medium text-ink-800">{copy.editor.paperSize}</p>
           <SegmentedControl
-            label="Paper size"
+            label={copy.editor.paperSize}
             value={customization.paperSize}
             onChange={(paperSize: PaperSize) => set({ paperSize })}
             options={[
@@ -274,32 +265,32 @@ export function DesignPanel({
             ]}
             className="w-full"
           />
-          <p className="mt-1.5 text-xs text-ink-500">
-            A4 for the UK, Europe and most of the world. Letter for the US and Canada.
-          </p>
+          <p className="mt-1.5 text-xs text-ink-500">{copy.editor.design.paperHint}</p>
         </div>
       </Group>
 
-      <Group title="Content display">
+      <Group title={copy.editor.design.contentGroup}>
         <Switch
-          label="Show profile photo"
-          hint="Only affects templates that support one."
+          label={copy.editor.design.showPhoto}
+          hint={copy.editor.design.showPhotoHint}
           checked={customization.showPhoto}
           onCheckedChange={(showPhoto) => set({ showPhoto })}
         />
 
         {customization.showPhoto ? (
           <div>
-            <p className="mb-1.5 text-sm font-medium text-ink-800">Photo shape</p>
+            <p className="mb-1.5 text-sm font-medium text-ink-800">
+              {copy.editor.design.photoShape}
+            </p>
             <SegmentedControl
-              label="Photo shape"
+              label={copy.editor.design.photoShape}
               value={customization.photoShape}
               size="sm"
               onChange={(photoShape) => set({ photoShape })}
               options={[
-                { value: 'circle', label: 'Circle' },
-                { value: 'rounded', label: 'Rounded' },
-                { value: 'square', label: 'Square' },
+                { value: 'circle', label: copy.editor.design.photoCircle },
+                { value: 'rounded', label: copy.editor.design.photoRounded },
+                { value: 'square', label: copy.editor.design.photoSquare },
               ]}
               className="w-full"
             />
@@ -307,36 +298,39 @@ export function DesignPanel({
         ) : null}
 
         <Switch
-          label="Show contact icons"
-          hint="Turn off for the strictest ATS compatibility."
+          label={copy.editor.design.showIcons}
+          hint={copy.editor.design.showIconsHint}
           checked={customization.showIcons}
           onCheckedChange={(showIcons) => set({ showIcons })}
         />
 
         <div>
-          <p className="mb-1.5 text-sm font-medium text-ink-800">Skills display</p>
+          <p className="mb-1.5 text-sm font-medium text-ink-800">
+            {copy.editor.design.skillDisplay}
+          </p>
           <SegmentedControl
-            label="Skills display"
+            label={copy.editor.design.skillDisplay}
             value={customization.skillDisplay}
             size="sm"
-            onChange={(skillDisplay) =>
-              guarded({ skillDisplay }, 'Skill display is a Pro control.')
-            }
+            onChange={(skillDisplay) => guarded({ skillDisplay }, copy.editor.pro.skillDisplay)}
             options={[
-              { value: 'bars', label: 'Bars' },
-              { value: 'dots', label: 'Dots' },
-              { value: 'tags', label: 'Tags' },
-              { value: 'text', label: 'Text' },
+              { value: 'bars', label: copy.editor.design.skillBars },
+              { value: 'dots', label: copy.editor.design.skillDots },
+              { value: 'tags', label: copy.editor.design.skillTags },
+              { value: 'text', label: copy.editor.design.skillText },
             ]}
             className="w-full"
           />
-          <p className="mt-1.5 text-xs text-ink-500">
-            Plain text parses most reliably. Bars and dots are a visual claim a recruiter
-            cannot verify — use them sparingly.
-          </p>
+          <p className="mt-1.5 text-xs text-ink-500">{copy.editor.design.skillHint}</p>
         </div>
 
-        <Field label="Date format">
+        <Field label={copy.editor.dateFormat}>
+          {/*
+            The samples stay in English rather than following the interface. They show what
+            the *document* will print, and the month names on the document come from
+            `cv.language` — so translating them here would promise a French user "janv. 2024"
+            on a CV they are writing in English.
+          */}
           {({ id }) => (
             <Select
               id={id}
@@ -379,6 +373,7 @@ function TemplatePicker({
   canUsePremium: boolean;
   onSelect: (template: EditorTemplateChoice) => void;
 }) {
+  const copy = useCopy();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<TemplateCategory | 'all'>('all');
 
@@ -404,8 +399,10 @@ function TemplatePicker({
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-bold tracking-[0.1em] text-ink-500 uppercase">Template</h3>
-        <span className="text-xs text-ink-500">{filtered.length} shown</span>
+        <h3 className="text-xs font-bold tracking-[0.1em] text-ink-500 uppercase">
+          {copy.editor.template}
+        </h3>
+        <span className="text-xs text-ink-500">{copy.editor.design.shown(filtered.length)}</span>
       </div>
 
       <div className="relative">
@@ -416,8 +413,8 @@ function TemplatePicker({
         <Input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search templates"
-          aria-label="Search templates"
+          placeholder={copy.editor.design.searchTemplates}
+          aria-label={copy.editor.design.searchTemplates}
           className="pl-9"
         />
       </div>
@@ -436,14 +433,14 @@ function TemplatePicker({
                 : 'bg-ink-100 text-ink-600 hover:bg-ink-200',
             )}
           >
-            {CATEGORY_LABELS[value]}
+            {copy.editor.design.categories[value]}
           </button>
         ))}
       </div>
 
       {filtered.length === 0 ? (
         <p className="rounded-lg border border-dashed border-ink-300 p-4 text-center text-[13px] text-ink-500">
-          No template matches “{query}”.
+          {copy.editor.design.noMatch(query)}
         </p>
       ) : (
         <ul className="grid grid-cols-2 gap-2">
@@ -475,11 +472,12 @@ function TemplatePicker({
                   </span>
                   <span className="flex items-center gap-1.5">
                     <span className="text-[11px] text-ink-500">
-                      {template.columns === 1 ? '1 col' : '2 col'} · ATS {template.atsScore}/5
+                      {copy.editor.design.columns(template.columns)} ·{' '}
+                      {copy.editor.design.ats(template.atsScore)}
                     </span>
                     {template.premium ? (
                       <Badge tone="accent" className="px-1 py-0 text-[9px]">
-                        Pro
+                        {copy.common.pro}
                       </Badge>
                     ) : null}
                   </span>

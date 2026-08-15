@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Field, Input } from '@/components/ui/form';
 
 /**
@@ -13,7 +14,7 @@ import { Field, Input } from '@/components/ui/form';
  * icon-only control without a name.
  */
 export function PasswordField({
-  label = 'Password',
+  label,
   value,
   onChange,
   error,
@@ -25,7 +26,7 @@ export function PasswordField({
   name,
   describedBy,
 }: {
-  label?: string;
+  label: string;
   value: string;
   onChange: (next: string) => void;
   error?: string;
@@ -39,8 +40,9 @@ export function PasswordField({
   /** Extra element id to associate — the strength meter, for instance. */
   describedBy?: string;
 }) {
+  const copy = useCopy();
   const [visible, setVisible] = useState(false);
-  const action = visible ? 'Hide password' : 'Show password';
+  const action = visible ? copy.auth.hidePassword : copy.auth.showPassword;
 
   return (
     <Field label={label} error={error} hint={hint} required={required}>
@@ -53,7 +55,9 @@ export function PasswordField({
             value={value}
             onChange={(event) => onChange(event.target.value)}
             invalid={invalid}
-            aria-describedby={[fieldDescribedBy, describedBy].filter(Boolean).join(' ') || undefined}
+            aria-describedby={
+              [fieldDescribedBy, describedBy].filter(Boolean).join(' ') || undefined
+            }
             autoComplete={autoComplete}
             autoFocus={autoFocus}
             disabled={disabled}
@@ -86,7 +90,15 @@ export function PasswordField({
 
 function EyeIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden
+    >
       <path
         d="M2.6 12s3.4-6.2 9.4-6.2S21.4 12 21.4 12s-3.4 6.2-9.4 6.2S2.6 12 2.6 12Z"
         strokeLinecap="round"
@@ -99,7 +111,15 @@ function EyeIcon() {
 
 function EyeOffIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden
+    >
       <path
         d="M9.9 5.9A9.7 9.7 0 0 1 12 5.8c6 0 9.4 6.2 9.4 6.2a17 17 0 0 1-3.2 4.1M6.5 7.6A16.7 16.7 0 0 0 2.6 12S6 18.2 12 18.2a9.6 9.6 0 0 0 4-.85"
         strokeLinecap="round"

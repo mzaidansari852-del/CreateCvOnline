@@ -8,6 +8,7 @@ import { GoogleButton } from './GoogleButton';
 import { PasswordField } from './PasswordField';
 import { NotConfiguredAlert, OrDivider, isEmail, safeNextPath } from './shared';
 import { authErrorMessage, useAuth } from '@/components/auth/AuthProvider';
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/feedback';
 import { Field, Input } from '@/components/ui/form';
@@ -28,6 +29,7 @@ interface Errors {
 export function LoginForm({ next }: { next?: string }) {
   const router = useRouter();
   const { signIn, signInWithGoogle, configured } = useAuth();
+  const copy = useCopy();
 
   const formRef = useRef<HTMLFormElement>(null);
   const [email, setEmail] = useState('');
@@ -47,9 +49,9 @@ export function LoginForm({ next }: { next?: string }) {
 
   function validate(): Errors {
     const found: Errors = {};
-    if (!email.trim()) found.email = 'Enter the e-mail address you signed up with.';
-    else if (!isEmail(email)) found.email = 'That does not look like a valid e-mail address.';
-    if (!password) found.password = 'Enter your password.';
+    if (!email.trim()) found.email = copy.auth.emailRequired;
+    else if (!isEmail(email)) found.email = copy.auth.emailInvalid;
+    if (!password) found.password = copy.auth.passwordRequired;
     return found;
   }
 
@@ -63,7 +65,7 @@ export function LoginForm({ next }: { next?: string }) {
     if (count > 0) {
       // A single problem announces itself when focus lands on the field it belongs to;
       // several need a summary at the top of the form.
-      setFormError(count > 1 ? `There are ${count} things to fix below.` : null);
+      setFormError(count > 1 ? copy.auth.thingsToFix(count) : null);
       setInvalidAt(Date.now());
       return;
     }
@@ -75,7 +77,7 @@ export function LoginForm({ next }: { next?: string }) {
       router.push(target);
       router.refresh();
     } catch (error) {
-      setFormError(authErrorMessage(error));
+      setFormError(authErrorMessage(error, copy));
       setPending(null);
     }
   }
@@ -90,7 +92,7 @@ export function LoginForm({ next }: { next?: string }) {
       router.push(target);
       router.refresh();
     } catch (error) {
-      setFormError(authErrorMessage(error));
+      setFormError(authErrorMessage(error, copy));
       setPending(null);
     }
   }
@@ -100,10 +102,10 @@ export function LoginForm({ next }: { next?: string }) {
 
   return (
     <div className="flex flex-col gap-5">
-      {!configured ? <NotConfiguredAlert /> : null}
+      {!configured ? <NotConfiguredAlert copy={copy} /> : null}
 
       {formError ? (
-        <Alert tone="danger" title="Could not sign you in">
+        <Alert tone="danger" title={copy.auth.signInFailedTitle}>
           {formError}
         </Alert>
       ) : null}
@@ -112,13 +114,18 @@ export function LoginForm({ next }: { next?: string }) {
         onClick={() => void handleGoogle()}
         loading={pending === 'google'}
         disabled={!configured || pending === 'password'}
-        label="Sign in with Google"
+        label={copy.auth.signInWithGoogle}
       />
 
-      <OrDivider />
+      <OrDivider label={copy.auth.orContinueWithEmail} />
 
-      <form ref={formRef} onSubmit={(event) => void handleSubmit(event)} noValidate className="flex flex-col gap-4">
-        <Field label="E-mail address" error={errors.email} required>
+      <form
+        ref={formRef}
+        onSubmit={(event) => void handleSubmit(event)}
+        noValidate
+        className="flex flex-col gap-4"
+      >
+        <Field label={copy.auth.emailLabel} error={errors.email} required>
           {({ id, describedBy, invalid }) => (
             <Input
               id={id}
@@ -135,14 +142,14 @@ export function LoginForm({ next }: { next?: string }) {
               spellCheck={false}
               disabled={disabled}
               required
-              placeholder="you@example.com"
+              placeholder={copy.auth.emailPlaceholder}
             />
           )}
         </Field>
 
         <div className="flex flex-col gap-1.5">
           <PasswordField
-            label="Password"
+            label={copy.auth.passwordLabel}
             name="password"
             value={password}
             onChange={setPassword}
@@ -154,19 +161,28 @@ export function LoginForm({ next }: { next?: string }) {
             href="/forgot-password"
             className="self-end text-xs font-semibold text-brand-700 underline-offset-4 hover:underline"
           >
-            Forgot your password?
+            {copy.auth.forgotPassword}
           </Link>
         </div>
 
-        <Button type="submit" size="lg" fullWidth loading={pending === 'password'} disabled={disabled}>
-          Sign in
+        <Button
+          type="submit"
+          size="lg"
+          fullWidth
+          loading={pending === 'password'}
+          disabled={disabled}
+        >
+          {copy.auth.signIn}
         </Button>
       </form>
 
       <p className="text-center text-sm text-ink-600">
-        New here?{' '}
-        <Link href={registerHref} className="font-semibold text-brand-700 underline-offset-4 hover:underline">
-          Create a free account
+        {copy.auth.noAccount}{' '}
+        <Link
+          href={registerHref}
+          className="font-semibold text-brand-700 underline-offset-4 hover:underline"
+        >
+          {copy.auth.createFreeAccount}
         </Link>
       </p>
     </div>

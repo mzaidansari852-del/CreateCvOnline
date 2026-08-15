@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useEffect, useSyncExternalStore } from 'react';
 
 import { appCopy, type AppCopy } from '@/lib/i18n/app-copy';
 import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/locales';
@@ -25,6 +25,47 @@ interface LocaleValue {
 
 const LocaleContext = createContext<LocaleValue | null>(null);
 
+/**
+ * The active language, published outside the React tree.
+ *
+ * Context only flows downwards, and one consumer sits *above* the provider: `ToastProvider`
+ * is mounted in the root layout — it has to be, because toasts fire from the marketing
+ * pages, the admin console and the payment routes as well as the app — while
+ * `LocaleProvider` is mounted per-subtree in the layouts that know who the viewer is. The
+ * toast viewport is therefore a sibling of everything localised, and `useCopy()` there
+ * would return English in every language while looking perfectly correct in the source.
+ *
+ * Moving `ToastProvider` down would mean mounting it in five layouts and would throw at
+ * runtime on any route that was missed, which is a poor trade for two accessible names. A
+ * one-value store is the smaller mechanism: the provider writes to it, anything can read
+ * it, and nothing changes position.
+ */
+let activeLocale: Locale = DEFAULT_LOCALE;
+const listeners = new Set<() => void>();
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+/**
+ * The language of the subtree the user is actually looking at, for components that cannot
+ * be inside `LocaleProvider`.
+ *
+ * `getServerSnapshot` returns the default so the server and the first client render agree;
+ * the real value arrives in the provider's effect. That flash is invisible here because the
+ * only consumers are accessible names, which assistive technology reads from the live DOM.
+ * Do not reach for this from a component that *can* use `useCopy()` — it is strictly worse,
+ * being a render-after-mount rather than a value the server already knew.
+ */
+export function useActiveLocale(): Locale {
+  return useSyncExternalStore(
+    subscribe,
+    () => activeLocale,
+    () => DEFAULT_LOCALE,
+  );
+}
+
 export function LocaleProvider({
   locale,
   children,
@@ -35,6 +76,12 @@ export function LocaleProvider({
   // Recomputed only when the locale actually changes — `appCopy` is a table lookup, so
   // memoising the object costs more than it saves, but the wrapper object should be stable.
   const value: LocaleValue = { locale, copy: appCopy(locale) };
+
+  useEffect(() => {
+    activeLocale = locale;
+    for (const listener of listeners) listener();
+  }, [locale]);
+
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 }
 

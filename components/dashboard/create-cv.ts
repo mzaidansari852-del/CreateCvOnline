@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/toast';
 import { apiRequest, useApiErrorToast } from './api';
 import { readPreferences } from './preferences';
 import { trackEvent } from '@/lib/analytics/events';
+import type { DashboardCopy } from '@/lib/i18n/copy/dashboard';
 import type { CVDocument } from '@/types/cv';
 
 /**
@@ -16,6 +17,9 @@ import type { CVDocument } from '@/types/cv';
  * preference is then applied with a follow-up `PATCH`, because the create endpoint takes
  * no customization. The second call is best-effort: a CV that exists on A4 when the user
  * wanted Letter is a nuisance, but losing the CV over it would be worse.
+ *
+ * Its toasts are supplied by the caller rather than read from a hook here, so that the
+ * strings this raises are visible at the three components that raise them.
  */
 
 export interface CreateCVInput {
@@ -29,7 +33,8 @@ export interface CreateCVResult {
   creating: boolean;
 }
 
-export function useCreateCV(): CreateCVResult {
+/** Pass `copy.cvs` from a component that has `useCopy()`. */
+export function useCreateCV(copy: DashboardCopy['cvs']): CreateCVResult {
   const router = useRouter();
   const toast = useToast();
   const showError = useApiErrorToast();
@@ -63,20 +68,18 @@ export function useCreateCV(): CreateCVResult {
           starter: input.starter,
         });
         toast.success(
-          'CV created',
-          input.starter === 'sample'
-            ? 'We filled it with a worked example — replace it with your own details.'
-            : 'Opening the editor…',
+          copy.createdTitle,
+          input.starter === 'sample' ? copy.createdExampleBody : copy.createdBlankBody,
         );
         router.push(`/dashboard/cvs/${cv.id}/edit`);
         router.refresh();
       } catch (error) {
-        showError(error, 'Could not create the CV');
+        showError(error, copy.createFailed);
       } finally {
         setCreating(false);
       }
     },
-    [router, toast, showError],
+    [router, toast, showError, copy],
   );
 
   return { create, creating };

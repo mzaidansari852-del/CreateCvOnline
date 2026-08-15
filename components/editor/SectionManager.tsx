@@ -20,6 +20,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Eye, EyeOff, GripVertical, Lock, Plus, Trash2 } from 'lucide-react';
 
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/form';
 import { ConfirmDialog, Modal } from '@/components/ui/modal';
@@ -51,6 +52,7 @@ export function SectionManager({
   canUseCustomSections: boolean;
   onUpgradeNeeded: () => void;
 }) {
+  const copy = useCopy();
   const [renaming, setRenaming] = useState<SectionConfig | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [addingCustom, setAddingCustom] = useState(false);
@@ -115,7 +117,7 @@ export function SectionManager({
   };
 
   const addCustomSection = () => {
-    const title = customTitle.trim().slice(0, 60) || 'Custom section';
+    const title = customTitle.trim().slice(0, 60) || copy.editor.sections.defaultCustomTitle;
     const id = uid();
     onChange((current) => ({
       ...current,
@@ -177,28 +179,30 @@ export function SectionManager({
         variant="outline"
         size="sm"
         fullWidth
-        leadingIcon={canUseCustomSections ? <Plus className="size-4" /> : <Lock className="size-3.5" />}
+        leadingIcon={
+          canUseCustomSections ? <Plus className="size-4" /> : <Lock className="size-3.5" />
+        }
         onClick={() => (canUseCustomSections ? setAddingCustom(true) : onUpgradeNeeded())}
       >
-        Add a custom section
+        {copy.editor.sections.addCustom}
       </Button>
 
       <Modal
         open={renaming !== null}
         onClose={() => setRenaming(null)}
-        title="Rename section"
-        description="This is the heading printed on your CV."
+        title={copy.editor.sections.renameTitle}
+        description={copy.editor.sections.renameBody}
         size="sm"
         footer={
           <>
             <Button variant="outline" onClick={() => setRenaming(null)}>
-              Cancel
+              {copy.common.cancel}
             </Button>
-            <Button onClick={applyRename}>Save</Button>
+            <Button onClick={applyRename}>{copy.common.save}</Button>
           </>
         }
       >
-        <Field label="Heading">
+        <Field label={copy.editor.sections.heading}>
           {({ id }) => (
             <Input
               id={id}
@@ -217,26 +221,26 @@ export function SectionManager({
       <Modal
         open={addingCustom}
         onClose={() => setAddingCustom(false)}
-        title="New custom section"
-        description="For anything the twelve built-in sections do not cover — patents, memberships, speaking, military service."
+        title={copy.editor.sections.newTitle}
+        description={copy.editor.sections.newBody}
         size="sm"
         footer={
           <>
             <Button variant="outline" onClick={() => setAddingCustom(false)}>
-              Cancel
+              {copy.common.cancel}
             </Button>
-            <Button onClick={addCustomSection}>Add section</Button>
+            <Button onClick={addCustomSection}>{copy.editor.sections.addConfirm}</Button>
           </>
         }
       >
-        <Field label="Section heading">
+        <Field label={copy.editor.sections.sectionHeading}>
           {({ id }) => (
             <Input
               id={id}
               value={customTitle}
               data-autofocus
               maxLength={60}
-              placeholder="Conference talks"
+              placeholder={copy.editor.sections.newPlaceholder}
               onChange={(event) => setCustomTitle(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') addCustomSection();
@@ -252,13 +256,10 @@ export function SectionManager({
         onConfirm={() => {
           if (removing) removeCustomSection(removing);
         }}
-        title="Delete this section?"
-        description={
-          removing
-            ? `“${removing.label}” and everything in it will be removed. You can undo this with Ctrl+Z.`
-            : ''
-        }
-        confirmLabel="Delete section"
+        title={copy.editor.sections.deleteTitle}
+        description={removing ? copy.editor.sections.deleteBody(removing.label) : ''}
+        confirmLabel={copy.editor.sections.deleteConfirm}
+        cancelLabel={copy.common.cancel}
       />
     </div>
   );
@@ -287,13 +288,20 @@ function SectionRow({
   onRename: () => void;
   onRemove?: () => void;
 }) {
+  const copy = useCopy();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: section.id,
   });
 
+  /*
+   * The translated hint wins, and `SECTION_META` is the fallback for a section that has one
+   * there but no entry here yet — a new built-in section is then untranslated rather than
+   * silently unexplained.
+   */
   const hint = isCustomSectionId(section.id)
-    ? 'Custom section'
-    : SECTION_META[section.id as BuiltInSectionId]?.hint;
+    ? copy.editor.sections.customHint
+    : (copy.editor.sectionHints[section.id as BuiltInSectionId] ??
+      SECTION_META[section.id as BuiltInSectionId]?.hint);
 
   return (
     <li
@@ -311,7 +319,7 @@ function SectionRow({
       <button
         type="button"
         className="cursor-grab touch-none rounded-md p-1 text-ink-400 transition-colors hover:text-ink-700 active:cursor-grabbing"
-        aria-label={`Reorder ${section.label}. Press space, then use the arrow keys.`}
+        aria-label={copy.editor.reorderHandle(section.label)}
         {...attributes}
         {...listeners}
       >
@@ -333,17 +341,25 @@ function SectionRow({
       </button>
 
       <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-        <RowButton label={`Move ${section.label} up`} onClick={onMoveUp} disabled={isFirst}>
+        <RowButton
+          label={copy.editor.sections.moveUp(section.label)}
+          onClick={onMoveUp}
+          disabled={isFirst}
+        >
           <path d="m6 15 6-6 6 6" />
         </RowButton>
-        <RowButton label={`Move ${section.label} down`} onClick={onMoveDown} disabled={isLast}>
+        <RowButton
+          label={copy.editor.sections.moveDown(section.label)}
+          onClick={onMoveDown}
+          disabled={isLast}
+        >
           <path d="m6 9 6 6 6-6" />
         </RowButton>
         {onRemove ? (
           <button
             type="button"
             onClick={onRemove}
-            aria-label={`Delete ${section.label}`}
+            aria-label={copy.editor.deleteNamed(section.label)}
             className="cursor-pointer rounded-md p-1 text-ink-400 transition-colors hover:bg-danger-50 hover:text-danger-600"
           >
             <Trash2 className="size-3.5" />
@@ -355,8 +371,12 @@ function SectionRow({
         type="button"
         onClick={onToggle}
         aria-pressed={section.enabled}
-        aria-label={section.enabled ? `Hide ${section.label}` : `Show ${section.label}`}
-        title={section.enabled ? 'Hide from CV' : 'Show on CV'}
+        aria-label={
+          section.enabled
+            ? copy.editor.sections.hide(section.label)
+            : copy.editor.sections.show(section.label)
+        }
+        title={section.enabled ? copy.editor.sections.hideTitle : copy.editor.sections.showTitle}
         className={cn(
           'shrink-0 cursor-pointer rounded-md p-1 transition-colors',
           section.enabled

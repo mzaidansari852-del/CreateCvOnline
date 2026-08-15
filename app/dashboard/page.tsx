@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { ArrowRight, CircleGauge, Download, FileText, Sparkles, Wallet } from 'lucide-react';
 
 import { CVGridCard } from '@/components/dashboard/CVCard';
@@ -14,6 +15,8 @@ import { requireViewer } from '@/lib/auth/guards';
 import { getCV, listCVs } from '@/lib/db/cvs';
 import { usageSnapshot } from '@/lib/entitlements';
 import { formatDateTime } from '@/lib/cv/format';
+import { appCopy } from '@/lib/i18n/app-copy';
+import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { privateMetadata } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = privateMetadata(
@@ -21,16 +24,26 @@ export const metadata: Metadata = privateMetadata(
   'Your CVs, your plan usage and everything you have not finished yet.',
 );
 
+/**
+ * Empty when neither the profile nor the address yields anything usable — the greeting
+ * then drops the name rather than substituting a placeholder, because "Welcome back,
+ * there" has no natural equivalent in French or German.
+ */
 function firstNameOf(displayName: string, email: string): string {
   const fromName = displayName.trim().split(/\s+/)[0];
   if (fromName) return fromName;
   const localPart = email.split('@')[0] ?? '';
   const candidate = localPart.split(/[._-]/)[0] ?? '';
-  return candidate ? candidate.charAt(0).toUpperCase() + candidate.slice(1) : 'there';
+  return candidate ? candidate.charAt(0).toUpperCase() + candidate.slice(1) : '';
 }
 
 export default async function DashboardOverviewPage() {
   const viewer = await requireViewer('/dashboard');
+  const locale = resolveLocale({
+    profileLocale: viewer.profile.locale,
+    cookieLocale: (await cookies()).get(LOCALE_COOKIE)?.value,
+  });
+  const copy = appCopy(locale);
 
   const [summaries, usage] = await Promise.all([
     listCVs(viewer.user.uid),
@@ -54,54 +67,64 @@ export default async function DashboardOverviewPage() {
   const averageCompleteness =
     summaries.length === 0
       ? 0
-      : Math.round(
-          summaries.reduce((total, cv) => total + cv.completeness, 0) / summaries.length,
-        );
+      : Math.round(summaries.reduce((total, cv) => total + cv.completeness, 0) / summaries.length);
 
-  const weakestDocument = weakest && weakest.completeness < 100 ? documents.get(weakest.id) : undefined;
-  const gaps = weakestDocument ? topGaps(weakestDocument.data, 4) : [];
+  const weakestDocument =
+    weakest && weakest.completeness < 100 ? documents.get(weakest.id) : undefined;
+  const gaps = weakestDocument ? topGaps(weakestDocument.data, 4, copy) : [];
 
   const atCvLimit = usage.cvs.limit !== null && usage.cvs.used >= usage.cvs.limit;
   const atDownloadLimit =
     usage.downloads.limit !== null && usage.downloads.used >= usage.downloads.limit;
 
+  const firstName = firstNameOf(
+    viewer.profile.displayName || viewer.user.displayName,
+    viewer.user.email,
+  );
+
   return (
     <DashboardShell
       viewer={viewer}
-      title={`${summaries.length === 0 ? 'Welcome' : 'Welcome back'}, ${firstNameOf(
-        viewer.profile.displayName || viewer.user.displayName,
-        viewer.user.email,
-      )}`}
+      title={
+        summaries.length === 0
+          ? copy.dashboard.greetingNew(firstName)
+          : copy.dashboard.greeting(firstName)
+      }
       description={
         summaries.length === 0
-          ? 'Nothing saved yet. Pick a starting point below and you will have a finished CV in one sitting.'
-          : `You have ${summaries.length} CV${summaries.length === 1 ? '' : 's'} in your account.`
+          ? copy.dashboard.overviewLedeEmpty
+          : copy.dashboard.overviewLede(summaries.length)
       }
       actions={
         summaries.length > 0 ? (
           <ButtonLink href="/dashboard/cvs" variant="outline" size="sm">
-            View all CVs
+            {copy.dashboard.viewAllCvs}
           </ButtonLink>
         ) : undefined
       }
     >
       <div className="flex flex-col gap-6">
-        <section aria-label="Plan usage" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <section
+          aria-label={copy.dashboard.planUsage}
+          className="grid grid-cols-2 gap-3 lg:grid-cols-4"
+        >
           <StatTile
-            label="CVs saved"
+            label={copy.dashboard.statCvsSaved}
             icon={<FileText size={14} aria-hidden />}
-            value={usage.cvs.limit === null ? usage.cvs.used : `${usage.cvs.used} / ${usage.cvs.limit}`}
+            value={
+              usage.cvs.limit === null ? usage.cvs.used : `${usage.cvs.used} / ${usage.cvs.limit}`
+            }
             meter={usage.cvs}
             hint={
               usage.cvs.limit === null
-                ? 'Unlimited on your plan.'
+                ? copy.dashboard.unlimitedOnPlan
                 : atCvLimit
-                  ? 'At the limit — delete one or upgrade to add more.'
-                  : `${usage.cvs.limit - usage.cvs.used} left on ${viewer.plan.name}.`
+                  ? copy.dashboard.atCvLimitHint
+                  : copy.dashboard.cvsLeftOnPlan(usage.cvs.limit - usage.cvs.used, viewer.plan.name)
             }
           />
           <StatTile
-            label="Downloads"
+            label={copy.dashboard.statDownloads}
             icon={<Download size={14} aria-hidden />}
             value={
               usage.downloads.limit === null
@@ -111,31 +134,33 @@ export default async function DashboardOverviewPage() {
             meter={usage.downloads}
             hint={
               usage.downloads.limit === null
-                ? 'Unlimited PDF exports.'
-                : `Resets ${formatDateTime(usage.downloads.resetsOn)}.`
+                ? copy.dashboard.unlimitedExports
+                : copy.dashboard.resetsOn(formatDateTime(usage.downloads.resetsOn, locale))
             }
           />
           <StatTile
-            label="Plan"
+            label={copy.dashboard.statPlan}
             icon={<Wallet size={14} aria-hidden />}
             value={usage.planName}
             hint={
               viewer.isPremium
                 ? viewer.profile.entitlement.currentPeriodEnd
-                  ? `Renews ${formatDateTime(viewer.profile.entitlement.currentPeriodEnd)}.`
-                  : 'Permanent access — no renewal.'
-                : 'Free forever, with limits.'
+                  ? copy.dashboard.renewsOn(
+                      formatDateTime(viewer.profile.entitlement.currentPeriodEnd, locale),
+                    )
+                  : copy.dashboard.permanentAccess
+                : copy.dashboard.freeForever
             }
           />
           <StatTile
-            label="Avg. completeness"
+            label={copy.dashboard.statCompleteness}
             icon={<CircleGauge size={14} aria-hidden />}
             value={summaries.length === 0 ? '—' : `${averageCompleteness}%`}
             meter={summaries.length === 0 ? undefined : { used: averageCompleteness, limit: 100 }}
             hint={
               summaries.length === 0
-                ? 'Create a CV to start tracking this.'
-                : 'Across every CV in your account.'
+                ? copy.dashboard.completenessNoData
+                : copy.dashboard.completenessAcrossCvs
             }
           />
         </section>
@@ -143,15 +168,14 @@ export default async function DashboardOverviewPage() {
         {atDownloadLimit ? (
           <Alert
             tone="warning"
-            title="You have used every download this month"
+            title={copy.dashboard.downloadLimitTitle}
             action={
               <ButtonLink href="/pricing" size="sm">
-                See plans
+                {copy.dashboard.seePlans}
               </ButtonLink>
             }
           >
-            The counter resets on {formatDateTime(usage.downloads.resetsOn)}. Pro removes the
-            limit entirely.
+            {copy.dashboard.downloadLimitBody(formatDateTime(usage.downloads.resetsOn, locale))}
           </Alert>
         ) : null}
 
@@ -163,10 +187,10 @@ export default async function DashboardOverviewPage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <h2 id="finish-heading" className="text-base font-semibold text-ink-950">
-                  Finish “{weakestDocument.title}”
+                  {copy.dashboard.finishHeading(weakestDocument.title)}
                 </h2>
                 <p className="mt-1 text-sm text-ink-600">
-                  It is {weakest?.completeness ?? 0}% complete. These are the biggest gaps:
+                  {copy.dashboard.finishLede(weakest?.completeness ?? 0)}
                 </p>
               </div>
               <ButtonLink
@@ -174,7 +198,7 @@ export default async function DashboardOverviewPage() {
                 size="sm"
                 trailingIcon={<ArrowRight size={15} aria-hidden />}
               >
-                Continue editing
+                {copy.dashboard.continueEditing}
               </ButtonLink>
             </div>
 
@@ -184,7 +208,10 @@ export default async function DashboardOverviewPage() {
                   key={gap.id}
                   className="flex items-start gap-2.5 rounded-lg bg-ink-50 px-3 py-2.5 text-[13px] leading-snug text-ink-700"
                 >
-                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-warning-500" aria-hidden />
+                  <span
+                    className="mt-1.5 size-1.5 shrink-0 rounded-full bg-warning-500"
+                    aria-hidden
+                  />
                   {gap.todo}
                 </li>
               ))}
@@ -195,14 +222,14 @@ export default async function DashboardOverviewPage() {
         <section aria-labelledby="recent-heading">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 id="recent-heading" className="text-base font-semibold text-ink-950">
-              Recently edited
+              {copy.dashboard.recentlyEdited}
             </h2>
             {summaries.length > 3 ? (
               <Link
                 href="/dashboard/cvs"
                 className="text-sm font-semibold text-brand-700 hover:text-brand-800"
               >
-                All {summaries.length} CVs
+                {copy.dashboard.allCvsCount(summaries.length)}
               </Link>
             ) : null}
           </div>
@@ -210,14 +237,14 @@ export default async function DashboardOverviewPage() {
           {recent.length === 0 ? (
             <EmptyState
               icon={<Sparkles size={20} aria-hidden />}
-              title="No CVs yet"
-              description="Start blank, start from a worked example, or browse the templates first — whichever gets you writing."
+              title={copy.dashboard.noCvsYet}
+              description={copy.dashboard.noCvsBody}
               action={
-                <ButtonLink href="/dashboard/cvs/new">Create my first CV</ButtonLink>
+                <ButtonLink href="/dashboard/cvs/new">{copy.dashboard.createFirst}</ButtonLink>
               }
               secondaryAction={
                 <ButtonLink href="/dashboard/templates" variant="outline">
-                  Browse templates
+                  {copy.dashboard.browseTemplates}
                 </ButtonLink>
               }
             />
@@ -227,11 +254,7 @@ export default async function DashboardOverviewPage() {
                 const document = documents.get(summary.id);
                 if (!document) return null;
                 return (
-                  <CVGridCard
-                    key={document.id}
-                    cv={document}
-                    canShare={viewer.limits.shareLinks}
-                  />
+                  <CVGridCard key={document.id} cv={document} canShare={viewer.limits.shareLinks} />
                 );
               })}
             </div>
@@ -240,20 +263,23 @@ export default async function DashboardOverviewPage() {
 
         <section aria-labelledby="start-heading">
           <h2 id="start-heading" className="mb-3 text-base font-semibold text-ink-950">
-            Start a new CV
+            {copy.dashboard.startNewCv}
           </h2>
           {atCvLimit ? (
             <Alert
               tone="warning"
-              title={`You are using all ${usage.cvs.limit} CVs the ${viewer.plan.name} plan allows`}
+              title={copy.dashboard.cvLimitTitle(usage.cvs.limit ?? 0, viewer.plan.name)}
               action={
                 <ButtonLink href="/pricing" size="sm">
-                  See plans
+                  {copy.dashboard.seePlans}
                 </ButtonLink>
               }
             >
-              Delete one from <Link href="/dashboard/cvs" className="underline">My CVs</Link> to
-              make room, or upgrade to Pro for unlimited CVs.
+              {copy.dashboard.cvLimitBodyLead}{' '}
+              <Link href="/dashboard/cvs" className="underline">
+                {copy.nav.myCvs}
+              </Link>
+              {copy.dashboard.cvLimitBodyTail}
             </Alert>
           ) : null}
           <StartCVPanel atCvLimit={atCvLimit} className={atCvLimit ? 'mt-3' : undefined} />

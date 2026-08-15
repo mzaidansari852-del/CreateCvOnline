@@ -10,6 +10,7 @@ import { PasswordField } from './PasswordField';
 import { PasswordStrength } from './PasswordStrength';
 import { NotConfiguredAlert, OrDivider, isEmail, safeNextPath } from './shared';
 import { authErrorMessage, useAuth } from '@/components/auth/AuthProvider';
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/feedback';
 import { Checkbox, Field, FieldError, Input } from '@/components/ui/form';
@@ -37,6 +38,7 @@ interface Errors {
 export function RegisterForm({ templateId, next }: { templateId?: string; next?: string }) {
   const router = useRouter();
   const { signUp, signInWithGoogle, configured } = useAuth();
+  const copy = useCopy();
 
   const formRef = useRef<HTMLFormElement>(null);
   const strengthId = useId();
@@ -68,22 +70,22 @@ export function RegisterForm({ templateId, next }: { templateId?: string; next?:
     const count = Object.keys(found).length;
     if (count === 0) return true;
     // One problem announces itself when focus lands on the field; several need a summary.
-    setFormError(count > 1 ? `There are ${count} things to fix below.` : null);
+    setFormError(count > 1 ? copy.auth.thingsToFix(count) : null);
     setInvalidAt(Date.now());
     return false;
   }
 
   function validate(): Errors {
     const found: Errors = {};
-    if (name.trim().length < 2) found.name = 'Tell us the name that should appear on your CV.';
-    if (!email.trim()) found.email = 'An e-mail address is required — it is how you sign in.';
-    else if (!isEmail(email)) found.email = 'That does not look like a valid e-mail address.';
+    if (name.trim().length < 2) found.name = copy.auth.nameRequired;
+    if (!email.trim()) found.email = copy.auth.emailRequiredSignUp;
+    else if (!isEmail(email)) found.email = copy.auth.emailInvalid;
     if (password.length < MIN_PASSWORD_LENGTH) {
-      found.password = `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
+      found.password = copy.auth.passwordTooShort(MIN_PASSWORD_LENGTH);
     }
-    if (!confirm) found.confirm = 'Type the password once more.';
-    else if (confirm !== password) found.confirm = 'The two passwords do not match.';
-    if (!accepted) found.accept = 'Please accept the terms and the privacy policy to continue.';
+    if (!confirm) found.confirm = copy.auth.confirmRequired;
+    else if (confirm !== password) found.confirm = copy.auth.confirmMismatch;
+    if (!accepted) found.accept = copy.auth.acceptRequired;
     return found;
   }
 
@@ -101,7 +103,7 @@ export function RegisterForm({ templateId, next }: { templateId?: string; next?:
       router.push(target);
       router.refresh();
     } catch (error) {
-      setFormError(authErrorMessage(error));
+      setFormError(authErrorMessage(error, copy));
       setPending(null);
     }
   }
@@ -111,7 +113,7 @@ export function RegisterForm({ templateId, next }: { templateId?: string; next?:
 
     setFormError(null);
     // Terms have to be accepted whichever way the account is created.
-    if (!report(accepted ? {} : { accept: 'Please accept the terms and the privacy policy to continue.' })) {
+    if (!report(accepted ? {} : { accept: copy.auth.acceptRequired })) {
       return;
     }
 
@@ -123,7 +125,7 @@ export function RegisterForm({ templateId, next }: { templateId?: string; next?:
       router.push(target);
       router.refresh();
     } catch (error) {
-      setFormError(authErrorMessage(error));
+      setFormError(authErrorMessage(error, copy));
       setPending(null);
     }
   }
@@ -133,10 +135,10 @@ export function RegisterForm({ templateId, next }: { templateId?: string; next?:
 
   return (
     <div className="flex flex-col gap-5">
-      {!configured ? <NotConfiguredAlert /> : null}
+      {!configured ? <NotConfiguredAlert copy={copy} /> : null}
 
       {formError ? (
-        <Alert tone="danger" title="Could not create your account">
+        <Alert tone="danger" title={copy.auth.signUpFailedTitle}>
           {formError}
         </Alert>
       ) : null}
@@ -145,13 +147,18 @@ export function RegisterForm({ templateId, next }: { templateId?: string; next?:
         onClick={() => void handleGoogle()}
         loading={pending === 'google'}
         disabled={!configured || pending === 'password'}
-        label="Sign up with Google"
+        label={copy.auth.signUpWithGoogle}
       />
 
-      <OrDivider label="or sign up with e-mail" />
+      <OrDivider label={copy.auth.orSignUpWithEmail} />
 
-      <form ref={formRef} onSubmit={(event) => void handleSubmit(event)} noValidate className="flex flex-col gap-4">
-        <Field label="Full name" error={errors.name} required>
+      <form
+        ref={formRef}
+        onSubmit={(event) => void handleSubmit(event)}
+        noValidate
+        className="flex flex-col gap-4"
+      >
+        <Field label={copy.auth.nameLabel} error={errors.name} required>
           {({ id, describedBy, invalid }) => (
             <Input
               id={id}
@@ -170,7 +177,7 @@ export function RegisterForm({ templateId, next }: { templateId?: string; next?:
           )}
         </Field>
 
-        <Field label="E-mail address" error={errors.email} required>
+        <Field label={copy.auth.emailLabel} error={errors.email} required>
           {({ id, describedBy, invalid }) => (
             <Input
               id={id}
@@ -186,14 +193,14 @@ export function RegisterForm({ templateId, next }: { templateId?: string; next?:
               spellCheck={false}
               disabled={disabled}
               required
-              placeholder="you@example.com"
+              placeholder={copy.auth.emailPlaceholder}
             />
           )}
         </Field>
 
         <div className="flex flex-col gap-2">
           <PasswordField
-            label="Password"
+            label={copy.auth.passwordLabel}
             name="password"
             value={password}
             onChange={setPassword}
@@ -202,11 +209,11 @@ export function RegisterForm({ templateId, next }: { templateId?: string; next?:
             describedBy={strengthId}
             disabled={disabled}
           />
-          <PasswordStrength password={password} id={strengthId} />
+          <PasswordStrength password={password} copy={copy} id={strengthId} />
         </div>
 
         <PasswordField
-          label="Confirm password"
+          label={copy.auth.confirmPasswordLabel}
           name="confirmPassword"
           value={confirm}
           onChange={setConfirm}
@@ -227,13 +234,19 @@ export function RegisterForm({ templateId, next }: { templateId?: string; next?:
               aria-describedby={errors.accept ? acceptErrorId : undefined}
               label={
                 <>
-                  I agree to the{' '}
-                  <Link href="/terms" className="font-semibold text-brand-700 underline underline-offset-2">
-                    Terms of Service
+                  {copy.auth.acceptIntro}{' '}
+                  <Link
+                    href="/terms"
+                    className="font-semibold text-brand-700 underline underline-offset-2"
+                  >
+                    {copy.auth.termsOfService}
                   </Link>{' '}
-                  and the{' '}
-                  <Link href="/privacy" className="font-semibold text-brand-700 underline underline-offset-2">
-                    Privacy Policy
+                  {copy.auth.acceptAnd}{' '}
+                  <Link
+                    href="/privacy"
+                    className="font-semibold text-brand-700 underline underline-offset-2"
+                  >
+                    {copy.auth.privacyPolicy}
                   </Link>
                   .
                 </>
@@ -251,20 +264,29 @@ export function RegisterForm({ templateId, next }: { templateId?: string; next?:
             checked={marketing}
             onChange={(event) => setMarketing(event.target.checked)}
             disabled={disabled}
-            label="Send me CV writing tips and product news"
-            hint="At most once a month. You can turn this off in Settings at any time."
+            label={copy.auth.marketingLabel}
+            hint={copy.auth.marketingHint}
           />
         </div>
 
-        <Button type="submit" size="lg" fullWidth loading={pending === 'password'} disabled={disabled}>
-          Create my free account
+        <Button
+          type="submit"
+          size="lg"
+          fullWidth
+          loading={pending === 'password'}
+          disabled={disabled}
+        >
+          {copy.auth.createMyFreeAccount}
         </Button>
       </form>
 
       <p className="text-center text-sm text-ink-600">
-        Already have an account?{' '}
-        <Link href={loginHref} className="font-semibold text-brand-700 underline-offset-4 hover:underline">
-          Sign in
+        {copy.auth.haveAccount}{' '}
+        <Link
+          href={loginHref}
+          className="font-semibold text-brand-700 underline-offset-4 hover:underline"
+        >
+          {copy.auth.signIn}
         </Link>
       </p>
     </div>

@@ -5,6 +5,7 @@ import { Maximize2, Minus, Plus } from 'lucide-react';
 
 import { CoverLetterDocument } from '@/components/cv/CoverLetterDocument';
 import { CVDocument } from '@/components/cv/CVDocument';
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { PAPER } from '@/lib/cv/format';
 import { cn } from '@/lib/utils/cn';
 import type { CVCustomization, CVData } from '@/types/cv';
@@ -37,6 +38,7 @@ export function PreviewPane({
   className?: string;
   onPageCountChange?: (pages: number) => void;
 }) {
+  const copy = useCopy();
   const paper = PAPER[customization.paperSize];
   /*
    * Today, resolved once per mount rather than per render.
@@ -99,21 +101,29 @@ export function PreviewPane({
     <div className={cn('flex min-h-0 flex-col bg-ink-100', className)}>
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-ink-200 bg-white px-4 py-2">
         <p className="text-xs font-medium text-ink-600" aria-live="polite">
-          {pageCount} page{pageCount === 1 ? '' : 's'} · {paper.label}
+          {copy.editor.preview.pages(pageCount)} · {paper.label}
         </p>
 
         <div className="flex items-center gap-1">
-          <ZoomButton label="Zoom out" onClick={() => setZoomManually(zoom - 0.1)} disabled={zoom <= MIN_ZOOM}>
+          <ZoomButton
+            label={copy.editor.preview.zoomOut}
+            onClick={() => setZoomManually(zoom - 0.1)}
+            disabled={zoom <= MIN_ZOOM}
+          >
             <Minus className="size-4" />
           </ZoomButton>
           <span className="w-11 text-center font-mono text-xs text-ink-600 tabular-nums">
             {Math.round(zoom * 100)}%
           </span>
-          <ZoomButton label="Zoom in" onClick={() => setZoomManually(zoom + 0.1)} disabled={zoom >= MAX_ZOOM}>
+          <ZoomButton
+            label={copy.editor.preview.zoomIn}
+            onClick={() => setZoomManually(zoom + 0.1)}
+            disabled={zoom >= MAX_ZOOM}
+          >
             <Plus className="size-4" />
           </ZoomButton>
           <ZoomButton
-            label="Fit to width"
+            label={copy.editor.preview.fitToWidth}
             onClick={() => {
               setAutoFit(true);
               fit();
@@ -176,6 +186,7 @@ export function PreviewPane({
 
 /** Dashed rules where Chromium will break the document into pages. */
 function PageGuides({ pageCount, pageHeight }: { pageCount: number; pageHeight: number }) {
+  const copy = useCopy();
   if (pageCount < 2) return null;
   return (
     <div className="pointer-events-none absolute inset-0 select-none" aria-hidden>
@@ -187,7 +198,7 @@ function PageGuides({ pageCount, pageHeight }: { pageCount: number; pageHeight: 
         >
           <span className="h-px flex-1 border-t border-dashed border-danger-400/70" />
           <span className="bg-danger-500 px-1.5 py-0.5 text-[9px] font-semibold tracking-wide text-white uppercase">
-            Page {index + 2}
+            {copy.editor.preview.pageMarker(index + 2)}
           </span>
         </div>
       ))}

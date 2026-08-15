@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { Lock } from 'lucide-react';
 
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
@@ -13,12 +14,9 @@ import { LanguagePanel } from '@/components/i18n/LanguagePanel';
 import { Panel } from '@/components/ui/card';
 import { Badge } from '@/components/ui/feedback';
 import { requireViewer } from '@/lib/auth/guards';
-import {
-  DEFAULT_TEMPLATE_ID,
-  getTemplate,
-  TEMPLATES,
-  TEMPLATE_CATEGORIES,
-} from '@/lib/cv/template-registry';
+import { DEFAULT_TEMPLATE_ID, getTemplate, TEMPLATES } from '@/lib/cv/template-registry';
+import { appCopy } from '@/lib/i18n/app-copy';
+import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { privateMetadata } from '@/lib/seo/metadata';
 import { site } from '@/lib/site';
 
@@ -27,25 +25,26 @@ export const metadata: Metadata = privateMetadata(
   'Defaults for new CVs, e-mail preferences and your data.',
 );
 
-const CATEGORY_LABELS = new Map(
-  TEMPLATE_CATEGORIES.map((category) => [category.id as string, category.label]),
-);
-
 export default async function SettingsPage() {
   const viewer = await requireViewer('/dashboard/settings');
+  const locale = resolveLocale({
+    profileLocale: viewer.profile.locale,
+    cookieLocale: (await cookies()).get(LOCALE_COOKIE)?.value,
+  });
+  const copy = appCopy(locale);
 
   const templates: TemplateChoice[] = TEMPLATES.map((template) => ({
     id: template.id,
     name: template.name,
-    categoryLabel: CATEGORY_LABELS.get(template.category) ?? template.category,
+    categoryLabel: copy.templates.categoryLabel[template.category],
     premium: template.premium,
   }));
 
   return (
     <DashboardShell
       viewer={viewer}
-      title="Settings"
-      description="Only the things that genuinely do something are switchable here. Everything else says so."
+      title={copy.settings.title}
+      description={copy.settings.pageLede}
     >
       <div className="flex flex-col gap-5">
         {/*
@@ -55,10 +54,7 @@ export default async function SettingsPage() {
         */}
         <LanguagePanel />
 
-        <Panel
-          title="New CV defaults"
-          description="Applied the next time you create a CV from this browser."
-        >
+        <Panel title={copy.settings.preferencesHeading} description={copy.settings.preferencesHint}>
           <NewCVDefaultsForm
             templates={templates}
             defaultTemplateName={getTemplate(DEFAULT_TEMPLATE_ID).name}
@@ -67,25 +63,25 @@ export default async function SettingsPage() {
         </Panel>
 
         <Panel
-          title="E-mail preferences"
-          description="What we are allowed to send you."
-          action={<Badge tone="neutral">Read-only</Badge>}
+          title={copy.settings.emailHeading}
+          description={copy.settings.emailHint}
+          action={<Badge tone="neutral">{copy.settings.readOnly}</Badge>}
         >
           <dl className="flex flex-col divide-y divide-ink-100">
             <div className="flex flex-wrap items-baseline justify-between gap-2 pb-3">
-              <dt className="text-sm text-ink-500">Product and marketing e-mail</dt>
+              <dt className="text-sm text-ink-500">{copy.settings.marketingEmail}</dt>
               <dd className="text-sm font-medium text-ink-900">
                 {viewer.profile.marketingOptIn ? (
-                  <Badge tone="success">Opted in</Badge>
+                  <Badge tone="success">{copy.settings.optedIn}</Badge>
                 ) : (
-                  <Badge tone="neutral">Opted out</Badge>
+                  <Badge tone="neutral">{copy.settings.optedOut}</Badge>
                 )}
               </dd>
             </div>
             <div className="flex flex-wrap items-baseline justify-between gap-2 pt-3">
-              <dt className="text-sm text-ink-500">Account e-mail</dt>
+              <dt className="text-sm text-ink-500">{copy.settings.accountEmail}</dt>
               <dd className="text-sm font-medium text-ink-900">
-                Always sent — receipts, verification and security notices
+                {copy.settings.accountEmailAlways}
               </dd>
             </div>
           </dl>
@@ -93,29 +89,21 @@ export default async function SettingsPage() {
           <div className="mt-4 flex items-start gap-2.5 rounded-lg bg-ink-50 p-3 text-xs leading-relaxed text-ink-600">
             <Lock size={14} aria-hidden className="mt-0.5 shrink-0 text-ink-400" />
             <p>
-              {site.name} has no endpoint for changing this yet, so there is no switch here that
-              would pretend to work. Every marketing e-mail carries a one-click unsubscribe link, or{' '}
+              {copy.settings.emailLockedLead(site.name)}{' '}
               <Link href="/contact" className="font-semibold text-brand-700 underline">
-                ask us
-              </Link>{' '}
-              to change it.
+                {copy.settings.askUs}
+              </Link>
+              {copy.settings.emailLockedTail}
             </p>
           </div>
         </Panel>
 
-        <Panel
-          title="Your data"
-          description="Take a copy of everything you have written here, at any time."
-        >
+        <Panel title={copy.settings.dataHeading} description={copy.settings.dataHint}>
           <ExportDataButton />
-          <p className="mt-3 text-xs leading-relaxed text-ink-500">
-            The file contains every CV in full — personal details, sections, and the design settings
-            for each one — as JSON. It is built in your browser from your own account, so nothing is
-            stored or sent anywhere else.
-          </p>
+          <p className="mt-3 text-xs leading-relaxed text-ink-500">{copy.settings.exportNote}</p>
         </Panel>
 
-        <Panel title="Danger zone" description="Irreversible things.">
+        <Panel title={copy.settings.dangerZone} description={copy.settings.dangerZoneHint}>
           <DeleteAccountPanel email={viewer.user.email} />
         </Panel>
       </div>

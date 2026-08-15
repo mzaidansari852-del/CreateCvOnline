@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 import { Button } from './button';
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { useHydrated } from '@/hooks/browser';
 import { cn } from '@/lib/utils/cn';
 
@@ -42,6 +43,7 @@ export function Modal({
   // `createPortal` needs a DOM; `useHydrated` is false on the server and during the
   // hydration pass, so the first client render matches the server exactly.
   const mounted = useHydrated();
+  const copy = useCopy();
   const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
   const titleId = useId();
@@ -148,16 +150,23 @@ export function Modal({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close dialog"
+            aria-label={copy.common.closeDialog}
             className="-m-1.5 shrink-0 cursor-pointer rounded-lg p-1.5 text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <path
+                d="m6 6 12 12M18 6 6 18"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
             </svg>
           </button>
         </div>
 
-        {children ? <div className="scroll-thin min-h-0 flex-1 overflow-y-auto p-5">{children}</div> : null}
+        {children ? (
+          <div className="scroll-thin min-h-0 flex-1 overflow-y-auto p-5">{children}</div>
+        ) : null}
 
         {footer ? (
           <div className="flex flex-wrap items-center justify-end gap-3 border-t border-ink-100 p-5">
@@ -177,8 +186,8 @@ export function ConfirmDialog({
   onConfirm,
   title,
   description,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   tone = 'danger',
   loading = false,
 }: {
@@ -187,11 +196,13 @@ export function ConfirmDialog({
   onConfirm: () => void | Promise<void>;
   title: string;
   description: string;
+  /** Defaults to the translated "Confirm"; pass one when the action deserves a verb. */
   confirmLabel?: string;
   cancelLabel?: string;
   tone?: 'danger' | 'primary';
   loading?: boolean;
 }) {
+  const copy = useCopy();
   return (
     <Modal
       open={open}
@@ -203,7 +214,7 @@ export function ConfirmDialog({
       footer={
         <>
           <Button variant="outline" onClick={onClose} disabled={loading}>
-            {cancelLabel}
+            {cancelLabel ?? copy.common.cancel}
           </Button>
           <Button
             variant={tone === 'danger' ? 'danger' : 'primary'}
@@ -211,7 +222,7 @@ export function ConfirmDialog({
             loading={loading}
             data-autofocus
           >
-            {confirmLabel}
+            {confirmLabel ?? copy.common.confirm}
           </Button>
         </>
       }

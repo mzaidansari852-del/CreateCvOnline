@@ -31,7 +31,8 @@ export function StatTile({
       ? Math.min(100, Math.round((meter.used / meter.limit) * 100))
       : null;
 
-  const tone = percent === null ? 'brand' : percent >= 100 ? 'warning' : percent >= 75 ? 'warning' : 'brand';
+  const tone =
+    percent === null ? 'brand' : percent >= 100 ? 'warning' : percent >= 75 ? 'warning' : 'brand';
 
   return (
     <div className={cn('rounded-xl border border-ink-200 bg-white p-4 shadow-card', className)}>
@@ -44,8 +45,20 @@ export function StatTile({
         {value}
       </p>
 
+      {/*
+        The meter has no visible label of its own, so it borrows the tile's — "Downloads"
+        names what is being measured, where the generic fallback would leave a screen
+        reader with four meters all called the same thing. The caller has already put it
+        in the reader's language.
+      */}
       {percent !== null ? (
-        <ProgressBar value={percent} tone={tone} showValue={false} className="mt-3" />
+        <ProgressBar
+          value={percent}
+          tone={tone}
+          showValue={false}
+          ariaLabel={label}
+          className="mt-3"
+        />
       ) : null}
 
       {hint ? <p className="mt-2 text-xs leading-relaxed text-ink-500">{hint}</p> : null}

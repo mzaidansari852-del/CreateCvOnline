@@ -30,7 +30,13 @@ import { PreviewPane } from './PreviewPane';
 import { SectionForm } from './SectionForms';
 import { SectionManager } from './SectionManager';
 import { useEditorDocument } from './useEditorDocument';
-import { ApiRequestError, apiRequest, downloadCVPdf, useApiErrorToast } from '@/components/dashboard/api';
+import {
+  ApiRequestError,
+  apiRequest,
+  downloadCVPdf,
+  useApiErrorToast,
+} from '@/components/dashboard/api';
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Button } from '@/components/ui/button';
 import { Badge, ProgressBar } from '@/components/ui/feedback';
 import { Field, Input } from '@/components/ui/form';
@@ -73,11 +79,15 @@ export function CVEditor({
   const router = useRouter();
   const toast = useToast();
   const showApiError = useApiErrorToast();
+  const copy = useCopy();
 
-  const onEntitlementError = useCallback((error: ApiRequestError) => {
-    // The autosave path surfaces plan limits through the same toast as everything else.
-    showApiError(error, 'Could not save');
-  }, [showApiError]);
+  const onEntitlementError = useCallback(
+    (error: ApiRequestError) => {
+      // The autosave path surfaces plan limits through the same toast as everything else.
+      showApiError(error, copy.editor.toast.couldNotSave);
+    },
+    [copy, showApiError],
+  );
 
   const editor = useEditorDocument(initialDocument, { onEntitlementError });
 
@@ -103,24 +113,24 @@ export function CVEditor({
 
   const activeLabel =
     activeSectionId === 'personal'
-      ? 'Personal details'
+      ? copy.editor.personalDetails
       : activeSectionId === 'cover-letter'
-        ? 'Cover letter'
+        ? copy.editor.letterTab
         : (editor.data.sections.find((section) => section.id === activeSectionId)?.label ??
-          'Personal details');
+          copy.editor.personalDetails);
 
   const upgradePrompt = useCallback(
     (reason: string) => {
       trackEvent('upgrade_prompt_shown', { reason: 'editor' });
       toast.push({
-        title: 'That is a Pro feature',
-        description: `${reason} Upgrade to unlock every template and the full set of design controls.`,
+        title: copy.editor.pro.title,
+        description: copy.editor.pro.body(reason),
         tone: 'warning',
         durationMs: 9000,
-        action: { label: 'See Pro plans', onClick: () => router.push('/pricing') },
+        action: { label: copy.editor.pro.seePlans, onClick: () => router.push('/pricing') },
       });
     },
-    [toast, router],
+    [copy, toast, router],
   );
 
   const downloadPdf = async () => {
@@ -129,9 +139,9 @@ export function CVEditor({
       await editor.saveNow();
       await downloadCVPdf(initialDocument.id, editor.title);
       trackEvent('cv_downloaded', { template: editor.customization.templateId, format: 'pdf' });
-      toast.success('PDF downloaded', 'Check your downloads folder.');
+      toast.success(copy.editor.toast.pdfReady, copy.editor.toast.pdfReadyBody);
     } catch (error) {
-      showApiError(error, 'Could not create the PDF');
+      showApiError(error, copy.editor.toast.pdfFailed);
     } finally {
       setBusy(null);
     }
@@ -152,10 +162,10 @@ export function CVEditor({
         { method: 'POST' },
       );
       trackEvent('cv_duplicated');
-      toast.success('CV duplicated', 'Opening the copy.');
+      toast.success(copy.editor.toast.duplicated, copy.editor.toast.duplicatedBody);
       router.push(`/dashboard/cvs/${response.cv.id}/edit`);
     } catch (error) {
-      showApiError(error, 'Could not duplicate this CV');
+      showApiError(error, copy.editor.toast.duplicateFailed);
     } finally {
       setBusy(null);
     }
@@ -163,7 +173,7 @@ export function CVEditor({
 
   const toggleShare = async () => {
     if (!permissions.canShare && !shareUrl) {
-      upgradePrompt('Public share links are Pro.');
+      upgradePrompt(copy.editor.pro.share);
       return;
     }
     setBusy('share');
@@ -177,12 +187,12 @@ export function CVEditor({
       if (response.shareUrl) {
         trackEvent('cv_shared');
         await navigator.clipboard?.writeText(response.shareUrl).catch(() => undefined);
-        toast.success('Share link created', 'Copied to your clipboard.');
+        toast.success(copy.editor.toast.shareOn, copy.editor.toast.shareOnBody);
       } else {
-        toast.info('Sharing turned off', 'The old link no longer works.');
+        toast.info(copy.editor.toast.shareOff, copy.editor.toast.shareOffBody);
       }
     } catch (error) {
-      showApiError(error, 'Could not change sharing');
+      showApiError(error, copy.editor.toast.shareFailed);
     } finally {
       setBusy(null);
     }
@@ -193,11 +203,11 @@ export function CVEditor({
     try {
       await apiRequest(`/api/cvs/${initialDocument.id}`, { method: 'DELETE' });
       trackEvent('cv_deleted');
-      toast.success('CV deleted');
+      toast.success(copy.editor.toast.deleted);
       router.push('/dashboard/cvs');
       router.refresh();
     } catch (error) {
-      showApiError(error, 'Could not delete this CV');
+      showApiError(error, copy.editor.toast.deleteFailed);
       setBusy(null);
       setConfirmDelete(false);
     }
@@ -218,7 +228,7 @@ export function CVEditor({
           className="flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-ink-900"
         >
           <ArrowLeft className="size-4" />
-          <span className="hidden sm:inline">My CVs</span>
+          <span className="hidden sm:inline">{copy.nav.myCvs}</span>
         </Link>
 
         <button
@@ -228,7 +238,7 @@ export function CVEditor({
             setRenaming(true);
           }}
           className="min-w-0 flex-1 cursor-pointer truncate rounded-lg px-2 py-1.5 text-left text-sm font-semibold text-ink-950 transition-colors hover:bg-ink-100"
-          title="Rename this CV"
+          title={copy.editor.renameCvTooltip}
         >
           {editor.title}
         </button>
@@ -240,10 +250,10 @@ export function CVEditor({
         />
 
         <div className="hidden items-center sm:flex">
-          <ToolbarIcon label="Undo (Ctrl+Z)" onClick={editor.undo} disabled={!editor.canUndo}>
+          <ToolbarIcon label={copy.editor.undo} onClick={editor.undo} disabled={!editor.canUndo}>
             <Undo2 className="size-4" />
           </ToolbarIcon>
-          <ToolbarIcon label="Redo (Ctrl+Shift+Z)" onClick={editor.redo} disabled={!editor.canRedo}>
+          <ToolbarIcon label={copy.editor.redo} onClick={editor.redo} disabled={!editor.canRedo}>
             <Redo2 className="size-4" />
           </ToolbarIcon>
         </div>
@@ -254,36 +264,40 @@ export function CVEditor({
           loading={busy === 'pdf'}
           leadingIcon={<Download className="size-4" />}
         >
-          <span className="hidden sm:inline">Download PDF</span>
-          <span className="sm:hidden">PDF</span>
+          <span className="hidden sm:inline">{copy.editor.downloadPdf}</span>
+          <span className="sm:hidden">{copy.editor.downloadPdfShort}</span>
         </Button>
 
         <DropdownMenu
-          ariaLabel="More actions"
+          ariaLabel={copy.editor.moreActions}
           trigger={() => (
             <span className="grid size-9 place-items-center rounded-lg text-ink-600 transition-colors hover:bg-ink-100 hover:text-ink-900">
               <MoreHorizontal className="size-4" />
             </span>
           )}
           items={[
-            { label: 'Print…', icon: <Printer className="size-4" />, onSelect: () => void print() },
             {
-              label: shareUrl ? 'Turn off sharing' : 'Create share link',
+              label: copy.editor.printAction,
+              icon: <Printer className="size-4" />,
+              onSelect: () => void print(),
+            },
+            {
+              label: shareUrl ? copy.editor.turnOffSharing : copy.editor.createShareLink,
               icon: <Share2 className="size-4" />,
               onSelect: () => void toggleShare(),
             },
             {
-              label: 'Duplicate',
+              label: copy.common.duplicate,
               icon: <Copy className="size-4" />,
               onSelect: () => void duplicate(),
             },
             {
-              label: 'Preview page',
+              label: copy.editor.previewPage,
               icon: <Eye className="size-4" />,
               href: `/dashboard/cvs/${initialDocument.id}`,
             },
             {
-              label: 'Delete CV',
+              label: copy.editor.deleteCvAction,
               icon: <Trash2 className="size-4" />,
               tone: 'danger',
               separatorBefore: true,
@@ -296,7 +310,7 @@ export function CVEditor({
       {shareUrl ? (
         <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-brand-200 bg-brand-50 px-4 py-2 text-[13px] text-brand-900">
           <Share2 className="size-3.5 shrink-0" aria-hidden />
-          <span className="font-medium">This CV is public:</span>
+          <span className="font-medium">{copy.editor.publicNotice}</span>
           <code className="truncate rounded bg-white/70 px-1.5 py-0.5 font-mono text-xs">
             {shareUrl}
           </code>
@@ -305,10 +319,10 @@ export function CVEditor({
             className="cursor-pointer font-semibold underline underline-offset-2"
             onClick={() => {
               void navigator.clipboard?.writeText(shareUrl);
-              toast.success('Link copied');
+              toast.success(copy.editor.linkCopied);
             }}
           >
-            Copy
+            {copy.editor.copyLink}
           </button>
         </div>
       ) : null}
@@ -316,14 +330,18 @@ export function CVEditor({
       {/* ------------------------------------------------------------ mobile tabs */}
       <div
         role="tablist"
-        aria-label="Editor view"
+        aria-label={copy.editor.editorView}
         className="flex shrink-0 border-b border-ink-200 lg:hidden"
       >
         {(
           [
-            { id: 'content', label: 'Content', icon: <UserRound className="size-4" /> },
-            { id: 'design', label: 'Design', icon: <Palette className="size-4" /> },
-            { id: 'preview', label: 'Preview', icon: <Eye className="size-4" /> },
+            {
+              id: 'content',
+              label: copy.editor.contentTab,
+              icon: <UserRound className="size-4" />,
+            },
+            { id: 'design', label: copy.editor.designTab, icon: <Palette className="size-4" /> },
+            { id: 'preview', label: copy.common.preview, icon: <Eye className="size-4" /> },
           ] as const
         ).map((tab) => (
           <button
@@ -352,7 +370,7 @@ export function CVEditor({
           <div className="mb-4">
             <ProgressBar
               value={completeness}
-              label="Completeness"
+              label={copy.editor.completeness}
               tone={completeness >= 80 ? 'success' : completeness >= 50 ? 'brand' : 'warning'}
             />
           </div>
@@ -368,7 +386,7 @@ export function CVEditor({
             )}
           >
             <UserRound className="size-3.5 shrink-0 text-ink-400" aria-hidden />
-            Personal details
+            {copy.editor.personalDetails}
           </button>
 
           <button
@@ -382,14 +400,14 @@ export function CVEditor({
             )}
           >
             <Mail className="size-3.5 shrink-0 text-ink-400" aria-hidden />
-            Cover letter
+            {copy.editor.letterTab}
             {editor.data.coverLetter.enabled ? (
               <span className="ml-auto size-1.5 rounded-full bg-success-500" aria-hidden />
             ) : null}
           </button>
 
           <p className="mt-4 mb-2 px-2 text-xs font-bold tracking-[0.1em] text-ink-500 uppercase">
-            Sections
+            {copy.editor.sectionsTab}
           </p>
           <SectionManager
             cv={editor.data}
@@ -397,7 +415,7 @@ export function CVEditor({
             activeSectionId={activeSectionId}
             onSelect={setActiveSectionId}
             canUseCustomSections={permissions.canUseCustomSections}
-            onUpgradeNeeded={() => upgradePrompt('Custom sections are Pro.')}
+            onUpgradeNeeded={() => upgradePrompt(copy.editor.pro.customSections)}
           />
         </aside>
 
@@ -423,7 +441,7 @@ export function CVEditor({
             <div className="p-4 sm:p-5">
               {/* Mobile section picker + stepper */}
               <div className="mb-5 lg:hidden">
-                <Field label="Section">
+                <Field label={copy.editor.sectionField}>
                   {({ id }) => (
                     <select
                       id={id}
@@ -431,19 +449,19 @@ export function CVEditor({
                       onChange={(event) => setActiveSectionId(event.target.value)}
                       className="h-11 w-full cursor-pointer rounded-lg border border-ink-200 bg-white px-3 text-sm font-medium text-ink-900 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/12 focus:outline-none"
                     >
-                      <option value="personal">Personal details</option>
-                      <option value="cover-letter">Cover letter</option>
+                      <option value="personal">{copy.editor.personalDetails}</option>
+                      <option value="cover-letter">{copy.editor.letterTab}</option>
                       {editor.data.sections.map((section) => (
                         <option key={section.id} value={section.id}>
                           {section.label}
-                          {section.enabled ? '' : ' (hidden)'}
+                          {section.enabled ? '' : copy.editor.hiddenSuffix}
                         </option>
                       ))}
                     </select>
                   )}
                 </Field>
                 <p className="mt-2 text-xs text-ink-500">
-                  Step {activeIndex + 1} of {orderedSectionIds.length}
+                  {copy.editor.stepOf(activeIndex + 1, orderedSectionIds.length)}
                 </p>
               </div>
 
@@ -452,15 +470,11 @@ export function CVEditor({
                 {activeSectionId !== 'personal' &&
                 editor.data.sections.find((section) => section.id === activeSectionId)?.enabled ===
                   false ? (
-                  <Badge tone="neutral">Hidden from CV</Badge>
+                  <Badge tone="neutral">{copy.editor.hiddenFromCv}</Badge>
                 ) : null}
               </div>
 
-              <SectionForm
-                sectionId={activeSectionId}
-                cv={editor.data}
-                onChange={editor.setData}
-              />
+              <SectionForm sectionId={activeSectionId} cv={editor.data} onChange={editor.setData} />
 
               <div className="mt-8 flex items-center justify-between gap-3 border-t border-ink-100 pt-5">
                 <Button
@@ -473,7 +487,7 @@ export function CVEditor({
                   }}
                   leadingIcon={<ChevronLeft className="size-4" />}
                 >
-                  Previous
+                  {copy.editor.previousSection}
                 </Button>
                 <Button
                   variant="outline"
@@ -485,14 +499,14 @@ export function CVEditor({
                   }}
                   trailingIcon={<ChevronRight className="size-4" />}
                 >
-                  Next section
+                  {copy.editor.nextSection}
                 </Button>
               </div>
 
               {/* Section management on mobile lives at the bottom of the content pane. */}
               <div className="mt-8 border-t border-ink-100 pt-5 lg:hidden">
                 <h2 className="mb-3 text-sm font-bold text-ink-950">
-                  Reorder and hide sections
+                  {copy.editor.reorderAndHide}
                 </h2>
                 <SectionManager
                   cv={editor.data}
@@ -500,7 +514,7 @@ export function CVEditor({
                   activeSectionId={activeSectionId}
                   onSelect={setActiveSectionId}
                   canUseCustomSections={permissions.canUseCustomSections}
-                  onUpgradeNeeded={() => upgradePrompt('Custom sections are Pro.')}
+                  onUpgradeNeeded={() => upgradePrompt(copy.editor.pro.customSections)}
                 />
               </div>
             </div>
@@ -519,19 +533,19 @@ export function CVEditor({
       <Modal
         open={renaming}
         onClose={() => setRenaming(false)}
-        title="Rename CV"
-        description="Only you see this — it is how the CV is listed in your dashboard, not a heading on the document."
+        title={copy.editor.renameCvTitle}
+        description={copy.editor.renameCvBody}
         size="sm"
         footer={
           <>
             <Button variant="outline" onClick={() => setRenaming(false)}>
-              Cancel
+              {copy.common.cancel}
             </Button>
-            <Button onClick={applyTitle}>Save</Button>
+            <Button onClick={applyTitle}>{copy.common.save}</Button>
           </>
         }
       >
-        <Field label="Name">
+        <Field label={copy.editor.cvName}>
           {({ id }) => (
             <Input
               id={id}
@@ -552,9 +566,10 @@ export function CVEditor({
         onClose={() => setConfirmDelete(false)}
         onConfirm={remove}
         loading={busy === 'delete'}
-        title="Delete this CV?"
-        description={`“${editor.title}” will be permanently deleted. This cannot be undone.`}
-        confirmLabel="Delete permanently"
+        title={copy.editor.deleteCvTitle}
+        description={copy.editor.deleteCvBody(editor.title)}
+        confirmLabel={copy.editor.deleteCvConfirm}
+        cancelLabel={copy.common.cancel}
       />
     </div>
   );
@@ -569,25 +584,27 @@ function SaveIndicator({
   errorMessage: string | null;
   onRetry: () => void;
 }) {
+  const copy = useCopy();
+
   if (status === 'error') {
     return (
       <button
         type="button"
         onClick={onRetry}
-        title={errorMessage ?? 'Retry'}
+        title={errorMessage ?? copy.common.retry}
         className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-danger-50 px-2 py-1 text-xs font-semibold text-danger-700 transition-colors hover:bg-danger-100"
       >
         <CloudOff className="size-3.5" aria-hidden />
-        <span className="hidden sm:inline">Not saved — retry</span>
+        <span className="hidden sm:inline">{copy.editor.notSaved}</span>
       </button>
     );
   }
 
   const config = {
-    saving: { icon: <Loader2 className="size-3.5 animate-spin" />, label: 'Saving…' },
-    dirty: { icon: <TriangleAlert className="size-3.5" />, label: 'Unsaved' },
-    saved: { icon: <Check className="size-3.5" />, label: 'Saved' },
-    idle: { icon: <Check className="size-3.5" />, label: 'Saved' },
+    saving: { icon: <Loader2 className="size-3.5 animate-spin" />, label: copy.common.saving },
+    dirty: { icon: <TriangleAlert className="size-3.5" />, label: copy.editor.unsaved },
+    saved: { icon: <Check className="size-3.5" />, label: copy.common.saved },
+    idle: { icon: <Check className="size-3.5" />, label: copy.common.saved },
   }[status];
 
   return (

@@ -1,8 +1,18 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { ReactNode } from 'react';
 
+import { useActiveLocale } from '@/components/i18n/LocaleProvider';
+import { appCopy } from '@/lib/i18n/app-copy';
 import { cn } from '@/lib/utils/cn';
 
 export type ToastTone = 'info' | 'success' | 'warning' | 'danger';
@@ -18,7 +28,9 @@ export interface Toast {
 
 interface ToastContextValue {
   toasts: Toast[];
-  push: (toast: Omit<Toast, 'id' | 'tone' | 'durationMs'> & Partial<Pick<Toast, 'tone' | 'durationMs'>>) => string;
+  push: (
+    toast: Omit<Toast, 'id' | 'tone' | 'durationMs'> & Partial<Pick<Toast, 'tone' | 'durationMs'>>,
+  ) => string;
   dismiss: (id: string) => void;
   success: (title: string, description?: string) => string;
   error: (title: string, description?: string) => string;
@@ -101,7 +113,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 export function useToast(): ToastContextValue {
   const context = useContext(ToastContext);
   if (!context) {
-    throw new Error('useToast must be used inside <ToastProvider>. It is mounted in app/layout.tsx.');
+    throw new Error(
+      'useToast must be used inside <ToastProvider>. It is mounted in app/layout.tsx.',
+    );
   }
   return context;
 }
@@ -145,12 +159,25 @@ const toneStyles: Record<ToastTone, { bar: string; icon: ReactNode }> = {
   },
 };
 
-function ToastViewport({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: string) => void }) {
+function ToastViewport({
+  toasts,
+  onDismiss,
+}: {
+  toasts: Toast[];
+  onDismiss: (id: string) => void;
+}) {
+  /*
+   * Read through the external store rather than `useCopy()`. This component is mounted by
+   * `ToastProvider` in the root layout, which is *above* every `LocaleProvider` — the hook
+   * would compile, render, and silently return English in French and German.
+   */
+  const copy = appCopy(useActiveLocale());
+
   return (
     <div
       className="pointer-events-none fixed inset-x-0 bottom-0 z-100 flex flex-col items-center gap-2 p-4 sm:inset-x-auto sm:right-0 sm:bottom-0 sm:items-end"
       role="region"
-      aria-label="Notifications"
+      aria-label={copy.common.notifications}
     >
       {toasts.map((toast) => {
         const tone = toneStyles[toast.tone];
@@ -196,7 +223,7 @@ function ToastViewport({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id:
               <button
                 type="button"
                 onClick={() => onDismiss(toast.id)}
-                aria-label="Dismiss notification"
+                aria-label={copy.common.dismissNotification}
                 className="-mt-1 -mr-1 cursor-pointer rounded-md p-1 text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-700"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>

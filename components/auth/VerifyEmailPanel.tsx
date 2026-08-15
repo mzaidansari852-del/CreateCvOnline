@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { NotConfiguredAlert } from './shared';
 import { authErrorMessage, useAuth } from '@/components/auth/AuthProvider';
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { Alert } from '@/components/ui/feedback';
 import { site } from '@/lib/site';
@@ -22,6 +23,7 @@ const COOLDOWN_SECONDS = 60;
 export function VerifyEmailPanel() {
   const router = useRouter();
   const { sessionUser, configured, resendVerificationEmail, refreshSession, signOut } = useAuth();
+  const copy = useCopy();
 
   const [cooldown, setCooldown] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
@@ -55,7 +57,7 @@ export function VerifyEmailPanel() {
   if (!configured) {
     return (
       <div className="flex flex-col gap-5">
-        <NotConfiguredAlert />
+        <NotConfiguredAlert copy={copy} />
       </div>
     );
   }
@@ -63,16 +65,15 @@ export function VerifyEmailPanel() {
   if (!sessionUser) {
     return (
       <div className="flex flex-col gap-5">
-        <Alert tone="info" title="You are not signed in">
-          Verification links belong to an account, so sign in first and we will pick up where you
-          left off.
+        <Alert tone="info" title={copy.auth.notSignedInTitle}>
+          {copy.auth.notSignedInBody}
         </Alert>
         <div className="flex flex-col gap-3">
           <ButtonLink href="/login?next=%2Fverify-email" size="lg" fullWidth>
-            Sign in
+            {copy.auth.signIn}
           </ButtonLink>
           <ButtonLink href="/register" variant="outline" size="lg" fullWidth>
-            Create an account
+            {copy.auth.createAnAccount}
           </ButtonLink>
         </div>
       </div>
@@ -82,12 +83,11 @@ export function VerifyEmailPanel() {
   if (sessionUser.emailVerified) {
     return (
       <div className="flex flex-col gap-5">
-        <Alert tone="success" title="Your e-mail address is confirmed">
-          <span className="font-semibold">{sessionUser.email}</span> is verified — there is nothing
-          left to do here.
+        <Alert tone="success" title={copy.auth.verifiedTitle}>
+          <span className="font-semibold">{sessionUser.email}</span> {copy.auth.verifiedSuffix}
         </Alert>
         <ButtonLink href="/dashboard" size="lg" fullWidth>
-          Go to your dashboard
+          {copy.auth.goToDashboard}
         </ButtonLink>
       </div>
     );
@@ -100,10 +100,10 @@ export function VerifyEmailPanel() {
     setPending('resend');
     try {
       await resendVerificationEmail();
-      setNotice(`A new link is on its way to ${sessionUser?.email ?? 'your inbox'}.`);
+      setNotice(copy.auth.resendSentTo(sessionUser?.email ?? copy.auth.yourInbox));
       startCooldown();
     } catch (caught) {
-      setError(authErrorMessage(caught));
+      setError(authErrorMessage(caught, copy));
     } finally {
       setPending(null);
     }
@@ -119,7 +119,7 @@ export function VerifyEmailPanel() {
       router.push('/dashboard');
       router.refresh();
     } catch (caught) {
-      setError(authErrorMessage(caught));
+      setError(authErrorMessage(caught, copy));
       setPending(null);
     }
   }
@@ -137,7 +137,7 @@ export function VerifyEmailPanel() {
   return (
     <div className="flex flex-col gap-5">
       {error ? (
-        <Alert tone="danger" title="That did not work">
+        <Alert tone="danger" title={copy.auth.resendFailedTitle}>
           {error}
         </Alert>
       ) : null}
@@ -145,38 +145,26 @@ export function VerifyEmailPanel() {
 
       <div className="rounded-xl border border-ink-200 bg-ink-50 p-4">
         <p className="text-xs font-semibold tracking-wide text-ink-500 uppercase">
-          Waiting for confirmation
+          {copy.auth.waitingForConfirmation}
         </p>
         <p className="mt-1 text-sm font-semibold break-all text-ink-950">{sessionUser.email}</p>
-        <p className="mt-2 text-sm leading-relaxed text-ink-600">
-          Open the link in that message to confirm the address is yours. It can take a minute to
-          arrive, and it is often filed as spam or promotions.
-        </p>
+        <p className="mt-2 text-sm leading-relaxed text-ink-600">{copy.auth.verifyOpenLink}</p>
       </div>
 
       <div className="text-sm leading-relaxed text-ink-700">
-        <p className="font-semibold text-ink-950">What this changes</p>
+        <p className="font-semibold text-ink-950">{copy.auth.whatThisChanges}</p>
         <ul className="mt-2 flex flex-col gap-2">
           <li className="flex gap-2">
             <Bullet />
-            <span>
-              Nothing in the editor is locked: you can keep building, customising and downloading
-              CVs while the address is unconfirmed.
-            </span>
+            <span>{copy.auth.verifyPointEditor}</span>
           </li>
           <li className="flex gap-2">
             <Bullet />
-            <span>
-              A confirmed address is the only way back in if you forget your password — a reset
-              link sent to a mistyped address lands in a stranger&rsquo;s inbox.
-            </span>
+            <span>{copy.auth.verifyPointReset}</span>
           </li>
           <li className="flex gap-2">
             <Bullet />
-            <span>
-              It is also how {site.name} reaches you about a receipt or a sign-in from a new
-              device.
-            </span>
+            <span>{copy.auth.verifyPointContact(site.name)}</span>
           </li>
         </ul>
       </div>
@@ -189,7 +177,7 @@ export function VerifyEmailPanel() {
           loading={pending === 'continue'}
           disabled={pending !== null}
         >
-          I&rsquo;ve verified — continue
+          {copy.auth.verifiedContinue}
         </Button>
 
         <Button
@@ -200,7 +188,7 @@ export function VerifyEmailPanel() {
           loading={pending === 'resend'}
           disabled={pending !== null || cooldown > 0}
         >
-          {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend verification e-mail'}
+          {cooldown > 0 ? copy.auth.resendIn(cooldown) : copy.auth.resendVerification}
         </Button>
 
         {/*
@@ -208,19 +196,19 @@ export function VerifyEmailPanel() {
           would make a screen reader talk over everything else for a minute.
         */}
         <p className="sr-only" aria-live="polite">
-          {notice && cooldown === 0 ? 'You can request another verification e-mail now.' : ''}
+          {notice && cooldown === 0 ? copy.auth.resendAvailable : ''}
         </p>
       </div>
 
       <p className="text-center text-sm text-ink-600">
-        Wrong address, or not your account?{' '}
+        {copy.auth.wrongAddress}{' '}
         <Button
           variant="link"
           onClick={() => void handleSignOut()}
           disabled={pending !== null}
           className="text-sm"
         >
-          Sign out
+          {copy.nav.signOut}
         </Button>
       </p>
     </div>

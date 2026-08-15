@@ -1,3 +1,4 @@
+import type { AppCopy } from '@/lib/i18n/app-copy';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -7,6 +8,10 @@ import { cn } from '@/lib/utils/cn';
  * still missing and fix it. Only the summary sentence lives in an `aria-live` region, so
  * a screen reader is told "Fair — still missing a number and a symbol" when the state
  * actually changes, instead of being interrupted on every keystroke.
+ *
+ * The strings arrive as a prop rather than from `useCopy()`, which would need this file
+ * to be a client module and would make the exported `passwordChecks` unusable from the
+ * server. The rules themselves are language-independent; only their names are not.
  */
 
 export interface PasswordCheck {
@@ -18,63 +23,84 @@ export interface PasswordCheck {
   met: boolean;
 }
 
-export function passwordChecks(password: string): PasswordCheck[] {
+export function passwordChecks(password: string, copy: AppCopy): PasswordCheck[] {
   return [
     {
       id: 'length',
-      label: 'At least 8 characters',
-      missingLabel: '8 characters',
+      label: copy.auth.checkLength,
+      missingLabel: copy.auth.checkLengthMissing,
       met: password.length >= 8,
     },
     {
       id: 'case',
-      label: 'Upper and lower case',
-      missingLabel: 'an upper-case and a lower-case letter',
+      label: copy.auth.checkCase,
+      missingLabel: copy.auth.checkCaseMissing,
       met: /[a-z]/.test(password) && /[A-Z]/.test(password),
     },
-    { id: 'digit', label: 'A number', missingLabel: 'a number', met: /\d/.test(password) },
+    {
+      id: 'digit',
+      label: copy.auth.checkDigit,
+      missingLabel: copy.auth.checkDigitMissing,
+      met: /\d/.test(password),
+    },
     {
       id: 'symbol',
-      label: 'A symbol (!, ?, £…)',
-      missingLabel: 'a symbol',
+      label: copy.auth.checkSymbol,
+      missingLabel: copy.auth.checkSymbolMissing,
       met: /[^A-Za-z0-9]/.test(password),
     },
   ];
 }
 
+/** Colour per met-requirement count. The label for each band comes from the copy table. */
 const LEVELS = [
-  { label: 'Too short', bar: 'bg-danger-500', text: 'text-danger-600' },
-  { label: 'Weak', bar: 'bg-danger-500', text: 'text-danger-600' },
-  { label: 'Fair', bar: 'bg-warning-500', text: 'text-warning-700' },
-  { label: 'Good', bar: 'bg-brand-500', text: 'text-brand-700' },
-  { label: 'Strong', bar: 'bg-success-500', text: 'text-success-700' },
+  { bar: 'bg-danger-500', text: 'text-danger-600' },
+  { bar: 'bg-danger-500', text: 'text-danger-600' },
+  { bar: 'bg-warning-500', text: 'text-warning-700' },
+  { bar: 'bg-brand-500', text: 'text-brand-700' },
+  { bar: 'bg-success-500', text: 'text-success-700' },
 ] as const;
 
-function listMissing(labels: string[]): string {
+function listMissing(labels: string[], and: string): string {
   if (labels.length <= 1) return labels[0] ?? '';
-  return `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
+  return `${labels.slice(0, -1).join(', ')} ${and} ${labels[labels.length - 1]}`;
 }
 
 export function PasswordStrength({
   password,
+  copy,
   id,
   className,
 }: {
   password: string;
+  copy: AppCopy;
   /** So the password input can point `aria-describedby` here. */
   id?: string;
   className?: string;
 }) {
-  const checks = passwordChecks(password);
+  const checks = passwordChecks(password, copy);
   const met = checks.filter((check) => check.met).length;
   const score = password.length === 0 ? 0 : met;
   const level = LEVELS[score] ?? LEVELS[0];
   const missing = checks.filter((check) => !check.met).map((check) => check.missingLabel);
 
+  const labels = [
+    copy.auth.passwordStrengthTooShort,
+    copy.auth.passwordStrengthWeak,
+    copy.auth.passwordStrengthFair,
+    copy.auth.passwordStrengthGood,
+    copy.auth.passwordStrengthStrong,
+  ] as const;
+  const levelLabel = labels[score] ?? labels[0];
+
   const summary =
     password.length === 0
-      ? 'Password strength: nothing typed yet.'
-      : `Password strength: ${level.label}.${missing.length ? ` Still missing ${listMissing(missing)}.` : ' All four requirements met.'}`;
+      ? copy.auth.passwordStrengthEmpty
+      : `${copy.auth.passwordStrengthSummary(levelLabel)} ${
+          missing.length
+            ? copy.auth.passwordStrengthMissing(listMissing(missing, copy.auth.listAnd))
+            : copy.auth.passwordStrengthAllMet
+        }`;
 
   return (
     <div id={id} className={cn('flex flex-col gap-2', className)}>
@@ -90,8 +116,14 @@ export function PasswordStrength({
             />
           ))}
         </div>
-        <span className={cn('w-16 text-right text-xs font-semibold', password ? level.text : 'text-ink-400')} aria-hidden>
-          {password ? level.label : '—'}
+        <span
+          className={cn(
+            'w-16 text-right text-xs font-semibold',
+            password ? level.text : 'text-ink-400',
+          )}
+          aria-hidden
+        >
+          {password ? levelLabel : '—'}
         </span>
       </div>
 
@@ -105,7 +137,15 @@ export function PasswordStrength({
             )}
           >
             {check.met ? (
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden>
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                aria-hidden
+              >
                 <path d="m5 12.5 4.5 4.5L19 7" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             ) : (
@@ -114,7 +154,7 @@ export function PasswordStrength({
               </span>
             )}
             {check.label}
-            <span className="sr-only">{check.met ? ' — met' : ' — not met'}</span>
+            <span className="sr-only">{` ${check.met ? copy.auth.checkMet : copy.auth.checkNotMet}`}</span>
           </li>
         ))}
       </ul>

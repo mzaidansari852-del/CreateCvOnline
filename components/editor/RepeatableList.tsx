@@ -21,6 +21,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { ChevronDown, GripVertical, Plus, Trash2 } from 'lucide-react';
 
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/modal';
 import { cn } from '@/lib/utils/cn';
@@ -53,8 +54,16 @@ export interface RepeatableListProps<T extends RepeatableItem> {
   addLabel: string;
   emptyTitle: string;
   emptyDescription: string;
-  /** Name used in the delete confirmation, e.g. "role", "qualification". */
-  itemNoun: string;
+  /**
+   * Delete confirmation heading, e.g. "Delete this role?".
+   *
+   * A whole sentence rather than the bare noun it used to be: French and German need the
+   * demonstrative to agree with the noun's gender, so `Delete this ${noun}?` cannot be
+   * assembled from parts without going wrong in one language or the other.
+   */
+  deleteTitle: string;
+  /** Stands in for the entry's own name until one is typed, e.g. "Untitled role". */
+  untitledLabel: string;
   max?: number;
 }
 
@@ -67,9 +76,11 @@ export function RepeatableList<T extends RepeatableItem>({
   addLabel,
   emptyTitle,
   emptyDescription,
-  itemNoun,
+  deleteTitle,
+  untitledLabel,
   max = 40,
 }: RepeatableListProps<T>) {
+  const copy = useCopy();
   const listId = useId();
   const [openId, setOpenId] = useState<string | null>(items[0]?.id ?? null);
   const [pendingDelete, setPendingDelete] = useState<T | null>(null);
@@ -135,7 +146,10 @@ export function RepeatableList<T extends RepeatableItem>({
         onDragEnd={onDragEnd}
         modifiers={[restrictToVerticalAxis, restrictToParentElement]}
       >
-        <SortableContext items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+        <SortableContext
+          items={items.map((item) => item.id)}
+          strategy={verticalListSortingStrategy}
+        >
           <ul className="flex flex-col gap-3">
             {items.map((item, index) => {
               const meta = summary(item, index);
@@ -153,7 +167,7 @@ export function RepeatableList<T extends RepeatableItem>({
                   onMoveUp={() => move(index, index - 1)}
                   onMoveDown={() => move(index, index + 1)}
                   onDelete={() => setPendingDelete(item)}
-                  itemNoun={itemNoun}
+                  untitledLabel={untitledLabel}
                 >
                   {children(item, (patch) => updateItem(item.id, patch), index)}
                 </SortableRow>
@@ -174,9 +188,7 @@ export function RepeatableList<T extends RepeatableItem>({
           {addLabel}
         </Button>
         {items.length >= max ? (
-          <p className="mt-2 text-xs text-ink-500">
-            That is the maximum of {max} entries for this section.
-          </p>
+          <p className="mt-2 text-xs text-ink-500">{copy.editor.list.maxEntries(max)}</p>
         ) : null}
       </div>
 
@@ -186,13 +198,14 @@ export function RepeatableList<T extends RepeatableItem>({
         onConfirm={() => {
           if (pendingDelete) remove(pendingDelete);
         }}
-        title={`Delete this ${itemNoun}?`}
+        title={deleteTitle}
         description={
           pendingDelete
-            ? `“${summary(pendingDelete, 0).title || `Untitled ${itemNoun}`}” will be removed from your CV. You can undo this with Ctrl+Z.`
+            ? copy.editor.list.deleteBody(summary(pendingDelete, 0).title || untitledLabel)
             : ''
         }
-        confirmLabel="Delete"
+        confirmLabel={copy.common.delete}
+        cancelLabel={copy.common.cancel}
       />
     </div>
   );
@@ -210,7 +223,7 @@ function SortableRow({
   onMoveUp,
   onMoveDown,
   onDelete,
-  itemNoun,
+  untitledLabel,
   children,
 }: {
   id: string;
@@ -224,9 +237,10 @@ function SortableRow({
   onMoveUp: () => void;
   onMoveDown: () => void;
   onDelete: () => void;
-  itemNoun: string;
+  untitledLabel: string;
   children: ReactNode;
 }) {
+  const copy = useCopy();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
   });
@@ -244,7 +258,7 @@ function SortableRow({
         <button
           type="button"
           className="cursor-grab touch-none rounded-md p-1.5 text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-700 active:cursor-grabbing"
-          aria-label={`Reorder ${title || itemNoun}. Press space, then use the arrow keys.`}
+          aria-label={copy.editor.reorderHandle(title || untitledLabel)}
           {...attributes}
           {...listeners}
         >
@@ -260,29 +274,32 @@ function SortableRow({
         >
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-semibold text-ink-950">
-              {title || <span className="text-ink-400">Untitled {itemNoun}</span>}
+              {title || <span className="text-ink-400">{untitledLabel}</span>}
             </span>
             {subtitle ? (
               <span className="block truncate text-xs text-ink-500">{subtitle}</span>
             ) : null}
           </span>
           <ChevronDown
-            className={cn('size-4 shrink-0 text-ink-400 transition-transform', open && 'rotate-180')}
+            className={cn(
+              'size-4 shrink-0 text-ink-400 transition-transform',
+              open && 'rotate-180',
+            )}
             aria-hidden
           />
         </button>
 
         <div className="flex shrink-0 items-center">
-          <IconAction label="Move up" onClick={onMoveUp} disabled={isFirst}>
+          <IconAction label={copy.editor.moveUp} onClick={onMoveUp} disabled={isFirst}>
             <path d="m6 15 6-6 6 6" />
           </IconAction>
-          <IconAction label="Move down" onClick={onMoveDown} disabled={isLast}>
+          <IconAction label={copy.editor.moveDown} onClick={onMoveDown} disabled={isLast}>
             <path d="m6 9 6 6 6-6" />
           </IconAction>
           <button
             type="button"
             onClick={onDelete}
-            aria-label={`Delete ${title || itemNoun}`}
+            aria-label={copy.editor.deleteNamed(title || untitledLabel)}
             className="cursor-pointer rounded-md p-1.5 text-ink-400 transition-colors hover:bg-danger-50 hover:text-danger-600"
           >
             <Trash2 className="size-4" />
@@ -349,6 +366,7 @@ export function StringList({
   addLabel: string;
   max?: number;
 }) {
+  const copy = useCopy();
   const id = useId();
 
   const setAt = (index: number, value: string) => {
@@ -374,24 +392,25 @@ export function StringList({
       <ul className="flex flex-col gap-2" aria-labelledby={id}>
         {values.map((value, index) => (
           <li key={index} className="flex items-start gap-1.5">
-            <span
-              aria-hidden
-              className="mt-2.5 size-1.5 shrink-0 rounded-full bg-brand-500"
-            />
+            <span aria-hidden className="mt-2.5 size-1.5 shrink-0 rounded-full bg-brand-500" />
             <textarea
               value={value}
               onChange={(event) => setAt(index, event.target.value)}
               placeholder={placeholder}
               rows={2}
               className="min-h-10 w-full resize-y rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm leading-relaxed text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/12 focus:outline-none"
-              aria-label={`${label} ${index + 1}`}
+              aria-label={copy.editor.list.itemNumber(label, index + 1)}
             />
             <div className="flex shrink-0 flex-col">
-              <IconAction label="Move up" onClick={() => move(index, index - 1)} disabled={index === 0}>
+              <IconAction
+                label={copy.editor.moveUp}
+                onClick={() => move(index, index - 1)}
+                disabled={index === 0}
+              >
                 <path d="m6 15 6-6 6 6" />
               </IconAction>
               <IconAction
-                label="Move down"
+                label={copy.editor.moveDown}
                 onClick={() => move(index, index + 1)}
                 disabled={index === values.length - 1}
               >
@@ -400,7 +419,7 @@ export function StringList({
               <button
                 type="button"
                 onClick={() => onChange(values.filter((_, position) => position !== index))}
-                aria-label={`Remove ${label} ${index + 1}`}
+                aria-label={copy.editor.list.removeItemNumber(label, index + 1)}
                 className="cursor-pointer rounded-md p-1.5 text-ink-400 transition-colors hover:bg-danger-50 hover:text-danger-600"
               >
                 <Trash2 className="size-4" />

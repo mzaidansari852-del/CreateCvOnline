@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 
 import { CVThumbnail } from '@/components/cv/CVThumbnail';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
@@ -16,15 +17,13 @@ import {
   TEMPLATES,
 } from '@/lib/cv/template-registry';
 import { usageSnapshot } from '@/lib/entitlements';
+import { appCopy } from '@/lib/i18n/app-copy';
+import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { privateMetadata } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = privateMetadata(
   'New CV',
   'Choose a starting point and a template, then start writing.',
-);
-
-const CATEGORY_LABELS = new Map(
-  TEMPLATE_CATEGORIES.map((category) => [category.id as string, category.label]),
 );
 
 export default async function NewCVPage({
@@ -35,6 +34,11 @@ export default async function NewCVPage({
   const viewer = await requireViewer('/dashboard/cvs/new');
   const query = await searchParams;
   const usage = await usageSnapshot(viewer.profile);
+  const locale = resolveLocale({
+    profileLocale: viewer.profile.locale,
+    cookieLocale: (await cookies()).get(LOCALE_COOKIE)?.value,
+  });
+  const copy = appCopy(locale);
 
   const requestedId = typeof query.template === 'string' ? query.template : undefined;
   const requested = requestedId ? findTemplate(requestedId) : undefined;
@@ -49,7 +53,7 @@ export default async function NewCVPage({
     id: template.id,
     name: template.name,
     category: template.category,
-    categoryLabel: CATEGORY_LABELS.get(template.category) ?? template.category,
+    categoryLabel: copy.templates.categoryLabel[template.category],
     premium: template.premium,
     atsScore: template.atsScore,
     columns: template.columns,
@@ -57,8 +61,10 @@ export default async function NewCVPage({
     search: [
       template.name,
       template.tagline,
+      // Both the id and the label the user can actually see: a French visitor types
+      // "créatif", an English one types "creative", and the same haystack answers both.
       template.category,
-      CATEGORY_LABELS.get(template.category) ?? '',
+      copy.templates.categoryLabel[template.category],
       template.premium ? 'pro premium' : 'free',
       ...template.keywords,
     ]
@@ -80,11 +86,11 @@ export default async function NewCVPage({
   return (
     <DashboardShell
       viewer={viewer}
-      title="Create a new CV"
-      description="Pick how you want to start and which design to use. Nothing is saved until you press Create."
+      title={copy.cvs.createTitle}
+      description={copy.cvs.createLede}
       actions={
         <ButtonLink href="/dashboard/cvs" variant="outline" size="sm">
-          Back to my CVs
+          {copy.cvs.backToMyCvs}
         </ButtonLink>
       }
     >
@@ -92,21 +98,20 @@ export default async function NewCVPage({
         {requestedIsLocked && requested ? (
           <Alert
             tone="info"
-            title={`“${requested.name}” is a Pro template`}
+            title={copy.cvs.premiumTemplateTitle(requested.name)}
             action={
               <ButtonLink href="/pricing" size="sm">
-                See plans
+                {copy.dashboard.seePlans}
               </ButtonLink>
             }
           >
-            We have selected a free template instead. Upgrade to unlock all {TEMPLATES.length}{' '}
-            designs, or pick any of the free ones below.
+            {copy.cvs.premiumTemplateBody(TEMPLATES.length)}
           </Alert>
         ) : null}
 
         {requestedId && !requested ? (
-          <Alert tone="warning" title="That template does not exist">
-            The link you followed points at a template we no longer publish. Pick another one below.
+          <Alert tone="warning" title={copy.cvs.unknownTemplateTitle}>
+            {copy.cvs.unknownTemplateBody}
           </Alert>
         ) : null}
 
@@ -114,7 +119,7 @@ export default async function NewCVPage({
           templates={templates}
           categories={TEMPLATE_CATEGORIES.map((category) => ({
             id: category.id,
-            label: category.label,
+            label: copy.templates.categoryLabel[category.id],
           }))}
           canUsePremium={viewer.limits.premiumTemplates}
           initialTemplateId={initialTemplateId}

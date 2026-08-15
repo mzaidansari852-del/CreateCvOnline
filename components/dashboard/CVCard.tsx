@@ -1,13 +1,18 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { Globe } from 'lucide-react';
 
 import { CVThumbnail } from '@/components/cv/CVThumbnail';
 import { Badge, ProgressBar } from '@/components/ui/feedback';
 import { CVActions } from './CVActions';
+import { getViewer } from '@/lib/auth/guards';
 import { completenessScore } from '@/lib/cv/sections';
 import { formatRelativeTime } from '@/lib/cv/format';
 import { getTemplate } from '@/lib/cv/template-registry';
+import { appCopy } from '@/lib/i18n/app-copy';
+import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { cn } from '@/lib/utils/cn';
+import type { Locale } from '@/lib/i18n/locales';
 import type { CVDocument } from '@/types/cv';
 
 /**
@@ -18,7 +23,28 @@ import type { CVDocument } from '@/types/cv';
  * layouts are server components; only the action menu inside them ships JavaScript.
  */
 
-export function CVGridCard({
+/**
+ * The language for a card.
+ *
+ * `useCopy()` is not available: `CVThumbnail` renders the document through
+ * `react-dom/server`, so this file cannot be a client module, and a server component
+ * cannot read the client context the provider sets up. It resolves the language itself
+ * instead — profile first, cookie second, exactly as `app/dashboard/layout.tsx` does, so
+ * a card can never end up in a different language from the page around it. Reading the
+ * cookie alone would be shorter and would disagree with the page whenever the account
+ * setting and the last-browsed language differ.
+ *
+ * `getViewer` is request-cached, so this costs one lookup per request, not one per card.
+ */
+async function cardLocale(): Promise<Locale> {
+  const viewer = await getViewer();
+  return resolveLocale({
+    profileLocale: viewer?.profile.locale,
+    cookieLocale: (await cookies()).get(LOCALE_COOKIE)?.value,
+  });
+}
+
+export async function CVGridCard({
   cv,
   canShare,
   className,
@@ -29,6 +55,8 @@ export function CVGridCard({
 }) {
   const template = getTemplate(cv.customization.templateId);
   const completeness = completenessScore(cv.data);
+  const locale = await cardLocale();
+  const copy = appCopy(locale);
 
   return (
     <article
@@ -40,7 +68,7 @@ export function CVGridCard({
       <Link
         href={`/dashboard/cvs/${cv.id}`}
         className="relative block overflow-hidden bg-ink-100"
-        aria-label={`Open ${cv.title}`}
+        aria-label={copy.cvs.openAria(cv.title)}
       >
         <CVThumbnail
           cv={cv.data}
@@ -55,7 +83,7 @@ export function CVGridCard({
           <span className="absolute top-2 right-2">
             <Badge tone="success">
               <Globe size={11} aria-hidden />
-              Public
+              {copy.cvs.publicBadge}
             </Badge>
           </span>
         ) : null}
@@ -70,7 +98,8 @@ export function CVGridCard({
               </Link>
             </h3>
             <p className="mt-0.5 truncate text-xs text-ink-500">
-              {template.name} · edited {formatRelativeTime(cv.updatedAt)}
+              {template.name} ·{' '}
+              {copy.dashboard.lastEdited(formatRelativeTime(cv.updatedAt, locale))}
             </p>
           </div>
           <CVActions
@@ -82,7 +111,7 @@ export function CVGridCard({
 
         <ProgressBar
           value={completeness}
-          label="Complete"
+          label={copy.dashboard.completeness}
           tone={completeness >= 80 ? 'success' : completeness >= 45 ? 'brand' : 'warning'}
           className="mt-auto"
         />
@@ -91,7 +120,7 @@ export function CVGridCard({
   );
 }
 
-export function CVListRow({
+export async function CVListRow({
   cv,
   canShare,
   className,
@@ -102,6 +131,8 @@ export function CVListRow({
 }) {
   const template = getTemplate(cv.customization.templateId);
   const completeness = completenessScore(cv.data);
+  const locale = await cardLocale();
+  const copy = appCopy(locale);
 
   return (
     <article
@@ -113,7 +144,7 @@ export function CVListRow({
       <Link
         href={`/dashboard/cvs/${cv.id}`}
         className="hidden shrink-0 overflow-hidden rounded-lg bg-ink-100 sm:block"
-        aria-label={`Open ${cv.title}`}
+        aria-label={copy.cvs.openAria(cv.title)}
       >
         <CVThumbnail
           cv={cv.data}
@@ -135,17 +166,22 @@ export function CVListRow({
           {cv.isPublic ? (
             <Badge tone="success">
               <Globe size={11} aria-hidden />
-              Public
+              {copy.cvs.publicBadge}
             </Badge>
           ) : null}
         </div>
         <p className="mt-0.5 truncate text-xs text-ink-500">
-          {template.name} · edited {formatRelativeTime(cv.updatedAt)} · {completeness}% complete
+          {copy.cvs.detailLede(
+            template.name,
+            completeness,
+            formatRelativeTime(cv.updatedAt, locale),
+          )}
         </p>
         <ProgressBar
           value={completeness}
           tone={completeness >= 80 ? 'success' : completeness >= 45 ? 'brand' : 'warning'}
           showValue={false}
+          ariaLabel={copy.dashboard.completeness}
           className="mt-2 max-w-64"
         />
       </div>

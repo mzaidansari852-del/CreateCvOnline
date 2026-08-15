@@ -4,6 +4,7 @@ import { useCallback, useId, useRef, useState } from 'react';
 import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Button } from '@/components/ui/button';
 import { firebaseStorage } from '@/lib/firebase/client';
 import { isFirebaseClientConfigured } from '@/lib/env';
@@ -39,6 +40,7 @@ export function PhotoField({
   initials: string;
 }) {
   const { sessionUser, ready } = useAuth();
+  const copy = useCopy();
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -76,17 +78,13 @@ export function PhotoField({
           await deleteObject(ref(firebaseStorage(), previous)).catch(() => undefined);
         }
       } catch (cause) {
-        setError(
-          cause instanceof PhotoError
-            ? cause.message
-            : 'The upload did not complete. Check your connection and try again.',
-        );
+        setError(cause instanceof PhotoError ? copy.photo.error(cause) : copy.editor.photo.failed);
       } finally {
         setBusy(false);
         if (inputRef.current) inputRef.current.value = '';
       }
     },
-    [onChange, sessionUser, value],
+    [copy, onChange, sessionUser, value],
   );
 
   const remove = useCallback(async () => {
@@ -114,12 +112,8 @@ export function PhotoField({
         </div>
 
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-ink-950">Profile photo</h3>
-          <p className="mt-1 text-[13px] leading-relaxed text-ink-600">
-            Expected in much of continental Europe, North Africa and the Middle East;
-            usually left off in the UK, Ireland and the US. Templates without a photo slot
-            simply ignore it.
-          </p>
+          <h3 className="text-sm font-semibold text-ink-950">{copy.editor.photo.title}</h3>
+          <p className="mt-1 text-[13px] leading-relaxed text-ink-600">{copy.editor.photo.body}</p>
 
           <div
             onDragOver={(event) => {
@@ -159,7 +153,7 @@ export function PhotoField({
                 disabled={!canUpload || busy}
                 onClick={() => inputRef.current?.click()}
               >
-                {value ? 'Replace photo' : 'Upload photo'}
+                {value ? copy.editor.photo.replace : copy.editor.photo.upload}
               </Button>
 
               {value ? (
@@ -170,27 +164,20 @@ export function PhotoField({
                   disabled={busy}
                   onClick={() => void remove()}
                 >
-                  Remove
+                  {copy.editor.removeItem}
                 </Button>
               ) : null}
 
-              <span className="text-xs text-ink-500">or drop an image here</span>
+              <span className="text-xs text-ink-500">{copy.editor.photo.dropHint}</span>
             </div>
 
-            <p className="mt-2 text-xs leading-relaxed text-ink-500">
-              JPEG, PNG, WebP or AVIF, up to 8 MB. It is cropped to a square and resized to
-              600px in your browser before uploading, so a large phone photo will not slow
-              your PDF down.
-            </p>
+            <p className="mt-2 text-xs leading-relaxed text-ink-500">{copy.editor.photo.formats}</p>
           </div>
 
           {!ready ? null : !sessionUser ? (
-            <p className="mt-2 text-xs text-ink-500">Sign in to upload a photo.</p>
+            <p className="mt-2 text-xs text-ink-500">{copy.editor.photo.signInFirst}</p>
           ) : !isFirebaseClientConfigured ? (
-            <p className="mt-2 text-xs text-ink-500">
-              Photo upload is unavailable because storage is not configured on this
-              deployment. You can still paste a link below.
-            </p>
+            <p className="mt-2 text-xs text-ink-500">{copy.editor.photo.unavailable}</p>
           ) : null}
 
           {error ? (

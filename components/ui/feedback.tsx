@@ -211,12 +211,19 @@ export function ProgressBar({
   tone = 'brand',
   className,
   showValue = true,
+  ariaLabel = 'Progress',
 }: {
   value: number;
   label?: string;
   tone?: 'brand' | 'success' | 'warning';
   className?: string;
   showValue?: boolean;
+  /**
+   * Accessible name for a meter shown without a visible `label`. A prop rather than
+   * `useCopy()` because this module is rendered by server components; pass
+   * `copy.common.progress` from a call site that has the language.
+   */
+  ariaLabel?: string;
 }) {
   const clamped = Math.max(0, Math.min(100, Math.round(value)));
   const fill =
@@ -236,7 +243,7 @@ export function ProgressBar({
         aria-valuenow={clamped}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label={label ?? 'Progress'}
+        aria-label={label ?? ariaLabel}
       >
         <div
           className={cn('h-full rounded-full transition-[width] duration-500', fill)}

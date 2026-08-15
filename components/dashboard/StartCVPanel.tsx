@@ -3,6 +3,7 @@
 import { FilePlus2, LayoutTemplate, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Spinner } from '@/components/ui/button';
 import { useCreateCV } from './create-cv';
 import { cn } from '@/lib/utils/cn';
@@ -23,7 +24,8 @@ export function StartCVPanel({
   atCvLimit: boolean;
   className?: string;
 }) {
-  const { create, creating } = useCreateCV();
+  const copy = useCopy();
+  const { create, creating } = useCreateCV(copy.cvs);
 
   const tileClasses = cn(
     'group flex flex-col items-start gap-2 rounded-xl border border-ink-200 bg-white p-4 text-left transition-all duration-200',
@@ -43,10 +45,8 @@ export function StartCVPanel({
         <span className="grid size-9 place-items-center rounded-lg bg-brand-50 text-brand-600">
           {creating ? <Spinner size={16} /> : <FilePlus2 size={18} aria-hidden />}
         </span>
-        <span className="text-sm font-semibold text-ink-950">Start blank</span>
-        <span className="text-xs leading-relaxed text-ink-600">
-          An empty CV in your default template. Fastest if you already know what to write.
-        </span>
+        <span className="text-sm font-semibold text-ink-950">{copy.cvs.startBlank}</span>
+        <span className="text-xs leading-relaxed text-ink-600">{copy.cvs.startBlankHint}</span>
       </button>
 
       <button
@@ -58,10 +58,8 @@ export function StartCVPanel({
         <span className="grid size-9 place-items-center rounded-lg bg-accent-50 text-accent-600">
           {creating ? <Spinner size={16} /> : <Sparkles size={18} aria-hidden />}
         </span>
-        <span className="text-sm font-semibold text-ink-950">Use a worked example</span>
-        <span className="text-xs leading-relaxed text-ink-600">
-          A complete, realistic CV you edit down to your own history.
-        </span>
+        <span className="text-sm font-semibold text-ink-950">{copy.cvs.startExample}</span>
+        <span className="text-xs leading-relaxed text-ink-600">{copy.cvs.startExampleHint}</span>
       </button>
 
       <Link
@@ -72,10 +70,8 @@ export function StartCVPanel({
         <span className="grid size-9 place-items-center rounded-lg bg-ink-100 text-ink-700">
           <LayoutTemplate size={18} aria-hidden />
         </span>
-        <span className="text-sm font-semibold text-ink-950">Pick a template first</span>
-        <span className="text-xs leading-relaxed text-ink-600">
-          Browse every design, filter by style, then start from the one you like.
-        </span>
+        <span className="text-sm font-semibold text-ink-950">{copy.cvs.chooseTemplate}</span>
+        <span className="text-xs leading-relaxed text-ink-600">{copy.cvs.chooseTemplateHint}</span>
       </Link>
     </div>
   );

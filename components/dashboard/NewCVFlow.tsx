@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { FilePlus2, Sparkles } from 'lucide-react';
 
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { Alert, Badge } from '@/components/ui/feedback';
 import { Field, Input } from '@/components/ui/form';
@@ -41,7 +42,8 @@ export function NewCVFlow({
   cvsUsed: number;
   cvLimit: number | null;
 }) {
-  const { create, creating } = useCreateCV();
+  const copy = useCopy();
+  const { create, creating } = useCreateCV(copy.cvs);
 
   const [starter, setStarter] = useState<Starter>('blank');
   const [title, setTitle] = useState('');
@@ -66,46 +68,41 @@ export function NewCVFlow({
   const selected = templates.find((template) => template.id === templateId);
   const atLimit = cvLimit !== null && cvsUsed >= cvLimit;
 
-  const starterOptions: { value: Starter; label: string; hint: string; icon: typeof FilePlus2 }[] = [
-    {
-      value: 'blank',
-      label: 'Start blank',
-      hint: 'An empty document. Best if you already have your history written down.',
-      icon: FilePlus2,
-    },
-    {
-      value: 'sample',
-      label: 'Start from a worked example',
-      hint: 'A complete, realistic CV to edit down. Best if you are staring at a blank page.',
-      icon: Sparkles,
-    },
-  ];
+  const starterOptions: { value: Starter; label: string; hint: string; icon: typeof FilePlus2 }[] =
+    [
+      {
+        value: 'blank',
+        label: copy.cvs.startBlank,
+        hint: copy.cvs.startBlankHint,
+        icon: FilePlus2,
+      },
+      {
+        value: 'sample',
+        label: copy.cvs.startExample,
+        hint: copy.cvs.startExampleHint,
+        icon: Sparkles,
+      },
+    ];
 
   return (
     <div className="flex flex-col gap-6 pb-28 lg:pb-0">
       {cvLimit !== null ? (
         <Alert
           tone={atLimit ? 'warning' : 'info'}
-          title={
-            atLimit
-              ? `You are using all ${cvLimit} CVs your plan allows`
-              : `${cvsUsed} of ${cvLimit} CVs used on the Free plan`
-          }
+          title={atLimit ? copy.cvs.limitTitle(cvLimit) : copy.cvs.usedOfLimit(cvsUsed, cvLimit)}
           action={
             <ButtonLink href="/pricing" size="sm" variant={atLimit ? 'primary' : 'outline'}>
-              See plans
+              {copy.dashboard.seePlans}
             </ButtonLink>
           }
         >
-          {atLimit
-            ? 'Delete a CV to make room, or upgrade to Pro for unlimited CVs.'
-            : 'Pro removes the limit and unlocks every template.'}
+          {atLimit ? copy.cvs.limitBody : copy.cvs.proRemovesLimit}
         </Alert>
       ) : null}
 
       <section aria-labelledby="starter-heading">
         <h2 id="starter-heading" className="text-base font-semibold text-ink-950">
-          1. Choose a starting point
+          {copy.cvs.stepStart}
         </h2>
         <div
           role="radiogroup"
@@ -148,11 +145,9 @@ export function NewCVFlow({
 
       <section aria-labelledby="template-heading">
         <h2 id="template-heading" className="text-base font-semibold text-ink-950">
-          2. Pick a template
+          {copy.cvs.stepTemplate}
         </h2>
-        <p className="mt-1 text-sm text-ink-600">
-          You can change it later without losing anything you have written.
-        </p>
+        <p className="mt-1 text-sm text-ink-600">{copy.cvs.stepTemplateHint}</p>
         <TemplatePicker
           className="mt-4"
           templates={templates}
@@ -165,12 +160,12 @@ export function NewCVFlow({
 
       <section aria-labelledby="name-heading">
         <h2 id="name-heading" className="text-base font-semibold text-ink-950">
-          3. Name it and create
+          {copy.cvs.stepName}
         </h2>
         <div className="mt-3 rounded-xl border border-ink-200 bg-white p-4">
           <Field
-            label="CV name"
-            hint="Only you see this. Leave it blank to call it “Untitled CV”."
+            label={copy.cvs.nameLabel}
+            hint={copy.cvs.nameHint(copy.dashboard.untitled)}
             className="max-w-md"
           >
             {({ id, describedBy }) => (
@@ -179,7 +174,7 @@ export function NewCVFlow({
                 aria-describedby={describedBy}
                 value={title}
                 maxLength={120}
-                placeholder="e.g. Product designer — Atlas Cloud"
+                placeholder={copy.cvs.namePlaceholder}
                 onChange={(event) => setTitle(event.target.value)}
               />
             )}
@@ -187,20 +182,20 @@ export function NewCVFlow({
 
           <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-xs text-ink-600">
             <div className="flex items-center gap-1.5">
-              <dt className="font-medium text-ink-500">Template:</dt>
+              <dt className="font-medium text-ink-500">{copy.cvs.summaryTemplate}</dt>
               <dd className="flex items-center gap-1.5 font-semibold text-ink-900">
-                {selected?.name ?? 'None selected'}
-                {selected?.premium ? <Badge tone="accent">Pro</Badge> : null}
+                {selected?.name ?? copy.cvs.noneSelected}
+                {selected?.premium ? <Badge tone="accent">{copy.common.pro}</Badge> : null}
               </dd>
             </div>
             <div className="flex items-center gap-1.5">
-              <dt className="font-medium text-ink-500">Paper:</dt>
+              <dt className="font-medium text-ink-500">{copy.cvs.summaryPaper}</dt>
               <dd className="font-semibold text-ink-900">{PAPER[paperSize].label}</dd>
             </div>
             <div className="flex items-center gap-1.5">
-              <dt className="font-medium text-ink-500">Content:</dt>
+              <dt className="font-medium text-ink-500">{copy.cvs.summaryContent}</dt>
               <dd className="font-semibold text-ink-900">
-                {starter === 'sample' ? 'Worked example' : 'Empty'}
+                {starter === 'sample' ? copy.cvs.contentExample : copy.cvs.contentEmpty}
               </dd>
             </div>
           </dl>
@@ -209,19 +204,22 @@ export function NewCVFlow({
 
       <div className="fixed inset-x-0 bottom-14 z-60 border-t border-ink-200 bg-white/95 p-3 backdrop-blur-lg lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
         <div className="flex items-center justify-end gap-3">
-          <ButtonLink href="/dashboard/cvs" variant="ghost" size="lg" className="hidden sm:inline-flex">
-            Cancel
+          <ButtonLink
+            href="/dashboard/cvs"
+            variant="ghost"
+            size="lg"
+            className="hidden sm:inline-flex"
+          >
+            {copy.common.cancel}
           </ButtonLink>
           <Button
             size="lg"
             loading={creating}
             disabled={atLimit || !selected}
             className="flex-1 sm:flex-none"
-            onClick={() =>
-              void create({ title, templateId, starter })
-            }
+            onClick={() => void create({ title, templateId, starter })}
           >
-            Create CV
+            {copy.cvs.createOne}
           </Button>
         </div>
       </div>

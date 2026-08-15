@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { apiRequest, ApiRequestError } from '@/components/dashboard/api';
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import type { CVCustomization, CVData, CVDocument } from '@/types/cv';
 
 /**
@@ -71,6 +72,7 @@ export function useEditorDocument(
   initial: CVDocument,
   options: { onEntitlementError?: (error: ApiRequestError) => void } = {},
 ): EditorDocument {
+  const copy = useCopy();
   const [history, setHistory] = useState<History>({
     past: [],
     present: snapshotOf(initial),
@@ -128,7 +130,7 @@ export function useEditorDocument(
             setErrorMessage(error.message);
             if (error.isEntitlement) onEntitlementError.current?.(error);
           } else {
-            setErrorMessage('Could not reach the server. Your changes are still here.');
+            setErrorMessage(copy.editor.offline);
           }
           break;
         }
@@ -136,7 +138,7 @@ export function useEditorDocument(
     } finally {
       inFlight.current = false;
     }
-  }, [cvId]);
+  }, [copy, cvId]);
 
   /** Queues a snapshot for saving and (re)starts the debounce window. */
   const queueSave = useCallback(

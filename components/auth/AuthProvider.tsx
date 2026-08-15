@@ -18,6 +18,7 @@ import {
 
 import { firebaseAuth, isFirebaseClientConfigured } from '@/lib/firebase/client';
 import { trackEvent } from '@/lib/analytics/events';
+import type { AppCopy } from '@/lib/i18n/app-copy';
 import type { SessionUser } from '@/types/user';
 
 /**
@@ -54,6 +55,17 @@ export interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/**
+ * An error whose *code* carries the meaning, for the failures this module raises itself.
+ *
+ * A finished English sentence thrown from here would be a user-visible string in the one
+ * place that cannot reach the copy table — this component tree is shared by all three
+ * languages. `authErrorMessage` renders the code instead, next to the Firebase ones.
+ */
+function codedError(code: string): Error {
+  return Object.assign(new Error(code), { code });
+}
+
 async function postSession(idToken: string): Promise<void> {
   const response = await fetch('/api/auth/session', {
     method: 'POST',
@@ -61,10 +73,13 @@ async function postSession(idToken: string): Promise<void> {
     body: JSON.stringify({ idToken }),
   });
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as
-      | { error?: { message?: string } }
-      | null;
-    throw new Error(body?.error?.message ?? 'Could not start your session. Please try again.');
+    const body = (await response.json().catch(() => null)) as {
+      error?: { message?: string };
+    } | null;
+    // The API's own message wins when there is one: it is more specific than anything
+    // this side could say. Only the generic fallback is ours to translate.
+    if (body?.error?.message) throw new Error(body.error.message);
+    throw codedError('app/session-failed');
   }
 }
 
@@ -178,7 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     AuthContextValue['resendVerificationEmail']
   >(async () => {
     const user = firebaseAuth().currentUser;
-    if (!user) throw new Error('Sign in again to resend the verification e-mail.');
+    if (!user) throw codedError('app/resend-signed-out');
     await sendEmailVerification(user);
   }, []);
 
@@ -226,39 +241,48 @@ export function useAuth(): AuthContextValue {
 }
 
 /**
- * Turns a Firebase error code into something a person can act on.
- * The SDK's own messages leak implementation detail and read like stack traces.
+ * Turns a Firebase error code into something a person can act on, in their language.
+ * The SDK's own messages leak implementation detail, read like stack traces, and are
+ * only ever in English.
+ *
+ * The codes are the SDK's and are never translated; only the sentence shown for each is.
  */
-export function authErrorMessage(error: unknown): string {
+export function authErrorMessage(error: unknown, copy: AppCopy): string {
   const code =
-    error && typeof error === 'object' && 'code' in error ? String((error as { code: unknown }).code) : '';
+    error && typeof error === 'object' && 'code' in error
+      ? String((error as { code: unknown }).code)
+      : '';
 
   switch (code) {
     case 'auth/invalid-email':
-      return 'That does not look like a valid e-mail address.';
+      return copy.auth.emailInvalid;
     case 'auth/user-disabled':
-      return 'This account has been disabled. Contact support if you think that is a mistake.';
+      return copy.auth.errorUserDisabled;
     case 'auth/user-not-found':
     case 'auth/wrong-password':
     case 'auth/invalid-credential':
-      return 'That e-mail and password combination does not match an account.';
+      return copy.auth.errorBadCredentials;
     case 'auth/email-already-in-use':
-      return 'An account already exists with that e-mail. Try signing in instead.';
+      return copy.auth.errorEmailInUse;
     case 'auth/weak-password':
-      return 'Choose a password of at least 8 characters.';
+      return copy.auth.errorWeakPassword;
     case 'auth/too-many-requests':
-      return 'Too many attempts. Wait a few minutes and try again, or reset your password.';
+      return copy.auth.errorTooManyRequests;
     case 'auth/popup-closed-by-user':
     case 'auth/cancelled-popup-request':
-      return 'The Google sign-in window was closed before finishing.';
+      return copy.auth.errorPopupClosed;
     case 'auth/popup-blocked':
-      return 'Your browser blocked the Google sign-in window. Allow pop-ups for this site and try again.';
+      return copy.auth.errorPopupBlocked;
     case 'auth/operation-not-allowed':
-      return 'That sign-in method is not enabled for this project yet.';
+      return copy.auth.errorOperationNotAllowed;
     case 'auth/network-request-failed':
-      return 'Network problem — check your connection and try again.';
+      return copy.auth.errorNetwork;
+    case 'app/session-failed':
+      return copy.auth.errorSessionFailed;
+    case 'app/resend-signed-out':
+      return copy.auth.errorResendSignedOut;
     default:
       if (error instanceof Error && error.message) return error.message;
-      return 'Something went wrong. Please try again.';
+      return copy.common.somethingWentWrong;
   }
 }

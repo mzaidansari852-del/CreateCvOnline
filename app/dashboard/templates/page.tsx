@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 
 import { CVThumbnail } from '@/components/cv/CVThumbnail';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
@@ -16,6 +17,8 @@ import {
   TEMPLATE_COUNT,
   TEMPLATES,
 } from '@/lib/cv/template-registry';
+import { appCopy } from '@/lib/i18n/app-copy';
+import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { privateMetadata } from '@/lib/seo/metadata';
 import { cn } from '@/lib/utils/cn';
 import type { TemplateDefinition } from '@/types/cv';
@@ -32,6 +35,11 @@ export default async function DashboardTemplatesPage({
 }) {
   const viewer = await requireViewer('/dashboard/templates');
   const query = await searchParams;
+  const locale = resolveLocale({
+    profileLocale: viewer.profile.locale,
+    cookieLocale: (await cookies()).get(LOCALE_COOKIE)?.value,
+  });
+  const copy = appCopy(locale);
 
   const requested = typeof query.category === 'string' ? query.category : 'all';
   const category = TEMPLATE_CATEGORIES.some((entry) => entry.id === requested) ? requested : 'all';
@@ -42,10 +50,10 @@ export default async function DashboardTemplatesPage({
   const canUsePremium = viewer.limits.premiumTemplates;
 
   const chips = [
-    { id: 'all', label: 'All', count: TEMPLATE_COUNT },
+    { id: 'all', label: copy.templates.allFilter, count: TEMPLATE_COUNT },
     ...TEMPLATE_CATEGORIES.map((entry) => ({
       id: entry.id as string,
-      label: entry.label,
+      label: copy.templates.categoryLabel[entry.id],
       count: TEMPLATES.filter((template) => template.category === entry.id).length,
     })),
   ];
@@ -55,16 +63,16 @@ export default async function DashboardTemplatesPage({
   return (
     <DashboardShell
       viewer={viewer}
-      title="Templates"
+      title={copy.nav.templates}
       description={
         canUsePremium
-          ? `All ${TEMPLATE_COUNT} designs are available on your plan. Starting a CV from one takes a single click.`
-          : `${FREE_TEMPLATE_COUNT} of the ${TEMPLATE_COUNT} designs are on the Free plan. The rest are marked Pro.`
+          ? copy.templates.allAvailable(TEMPLATE_COUNT)
+          : copy.templates.freeSubset(FREE_TEMPLATE_COUNT, TEMPLATE_COUNT)
       }
     >
       <div className="flex flex-col gap-5">
         <nav
-          aria-label="Filter templates by category"
+          aria-label={copy.templates.filterAria}
           className="scroll-thin -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1"
         >
           {chips.map((chip) => {
@@ -97,12 +105,18 @@ export default async function DashboardTemplatesPage({
           })}
         </nav>
 
+        {/*
+          Still English in every language: the blurb belongs to the registry, which is shared
+          with the marketing site and holds one copy of it. Duplicating six paragraphs here to
+          translate them would put the same prose in two places and guarantee they drift; the
+          fix is a locale-aware registry, which is a change beyond this page.
+        */}
         {activeCategory ? (
           <p className="max-w-3xl text-sm leading-relaxed text-ink-600">{activeCategory.blurb}</p>
         ) : null}
 
         <p className="text-xs text-ink-500" role="status">
-          Showing {templates.length} of {TEMPLATE_COUNT} templates
+          {copy.templates.showing(templates.length, TEMPLATE_COUNT)}
         </p>
 
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
@@ -129,15 +143,15 @@ export default async function DashboardTemplatesPage({
                 <div className="min-w-0">
                   <h2 className="truncate text-sm font-semibold text-ink-950">{template.name}</h2>
                   <p className="mt-0.5 truncate text-xs text-ink-500">
-                    {template.category === 'ats' ? 'ATS-friendly' : template.category} ·{' '}
-                    {template.columns === 1 ? 'one column' : 'two columns'} · ATS{' '}
-                    {template.atsScore}/5
+                    {copy.templates.categoryLabel[template.category]} ·{' '}
+                    {template.columns === 1 ? copy.templates.oneColumn : copy.templates.twoColumns}{' '}
+                    · ATS {template.atsScore}/5
                   </p>
                 </div>
                 {template.premium ? (
-                  <Badge tone="accent">Pro</Badge>
+                  <Badge tone="accent">{copy.common.pro}</Badge>
                 ) : (
-                  <Badge tone="success">Free</Badge>
+                  <Badge tone="success">{copy.common.free}</Badge>
                 )}
               </div>
 
@@ -156,7 +170,7 @@ export default async function DashboardTemplatesPage({
                   href={`/templates/${template.slug}`}
                   className="shrink-0 rounded-lg px-2 py-1.5 text-[13px] font-semibold text-ink-600 transition-colors hover:bg-ink-100 hover:text-ink-900"
                 >
-                  Details
+                  {copy.templates.details}
                 </Link>
               </div>
             </li>

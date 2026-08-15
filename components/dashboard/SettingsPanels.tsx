@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Download, Save, TriangleAlert } from 'lucide-react';
 
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Button, ButtonLink, Spinner } from '@/components/ui/button';
 import { Alert } from '@/components/ui/feedback';
 import { Field, Input, SegmentedControl, Select } from '@/components/ui/form';
@@ -10,11 +11,7 @@ import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
 import { useHydrated } from '@/hooks/browser';
 import { apiRequest, useApiErrorToast } from './api';
-import {
-  usePreferences,
-  writePreferences,
-  type DashboardPreferences,
-} from './preferences';
+import { usePreferences, writePreferences, type DashboardPreferences } from './preferences';
 import { site } from '@/lib/site';
 import type { CVDocument, CVSummary, PaperSize } from '@/types/cv';
 
@@ -47,6 +44,7 @@ export function NewCVDefaultsForm({
   canUsePremium: boolean;
 }) {
   const toast = useToast();
+  const copy = useCopy();
   const loaded = useHydrated();
   const [saving, setSaving] = useState(false);
 
@@ -74,19 +72,16 @@ export function NewCVDefaultsForm({
     const stored = writePreferences(preferences);
     setSaving(false);
     if (stored) {
-      toast.success('Defaults saved', 'They apply to the next CV you create in this browser.');
+      toast.success(copy.settings.defaultsSaved, copy.settings.preferencesHint);
     } else {
-      toast.error(
-        'Could not save on this device',
-        'Your browser is blocking local storage — private browsing usually does.',
-      );
+      toast.error(copy.settings.defaultsSaveFailedTitle, copy.settings.defaultsSaveFailedBody);
     }
   }
 
   if (!loaded) {
     return (
       <p className="flex items-center gap-2 text-sm text-ink-600">
-        <Spinner size={14} /> Reading your saved defaults…
+        <Spinner size={14} /> {copy.settings.readingDefaults}
       </p>
     );
   }
@@ -94,28 +89,24 @@ export function NewCVDefaultsForm({
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-ink-800">Default paper size</span>
+        <span className="text-sm font-medium text-ink-800">{copy.settings.paperSize}</span>
         <SegmentedControl<PaperSize>
-          label="Default paper size"
+          label={copy.settings.paperSize}
           value={preferences.paperSize}
           onChange={(paperSize) => setPreferences((current) => ({ ...current, paperSize }))}
           options={[
-            { value: 'a4', label: 'A4', title: '210 × 297 mm — standard outside North America' },
-            { value: 'letter', label: 'US Letter', title: '8.5 × 11 in — standard in the US and Canada' },
+            { value: 'a4', label: 'A4', title: copy.settings.paperA4Hint },
+            { value: 'letter', label: 'US Letter', title: copy.settings.paperLetterHint },
           ]}
           className="self-start"
         />
-        <p className="text-xs leading-relaxed text-ink-500">
-          Applied when a CV is created. You can still change it per CV in the editor.
-        </p>
+        <p className="text-xs leading-relaxed text-ink-500">{copy.settings.paperSizeHint}</p>
       </div>
 
       <Field
-        label="Default template for new CVs"
+        label={copy.settings.defaultTemplate}
         hint={
-          canUsePremium
-            ? 'Pre-selected in the new-CV flow.'
-            : 'Only free templates can be a default while you are on the Free plan.'
+          canUsePremium ? copy.settings.defaultTemplateHint : copy.settings.defaultTemplateFreeHint
         }
         className="max-w-md"
       >
@@ -128,7 +119,7 @@ export function NewCVDefaultsForm({
               setPreferences((current) => ({ ...current, templateId: event.target.value }))
             }
           >
-            <option value="">Use the app default ({defaultTemplateName})</option>
+            <option value="">{copy.settings.useAppDefault(defaultTemplateName)}</option>
             {selectable.map((template) => (
               <option key={template.id} value={template.id}>
                 {template.name} — {template.categoryLabel}
@@ -145,12 +136,9 @@ export function NewCVDefaultsForm({
           leadingIcon={<Save size={15} aria-hidden />}
           onClick={save}
         >
-          Save defaults
+          {copy.settings.saveDefaults}
         </Button>
-        <p className="text-xs text-ink-500">
-          Saved in this browser only — {site.name} has no endpoint for syncing preferences
-          across devices yet.
-        </p>
+        <p className="text-xs text-ink-500">{copy.settings.savedLocallyNote(site.name)}</p>
       </div>
     </div>
   );
@@ -163,18 +151,19 @@ export function NewCVDefaultsForm({
 /** Fetches every CV in full and saves them as one JSON file. */
 export function ExportDataButton() {
   const toast = useToast();
+  const copy = useCopy();
   const showError = useApiErrorToast();
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
 
   async function exportAll() {
     setBusy(true);
-    setProgress('Listing your CVs…');
+    setProgress(copy.settings.exportListing);
     try {
       const { cvs } = await apiRequest<{ cvs: CVSummary[] }>('/api/cvs');
 
       if (cvs.length === 0) {
-        toast.info('Nothing to export', 'You have not saved a CV yet.');
+        toast.info(copy.settings.exportNothingTitle, copy.settings.exportNothingBody);
         return;
       }
 
@@ -188,7 +177,7 @@ export function ExportDataButton() {
         for (;;) {
           const next = queue.shift();
           if (!next) return;
-          setProgress(`Exporting ${documents.length + 1} of ${cvs.length}…`);
+          setProgress(copy.settings.exportProgress(documents.length + 1, cvs.length));
           try {
             const { cv } = await apiRequest<{ cv: CVDocument }>(`/api/cvs/${next.id}`);
             documents.push(cv);
@@ -220,17 +209,17 @@ export function ExportDataButton() {
 
       if (failed.length > 0) {
         toast.warning(
-          `Exported ${documents.length} of ${cvs.length}`,
-          `Could not read: ${failed.join(', ')}. Try again in a minute.`,
+          copy.settings.exportPartialTitle(documents.length, cvs.length),
+          copy.settings.exportPartialBody(failed.join(', ')),
         );
       } else {
         toast.success(
-          'Export ready',
-          `${documents.length} CV${documents.length === 1 ? '' : 's'} saved as JSON.`,
+          copy.settings.exportReadyTitle,
+          copy.settings.exportReadyBody(documents.length),
         );
       }
     } catch (error) {
-      showError(error, 'Could not export your CVs');
+      showError(error, copy.settings.exportFailed);
     } finally {
       setBusy(false);
       setProgress(null);
@@ -246,7 +235,7 @@ export function ExportDataButton() {
         leadingIcon={<Download size={15} aria-hidden />}
         onClick={() => void exportAll()}
       >
-        Download all my CVs as JSON
+        {copy.settings.exportButton}
       </Button>
       {progress ? (
         <span className="text-xs text-ink-600" role="status">
@@ -270,13 +259,14 @@ export function ExportDataButton() {
  * request that a human will action.
  */
 export function DeleteAccountPanel({ email }: { email: string }) {
+  const copy = useCopy();
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState('');
 
   const matches = typed.trim().toLowerCase() === email.trim().toLowerCase() && email.length > 0;
-  const contactHref = `/contact?subject=${encodeURIComponent('Account deletion request')}&message=${encodeURIComponent(
-    `Please delete my ${site.name} account (${email}) and everything stored under it: my saved CVs, my payment history and my profile.`,
-  )}`;
+  const contactHref = `/contact?subject=${encodeURIComponent(
+    copy.settings.deleteRequestSubject,
+  )}&message=${encodeURIComponent(copy.settings.deleteRequestBody(site.name, email))}`;
 
   return (
     <>
@@ -284,52 +274,49 @@ export function DeleteAccountPanel({ email }: { email: string }) {
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-sm font-semibold text-danger-700">
             <TriangleAlert size={16} aria-hidden />
-            Delete my account
+            {copy.settings.deleteAccount}
           </p>
           <p className="mt-1 max-w-xl text-[13px] leading-relaxed text-danger-700/85">
-            Removes your profile, every saved CV and your payment history. There is no
-            self-service deletion yet, so this opens a pre-filled request to our support
-            team — we action it by hand and confirm by e-mail.
+            {copy.settings.deleteAccountBody}
           </p>
         </div>
         <Button variant="danger" size="sm" onClick={() => setOpen(true)}>
-          Delete account…
+          {copy.settings.deleteAccountAction}
         </Button>
       </div>
 
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="Delete your account"
-        description="This cannot be undone. Type your e-mail address to confirm you mean it."
+        title={copy.settings.deleteModalTitle}
+        description={copy.settings.deleteModalLede}
         size="sm"
         dismissOnBackdrop={false}
         footer={
           <>
             <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancel
+              {copy.common.cancel}
             </Button>
             {matches ? (
               <ButtonLink href={contactHref} variant="danger">
-                Continue to request
+                {copy.settings.deleteContinue}
               </ButtonLink>
             ) : (
               <Button variant="danger" disabled>
-                Continue to request
+                {copy.settings.deleteContinue}
               </Button>
             )}
           </>
         }
       >
         <div className="flex flex-col gap-4">
-          <Alert tone="warning" title="Nothing is deleted on this screen">
-            {site.name} has no automated deletion endpoint. Confirming here takes you to a
-            pre-filled support request; your data is removed once our team processes it.
+          <Alert tone="warning" title={copy.settings.deleteNothingTitle}>
+            {copy.settings.deleteNothingBody(site.name)}
           </Alert>
 
           <Field
-            label={`Type ${email} to confirm`}
-            error={typed.length > 0 && !matches ? 'That does not match your e-mail address.' : undefined}
+            label={copy.settings.typeEmailToConfirm(email)}
+            error={typed.length > 0 && !matches ? copy.settings.emailMismatch : undefined}
           >
             {({ id, describedBy, invalid }) => (
               <Input

@@ -1,12 +1,15 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { Suspense } from 'react';
 import { cookies } from 'next/headers';
 
+import { Logo } from '@/components/brand/Logo';
 import { LocaleProvider } from '@/components/i18n/LocaleProvider';
 import { PaddleTransactionCheckout } from './PaddleTransactionCheckout';
 import { getViewer } from '@/lib/auth/guards';
 import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { privateMetadata } from '@/lib/seo/metadata';
+import { site } from '@/lib/site';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -41,14 +44,32 @@ export default async function PayPage() {
 
   return (
     <LocaleProvider locale={locale}>
-      <main lang={locale} className="container-page flex min-h-dvh items-center justify-center py-16">
-        <div className="w-full max-w-md">
-          {/* The overlay needs the query string, which is only readable on the client. */}
-          <Suspense fallback={null}>
-            <PaddleTransactionCheckout />
-          </Suspense>
-        </div>
-      </main>
+      <div lang={locale} className="flex min-h-dvh flex-col bg-ink-50">
+        {/*
+          Branded rather than bare. This page is reached from an email about money, often
+          on a phone, sometimes days after the purchase — a white void containing one card
+          is exactly what a phishing page looks like, and hesitating here costs a payment.
+          The logo and the way back are the cheapest possible reassurance.
+        */}
+        <header className="container-page py-6">
+          <Logo />
+        </header>
+
+        <main id="main" className="container-page flex flex-1 items-center justify-center py-10">
+          <div className="w-full max-w-md">
+            {/* The overlay needs the query string, which is only readable on the client. */}
+            <Suspense fallback={null}>
+              <PaddleTransactionCheckout />
+            </Suspense>
+          </div>
+        </main>
+
+        <footer className="container-page py-8 text-center text-[13px] text-ink-500">
+          <Link href="/" className="underline-offset-2 hover:text-brand-700 hover:underline">
+            {site.domain}
+          </Link>
+        </footer>
+      </div>
     </LocaleProvider>
   );
 }

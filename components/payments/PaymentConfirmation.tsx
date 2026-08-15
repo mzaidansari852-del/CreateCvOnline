@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 
+import { useLocale } from '@/components/i18n/LocaleProvider';
 import { Button, ButtonLink, Spinner } from '@/components/ui/button';
+import { planHighlights } from '@/lib/i18n/copy/content';
 import { Alert } from '@/components/ui/feedback';
 import { trackEvent } from '@/lib/analytics/events';
 import { publicEnv } from '@/lib/env';
@@ -50,6 +52,7 @@ export function PaymentConfirmation({
   /** From `?plan=` — used only for the heading before the server confirms. */
   planHint: string | null;
 }) {
+  const locale = useLocale();
   const [phase, setPhase] = useState<Phase>(orderId ? 'verifying' : 'failed');
   const [planId, setPlanId] = useState<string | null>(
     planHint && isPurchasablePlan(planHint) ? planHint : null,
@@ -80,15 +83,12 @@ export function PaymentConfirmation({
       });
 
       const payload = (await response.json().catch(() => null)) as
-        | (CaptureResponse & ApiErrorBody)
-        | null;
+        (CaptureResponse & ApiErrorBody) | null;
 
       if (!response.ok) {
         const code = payload?.error?.code ?? 'payment-failed';
         setFailure({
-          message:
-            payload?.error?.message ??
-            'We could not confirm this payment with PayPal.',
+          message: payload?.error?.message ?? 'We could not confirm this payment with PayPal.',
           nextStep:
             code === 'unauthenticated'
               ? 'Sign in with the account you used to buy, then open this page again — nothing is lost.'
@@ -147,8 +147,8 @@ export function PaymentConfirmation({
           <Spinner size={32} className="text-brand-600" />
           <h2 className="text-xl font-bold text-ink-950">Confirming your payment…</h2>
           <p className="max-w-md text-sm leading-relaxed text-ink-600">
-            We are checking the order with PayPal before we unlock anything. This normally takes
-            a couple of seconds — please do not close this tab.
+            We are checking the order with PayPal before we unlock anything. This normally takes a
+            couple of seconds — please do not close this tab.
           </p>
         </div>
       </Panel>
@@ -190,7 +190,15 @@ export function PaymentConfirmation({
     <Panel tone="success">
       <div className="flex flex-col items-center text-center">
         <span className="grid size-14 place-items-center rounded-full bg-success-50 text-success-600 ring-1 ring-success-500/25">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+          <svg
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden
+          >
             <path d="m5 12.5 4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </span>
@@ -205,9 +213,14 @@ export function PaymentConfirmation({
       </div>
 
       <ul className="mx-auto mt-7 flex max-w-md flex-col gap-2.5">
-        {plan.highlights.map((highlight) => (
+        {planHighlights(plan, locale).map((highlight) => (
           <li key={highlight} className="flex gap-2.5 text-sm text-ink-700">
-            <svg className="mt-0.5 size-4 shrink-0 text-success-600" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <svg
+              className="mt-0.5 size-4 shrink-0 text-success-600"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden
+            >
               <path
                 d="m5 12.5 4.5 4.5L19 7.5"
                 stroke="currentColor"

@@ -7,6 +7,7 @@ import { getViewer } from '@/lib/auth/guards';
 import { PLANS } from '@/lib/plans';
 import { FREE_TEMPLATE_COUNT, TEMPLATE_COUNT } from '@/lib/cv/template-registry';
 import { appCopy } from '@/lib/i18n/app-copy';
+import { planTagline } from '@/lib/i18n/copy/content';
 import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { cn } from '@/lib/utils/cn';
 import type { Plan } from '@/lib/plans';
@@ -37,12 +38,11 @@ export async function UpgradeCard({
   if (plan.id !== 'free') return null;
 
   const viewer = await getViewer();
-  const copy = appCopy(
-    resolveLocale({
-      profileLocale: viewer?.profile.locale,
-      cookieLocale: (await cookies()).get(LOCALE_COOKIE)?.value,
-    }),
-  );
+  const locale = resolveLocale({
+    profileLocale: viewer?.profile.locale,
+    cookieLocale: (await cookies()).get(LOCALE_COOKIE)?.value,
+  });
+  const copy = appCopy(locale);
 
   const pro = PLANS.pro;
   const free = PLANS.free;
@@ -73,7 +73,7 @@ export async function UpgradeCard({
               copy.dashboard.billingInterval[pro.interval],
             )}
           </h3>
-          <p className="mt-1 text-sm leading-relaxed text-ink-600">{pro.tagline}</p>
+          <p className="mt-1 text-sm leading-relaxed text-ink-600">{planTagline(pro, locale)}</p>
         </div>
       </div>
 

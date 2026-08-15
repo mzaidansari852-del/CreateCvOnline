@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 
@@ -6,6 +7,8 @@ import { CheckoutButton } from '@/components/payments/CheckoutButton';
 import { ButtonLink } from '@/components/ui/button';
 import { Alert } from '@/components/ui/feedback';
 import { requireViewer } from '@/lib/auth/guards';
+import { planHighlights } from '@/lib/i18n/copy/content';
+import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { publicEnv } from '@/lib/env';
 import { formatDateTime } from '@/lib/cv/format';
 import { getPlan, isPurchasablePlan, PLANS } from '@/lib/plans';
@@ -70,6 +73,10 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
   const planId = requested as PlanId;
   const plan = getPlan(planId);
   const viewer = await requireViewer(`/payment/checkout?plan=${planId}`);
+  const locale = resolveLocale({
+    profileLocale: viewer.profile.locale,
+    cookieLocale: (await cookies()).get(LOCALE_COOKIE)?.value,
+  });
 
   const { entitlement } = viewer.profile;
   const priceLabel = `${formatPrice(plan.price)} ${intervalLabel(plan.interval)}`;
@@ -86,9 +93,8 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
           You already have Lifetime
         </h1>
         <p className="mt-3 text-[15px] leading-relaxed text-ink-600">
-          Lifetime access never expires and already includes everything in {plan.name}, so
-          there is nothing here for you to pay for. We would rather say that than take the
-          money.
+          Lifetime access never expires and already includes everything in {plan.name}, so there is
+          nothing here for you to pay for. We would rather say that than take the money.
         </p>
         <div className="mt-7 flex flex-wrap gap-3">
           <ButtonLink href="/dashboard" size="lg">
@@ -117,10 +123,8 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
       {repeatPurchase ? (
         <Alert tone="info" title="You are already on Pro" className="mt-6">
           Paying again extends your access by another {plan.accessDays} days from{' '}
-          {entitlement.currentPeriodEnd
-            ? formatDateTime(entitlement.currentPeriodEnd)
-            : 'today'}
-          . If you expect to keep using CreateCVOnline, {PLANS.lifetime.name} at{' '}
+          {entitlement.currentPeriodEnd ? formatDateTime(entitlement.currentPeriodEnd) : 'today'}.
+          If you expect to keep using CreateCVOnline, {PLANS.lifetime.name} at{' '}
           {formatPrice(PLANS.lifetime.price)} works out cheaper after eight months —{' '}
           <Link
             href="/payment/checkout?plan=lifetime"
@@ -133,9 +137,7 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
       ) : null}
 
       <div className="mt-7 rounded-xl border border-ink-200 bg-ink-50 p-5">
-        <h2 className="text-sm font-bold tracking-wide text-ink-500 uppercase">
-          Order summary
-        </h2>
+        <h2 className="text-sm font-bold tracking-wide text-ink-500 uppercase">Order summary</h2>
 
         <dl className="mt-4 flex flex-col divide-y divide-ink-200">
           <div className="flex flex-wrap items-baseline justify-between gap-2 pb-3">
@@ -152,9 +154,7 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
           </div>
           <div className="flex flex-wrap items-baseline justify-between gap-2 py-3">
             <dt className="text-sm text-ink-600">Account</dt>
-            <dd className="text-sm font-medium break-all text-ink-900">
-              {viewer.user.email}
-            </dd>
+            <dd className="text-sm font-medium break-all text-ink-900">{viewer.user.email}</dd>
           </div>
           <div className="flex flex-wrap items-baseline justify-between gap-2 pt-3">
             <dt className="text-base font-semibold text-ink-950">Total today</dt>
@@ -162,21 +162,22 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
               <span className="text-2xl font-extrabold tracking-tight text-ink-950">
                 {formatPrice(plan.price)}
               </span>
-              <span className="ml-1.5 text-sm text-ink-500">
-                {publicEnv.paypalCurrency}
-              </span>
-              <span className="block text-xs text-ink-500">
-                {intervalLabel(plan.interval)}
-              </span>
+              <span className="ml-1.5 text-sm text-ink-500">{publicEnv.paypalCurrency}</span>
+              <span className="block text-xs text-ink-500">{intervalLabel(plan.interval)}</span>
             </dd>
           </div>
         </dl>
       </div>
 
       <ul className="mt-6 grid gap-2.5 sm:grid-cols-2">
-        {plan.highlights.map((highlight) => (
+        {planHighlights(plan, locale).map((highlight) => (
           <li key={highlight} className="flex gap-2.5 text-sm leading-snug text-ink-700">
-            <svg className="mt-0.5 size-4 shrink-0 text-brand-600" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <svg
+              className="mt-0.5 size-4 shrink-0 text-brand-600"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden
+            >
               <path
                 d="m5 12.5 4.5 4.5L19 7.5"
                 stroke="currentColor"

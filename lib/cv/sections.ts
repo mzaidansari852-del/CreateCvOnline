@@ -15,8 +15,6 @@ export interface SectionMeta {
    * heading for a section is one fact with three spellings, not an English constant with
    * translations bolted on.
    */
-  /** Copy shown in the editor's section list and the "add section" sheet. */
-  hint: string;
   icon: SectionIconName;
   /** Sections a fresh CV starts with. */
   defaultEnabled: boolean;
@@ -43,91 +41,78 @@ export type SectionIconName =
 export const SECTION_META: Record<BuiltInSectionId, SectionMeta> = {
   summary: {
     id: 'summary',
-    hint: 'Three or four lines that frame who you are and the value you bring.',
     icon: 'file-text',
     defaultEnabled: true,
     compact: false,
   },
   competencies: {
     id: 'competencies',
-    hint: 'Three to six areas of expertise, each with the achievements that prove it. This is what makes a functional CV functional — lead with it and the work history can stay short.',
     icon: 'layers',
     defaultEnabled: false,
     compact: false,
   },
   experience: {
     id: 'experience',
-    hint: 'Roles, companies, dates and the results you delivered.',
     icon: 'briefcase',
     defaultEnabled: true,
     compact: false,
   },
   education: {
     id: 'education',
-    hint: 'Degrees, institutions and relevant coursework.',
     icon: 'graduation-cap',
     defaultEnabled: true,
     compact: false,
   },
   skills: {
     id: 'skills',
-    hint: 'Hard and soft skills, optionally grouped into categories.',
     icon: 'sparkles',
     defaultEnabled: true,
     compact: true,
   },
   languages: {
     id: 'languages',
-    hint: 'Languages you speak and your proficiency in each.',
     icon: 'languages',
     defaultEnabled: true,
     compact: true,
   },
   projects: {
     id: 'projects',
-    hint: 'Side projects, open-source work or client deliverables.',
     icon: 'folder-git-2',
     defaultEnabled: false,
     compact: false,
   },
   certifications: {
     id: 'certifications',
-    hint: 'Professional certifications, licences and credentials.',
     icon: 'badge-check',
     defaultEnabled: false,
     compact: true,
   },
   awards: {
     id: 'awards',
-    hint: 'Recognition, prizes and honours.',
     icon: 'trophy',
     defaultEnabled: false,
     compact: true,
   },
   volunteer: {
     id: 'volunteer',
-    hint: 'Unpaid work that demonstrates initiative and values.',
     icon: 'heart-handshake',
     defaultEnabled: false,
     compact: false,
   },
   publications: {
     id: 'publications',
-    hint: 'Papers, articles, books and conference talks.',
     icon: 'book-open',
     defaultEnabled: false,
     compact: false,
   },
   interests: {
     id: 'interests',
-    hint: 'A short, human line at the end of the document.',
     icon: 'palette',
     defaultEnabled: false,
     compact: true,
   },
   references: {
     id: 'references',
-    hint: 'Referees, or a single "available on request" line.',
     icon: 'quote',
     defaultEnabled: false,
     compact: true,
@@ -171,9 +156,9 @@ export function sectionHasContent(cv: CVData, id: string): boolean {
     const section = cv.customSections.find((entry) => entry.id === key);
     return Boolean(
       section &&
-        section.items.some(
-          (item) => item.heading || item.subheading || item.description || item.date,
-        ),
+      section.items.some(
+        (item) => item.heading || item.subheading || item.description || item.date,
+      ),
     );
   }
 
@@ -271,7 +256,10 @@ export function completenessScore(cv: CVData): number {
     [Boolean(cv.personal.location), 4],
     [cv.summary.trim().length >= 120, 15],
     [cv.experience.length >= 1, 14],
-    [cv.experience.some((item) => item.achievements.length > 0 || item.description.length > 80), 10],
+    [
+      cv.experience.some((item) => item.achievements.length > 0 || item.description.length > 80),
+      10,
+    ],
     [cv.education.length >= 1, 10],
     [cv.skills.length >= 5, 10],
     [cv.languages.length >= 1, 3],

@@ -8,18 +8,25 @@ import { Badge } from '@/components/ui/feedback';
 import { createDefaultCustomization, createSampleCV } from '@/lib/cv/defaults';
 import { findTemplate, templateDefaults } from '@/lib/cv/template-registry';
 import { appCopy } from '@/lib/i18n/app-copy';
+import { templateTagline } from '@/lib/i18n/copy/content';
 import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { privateMetadata } from '@/lib/seo/metadata';
 import { site } from '@/lib/site';
 
-/** No profile exists yet on this screen, so the cookie is the only source of language. */
-async function authCopy() {
+/**
+ * No profile exists yet on this screen, so the cookie is the only source of language.
+ *
+ * Returns the locale alongside the strings because the chosen template's tagline is
+ * resolved separately — it lives in the registry, not in the copy table.
+ */
+async function authLanguage() {
   const cookieLocale = (await cookies()).get(LOCALE_COOKIE)?.value;
-  return appCopy(resolveLocale({ profileLocale: null, cookieLocale }));
+  const locale = resolveLocale({ profileLocale: null, cookieLocale });
+  return { locale, copy: appCopy(locale) };
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const copy = await authCopy();
+  const { copy } = await authLanguage();
   return privateMetadata(copy.auth.signUp, copy.auth.signUpMetaDescription(site.name));
 }
 
@@ -39,7 +46,7 @@ export default async function RegisterPage(props: {
   // An unknown id is ignored rather than faked — the user then simply starts from the
   // default template, which is what the editor would do anyway.
   const template = requestedTemplate ? findTemplate(requestedTemplate) : undefined;
-  const copy = await authCopy();
+  const { copy, locale } = await authLanguage();
 
   return (
     <div className="flex flex-col gap-7">
@@ -74,7 +81,7 @@ export default async function RegisterPage(props: {
               )}
             </p>
             <p className="mt-0.5 text-xs leading-relaxed text-ink-600">
-              {template.tagline} {copy.auth.changeTemplateAnytime}
+              {templateTagline(template, locale)} {copy.auth.changeTemplateAnytime}
             </p>
           </div>
         </div>

@@ -18,6 +18,7 @@ import {
   TEMPLATES,
 } from '@/lib/cv/template-registry';
 import { appCopy } from '@/lib/i18n/app-copy';
+import { categoryBlurb, templateTagline } from '@/lib/i18n/copy/content';
 import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { privateMetadata } from '@/lib/seo/metadata';
 import { cn } from '@/lib/utils/cn';
@@ -105,14 +106,10 @@ export default async function DashboardTemplatesPage({
           })}
         </nav>
 
-        {/*
-          Still English in every language: the blurb belongs to the registry, which is shared
-          with the marketing site and holds one copy of it. Duplicating six paragraphs here to
-          translate them would put the same prose in two places and guarantee they drift; the
-          fix is a locale-aware registry, which is a change beyond this page.
-        */}
         {activeCategory ? (
-          <p className="max-w-3xl text-sm leading-relaxed text-ink-600">{activeCategory.blurb}</p>
+          <p className="max-w-3xl text-sm leading-relaxed text-ink-600">
+            {categoryBlurb(activeCategory, locale)}
+          </p>
         ) : null}
 
         <p className="text-xs text-ink-500" role="status">
@@ -156,7 +153,7 @@ export default async function DashboardTemplatesPage({
               </div>
 
               <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-ink-600">
-                {template.tagline}
+                {templateTagline(template, locale)}
               </p>
 
               <div className="mt-3 flex items-center gap-2">

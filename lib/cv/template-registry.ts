@@ -182,6 +182,18 @@ export const TEMPLATE_COUNT = TEMPLATES.length;
 export const FREE_TEMPLATE_COUNT = TEMPLATES.filter((template) => !template.premium).length;
 
 /**
+ * Free templates that score full marks for machine readability.
+ *
+ * Exported because the free plan's feature list quotes it, and a hand-typed figure there
+ * had already drifted: it advertised "five built for applicant tracking systems" when
+ * eighteen of the twenty free designs score 5/5. Understating the offer is the expensive
+ * direction to be wrong in, so the number is now counted rather than remembered.
+ */
+export const FREE_ATS_TEMPLATE_COUNT = TEMPLATES.filter(
+  (template) => !template.premium && template.atsScore === 5,
+).length;
+
+/**
  * The starting customization for a template: accent, typeface pairing and page metrics.
  *
  * Call sites used to pass `{ templateId, accentColor: template.accentDefault }` by hand,

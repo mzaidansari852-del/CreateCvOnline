@@ -12,6 +12,7 @@ import { requireViewer } from '@/lib/auth/guards';
 import { listUserPayments } from '@/lib/db/payments';
 import { formatDateTime } from '@/lib/cv/format';
 import { appCopy } from '@/lib/i18n/app-copy';
+import { planTagline } from '@/lib/i18n/copy/content';
 import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { getPlan } from '@/lib/plans';
 import { privateMetadata } from '@/lib/seo/metadata';
@@ -144,7 +145,7 @@ export default async function AccountPage() {
             <div className="flex flex-wrap items-baseline justify-between gap-2 pb-3">
               <dt className="text-sm text-ink-500">{copy.settings.currentPlan}</dt>
               <dd className="text-sm font-medium text-ink-900">
-                {viewer.plan.name} — {viewer.plan.tagline}
+                {viewer.plan.name} — {planTagline(viewer.plan, locale)}
               </dd>
             </div>
             <div className="flex flex-wrap items-baseline justify-between gap-2 py-3">

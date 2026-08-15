@@ -226,7 +226,8 @@ export interface EditorCopy {
 
     /**
      * Helper text for each built-in section, shown in the section list and the "add
-     * section" sheet. Replaces the English-only `SECTION_META[id].hint`.
+     * section" sheet. This is the only source of it — `SECTION_META` used to carry an
+     * English `hint`, which was deleted once every section had a translation here.
      */
     sectionHints: Record<BuiltInSectionId, string>;
 
@@ -1167,8 +1168,7 @@ const FR: EditorCopy = {
 
     list: {
       maxEntries: (max) => `Vous avez atteint le maximum de ${max} entrées pour cette rubrique.`,
-      deleteBody: (name) =>
-        `« ${name} » sera retiré de votre CV. Vous pouvez annuler avec Ctrl+Z.`,
+      deleteBody: (name) => `« ${name} » sera retiré de votre CV. Vous pouvez annuler avec Ctrl+Z.`,
       itemNumber: (label, index) => `${label} ${index}`,
       removeItemNumber: (label, index) => `Supprimer ${label} ${index}`,
     },
@@ -1374,8 +1374,7 @@ const FR: EditorCopy = {
         list: {
           add: 'Ajouter une langue',
           emptyTitle: 'Aucune langue',
-          emptyBody:
-            'Utile pour toute candidature internationale, et attendu sur un CV européen.',
+          emptyBody: 'Utile pour toute candidature internationale, et attendu sur un CV européen.',
           deleteTitle: 'Supprimer cette langue ?',
           untitled: 'Langue sans intitulé',
         },
@@ -1777,7 +1776,8 @@ const DE: EditorCopy = {
       signInFirst: 'Melden Sie sich an, um ein Foto hochzuladen.',
       unavailable:
         'Der Foto-Upload ist nicht verfügbar, weil für diese Installation kein Speicher konfiguriert ist. Sie können unten weiterhin einen Link einfügen.',
-      failed: 'Der Upload wurde nicht abgeschlossen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.',
+      failed:
+        'Der Upload wurde nicht abgeschlossen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.',
     },
 
     forms: {
@@ -1812,8 +1812,7 @@ const DE: EditorCopy = {
         links: {
           add: 'Weiteren Link hinzufügen',
           emptyTitle: 'Keine weiteren Links',
-          emptyBody:
-            'Portfolio, Dribbble, Behance, ORCID — alles, was auf die Seite gehört.',
+          emptyBody: 'Portfolio, Dribbble, Behance, ORCID — alles, was auf die Seite gehört.',
           deleteTitle: 'Diesen Link löschen?',
           untitled: 'Link ohne Bezeichnung',
         },
@@ -1963,8 +1962,7 @@ const DE: EditorCopy = {
         list: {
           add: 'Zertifikat hinzufügen',
           emptyTitle: 'Keine Zertifikate',
-          emptyBody:
-            'Lizenzen, berufliche Zertifikate und Nachweise, die sich überprüfen lassen.',
+          emptyBody: 'Lizenzen, berufliche Zertifikate und Nachweise, die sich überprüfen lassen.',
           deleteTitle: 'Dieses Zertifikat löschen?',
           untitled: 'Zertifikat ohne Bezeichnung',
         },

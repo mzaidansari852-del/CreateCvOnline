@@ -24,7 +24,7 @@ import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/form';
 import { ConfirmDialog, Modal } from '@/components/ui/modal';
-import { SECTION_META, customSectionKey, isCustomSectionId } from '@/lib/cv/sections';
+import { customSectionKey, isCustomSectionId } from '@/lib/cv/sections';
 import { uid } from '@/lib/utils/id';
 import { cn } from '@/lib/utils/cn';
 import type { BuiltInSectionId, CVData, SectionConfig } from '@/types/cv';
@@ -294,14 +294,14 @@ function SectionRow({
   });
 
   /*
-   * The translated hint wins, and `SECTION_META` is the fallback for a section that has one
-   * there but no entry here yet — a new built-in section is then untranslated rather than
-   * silently unexplained.
+   * No English fallback behind this. `sectionHints` is keyed by `BuiltInSectionId`, so a
+   * fourteenth built-in section cannot compile until all three languages have a sentence
+   * for it — the second table this used to fall back to could only ever have supplied
+   * English to a reader who had already chosen another language.
    */
   const hint = isCustomSectionId(section.id)
     ? copy.editor.sections.customHint
-    : (copy.editor.sectionHints[section.id as BuiltInSectionId] ??
-      SECTION_META[section.id as BuiltInSectionId]?.hint);
+    : copy.editor.sectionHints[section.id as BuiltInSectionId];
 
   return (
     <li

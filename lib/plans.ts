@@ -1,4 +1,8 @@
-import { TEMPLATE_COUNT } from '@/lib/cv/template-registry';
+import {
+  FREE_ATS_TEMPLATE_COUNT,
+  FREE_TEMPLATE_COUNT,
+  TEMPLATE_COUNT,
+} from '@/lib/cv/template-registry';
 import type { PlanId, UserEntitlement } from '@/types/user';
 
 /**
@@ -57,7 +61,7 @@ export const PLANS: Record<PlanId, Plan> = {
     description:
       'Build a complete CV with the full editor, keep it in your account and download it as a PDF. No trial timer and no credit card.',
     highlights: [
-      '16 free templates, including five built for applicant tracking systems',
+      `${FREE_TEMPLATE_COUNT} free templates, ${FREE_ATS_TEMPLATE_COUNT} of them rated 5/5 for applicant tracking systems`,
       'Up to 2 saved CVs',
       '5 PDF downloads per month',
       'Real-time preview and autosave',
@@ -83,8 +87,7 @@ export const PLANS: Record<PlanId, Plan> = {
     interval: 'month',
     accessDays: 31,
     tagline: 'For an active job search.',
-    description:
-      `All ${TEMPLATE_COUNT} templates, unlimited CVs and unlimited downloads, so you can tailor a version of your CV to every application instead of sending the same document everywhere.`,
+    description: `All ${TEMPLATE_COUNT} templates, unlimited CVs and unlimited downloads, so you can tailor a version of your CV to every application instead of sending the same document everywhere.`,
     highlights: [
       `All ${TEMPLATE_COUNT} templates`,
       'Unlimited CVs and unlimited PDF downloads',

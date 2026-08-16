@@ -10,7 +10,7 @@ import { ButtonLink } from '@/components/ui/button';
 import { Alert } from '@/components/ui/feedback';
 import { requireViewer } from '@/lib/auth/guards';
 import { appCopy } from '@/lib/i18n/app-copy';
-import { planHighlights } from '@/lib/i18n/copy/content';
+import { planDescription, planHighlights } from '@/lib/i18n/copy/content';
 import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { availableGateways } from '@/lib/payments';
 import { publicEnv } from '@/lib/env';
@@ -51,19 +51,6 @@ function formatPrice(value: string): string {
   return `${symbol}${Number.isInteger(amount) ? String(amount) : amount.toFixed(2)}`;
 }
 
-function intervalLabel(interval: string): string {
-  switch (interval) {
-    case 'month':
-      return 'per month';
-    case 'year':
-      return 'per year';
-    case 'one-time':
-      return 'one-time payment';
-    default:
-      return interval;
-  }
-}
-
 type SearchParams = Record<string, string | string[] | undefined>;
 
 function firstValue(value: string | string[] | undefined): string | null {
@@ -88,7 +75,10 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
 
   const copy = appCopy(locale);
   const { entitlement } = viewer.profile;
-  const priceLabel = `${formatPrice(plan.price)} ${intervalLabel(plan.interval)}`;
+  // Keyed by the plan's own cadence rather than switched on here, so a new interval cannot
+  // reach the payer unlabelled in one language and labelled in another.
+  const interval = copy.checkout.interval[plan.interval];
+  const priceLabel = `${formatPrice(plan.price)} ${interval}`;
 
   /*
    * `availableGateways()` reports what the *server* can talk to. Paddle needs a second
@@ -127,18 +117,17 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
     return (
       <div className="rounded-2xl border border-ink-200 bg-white p-6 shadow-card sm:p-9">
         <h1 className="text-2xl font-extrabold tracking-tight text-ink-950 sm:text-3xl">
-          You already have Lifetime
+          {copy.checkout.ownsLifetimeTitle(PLANS.lifetime.name)}
         </h1>
         <p className="mt-3 text-[15px] leading-relaxed text-ink-600">
-          Lifetime access never expires and already includes everything in {plan.name}, so there is
-          nothing here for you to pay for. We would rather say that than take the money.
+          {copy.checkout.ownsLifetimeBody(PLANS.lifetime.name, plan.name)}
         </p>
         <div className="mt-7 flex flex-wrap gap-3">
           <ButtonLink href="/dashboard" size="lg">
-            Go to my dashboard
+            {copy.auth.goToDashboard}
           </ButtonLink>
           <ButtonLink href="/dashboard/account" size="lg" variant="outline">
-            View my account
+            {copy.checkout.viewAccount}
           </ButtonLink>
         </div>
       </div>
@@ -148,59 +137,70 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
   return (
     <div className="rounded-2xl border border-ink-200 bg-white p-6 shadow-card sm:p-9">
       <p className="text-xs font-bold tracking-[0.14em] text-brand-700 uppercase">
-        Step 1 of 3 · Review
+        {copy.checkout.stepReview}
       </p>
       <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-balance text-ink-950 sm:text-4xl">
-        Confirm your {plan.name} plan
+        {copy.checkout.confirmPlanTitle(plan.name)}
       </h1>
+      {/* Still English in every language: `lib/i18n/copy/content.ts` localises a plan's
+          tagline and highlights but not its description, and this page cannot add that. */}
       <p className="mt-3 text-[15px] leading-relaxed text-pretty text-ink-600">
-        {plan.description}
+        {planDescription(plan, locale)}
       </p>
 
       {repeatPurchase ? (
-        <Alert tone="info" title="You are already on Pro" className="mt-6">
-          Paying again extends your access by another {plan.accessDays} days from{' '}
-          {entitlement.currentPeriodEnd ? formatDateTime(entitlement.currentPeriodEnd) : 'today'}.
-          If you expect to keep using CreateCVOnline, {PLANS.lifetime.name} at{' '}
-          {formatPrice(PLANS.lifetime.price)} works out cheaper after eight months —{' '}
+        <Alert tone="info" title={copy.checkout.repeatTitle(plan.name)} className="mt-6">
+          {/* Only Pro reaches this branch and Pro grants a fixed term, so the fallback is
+              unreachable — it exists because `accessDays` is nullable for Lifetime. */}
+          {copy.checkout.repeatBody(
+            plan.accessDays ?? 0,
+            entitlement.currentPeriodEnd
+              ? copy.checkout.extendsFromDate(formatDateTime(entitlement.currentPeriodEnd, locale))
+              : copy.checkout.extendsFromToday,
+            site.name,
+            PLANS.lifetime.name,
+            formatPrice(PLANS.lifetime.price),
+          )}{' '}
           <Link
             href="/payment/checkout?plan=lifetime"
             className="font-medium text-brand-700 underline underline-offset-2"
           >
-            switch to Lifetime
+            {copy.checkout.repeatSwitch(PLANS.lifetime.name)}
           </Link>
           .
         </Alert>
       ) : null}
 
       <div className="mt-7 rounded-xl border border-ink-200 bg-ink-50 p-5">
-        <h2 className="text-sm font-bold tracking-wide text-ink-500 uppercase">Order summary</h2>
+        <h2 className="text-sm font-bold tracking-wide text-ink-500 uppercase">
+          {copy.checkout.orderSummary}
+        </h2>
 
         <dl className="mt-4 flex flex-col divide-y divide-ink-200">
           <div className="flex flex-wrap items-baseline justify-between gap-2 pb-3">
-            <dt className="text-sm text-ink-600">Plan</dt>
+            <dt className="text-sm text-ink-600">{copy.checkout.rowPlan}</dt>
             <dd className="text-sm font-semibold text-ink-950">{plan.name}</dd>
           </div>
           <div className="flex flex-wrap items-baseline justify-between gap-2 py-3">
-            <dt className="text-sm text-ink-600">Billing</dt>
+            <dt className="text-sm text-ink-600">{copy.checkout.rowBilling}</dt>
             <dd className="text-sm font-medium text-ink-900">
               {plan.accessDays === null
-                ? 'One payment, no renewal'
-                : `Every ${plan.accessDays} days, cancel any time`}
+                ? copy.checkout.billingOneOff
+                : copy.checkout.billingRecurring(plan.accessDays)}
             </dd>
           </div>
           <div className="flex flex-wrap items-baseline justify-between gap-2 py-3">
-            <dt className="text-sm text-ink-600">Account</dt>
+            <dt className="text-sm text-ink-600">{copy.nav.account}</dt>
             <dd className="text-sm font-medium break-all text-ink-900">{viewer.user.email}</dd>
           </div>
           <div className="flex flex-wrap items-baseline justify-between gap-2 pt-3">
-            <dt className="text-base font-semibold text-ink-950">Total today</dt>
+            <dt className="text-base font-semibold text-ink-950">{copy.checkout.totalToday}</dt>
             <dd className="text-right">
               <span className="text-2xl font-extrabold tracking-tight text-ink-950">
                 {formatPrice(plan.price)}
               </span>
               <span className="ml-1.5 text-sm text-ink-500">{publicEnv.storeCurrency}</span>
-              <span className="block text-xs text-ink-500">{intervalLabel(plan.interval)}</span>
+              <span className="block text-xs text-ink-500">{interval}</span>
             </dd>
           </div>
         </dl>
@@ -249,25 +249,25 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
 
       <div className="mt-7 border-t border-ink-100 pt-5 text-center text-xs leading-relaxed text-ink-500">
         <p>
-          By continuing you agree to our{' '}
+          {copy.checkout.termsIntro}{' '}
           <Link href="/terms" className="font-medium text-brand-700 underline underline-offset-2">
-            terms
+            {copy.checkout.termsLink}
           </Link>{' '}
-          and{' '}
+          {copy.checkout.termsAnd}{' '}
           <Link
             href="/refund-policy"
             className="font-medium text-brand-700 underline underline-offset-2"
           >
-            refund policy
+            {copy.checkout.refundLink}
           </Link>
-          . We never see or store your card details — the payment provider handles that entirely.
+          . {copy.checkout.cardDetailsNote}
         </p>
         <p className="mt-2">
-          Changed your mind?{' '}
+          {copy.checkout.changedMind}{' '}
           <Link href="/pricing" className="font-medium text-brand-700 underline underline-offset-2">
-            Compare the plans again
+            {copy.checkout.comparePlansAgain}
           </Link>{' '}
-          or write to{' '}
+          {copy.checkout.orWriteTo}{' '}
           <a
             href={`mailto:${site.supportEmail}`}
             className="font-medium text-brand-700 underline underline-offset-2"

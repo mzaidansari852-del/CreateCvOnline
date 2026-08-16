@@ -414,6 +414,34 @@ export function categoryBlurb(category: TemplateCategoryMeta, locale: Locale): s
   return CATEGORY_BLURB[locale]?.[category.id] ?? category.blurb;
 }
 
+/**
+ * The paragraph under each plan's heading.
+ *
+ * Added after a screenshot showed the checkout card with a German heading, a German feature
+ * list and this sentence in English between them — the tagline and the highlights had been
+ * translated and the description had not, which reads worse than leaving the whole card in
+ * one language would have.
+ */
+export const PLAN_DESCRIPTION: Partial<Record<Locale, Record<PlanId, string>>> = {
+  fr: {
+    free: 'Rédigez un CV complet dans l’éditeur, conservez-le dans votre compte et téléchargez-le en PDF. Sans période d’essai limitée et sans carte bancaire.',
+    pro: 'Les 61 modèles, un nombre illimité de CV et de téléchargements : adaptez votre CV à chaque candidature au lieu d’envoyer partout le même document.',
+    lifetime:
+      'Tout Pro, en un seul paiement. Un CV ne s’écrit pas une fois pour toutes — on y revient tous les deux ou trois ans — et cela revient à moins de huit mois d’abonnement Pro.',
+  },
+  de: {
+    free: 'Erstellen Sie im Editor einen vollständigen Lebenslauf, behalten Sie ihn in Ihrem Konto und laden Sie ihn als PDF herunter. Ohne Testfrist und ohne Kreditkarte.',
+    pro: 'Alle 61 Vorlagen, unbegrenzt viele Lebensläufe und Downloads — so passen Sie Ihren Lebenslauf jeder Bewerbung an, statt überall dasselbe Dokument zu verschicken.',
+    lifetime:
+      'Alles aus Pro, einmalig bezahlt. Ein Lebenslauf ist keine einmalige Anschaffung — die meisten kommen alle zwei bis drei Jahre zurück — und das kostet weniger als acht Monate Pro.',
+  },
+};
+
+/** The plan's description in `locale`, falling back to the English in `lib/plans.ts`. */
+export function planDescription(plan: Plan, locale: Locale): string {
+  return PLAN_DESCRIPTION[locale]?.[plan.id] ?? plan.description;
+}
+
 export function planTagline(plan: Plan, locale: Locale): string {
   return PLAN_TAGLINE[locale]?.[plan.id] ?? plan.tagline;
 }

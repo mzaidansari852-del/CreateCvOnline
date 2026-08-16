@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 
 import { useCopy, useLocale } from '@/components/i18n/LocaleProvider';
 import { Button, ButtonLink, Spinner } from '@/components/ui/button';
-import { planHighlights } from '@/lib/i18n/copy/content';
+import { planDescription, planHighlights } from '@/lib/i18n/copy/content';
 import { Alert } from '@/components/ui/feedback';
 import { trackEvent } from '@/lib/analytics/events';
 import { publicEnv } from '@/lib/env';
@@ -154,9 +154,8 @@ export function PaymentConfirmation({
     reference
       ? null
       : {
-          message: 'This confirmation link is missing its payment reference.',
-          nextStep:
-            'Open the receipt your payment provider e-mailed you and follow the link in it, or check your account page — a completed payment unlocks the plan on its own.',
+          message: copy.checkout.missingReference,
+          nextStep: copy.checkout.missingReferenceNext,
           retryable: false,
         },
   );
@@ -164,63 +163,65 @@ export function PaymentConfirmation({
   /** Guards against React's double-invoked effects in development. */
   const lastCapturedKey = useRef<string | null>(null);
 
-  const capture = useCallback(async (id: string) => {
-    setPhase('verifying');
-    setFailure(null);
+  const capture = useCallback(
+    async (id: string) => {
+      setPhase('verifying');
+      setFailure(null);
 
-    try {
-      const response = await fetch('/api/payments/paypal/capture', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: id }),
-      });
+      try {
+        const response = await fetch('/api/payments/paypal/capture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: id }),
+        });
 
-      const payload = (await response.json().catch(() => null)) as
-        (CaptureResponse & ApiErrorBody) | null;
+        const payload = (await response.json().catch(() => null)) as
+          (CaptureResponse & ApiErrorBody) | null;
 
-      if (!response.ok) {
-        const code = payload?.error?.code ?? 'payment-failed';
+        if (!response.ok) {
+          const code = payload?.error?.code ?? 'payment-failed';
+          setFailure({
+            message: payload?.error?.message ?? copy.checkout.paypalFailedBody,
+            nextStep:
+              code === 'unauthenticated'
+                ? copy.checkout.nextSignIn
+                : code === 'unknown-order'
+                  ? copy.checkout.paypalNextUnknownOrder(site.supportEmail)
+                  : copy.checkout.paypalNextSupport(site.supportEmail),
+            retryable: code !== 'amount-mismatch' && code !== 'unknown-order',
+          });
+          setPhase('failed');
+          trackEvent('payment_failed', { reason: code });
+          return;
+        }
+
+        const resolvedPlan = payload?.planId ?? null;
+        if (resolvedPlan) setPlanId(resolvedPlan);
+
+        if (payload?.alreadyFulfilled) {
+          setPhase('already');
+          return;
+        }
+
+        setPhase('success');
+        const plan = getPlan(resolvedPlan ?? 'free');
+        trackEvent('payment_completed', {
+          plan: plan.id,
+          value: Number.parseFloat(plan.price),
+          currency: publicEnv.paypalCurrency,
+        });
+      } catch {
         setFailure({
-          message: payload?.error?.message ?? 'We could not confirm this payment with PayPal.',
-          nextStep:
-            code === 'unauthenticated'
-              ? 'Sign in with the account you used to buy, then open this page again — nothing is lost.'
-              : code === 'unknown-order'
-                ? `Send us your PayPal transaction id at ${site.supportEmail} and we will sort it out the same day.`
-                : `If money left your account, e-mail ${site.supportEmail} with your PayPal transaction id and we will fix it or refund it.`,
-          retryable: code !== 'amount-mismatch' && code !== 'unknown-order',
+          message: copy.checkout.confirmOffline,
+          nextStep: copy.checkout.nextRetryConnection,
+          retryable: true,
         });
         setPhase('failed');
-        trackEvent('payment_failed', { reason: code });
-        return;
+        trackEvent('payment_failed', { reason: 'network' });
       }
-
-      const resolvedPlan = payload?.planId ?? null;
-      if (resolvedPlan) setPlanId(resolvedPlan);
-
-      if (payload?.alreadyFulfilled) {
-        setPhase('already');
-        return;
-      }
-
-      setPhase('success');
-      const plan = getPlan(resolvedPlan ?? 'free');
-      trackEvent('payment_completed', {
-        plan: plan.id,
-        value: Number.parseFloat(plan.price),
-        currency: publicEnv.paypalCurrency,
-      });
-    } catch {
-      setFailure({
-        message: 'We could not reach our server to confirm the payment.',
-        nextStep:
-          'Check your connection and press “Try again”. Your payment is safe either way — nothing is granted or charged twice.',
-        retryable: true,
-      });
-      setPhase('failed');
-      trackEvent('payment_failed', { reason: 'network' });
-    }
-  }, []);
+    },
+    [copy],
+  );
 
   useEffect(() => {
     if (!orderId) return;
@@ -313,15 +314,13 @@ export function PaymentConfirmation({
       <Panel>
         <div className="flex flex-col items-center gap-4 text-center">
           <Spinner size={32} className="text-brand-600" />
-          <h2 className="text-xl font-bold text-ink-950">
-            {transactionId ? copy.checkout.confirmTitle : 'Confirming your payment…'}
-          </h2>
+          <h2 className="text-xl font-bold text-ink-950">{copy.checkout.confirmTitle}</h2>
           <p className="max-w-md text-sm leading-relaxed text-ink-600">
             {transactionId
               ? phase === 'settling'
                 ? copy.checkout.stillConfirmingBody
                 : copy.checkout.confirmBody
-              : 'We are checking the order with PayPal before we unlock anything. This normally takes a couple of seconds — please do not close this tab.'}
+              : copy.checkout.paypalConfirmBody}
           </p>
         </div>
       </Panel>
@@ -331,29 +330,25 @@ export function PaymentConfirmation({
   if (phase === 'failed') {
     return (
       <Panel tone="danger">
-        <h2 className="text-xl font-bold text-ink-950">
-          {transactionId ? copy.checkout.confirmFailedTitle : 'We could not confirm that payment'}
-        </h2>
+        <h2 className="text-xl font-bold text-ink-950">{copy.checkout.confirmFailedTitle}</h2>
         <Alert tone="danger" className="mt-4">
           {failure?.message}
         </Alert>
         <p className="mt-4 text-sm leading-relaxed text-ink-700">{failure?.nextStep}</p>
         <div className="mt-6 flex flex-wrap gap-3">
           {failure?.retryable && reference ? (
-            <Button onClick={() => setAttempt((value) => value + 1)}>
-              {transactionId ? copy.common.retry : 'Try again'}
-            </Button>
+            <Button onClick={() => setAttempt((value) => value + 1)}>{copy.common.retry}</Button>
           ) : null}
           <ButtonLink href="/pricing" variant="outline">
-            Back to pricing
+            {copy.checkout.backToPricing}
           </ButtonLink>
           <ButtonLink href={`mailto:${site.supportEmail}`} variant="ghost">
-            E-mail {site.supportEmail}
+            {copy.checkout.emailSupport(site.supportEmail)}
           </ButtonLink>
         </div>
         {reference ? (
           <p className="mt-6 text-xs text-ink-500">
-            Quote this reference if you contact us: <code className="font-mono">{reference}</code>
+            {copy.checkout.quoteReference} <code className="font-mono">{reference}</code>
           </p>
         ) : null}
       </Panel>
@@ -380,12 +375,14 @@ export function PaymentConfirmation({
           </svg>
         </span>
         <h2 className="mt-5 text-2xl font-extrabold tracking-tight text-ink-950">
-          {alreadyHad ? `${plan.name} is already active` : `You are on ${plan.name}`}
-        </h2>
-        <p className="mt-3 max-w-lg text-sm leading-relaxed text-ink-600">
           {alreadyHad
-            ? 'This order was already confirmed, so we have not charged or granted anything twice. Everything below is available on your account right now.'
-            : plan.description}
+            ? copy.checkout.planAlreadyActive(plan.name)
+            : copy.checkout.planActive(plan.name)}
+        </h2>
+        {/* `planDescription(plan, locale)` is the English source in `lib/plans.ts`; only the tagline and
+            the highlights have localised counterparts in `lib/i18n/copy/content.ts`. */}
+        <p className="mt-3 max-w-lg text-sm leading-relaxed text-ink-600">
+          {alreadyHad ? copy.checkout.alreadyConfirmedBody : planDescription(plan, locale)}
         </p>
       </div>
 
@@ -413,35 +410,35 @@ export function PaymentConfirmation({
 
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
         <ButtonLink href="/dashboard/cvs/new" size="lg">
-          Start a new CV
+          {copy.dashboard.startNewCv}
         </ButtonLink>
         <ButtonLink href="/dashboard" size="lg" variant="outline">
-          Go to my dashboard
+          {copy.auth.goToDashboard}
         </ButtonLink>
       </div>
 
       <div className="mt-8 border-t border-ink-100 pt-5 text-center text-xs leading-relaxed text-ink-500">
         <p>
-          {transactionId ? copy.checkout.receiptNote : 'PayPal has e-mailed you a receipt.'}{' '}
+          {transactionId ? copy.checkout.receiptNote : copy.checkout.paypalReceiptNote}{' '}
           {plan.accessDays === null
-            ? 'This plan does not expire and there is nothing to renew or cancel.'
-            : `This payment covers ${plan.accessDays} days of access and does not renew by itself — you will never be charged automatically.`}
+            ? copy.checkout.noRenewalNote
+            : copy.checkout.accessDaysNote(plan.accessDays)}
         </p>
         <p className="mt-1.5">
-          Changed your mind? Our{' '}
+          {copy.checkout.refundLead}{' '}
           <Link
             href="/refund-policy"
             className="font-medium text-brand-700 underline underline-offset-2"
           >
-            refund policy
+            {copy.checkout.refundLink}
           </Link>{' '}
-          gives you 14 days.
+          {copy.checkout.refundTail}
         </p>
         {reference ? (
           <p className="mt-3 font-mono text-[11px] text-ink-400">
             {transactionId
               ? `${copy.checkout.transactionRef} ${transactionId}`
-              : `Order ${orderId}`}
+              : `${copy.checkout.orderRef} ${orderId}`}
           </p>
         ) : null}
       </div>

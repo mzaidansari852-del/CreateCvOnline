@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { Logo } from '@/components/brand/Logo';
 import { LocaleProvider } from '@/components/i18n/LocaleProvider';
 import { getViewer } from '@/lib/auth/guards';
+import { appCopy } from '@/lib/i18n/app-copy';
 import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { site } from '@/lib/site';
 
@@ -32,6 +33,7 @@ export default async function PaymentLayout({ children }: { children: React.Reac
     profileLocale: viewer?.profile.locale,
     cookieLocale: (await cookies()).get(LOCALE_COOKIE)?.value,
   });
+  const copy = appCopy(locale);
 
   return (
     <LocaleProvider locale={locale}>
@@ -42,7 +44,7 @@ export default async function PaymentLayout({ children }: { children: React.Reac
             href="/"
             className="text-[13px] font-medium text-ink-600 underline-offset-2 transition-colors hover:text-brand-700 hover:underline"
           >
-            Back to {site.domain}
+            {copy.checkout.backToDomain(site.domain)}
           </Link>
         </header>
 
@@ -60,7 +62,7 @@ export default async function PaymentLayout({ children }: { children: React.Reac
                 href="/pricing"
                 className="underline-offset-2 hover:text-brand-700 hover:underline"
               >
-                Pricing
+                {copy.checkout.footerPricing}
               </Link>
             </li>
             <li>
@@ -68,7 +70,7 @@ export default async function PaymentLayout({ children }: { children: React.Reac
                 href="/refund-policy"
                 className="underline-offset-2 hover:text-brand-700 hover:underline"
               >
-                Refund policy
+                {copy.checkout.footerRefund}
               </Link>
             </li>
             <li>
@@ -76,7 +78,7 @@ export default async function PaymentLayout({ children }: { children: React.Reac
                 href="/terms"
                 className="underline-offset-2 hover:text-brand-700 hover:underline"
               >
-                Terms
+                {copy.checkout.footerTerms}
               </Link>
             </li>
             <li>
@@ -84,7 +86,7 @@ export default async function PaymentLayout({ children }: { children: React.Reac
                 href="/privacy"
                 className="underline-offset-2 hover:text-brand-700 hover:underline"
               >
-                Privacy
+                {copy.checkout.footerPrivacy}
               </Link>
             </li>
             <li>
@@ -92,7 +94,7 @@ export default async function PaymentLayout({ children }: { children: React.Reac
                 href="/contact"
                 className="underline-offset-2 hover:text-brand-700 hover:underline"
               >
-                Contact
+                {copy.checkout.footerContact}
               </Link>
             </li>
           </ul>

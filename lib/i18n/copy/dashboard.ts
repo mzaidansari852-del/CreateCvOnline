@@ -514,6 +514,125 @@ export interface DashboardCopy {
     transactionRef: string;
     unavailableTitle: string;
     unavailableBody: (email: string) => string;
+
+    /* ------------------------------------------------------- the payment shell */
+    /** `domain` is the bare host — `createcvonline.com` — not a URL. */
+    backToDomain: (domain: string) => string;
+    footerPricing: string;
+    footerRefund: string;
+    footerTerms: string;
+    footerPrivacy: string;
+    footerContact: string;
+
+    /* ------------------------------------------------------ reviewing the order */
+    /**
+     * How often the money is taken, keyed by the plan's own cadence so a new interval
+     * cannot ship unlabelled. The long form — `$9 per month` rather than `$9/month` —
+     * because this is the figure a payer checks before committing.
+     */
+    interval: Record<Plan['interval'], string>;
+    stepReview: string;
+    confirmPlanTitle: (planName: string) => string;
+    orderSummary: string;
+    rowPlan: string;
+    rowBilling: string;
+    billingOneOff: string;
+    billingRecurring: (days: number) => string;
+    totalToday: string;
+    /** Someone who already owns Lifetime and has followed a link to buy something. */
+    ownsLifetimeTitle: (lifetimeName: string) => string;
+    ownsLifetimeBody: (lifetimeName: string, planName: string) => string;
+    viewAccount: string;
+    /**
+     * Buying Pro while already on Pro. Legitimate — it extends the access — but Lifetime
+     * is usually the better purchase, and saying so is worth more than the second sale.
+     */
+    repeatTitle: (planName: string) => string;
+    repeatBody: (
+      days: number,
+      from: string,
+      siteName: string,
+      lifetimeName: string,
+      lifetimePrice: string,
+    ) => string;
+    /**
+     * The date the extension runs from, as a whole phrase rather than a bare date. French
+     * elides the preposition before a vowel — `à compter du 3 mars` but `à compter
+     * d'aujourd'hui` — so the two cases cannot share one sentence with a hole in it.
+     */
+    extendsFromDate: (date: string) => string;
+    extendsFromToday: string;
+    /** The link that closes `repeatBody`. */
+    repeatSwitch: (lifetimeName: string) => string;
+    /*
+     * The small print under the button, cut where each language wants the break rather
+     * than where English does, because both sentences are written around a link.
+     */
+    termsIntro: string;
+    termsLink: string;
+    termsAnd: string;
+    refundLink: string;
+    cardDetailsNote: string;
+    changedMind: string;
+    comparePlansAgain: string;
+    orWriteTo: string;
+
+    /* --------------------------------------------------- PayPal, before it opens */
+    continueToPaypal: (priceLabel: string) => string;
+    redirectingToPaypal: string;
+    paypalNote: (planName: string) => string;
+    paypalStartFailed: string;
+    paypalNoApproveUrl: (email: string) => string;
+    /** PayPal's own machine-readable cause and support reference, labelled. */
+    diagnosticCause: (issue: string) => string;
+    diagnosticReference: (reference: string) => string;
+
+    /* ----------------------------------------------- coming back from the gateway */
+    stepConfirmation: string;
+    confirmationTitle: string;
+    confirmationLede: string;
+    payerReference: string;
+    payerReferenceNote: string;
+    paypalConfirmBody: string;
+    paypalFailedBody: string;
+    /** The PayPal wording of `nextSupport` and its unknown-order case, which name Paddle. */
+    paypalNextSupport: (email: string) => string;
+    paypalNextUnknownOrder: (email: string) => string;
+    confirmOffline: string;
+    nextRetryConnection: string;
+    missingReference: string;
+    missingReferenceNext: string;
+    emailSupport: (email: string) => string;
+    quoteReference: string;
+    backToPricing: string;
+    planActive: (planName: string) => string;
+    planAlreadyActive: (planName: string) => string;
+    alreadyConfirmedBody: string;
+    paypalReceiptNote: string;
+    noRenewalNote: string;
+    accessDaysNote: (days: number) => string;
+    refundLead: string;
+    refundTail: string;
+    orderRef: string;
+
+    /* ------------------------------------------------------ backing out of PayPal */
+    cancelledTitle: string;
+    cancelledNothingCharged: string;
+    /** `planName` is `null` when the return link carried no plan, which drops a clause. */
+    cancelledBody: (planName: string | null) => string;
+    cancelledCvsSafe: string;
+    cancelledNextHeading: string;
+    cancelledStep1Lead: string;
+    pricingPageLink: string;
+    cancelledStep1Tail: (planName: string | null, currency: string) => string;
+    cancelledStep2: string;
+    cancelledStep3: string;
+    cancelledHelpLead: string;
+    cancelledHelpOr: string;
+    contactFormLink: string;
+    cancelledHelpTail: string;
+    cancelledMismatchLead: string;
+    cancelledMismatchTail: string;
   };
 }
 
@@ -997,6 +1116,115 @@ const EN: DashboardCopy = {
     unavailableTitle: 'Payments are not available right now',
     unavailableBody: (email) =>
       `No payment provider is configured on this deployment, so there is nothing here to pay with and nothing has been charged. Write to ${email} and we will set your plan up by hand.`,
+    backToDomain: (domain) => `Back to ${domain}`,
+    footerPricing: 'Pricing',
+    footerRefund: 'Refund policy',
+    footerTerms: 'Terms',
+    footerPrivacy: 'Privacy',
+    footerContact: 'Contact',
+    interval: {
+      forever: 'forever',
+      month: 'per month',
+      year: 'per year',
+      'one-time': 'one-time payment',
+    },
+    stepReview: 'Step 1 of 3 · Review',
+    confirmPlanTitle: (planName) => `Confirm your ${planName} plan`,
+    orderSummary: 'Order summary',
+    rowPlan: 'Plan',
+    rowBilling: 'Billing',
+    billingOneOff: 'One payment, no renewal',
+    billingRecurring: (days) => `Every ${days} days, cancel any time`,
+    totalToday: 'Total today',
+    ownsLifetimeTitle: (lifetimeName) => `You already have ${lifetimeName}`,
+    ownsLifetimeBody: (lifetimeName, planName) =>
+      `${lifetimeName} access never expires and already includes everything in ${planName}, so there is nothing here for you to pay for. We would rather say that than take the money.`,
+    viewAccount: 'View my account',
+    repeatTitle: (planName) => `You are already on ${planName}`,
+    repeatBody: (days, from, siteName, lifetimeName, lifetimePrice) =>
+      `Paying again extends your access by another ${days} days ${from}. If you expect to keep using ${siteName}, ${lifetimeName} at ${lifetimePrice} works out cheaper after eight months —`,
+    extendsFromDate: (date) => `from ${date}`,
+    extendsFromToday: 'from today',
+    repeatSwitch: (lifetimeName) => `switch to ${lifetimeName}`,
+    termsIntro: 'By continuing you agree to our',
+    termsLink: 'terms',
+    termsAnd: 'and',
+    refundLink: 'refund policy',
+    cardDetailsNote:
+      'We never see or store your card details — the payment provider handles that entirely.',
+    changedMind: 'Changed your mind?',
+    comparePlansAgain: 'Compare the plans again',
+    orWriteTo: 'or write to',
+    continueToPaypal: (priceLabel) => `Continue to PayPal — ${priceLabel}`,
+    redirectingToPaypal: 'Taking you to PayPal…',
+    paypalNote: (planName) =>
+      `You will approve the payment on PayPal, then come straight back here. You can pay with a PayPal balance, a bank account, or a debit or credit card — a PayPal account is not required. ${planName} is unlocked only after our server confirms the payment with PayPal.`,
+    paypalStartFailed: 'PayPal could not start this payment. Please try again in a moment.',
+    paypalNoApproveUrl: (email) =>
+      `The order was created but PayPal did not return a checkout link. Nothing has been charged — please try again, or contact ${email} if it keeps happening.`,
+    diagnosticCause: (issue) => `Cause: ${issue}`,
+    diagnosticReference: (reference) => `Reference: ${reference}`,
+    stepConfirmation: 'Step 3 of 3 · Confirmation',
+    confirmationTitle: 'Payment confirmation',
+    confirmationLede:
+      'You have come back from PayPal. Before anything is unlocked, our server checks the order with PayPal directly — so what you see below is the real outcome, not a message triggered by the redirect.',
+    payerReference: 'PayPal payer reference',
+    payerReferenceNote:
+      'Keep it with your receipt — quoting it alongside the order id lets us find a payment instantly.',
+    paypalConfirmBody:
+      'We are checking the order with PayPal before we unlock anything. This normally takes a couple of seconds — please do not close this tab.',
+    paypalFailedBody: 'We could not confirm this payment with PayPal.',
+    paypalNextSupport: (email) =>
+      `If money left your account, e-mail ${email} with your PayPal transaction id and we will fix it or refund it.`,
+    paypalNextUnknownOrder: (email) =>
+      `Send us your PayPal transaction id at ${email} and we will sort it out the same day.`,
+    confirmOffline: 'We could not reach our server to confirm the payment.',
+    nextRetryConnection:
+      'Check your connection and press “Try again”. Your payment is safe either way — nothing is granted or charged twice.',
+    missingReference: 'This confirmation link is missing its payment reference.',
+    missingReferenceNext:
+      'Open the receipt your payment provider e-mailed you and follow the link in it, or check your account page — a completed payment unlocks the plan on its own.',
+    emailSupport: (email) => `E-mail ${email}`,
+    quoteReference: 'Quote this reference if you contact us:',
+    backToPricing: 'Back to pricing',
+    planActive: (planName) => `You are on ${planName}`,
+    planAlreadyActive: (planName) => `${planName} is already active`,
+    alreadyConfirmedBody:
+      'This order was already confirmed, so we have not charged or granted anything twice. Everything below is available on your account right now.',
+    paypalReceiptNote: 'PayPal has e-mailed you a receipt.',
+    noRenewalNote: 'This plan does not expire and there is nothing to renew or cancel.',
+    accessDaysNote: (days) =>
+      `This payment covers ${days} days of access and does not renew by itself — you will never be charged automatically.`,
+    refundLead: 'Changed your mind? Our',
+    refundTail: 'gives you 14 days.',
+    orderRef: 'Order',
+    cancelledTitle: 'Checkout cancelled',
+    cancelledNothingCharged: 'Nothing was charged.',
+    cancelledBody: (planName) =>
+      `You left PayPal before approving the payment, so no order was completed${
+        planName ? ` and ${planName} has not been added to your account` : ''
+      }. Your account is exactly as it was a minute ago.`,
+    cancelledCvsSafe:
+      'Every CV you have written is still there, still editable, and still downloadable within your current plan’s allowance.',
+    cancelledNextHeading: 'Picking up where you left off',
+    cancelledStep1Lead: 'Open the',
+    pricingPageLink: 'pricing page',
+    cancelledStep1Tail: (planName, currency) =>
+      `and choose ${
+        planName ? `${planName} again, or the other plan` : 'a plan'
+      }. Prices are in ${currency} and are shown in full before you are sent to PayPal.`,
+    cancelledStep2:
+      'Approve the payment on PayPal. You can pay with a PayPal balance, a linked bank account, or a debit or credit card — a PayPal account is not required.',
+    cancelledStep3:
+      'You land back here and the plan is unlocked once our server has confirmed the order with PayPal. It takes a couple of seconds.',
+    cancelledHelpLead:
+      'Cancelled because something looked wrong, or because PayPal would not complete? Tell us at',
+    cancelledHelpOr: 'or through the',
+    contactFormLink: 'contact form',
+    cancelledHelpTail: 'We would rather fix a broken checkout than lose the sale quietly.',
+    cancelledMismatchLead:
+      'If money did leave your account despite this page, that is a mismatch we want to know about immediately — e-mail us with your PayPal transaction id and we will grant the plan or refund it the same day. Our',
+    cancelledMismatchTail: 'covers it either way.',
   },
 };
 
@@ -1516,6 +1744,116 @@ const FR: DashboardCopy = {
     unavailableTitle: 'Les paiements sont indisponibles pour le moment',
     unavailableBody: (email) =>
       `Aucun prestataire de paiement n’est configuré sur ce déploiement : il n’y a donc rien à payer ici et rien n’a été débité. Écrivez à ${email} et nous activerons votre formule manuellement.`,
+    backToDomain: (domain) => `Retour sur ${domain}`,
+    footerPricing: 'Tarifs',
+    footerRefund: 'Politique de remboursement',
+    footerTerms: 'Conditions d’utilisation',
+    footerPrivacy: 'Confidentialité',
+    footerContact: 'Contact',
+    interval: {
+      forever: 'à vie',
+      month: 'par mois',
+      year: 'par an',
+      'one-time': 'paiement unique',
+    },
+    stepReview: 'Étape 1 sur 3 · Vérification',
+    confirmPlanTitle: (planName) => `Confirmez votre formule ${planName}`,
+    orderSummary: 'Récapitulatif de la commande',
+    rowPlan: 'Formule',
+    rowBilling: 'Facturation',
+    billingOneOff: 'Paiement unique, sans renouvellement',
+    billingRecurring: (days) => `Tous les ${days} jours, résiliable à tout moment`,
+    totalToday: 'Total à payer aujourd’hui',
+    ownsLifetimeTitle: (lifetimeName) => `Vous avez déjà ${lifetimeName}`,
+    ownsLifetimeBody: (lifetimeName, planName) =>
+      `L’accès ${lifetimeName} n’expire jamais et comprend déjà tout ce que contient ${planName} : il n’y a donc rien à payer ici. Nous préférons vous le dire plutôt que d’encaisser.`,
+    viewAccount: 'Voir mon compte',
+    repeatTitle: (planName) => `Vous êtes déjà sur ${planName}`,
+    repeatBody: (days, from, siteName, lifetimeName, lifetimePrice) =>
+      `Payer à nouveau prolonge votre accès de ${days} jours ${from}. Si vous comptez continuer à utiliser ${siteName}, ${lifetimeName} à ${lifetimePrice} revient moins cher au bout de huit mois —`,
+    extendsFromDate: (date) => `à compter du ${date}`,
+    extendsFromToday: 'à compter d’aujourd’hui',
+    repeatSwitch: (lifetimeName) => `passez à ${lifetimeName}`,
+    termsIntro: 'En continuant, vous acceptez nos',
+    termsLink: 'conditions d’utilisation',
+    termsAnd: 'et notre',
+    refundLink: 'politique de remboursement',
+    cardDetailsNote:
+      'Nous ne voyons ni ne conservons vos données bancaires — le prestataire de paiement s’en charge entièrement.',
+    changedMind: 'Vous avez changé d’avis ?',
+    comparePlansAgain: 'Comparez à nouveau les formules',
+    orWriteTo: 'ou écrivez-nous à',
+    continueToPaypal: (priceLabel) => `Continuer vers PayPal — ${priceLabel}`,
+    redirectingToPaypal: 'Redirection vers PayPal…',
+    paypalNote: (planName) =>
+      `Vous validez le paiement sur PayPal, puis vous revenez directement ici. Vous pouvez payer avec votre solde PayPal, un compte bancaire ou une carte bancaire — aucun compte PayPal n’est nécessaire. La formule ${planName} n’est activée qu’une fois le paiement confirmé par notre serveur auprès de PayPal.`,
+    paypalStartFailed: 'PayPal n’a pas pu démarrer ce paiement. Réessayez dans un instant.',
+    paypalNoApproveUrl: (email) =>
+      `La commande a bien été créée, mais PayPal n’a renvoyé aucun lien de paiement. Rien n’a été débité — réessayez, ou écrivez à ${email} si cela se reproduit.`,
+    diagnosticCause: (issue) => `Cause : ${issue}`,
+    diagnosticReference: (reference) => `Référence : ${reference}`,
+    stepConfirmation: 'Étape 3 sur 3 · Confirmation',
+    confirmationTitle: 'Confirmation du paiement',
+    confirmationLede:
+      'Vous revenez de PayPal. Avant tout déblocage, notre serveur vérifie la commande directement auprès de PayPal : ce que vous voyez ci-dessous est le résultat réel, pas un message déclenché par la redirection.',
+    payerReference: 'Référence payeur PayPal',
+    payerReferenceNote:
+      'Conservez-la avec votre reçu : en l’indiquant avec le numéro de commande, nous retrouvons un paiement immédiatement.',
+    paypalConfirmBody:
+      'Nous vérifions la commande auprès de PayPal avant de débloquer quoi que ce soit. Cela prend généralement quelques secondes — ne fermez pas cet onglet.',
+    paypalFailedBody: 'Nous n’avons pas pu confirmer ce paiement auprès de PayPal.',
+    paypalNextSupport: (email) =>
+      `Si un montant a été débité, écrivez à ${email} en indiquant votre identifiant de transaction PayPal : nous corrigerons la situation ou vous rembourserons.`,
+    paypalNextUnknownOrder: (email) =>
+      `Envoyez-nous votre identifiant de transaction PayPal à ${email} et nous réglerons cela le jour même.`,
+    confirmOffline: 'Nous n’avons pas pu joindre notre serveur pour confirmer le paiement.',
+    nextRetryConnection:
+      'Vérifiez votre connexion et appuyez sur « Réessayer ». Votre paiement ne risque rien : rien ne sera accordé ni débité deux fois.',
+    missingReference: 'Il manque la référence de paiement dans ce lien de confirmation.',
+    missingReferenceNext:
+      'Ouvrez le reçu que votre prestataire de paiement vous a envoyé par e-mail et suivez le lien qu’il contient, ou consultez la page de votre compte : un paiement abouti active la formule de lui-même.',
+    emailSupport: (email) => `Écrire à ${email}`,
+    quoteReference: 'Indiquez cette référence si vous nous contactez :',
+    backToPricing: 'Retour aux tarifs',
+    planActive: (planName) => `Vous êtes sur ${planName}`,
+    planAlreadyActive: (planName) => `${planName} est déjà actif`,
+    alreadyConfirmedBody:
+      'Cette commande avait déjà été confirmée : rien n’a été débité ni accordé deux fois. Tout ce qui suit est disponible dès maintenant sur votre compte.',
+    paypalReceiptNote: 'PayPal vous a envoyé un reçu par e-mail.',
+    noRenewalNote: 'Cette formule n’expire pas : il n’y a rien à renouveler ni à résilier.',
+    accessDaysNote: (days) =>
+      `Ce paiement couvre ${days} jours d’accès et ne se renouvelle pas tout seul — vous ne serez jamais débité automatiquement.`,
+    refundLead: 'Vous avez changé d’avis ? Notre',
+    refundTail: 'vous laisse 14 jours.',
+    orderRef: 'Commande',
+    cancelledTitle: 'Paiement annulé',
+    cancelledNothingCharged: 'Rien n’a été débité.',
+    cancelledBody: (planName) =>
+      `Vous avez quitté PayPal avant de valider le paiement : aucune commande n’a abouti${
+        planName ? ` et ${planName} n’a pas été ajouté à votre compte` : ''
+      }. Votre compte est exactement dans l’état où il était il y a une minute.`,
+    cancelledCvsSafe:
+      'Tous les CV que vous avez rédigés sont toujours là, toujours modifiables et toujours téléchargeables dans la limite de votre formule actuelle.',
+    cancelledNextHeading: 'Reprendre là où vous en étiez',
+    cancelledStep1Lead: 'Ouvrez la',
+    pricingPageLink: 'page des tarifs',
+    cancelledStep1Tail: (planName, currency) =>
+      `et choisissez ${
+        planName ? `à nouveau ${planName}, ou l’autre formule` : 'une formule'
+      }. Les prix sont indiqués en ${currency} et affichés en totalité avant votre redirection vers PayPal.`,
+    cancelledStep2:
+      'Validez le paiement sur PayPal. Vous pouvez payer avec votre solde PayPal, un compte bancaire associé ou une carte bancaire — aucun compte PayPal n’est nécessaire.',
+    cancelledStep3:
+      'Vous revenez ici et la formule est activée dès que notre serveur a confirmé la commande auprès de PayPal. Cela prend quelques secondes.',
+    cancelledHelpLead:
+      'Vous avez annulé parce que quelque chose vous a semblé anormal, ou parce que PayPal n’aboutissait pas ? Dites-le-nous à',
+    cancelledHelpOr: 'ou via le',
+    contactFormLink: 'formulaire de contact',
+    cancelledHelpTail:
+      'Nous préférons réparer un paiement défaillant plutôt que de perdre la vente en silence.',
+    cancelledMismatchLead:
+      'Si un montant a malgré tout été débité, c’est une anomalie que nous voulons connaître immédiatement : écrivez-nous en indiquant votre identifiant de transaction PayPal et nous activerons la formule ou vous rembourserons le jour même. Notre',
+    cancelledMismatchTail: 's’applique dans les deux cas.',
   },
 };
 
@@ -2026,6 +2364,117 @@ const DE: DashboardCopy = {
     unavailableTitle: 'Zahlungen sind derzeit nicht möglich',
     unavailableBody: (email) =>
       `Auf dieser Installation ist kein Zahlungsanbieter eingerichtet — es gibt hier also nichts zu bezahlen und es wurde nichts abgebucht. Schreiben Sie an ${email}, dann richten wir Ihren Tarif von Hand ein.`,
+    backToDomain: (domain) => `Zurück zu ${domain}`,
+    footerPricing: 'Preise',
+    footerRefund: 'Rückerstattung',
+    footerTerms: 'Nutzungsbedingungen',
+    footerPrivacy: 'Datenschutz',
+    footerContact: 'Kontakt',
+    interval: {
+      forever: 'dauerhaft',
+      month: 'pro Monat',
+      year: 'pro Jahr',
+      'one-time': 'Einmalzahlung',
+    },
+    stepReview: 'Schritt 1 von 3 · Prüfen',
+    confirmPlanTitle: (planName) => `Bestätigen Sie Ihren ${planName}-Tarif`,
+    orderSummary: 'Bestellübersicht',
+    rowPlan: 'Tarif',
+    rowBilling: 'Abrechnung',
+    billingOneOff: 'Einmalige Zahlung, keine Verlängerung',
+    billingRecurring: (days) => `Alle ${days} Tage, jederzeit kündbar`,
+    totalToday: 'Heute fällig',
+    ownsLifetimeTitle: (lifetimeName) => `Sie haben ${lifetimeName} bereits`,
+    ownsLifetimeBody: (lifetimeName, planName) =>
+      `Der ${lifetimeName}-Zugang läuft nie ab und enthält bereits alles aus ${planName} — hier gibt es für Sie also nichts zu bezahlen. Das sagen wir Ihnen lieber, als das Geld zu nehmen.`,
+    viewAccount: 'Mein Konto ansehen',
+    repeatTitle: (planName) => `Sie nutzen bereits ${planName}`,
+    repeatBody: (days, from, siteName, lifetimeName, lifetimePrice) =>
+      `Eine erneute Zahlung verlängert Ihren Zugang um weitere ${days} Tage ${from}. Wenn Sie ${siteName} voraussichtlich weiter nutzen, ist ${lifetimeName} für ${lifetimePrice} nach acht Monaten günstiger —`,
+    extendsFromDate: (date) => `ab dem ${date}`,
+    extendsFromToday: 'ab heute',
+    repeatSwitch: (lifetimeName) => `wechseln Sie zu ${lifetimeName}`,
+    termsIntro: 'Mit dem Fortfahren akzeptieren Sie unsere',
+    termsLink: 'Nutzungsbedingungen',
+    termsAnd: 'und unsere',
+    refundLink: 'Rückerstattungsrichtlinie',
+    cardDetailsNote:
+      'Ihre Kartendaten sehen und speichern wir nie — das übernimmt vollständig der Zahlungsanbieter.',
+    changedMind: 'Doch anders entschieden?',
+    comparePlansAgain: 'Vergleichen Sie die Tarife noch einmal',
+    orWriteTo: 'oder schreiben Sie an',
+    continueToPaypal: (priceLabel) => `Weiter zu PayPal — ${priceLabel}`,
+    redirectingToPaypal: 'Sie werden zu PayPal weitergeleitet…',
+    paypalNote: (planName) =>
+      `Sie bestätigen die Zahlung bei PayPal und kommen direkt hierher zurück. Zahlen können Sie mit PayPal-Guthaben, per Bankkonto oder mit Debit- oder Kreditkarte — ein PayPal-Konto ist nicht nötig. ${planName} wird erst freigeschaltet, wenn unser Server die Zahlung bei PayPal bestätigt hat.`,
+    paypalStartFailed:
+      'PayPal konnte diese Zahlung nicht starten. Bitte versuchen Sie es gleich noch einmal.',
+    paypalNoApproveUrl: (email) =>
+      `Die Bestellung wurde angelegt, aber PayPal hat keinen Zahlungslink zurückgegeben. Es wurde nichts abgebucht — bitte versuchen Sie es erneut oder schreiben Sie an ${email}, falls es weiterhin passiert.`,
+    diagnosticCause: (issue) => `Ursache: ${issue}`,
+    diagnosticReference: (reference) => `Referenz: ${reference}`,
+    stepConfirmation: 'Schritt 3 von 3 · Bestätigung',
+    confirmationTitle: 'Zahlungsbestätigung',
+    confirmationLede:
+      'Sie kommen gerade von PayPal zurück. Bevor etwas freigeschaltet wird, prüft unser Server die Bestellung direkt bei PayPal — was Sie unten sehen, ist also das tatsächliche Ergebnis und keine Meldung, die nur die Weiterleitung ausgelöst hat.',
+    payerReference: 'PayPal-Zahlerreferenz',
+    payerReferenceNote:
+      'Bewahren Sie sie mit Ihrem Beleg auf — zusammen mit der Bestellnummer finden wir eine Zahlung damit sofort.',
+    paypalConfirmBody:
+      'Wir prüfen die Bestellung bei PayPal, bevor etwas freigeschaltet wird. Das dauert normalerweise ein paar Sekunden — bitte schließen Sie diesen Tab nicht.',
+    paypalFailedBody: 'Wir konnten diese Zahlung nicht bei PayPal bestätigen.',
+    paypalNextSupport: (email) =>
+      `Falls Geld von Ihrem Konto abgebucht wurde, schreiben Sie an ${email} und nennen Sie Ihre PayPal-Transaktionsnummer — wir bringen das in Ordnung oder erstatten den Betrag.`,
+    paypalNextUnknownOrder: (email) =>
+      `Schicken Sie uns Ihre PayPal-Transaktionsnummer an ${email}, dann klären wir das noch am selben Tag.`,
+    confirmOffline: 'Wir konnten unseren Server nicht erreichen, um die Zahlung zu bestätigen.',
+    nextRetryConnection:
+      'Prüfen Sie Ihre Verbindung und klicken Sie auf „Erneut versuchen“. Ihre Zahlung ist in jedem Fall sicher — es wird nichts doppelt freigeschaltet oder abgebucht.',
+    missingReference: 'Diesem Bestätigungslink fehlt die Zahlungsreferenz.',
+    missingReferenceNext:
+      'Öffnen Sie den Beleg, den Ihnen Ihr Zahlungsanbieter per E-Mail geschickt hat, und folgen Sie dem Link darin — oder sehen Sie auf Ihrer Kontoseite nach: Eine abgeschlossene Zahlung schaltet den Tarif von selbst frei.',
+    emailSupport: (email) => `E-Mail an ${email}`,
+    quoteReference: 'Nennen Sie diese Referenz, wenn Sie uns kontaktieren:',
+    backToPricing: 'Zurück zu den Preisen',
+    planActive: (planName) => `Sie nutzen jetzt ${planName}`,
+    planAlreadyActive: (planName) => `${planName} ist bereits aktiv`,
+    alreadyConfirmedBody:
+      'Diese Bestellung war bereits bestätigt — es wurde nichts doppelt abgebucht oder freigeschaltet. Alles Weitere steht Ihnen ab sofort in Ihrem Konto zur Verfügung.',
+    paypalReceiptNote: 'PayPal hat Ihnen einen Beleg per E-Mail geschickt.',
+    noRenewalNote: 'Dieser Tarif läuft nicht ab; es gibt nichts zu verlängern oder zu kündigen.',
+    accessDaysNote: (days) =>
+      `Diese Zahlung deckt ${days} Tage Zugang ab und verlängert sich nicht von selbst — automatisch abgebucht wird nie etwas.`,
+    refundLead: 'Doch anders entschieden? Unsere',
+    refundTail: 'gibt Ihnen 14 Tage Zeit.',
+    orderRef: 'Bestellung',
+    cancelledTitle: 'Bezahlvorgang abgebrochen',
+    cancelledNothingCharged: 'Es wurde nichts abgebucht.',
+    cancelledBody: (planName) =>
+      `Sie haben PayPal verlassen, bevor Sie die Zahlung bestätigt haben — es kam also keine Bestellung zustande${
+        planName ? ` und ${planName} wurde Ihrem Konto nicht hinzugefügt` : ''
+      }. Ihr Konto ist genau so, wie es vor einer Minute war.`,
+    cancelledCvsSafe:
+      'Alle Lebensläufe, die Sie geschrieben haben, sind weiterhin da, weiterhin bearbeitbar und im Rahmen Ihres aktuellen Tarifs weiterhin herunterladbar.',
+    cancelledNextHeading: 'Dort weitermachen, wo Sie aufgehört haben',
+    cancelledStep1Lead: 'Öffnen Sie die',
+    pricingPageLink: 'Preisseite',
+    cancelledStep1Tail: (planName, currency) =>
+      `und wählen Sie ${
+        planName ? `erneut ${planName} oder den anderen Tarif` : 'einen Tarif'
+      }. Die Preise sind in ${currency} angegeben und werden vollständig angezeigt, bevor Sie zu PayPal weitergeleitet werden.`,
+    cancelledStep2:
+      'Bestätigen Sie die Zahlung bei PayPal. Sie können mit PayPal-Guthaben, einem verknüpften Bankkonto oder einer Debit- oder Kreditkarte zahlen — ein PayPal-Konto ist nicht nötig.',
+    cancelledStep3:
+      'Sie landen wieder hier und der Tarif wird freigeschaltet, sobald unser Server die Bestellung bei PayPal bestätigt hat. Das dauert ein paar Sekunden.',
+    cancelledHelpLead:
+      'Abgebrochen, weil etwas nicht stimmig aussah oder weil PayPal nicht durchlief? Sagen Sie uns Bescheid unter',
+    cancelledHelpOr: 'oder über das',
+    contactFormLink: 'Kontaktformular',
+    cancelledHelpTail:
+      'Wir reparieren lieber einen kaputten Bezahlvorgang, als den Verkauf still zu verlieren.',
+    cancelledMismatchLead:
+      'Falls trotz dieser Seite Geld von Ihrem Konto abgebucht wurde, ist das eine Abweichung, von der wir sofort erfahren möchten — schreiben Sie uns mit Ihrer PayPal-Transaktionsnummer und wir schalten den Tarif noch am selben Tag frei oder erstatten den Betrag. Unsere',
+    cancelledMismatchTail: 'gilt in beiden Fällen.',
   },
 };
 

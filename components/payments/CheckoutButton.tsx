@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/feedback';
 import { trackEvent } from '@/lib/analytics/events';
@@ -54,6 +55,7 @@ export function CheckoutButton({
   priceLabel: string;
 }) {
   const router = useRouter();
+  const copy = useCopy();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** PayPal's machine-readable cause plus its support reference, when it gave one. */
@@ -82,14 +84,14 @@ export function CheckoutButton({
           router.push(`/login?next=${encodeURIComponent(`/payment/checkout?plan=${planId}`)}`);
           return;
         }
-        setError(
-          payload?.error?.message ??
-            'PayPal could not start this payment. Please try again in a moment.',
-        );
+        setError(payload?.error?.message ?? copy.checkout.paypalStartFailed);
         const issue = payload?.error?.details?.issue;
         const reference = payload?.error?.details?.reference;
         setDiagnostic(
-          [issue ? `Cause: ${issue}` : null, reference ? `Reference: ${reference}` : null]
+          [
+            issue ? copy.checkout.diagnosticCause(issue) : null,
+            reference ? copy.checkout.diagnosticReference(reference) : null,
+          ]
             .filter(Boolean)
             .join(' · ') || null,
         );
@@ -101,9 +103,7 @@ export function CheckoutButton({
       if (!approveUrl || !isPayPalApproveUrl(approveUrl)) {
         // The order exists but PayPal did not return a usable approval link. Saying so is
         // better than sending the payer somewhere unexpected.
-        setError(
-          `The order was created but PayPal did not return a checkout link. Nothing has been charged — please try again, or contact ${site.supportEmail} if it keeps happening.`,
-        );
+        setError(copy.checkout.paypalNoApproveUrl(site.supportEmail));
         setPending(false);
         return;
       }
@@ -111,21 +111,19 @@ export function CheckoutButton({
       // Stay in the pending state: the page is about to be replaced by PayPal's.
       window.location.assign(approveUrl);
     } catch {
-      setError(
-        'We could not reach the server. Check your connection and try again — nothing has been charged.',
-      );
+      setError(copy.checkout.offline);
       setPending(false);
     }
-  }, [planId, router]);
+  }, [copy, planId, router]);
 
   return (
     <div className="flex flex-col gap-3">
       <Button onClick={start} loading={pending} size="lg" fullWidth data-testid="checkout-submit">
-        {pending ? 'Taking you to PayPal…' : `Continue to PayPal — ${priceLabel}`}
+        {pending ? copy.checkout.redirectingToPaypal : copy.checkout.continueToPaypal(priceLabel)}
       </Button>
 
       {error ? (
-        <Alert tone="danger" title="Checkout could not start">
+        <Alert tone="danger" title={copy.checkout.startFailedTitle}>
           {error}
           {diagnostic ? (
             <span className="mt-2 block font-mono text-2xs break-all opacity-80">{diagnostic}</span>
@@ -134,9 +132,7 @@ export function CheckoutButton({
       ) : null}
 
       <p className="text-center text-xs leading-relaxed text-ink-500">
-        You will approve the payment on PayPal, then come straight back here. You can pay with a
-        PayPal balance, a bank account, or a debit or credit card — a PayPal account is not
-        required. {planName} is unlocked only after our server confirms the payment with PayPal.
+        {copy.checkout.paypalNote(planName)}
       </p>
     </div>
   );

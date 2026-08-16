@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
 import { useCopy, useLocale } from '@/components/i18n/LocaleProvider';
+import type { AppCopy } from '@/lib/i18n/app-copy';
 import { Button, ButtonLink, Spinner } from '@/components/ui/button';
 import { planDescription, planHighlights } from '@/lib/i18n/copy/content';
 import { Alert } from '@/components/ui/feedback';
@@ -92,7 +93,15 @@ type PaddleOutcome =
   | { kind: 'pending'; message: string }
   | { kind: 'refused'; code: string; message: string };
 
-async function askPaddle(transactionId: string, offlineMessage: string): Promise<PaddleOutcome> {
+/**
+ * `copy` rather than a single fallback string, because what a customer should read here
+ * depends on which code came back — and the alternative the first version reached for was
+ * the API's own `error.message`, which is English in every locale. Under a translated
+ * heading that reads as a half-broken page at the exact moment someone is wondering whether
+ * their card was charged.
+ */
+async function askPaddle(transactionId: string, copy: AppCopy): Promise<PaddleOutcome> {
+  const offlineMessage = copy.checkout.offline;
   try {
     const response = await fetch('/api/payments/paddle/verify', {
       method: 'POST',
@@ -105,7 +114,7 @@ async function askPaddle(transactionId: string, offlineMessage: string): Promise
     if (response.ok) return { kind: 'granted', planId: payload?.planId ?? null };
 
     const code = payload?.error?.code ?? 'payment-failed';
-    const message = payload?.error?.message ?? offlineMessage;
+    const message = copy.checkout.serverError(code) ?? offlineMessage;
 
     /*
      * Two answers are worth asking about again. `payment-not-completed` is what Paddle says
@@ -181,7 +190,7 @@ export function PaymentConfirmation({
         if (!response.ok) {
           const code = payload?.error?.code ?? 'payment-failed';
           setFailure({
-            message: payload?.error?.message ?? copy.checkout.paypalFailedBody,
+            message: copy.checkout.serverError(code) ?? copy.checkout.paypalFailedBody,
             nextStep:
               code === 'unauthenticated'
                 ? copy.checkout.nextSignIn
@@ -240,7 +249,7 @@ export function PaymentConfirmation({
       setFailure(null);
 
       for (let round = 0; ; round += 1) {
-        const outcome = await askPaddle(id, copy.checkout.offline);
+        const outcome = await askPaddle(id, copy);
 
         if (outcome.kind === 'granted') {
           const resolvedPlan = outcome.planId;

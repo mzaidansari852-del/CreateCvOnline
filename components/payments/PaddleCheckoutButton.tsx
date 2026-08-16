@@ -135,7 +135,13 @@ export function PaddleCheckoutButton({
 
         setFailure({
           title: copy.checkout.confirmFailedTitle,
-          message: payload?.error?.message ?? copy.checkout.startFailedBody,
+          /*
+           * The code, never `payload.error.message`. Our API writes that message in English
+           * for whoever reads the logs, and rendering it here put an English sentence under
+           * a French heading on the one screen where a customer is deciding whether their
+           * money is safe.
+           */
+          message: copy.checkout.serverError(code) ?? copy.checkout.startFailedBody,
           nextStep: copy.checkout.nextSupport(site.supportEmail),
         });
         setPhase('idle');
@@ -243,7 +249,8 @@ export function PaddleCheckoutButton({
         }
         setFailure({
           title: copy.checkout.startFailedTitle,
-          message: payload?.error?.message ?? copy.checkout.startFailedBody,
+          // Localised from the code — see `confirm()` above for why the message is ignored.
+          message: copy.checkout.serverError(payload?.error?.code) ?? copy.checkout.startFailedBody,
           nextStep: null,
         });
         setPhase('idle');

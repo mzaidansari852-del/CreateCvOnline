@@ -500,6 +500,17 @@ export interface DashboardCopy {
     paddleNote: (planName: string) => string;
     startFailedTitle: string;
     startFailedBody: string;
+    /**
+     * The customer-facing sentence for an API error code.
+     *
+     * Our API answers with an English `message` alongside its `code`, and the checkout used
+     * to render that message under a translated title — so a French buyer whose payment
+     * failed read « Le paiement n'a pas pu démarrer » followed by an English sentence. The
+     * message is written for whoever reads the logs; this is written for whoever is holding
+     * the card. Returns `null` for a code with nothing specific to say, so the caller can
+     * fall back to its own already-translated wording rather than to the server's English.
+     */
+    serverError: (code: string | undefined) => string | null;
     scriptFailed: string;
     offline: string;
     confirmTitle: string;
@@ -1095,6 +1106,32 @@ const EN: DashboardCopy = {
     startFailedTitle: 'Checkout could not start',
     startFailedBody:
       'We could not start the payment. Nothing has been charged — please try again in a moment.',
+    serverError: (code) =>
+      ({
+        unauthenticated: 'Your session has ended. Sign in again and the payment will resume.',
+        forbidden: 'This account is not allowed to make that purchase.',
+        'email-unverified':
+          'Confirm your e-mail address first — we have sent you a link. Nothing has been charged.',
+        'rate-limited':
+          'That was tried several times in a row. Wait a minute and try again — nothing has been charged.',
+        'invalid-plan': 'That plan cannot be purchased.',
+        'invalid-request': 'Something in that request was not valid. Nothing has been charged.',
+        'not-found': 'We could not find that payment.',
+        'unknown-order':
+          'We have no record of that payment on this account. If money left your account, it has not been lost — contact us with the transaction reference below.',
+        'payments-unavailable':
+          'Card payments are unavailable right now. Nothing has been charged — please try again shortly.',
+        'not-configured':
+          'Card payments are unavailable right now. Nothing has been charged — please try again shortly.',
+        'payment-provider-error':
+          'Our payment provider did not answer. Nothing has been charged — please try again in a moment.',
+        'payment-not-completed':
+          'This payment has not gone through yet. If you have just paid, give it a few seconds.',
+        'amount-mismatch':
+          'The amount paid does not match this plan, so we have not unlocked it. Nothing further has been charged — please contact us and we will sort it out.',
+        'server-error': 'Something went wrong on our side. Nothing has been charged.',
+        'request-failed': 'Something went wrong on our side. Nothing has been charged.',
+      })[code ?? ''] ?? null,
     scriptFailed:
       'The payment window could not load. Check that no ad blocker or privacy extension is blocking Paddle, then try again — nothing has been charged.',
     offline:
@@ -1722,6 +1759,33 @@ const FR: DashboardCopy = {
     startFailedTitle: 'Le paiement n’a pas pu démarrer',
     startFailedBody:
       'Nous n’avons pas pu démarrer le paiement. Rien n’a été débité — réessayez dans un instant.',
+    serverError: (code) =>
+      ({
+        unauthenticated:
+          'Votre session a expiré. Reconnectez-vous et le paiement reprendra où il en était.',
+        forbidden: 'Ce compte n’est pas autorisé à effectuer cet achat.',
+        'email-unverified':
+          'Confirmez d’abord votre adresse e-mail : nous vous avons envoyé un lien. Rien n’a été débité.',
+        'rate-limited':
+          'Plusieurs tentatives ont été faites coup sur coup. Patientez une minute et réessayez — rien n’a été débité.',
+        'invalid-plan': 'Cette formule ne peut pas être achetée.',
+        'invalid-request': 'Un élément de cette demande n’était pas valide. Rien n’a été débité.',
+        'not-found': 'Nous n’avons pas trouvé ce paiement.',
+        'unknown-order':
+          'Nous n’avons aucune trace de ce paiement sur ce compte. Si une somme a bien été débitée, elle n’est pas perdue — contactez-nous avec la référence de transaction ci-dessous.',
+        'payments-unavailable':
+          'Le paiement par carte est indisponible pour le moment. Rien n’a été débité — réessayez sous peu.',
+        'not-configured':
+          'Le paiement par carte est indisponible pour le moment. Rien n’a été débité — réessayez sous peu.',
+        'payment-provider-error':
+          'Notre prestataire de paiement n’a pas répondu. Rien n’a été débité — réessayez dans un instant.',
+        'payment-not-completed':
+          'Ce paiement n’est pas encore passé. Si vous venez de payer, laissez-lui quelques secondes.',
+        'amount-mismatch':
+          'Le montant payé ne correspond pas à cette formule ; nous ne l’avons donc pas activée. Rien de plus n’a été débité — contactez-nous et nous régulariserons.',
+        'server-error': 'Une erreur est survenue de notre côté. Rien n’a été débité.',
+        'request-failed': 'Une erreur est survenue de notre côté. Rien n’a été débité.',
+      })[code ?? ''] ?? null,
     scriptFailed:
       'La fenêtre de paiement n’a pas pu se charger. Vérifiez qu’aucun bloqueur de publicités ni aucune extension de confidentialité ne bloque Paddle, puis réessayez — rien n’a été débité.',
     offline:
@@ -2342,6 +2406,33 @@ const DE: DashboardCopy = {
     startFailedTitle: 'Der Bezahlvorgang konnte nicht starten',
     startFailedBody:
       'Wir konnten die Zahlung nicht starten. Es wurde nichts abgebucht — bitte versuchen Sie es gleich noch einmal.',
+    serverError: (code) =>
+      ({
+        unauthenticated:
+          'Ihre Sitzung ist abgelaufen. Melden Sie sich erneut an, dann wird die Zahlung fortgesetzt.',
+        forbidden: 'Dieses Konto darf diesen Kauf nicht tätigen.',
+        'email-unverified':
+          'Bestätigen Sie zuerst Ihre E-Mail-Adresse — wir haben Ihnen einen Link geschickt. Es wurde nichts abgebucht.',
+        'rate-limited':
+          'Das wurde mehrfach hintereinander versucht. Warten Sie eine Minute und versuchen Sie es erneut — es wurde nichts abgebucht.',
+        'invalid-plan': 'Dieser Tarif kann nicht gekauft werden.',
+        'invalid-request': 'An dieser Anfrage war etwas ungültig. Es wurde nichts abgebucht.',
+        'not-found': 'Wir konnten diese Zahlung nicht finden.',
+        'unknown-order':
+          'Zu diesem Konto liegt uns keine solche Zahlung vor. Falls doch Geld abgebucht wurde, ist es nicht verloren — melden Sie sich mit der unten stehenden Transaktionsnummer bei uns.',
+        'payments-unavailable':
+          'Kartenzahlung ist derzeit nicht verfügbar. Es wurde nichts abgebucht — bitte versuchen Sie es in Kürze erneut.',
+        'not-configured':
+          'Kartenzahlung ist derzeit nicht verfügbar. Es wurde nichts abgebucht — bitte versuchen Sie es in Kürze erneut.',
+        'payment-provider-error':
+          'Unser Zahlungsdienstleister hat nicht geantwortet. Es wurde nichts abgebucht — bitte versuchen Sie es gleich noch einmal.',
+        'payment-not-completed':
+          'Diese Zahlung ist noch nicht durchgegangen. Wenn Sie gerade bezahlt haben, geben Sie ihr ein paar Sekunden.',
+        'amount-mismatch':
+          'Der gezahlte Betrag passt nicht zu diesem Tarif, deshalb haben wir ihn nicht freigeschaltet. Es wurde nichts weiter abgebucht — melden Sie sich bei uns, wir klären das.',
+        'server-error': 'Auf unserer Seite ist etwas schiefgelaufen. Es wurde nichts abgebucht.',
+        'request-failed': 'Auf unserer Seite ist etwas schiefgelaufen. Es wurde nichts abgebucht.',
+      })[code ?? ''] ?? null,
     scriptFailed:
       'Das Zahlungsfenster konnte nicht geladen werden. Prüfen Sie, ob ein Werbeblocker oder eine Datenschutz-Erweiterung Paddle blockiert, und versuchen Sie es erneut — es wurde nichts abgebucht.',
     offline:

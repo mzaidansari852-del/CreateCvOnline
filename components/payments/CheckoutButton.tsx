@@ -84,7 +84,10 @@ export function CheckoutButton({
           router.push(`/login?next=${encodeURIComponent(`/payment/checkout?plan=${planId}`)}`);
           return;
         }
-        setError(payload?.error?.message ?? copy.checkout.paypalStartFailed);
+        // The code, not the API's English `message` — see PaddleCheckoutButton for why.
+        setError(
+          copy.checkout.serverError(payload?.error?.code) ?? copy.checkout.paypalStartFailed,
+        );
         const issue = payload?.error?.details?.issue;
         const reference = payload?.error?.details?.reference;
         setDiagnostic(

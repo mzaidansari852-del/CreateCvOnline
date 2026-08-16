@@ -1,7 +1,7 @@
 'use client';
 
 import { CheckoutEventNames, initializePaddle } from '@paddle/paddle-js';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { useCopy } from '@/components/i18n/LocaleProvider';
@@ -32,13 +32,9 @@ import { publicEnv } from '@/lib/env';
  * nothing on its own. Access is still granted only by the webhook, which attributes the
  * payment through `customData` written when the transaction was created.
  */
-export function PaddleTransactionCheckout() {
-  const params = useSearchParams();
+export function PaddleTransactionCheckout({ transactionId }: { transactionId: string }) {
   const router = useRouter();
   const copy = useCopy();
-
-  // Paddle's own parameter name. `transaction` is accepted too, for links we write.
-  const transactionId = params.get('_ptxn') ?? params.get('transaction') ?? '';
 
   /*
    * Seeded from the query rather than set in an effect. The overlay opens on mount

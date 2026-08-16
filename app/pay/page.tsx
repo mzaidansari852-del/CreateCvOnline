@@ -35,7 +35,25 @@ export const metadata: Metadata = privateMetadata('Complete your payment');
  * `customData` recorded when the transaction was created — so an unauthenticated visitor
  * with a valid transaction id can complete a payment and nothing else.
  */
-export default async function PayPage() {
+export default async function PayPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  /*
+   * The transaction id is read here, on the server, and passed down.
+   *
+   * It used to be read in the client component with `useSearchParams()`, which meant the
+   * server had no idea whether there was one and rendered the "this link is missing its
+   * payment reference" branch every time — corrected a moment later by hydration. So every
+   * customer arriving from a Paddle email was told their payment link was broken, for as
+   * long as it took the JavaScript to load, and told it permanently if the JavaScript
+   * never arrived. On a page about money that is the worst possible first paint.
+   */
+  const query = await searchParams;
+  const raw = query._ptxn ?? query.transaction;
+  const transactionId = (Array.isArray(raw) ? raw[0] : raw) ?? '';
+
   const viewer = await getViewer();
   const locale = resolveLocale({
     profileLocale: viewer?.profile.locale,
@@ -59,7 +77,7 @@ export default async function PayPage() {
           <div className="w-full max-w-md">
             {/* The overlay needs the query string, which is only readable on the client. */}
             <Suspense fallback={null}>
-              <PaddleTransactionCheckout />
+              <PaddleTransactionCheckout transactionId={transactionId} />
             </Suspense>
           </div>
         </main>

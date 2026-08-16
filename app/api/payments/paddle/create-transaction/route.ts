@@ -58,7 +58,21 @@ export const POST = authedRoute(
       return NextResponse.json({ transactionId: order.orderId });
     } catch (error) {
       if (error instanceof PaddleError) {
-        console.error('[paddle] create transaction failed', error.message, error.status);
+        console.error(
+          '[paddle] create transaction failed',
+          JSON.stringify({
+            status: error.status,
+            wrapper: error.message,
+            // Paddle's own error. It used to sit unread in `detail` while the log
+            // repeated the sentence this file had just written.
+            cause:
+              error.detail instanceof Error
+                ? error.detail.message
+                : typeof error.detail === 'string'
+                  ? error.detail
+                  : JSON.stringify(error.detail),
+          }),
+        );
         return apiError(
           error.status === 503 ? 503 : 502,
           'payment-provider-error',

@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
+import { Environment, Paddle } from '@paddle/paddle-node-sdk';
 
 import { availableGateways } from '@/lib/payments';
 import { isPaddleConfigured, isPayPalConfigured, publicEnv, serverEnv } from '@/lib/env';
@@ -7,41 +8,33 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Which payment gateways this deployment can actually offer, and why.
+ * Which payment gateways this deployment can offer, and — with `?probe=1` — why not.
  *
- * ## Why this endpoint exists
+ * ## Why this exists
  *
- * "The checkout still says Continue with PayPal" has four possible causes and the page
- * cannot show any of them: it falls back silently, on purpose, because a customer must
- * never be offered a payment button that cannot work. Every attempt to diagnose it from
- * outside failed — the hosting dashboard shows a variable is *set*, not whether the
- * running build *received* it, and the checkout page needs a session so it cannot even be
- * fetched. That left a loop of "check this, then tell me", which is a bad way to find a
- * missing environment variable.
+ * "The checkout still says Continue with PayPal" has several causes and the page can show
+ * none of them: it falls back silently on purpose, because a customer must never be handed
+ * a payment button that cannot work. The hosting dashboard shows whether a variable is
+ * *set*, not whether the running build *received* it, and the checkout page needs a session
+ * so it cannot be fetched from outside. Without this the only way forward was a loop of
+ * "check this, then tell me", which is a poor way to find a configuration fault.
  *
- * So the deployment reports on itself.
+ * ## Safe to leave public
  *
- * ## Why it is safe to leave public
+ * The default response is booleans only — no key, token or price id, not even a length or
+ * a prefix. Whether a site has Paddle configured is not a secret; it is visible to anyone
+ * who reaches the checkout.
  *
- * It returns booleans and nothing else. No key, no token, no price id, not even a length
- * or a prefix — only whether each value is non-empty. Knowing that a site has Paddle
- * configured is not a secret; it is visible to anyone who reaches the checkout. The rule
- * this must never break is that no *value* crosses the boundary, and the shape of the
- * response is what enforces it: every field is typed `boolean`.
+ * `?probe=1` additionally asks Paddle whether the configured price ids exist, and returns
+ * Paddle's own error text when they do not. That text describes *our* configuration, never
+ * a customer, and the call is a read: `prices.get`, which creates nothing and charges
+ * nothing. It is deliberately not the default, so an ordinary request stays free.
  */
-export function GET(): NextResponse {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   const paddle = serverEnv().paddle;
-
-  /*
-   * The client token is read from `publicEnv`, which means this answer reflects the value
-   * compiled into *this build* rather than whatever is in the dashboard now. That
-   * distinction is the whole point: `NEXT_PUBLIC_*` is inlined at build time, so a
-   * variable added after a deploy reads as missing here until the site is rebuilt — which
-   * is exactly the failure this is meant to catch.
-   */
   const clientTokenInBuild = publicEnv.paddleClientToken.length > 0;
 
-  return NextResponse.json({
+  const base = {
     gatewaysOffered: availableGateways(),
     paddle: {
       configured: isPaddleConfigured(),
@@ -54,12 +47,45 @@ export function GET(): NextResponse {
       publicEnvironment: publicEnv.paddleEnvironment,
     },
     paypal: { configured: isPayPalConfigured() },
-    /*
-     * The verdict, so nobody has to interpret the booleans. `availableGateways()` reports
-     * what the server can reach; the checkout page additionally requires the client token,
-     * because the overlay cannot open without it — so a deployment can be "configured" and
-     * still correctly show PayPal only.
-     */
     checkoutWillOfferPaddle: isPaddleConfigured() && clientTokenInBuild,
+  };
+
+  if (request.nextUrl.searchParams.get('probe') !== '1' || !paddle) {
+    return NextResponse.json(base);
+  }
+
+  /*
+   * Read each configured price back from Paddle.
+   *
+   * This is the check that distinguishes the three remaining failure modes, which are
+   * indistinguishable from our side: a key that is not valid at all, a key that is valid
+   * in the *other* environment, and a price id that belongs to a different account. All
+   * three produce the same "we could not start the checkout" for the customer.
+   */
+  const client = new Paddle(paddle.apiKey, {
+    environment:
+      paddle.environment === 'production' ? Environment.production : Environment.sandbox,
   });
+
+  const check = async (label: string, priceId: string) => {
+    try {
+      const price = await client.prices.get(priceId);
+      return { label, priceId, ok: true, name: price.name ?? null, status: price.status ?? null };
+    } catch (cause) {
+      return {
+        label,
+        priceId,
+        ok: false,
+        // Paddle's own words. They name the problem far better than a generic message.
+        error: cause instanceof Error ? cause.message : String(cause),
+      };
+    }
+  };
+
+  const prices = await Promise.all([
+    check('pro', paddle.prices.pro),
+    check('lifetime', paddle.prices.lifetime),
+  ]);
+
+  return NextResponse.json({ ...base, probe: { environment: paddle.environment, prices } });
 }

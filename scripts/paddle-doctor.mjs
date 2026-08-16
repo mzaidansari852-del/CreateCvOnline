@@ -16,6 +16,86 @@ import { join } from 'node:path';
  */
 
 const root = process.cwd();
+
+/*
+ * `--remote https://your-site` checks the *deployed* build instead of this folder.
+ *
+ * This exists because the local checks cannot answer the question that actually matters
+ * once a site is live: the hosting dashboard shows the variable is set, and the running
+ * JavaScript was compiled before it was. NEXT_PUBLIC_* is inlined at build time, so the
+ * only honest test is to read the bundle the browser is being served and look for the
+ * token in it. Nothing secret is exposed by doing so — the client token is public by
+ * design, which is exactly why it can be checked this way.
+ */
+const remoteArg = process.argv.indexOf('--remote');
+const remote = remoteArg > -1 ? process.argv[remoteArg + 1] : null;
+
+if (remote) {
+  const base = remote.replace(/\/$/, '');
+  console.log(`\nChecking the deployed build at ${base}\n`);
+
+  /*
+   * A browser user-agent, because hosts and WAFs answer 403 to an unidentified client and
+   * that would read here as "the route is missing" — a wrong diagnosis is worse than none.
+   */
+  const UA = {
+    'user-agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    accept: 'text/html,application/xhtml+xml',
+  };
+
+  const page = await fetch(`${base}/pay`, { redirect: 'follow', headers: UA });
+  console.log(`  /pay responded ${page.status}`);
+  if (!page.ok) {
+    console.log(
+      page.status === 404
+        ? '  FAIL  /pay is not deployed yet — push and deploy the Paddle changes first.'
+        : `  FAIL  the page returned ${page.status}. If that is 401/403 the site is behind`,
+    );
+    if (page.status !== 404) {
+      console.log('        password protection or a firewall — run this from a network that');
+      console.log('        can reach it, or check the deployment protection setting.');
+    }
+    process.exit(1);
+  }
+
+  const html = await page.text();
+  const chunks = [...html.matchAll(/src="([^"]*\/_next\/static\/[^"]+\.js)"/g)].map((m) => m[1]);
+  console.log(`  found ${chunks.length} script chunk(s)`);
+
+  // Paddle client tokens are `test_…` (sandbox) or `live_…`, hex-ish and long.
+  const TOKEN = /\b(test|live)_[a-f0-9]{20,}\b/i;
+  let token = null;
+  for (const chunk of chunks) {
+    const url = chunk.startsWith('http') ? chunk : `${base}${chunk}`;
+    const body = await fetch(url, { headers: UA }).then((r) => (r.ok ? r.text() : ''));
+    const hit = TOKEN.exec(body);
+    if (hit) {
+      token = hit[0];
+      break;
+    }
+  }
+
+  console.log('');
+  if (token) {
+    const kind = token.startsWith('test') ? 'sandbox' : 'live';
+    console.log(`  ok    a ${kind} Paddle client token IS in the deployed bundle`);
+    console.log(`        (${token.slice(0, 9)}…${token.slice(-4)})`);
+    console.log('');
+    console.log('  So the token is not the problem. Open /pay?_ptxn=<a real transaction id>');
+    console.log("  and read the browser console — the failure is on Paddle's side:");
+    console.log('    · the domain is not approved for Paddle.js in your Paddle account');
+    console.log('    · or the token is from a different account than the API key');
+    process.exit(0);
+  }
+
+  console.log('  FAIL  no Paddle client token found in the deployed JavaScript.');
+  console.log('');
+  console.log('  The variable is set in your dashboard but this build was compiled without it.');
+  console.log('  NEXT_PUBLIC_* is baked in at build time. Redeploy with the build cache OFF:');
+  console.log('    Vercel → Deployments → ⋯ → Redeploy → untick "Use existing Build Cache"');
+  process.exit(1);
+}
 const problems = [];
 const ok = (m) => console.log(`  ok    ${m}`);
 const bad = (m, fix) => {
@@ -90,12 +170,25 @@ function readEnvFile(name) {
 const fromFiles = { ...readEnvFile('.env'), ...readEnvFile('.env.local') };
 const env = (key) => process.env[key] || fromFiles[key] || '';
 const files = ['.env', '.env.local'].filter((f) => existsSync(join(root, f)));
-console.log(`  (reading ${files.length ? files.join(' and ') : 'no .env file — process env only'})`);
+console.log(
+  `  (reading ${files.length ? files.join(' and ') : 'no .env file — process env only'})`,
+);
 
 const mask = (v) => (v.length <= 8 ? '*'.repeat(v.length) : `${v.slice(0, 6)}…${v.slice(-3)}`);
 
 const vars = [
-  { key: 'PADDLE_API_KEY', required: true, expect: /^pdl_/, hint: 'should start with pdl_' },
+  {
+    key: 'PADDLE_API_KEY',
+    required: true,
+    /*
+     * Paddle's documented format, not just the prefix. A key that starts `pdl_` and is
+     * four characters short passes a prefix check and is rejected by Paddle with
+     * "Authentication header included, but incorrectly formatted" — which reads, from the
+     * outside, exactly like a key that was never set. 69 characters, five underscores.
+     */
+    expect: /^pdl_(live|sdbx)_apikey_[a-z\d]{26}_[a-zA-Z\d]{22}_[a-zA-Z\d]{3}$/,
+    hint: 'should be 69 characters: pdl_sdbx_apikey_… (sandbox) or pdl_live_apikey_… (live)',
+  },
   { key: 'PADDLE_PRICE_PRO', required: true, expect: /^pri_/, hint: 'should start with pri_' },
   { key: 'PADDLE_PRICE_LIFETIME', required: true, expect: /^pri_/, hint: 'should start with pri_' },
   {
@@ -104,9 +197,19 @@ const vars = [
     expect: /^(test_|live_)/,
     hint: 'should start with test_ (sandbox) or live_',
   },
-  { key: 'PADDLE_WEBHOOK_SECRET', required: false, expect: /^pdl_/, hint: 'should start with pdl_' },
+  {
+    key: 'PADDLE_WEBHOOK_SECRET',
+    required: false,
+    expect: /^pdl_/,
+    hint: 'should start with pdl_',
+  },
   { key: 'PADDLE_ENVIRONMENT', required: false, expect: /^(sandbox|production)$/, hint: '' },
-  { key: 'NEXT_PUBLIC_PADDLE_ENVIRONMENT', required: false, expect: /^(sandbox|production)$/, hint: '' },
+  {
+    key: 'NEXT_PUBLIC_PADDLE_ENVIRONMENT',
+    required: false,
+    expect: /^(sandbox|production)$/,
+    hint: '',
+  },
 ];
 
 for (const { key, required: isRequired, expect, hint } of vars) {
@@ -117,7 +220,9 @@ for (const { key, required: isRequired, expect, hint } of vars) {
     continue;
   }
   if (expect && !expect.test(value)) {
-    bad(`${key} = ${mask(value)} — ${hint}`, `Check the value of ${key}.`);
+    // The length is what identifies a truncated paste, and it is the one detail a masked
+    // value hides. It reveals nothing: it is a property of the format, not of the secret.
+    bad(`${key} = ${mask(value)} (${value.length} chars) — ${hint}`, `Check the value of ${key}.`);
   } else {
     ok(`${key} = ${mask(value)}`);
   }

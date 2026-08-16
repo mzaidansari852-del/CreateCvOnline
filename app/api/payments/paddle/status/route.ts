@@ -2,6 +2,11 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { Environment, Paddle } from '@paddle/paddle-node-sdk';
 
 import { availableGateways } from '@/lib/payments';
+import {
+  PADDLE_API_KEY_LENGTH,
+  describePaddleApiKey,
+  explainPaddleKeyProblem,
+} from '@/lib/payments/paddle-key';
 import { isPaddleConfigured, isPayPalConfigured, publicEnv, serverEnv } from '@/lib/env';
 
 export const runtime = 'nodejs';
@@ -21,9 +26,11 @@ export const dynamic = 'force-dynamic';
  *
  * ## Safe to leave public
  *
- * The default response is booleans only — no key, token or price id, not even a length or
- * a prefix. Whether a site has Paddle configured is not a secret; it is visible to anyone
- * who reaches the checkout.
+ * The default response is booleans and the *shape* of the API key — its length, and the
+ * fixed `pdl_sdbx_apikey_` prefix that every sandbox key in existence shares. No part of
+ * the random portion crosses the boundary, in any form; a test asserts that by searching
+ * the serialised response for every substring of it. Whether a site has Paddle configured
+ * is not a secret either — it is visible to anyone who reaches the checkout.
  *
  * `?probe=1` additionally asks Paddle whether the configured price ids exist, and returns
  * Paddle's own error text when they do not. That text describes *our* configuration, never
@@ -34,11 +41,28 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const paddle = serverEnv().paddle;
   const clientTokenInBuild = publicEnv.paddleClientToken.length > 0;
 
+  /*
+   * Read straight from `process.env`, not from `serverEnv().paddle` — a key that fails the
+   * format check leaves `paddle` null, and the whole point of this field is to explain why.
+   * `describePaddleApiKey` returns counts and fixed prefixes only, never any part of the
+   * random portion, so this stays as publishable as the rest of the response.
+   */
+  const keyReport = describePaddleApiKey(process.env.PADDLE_API_KEY?.trim());
+
   const base = {
     gatewaysOffered: availableGateways(),
     paddle: {
       configured: isPaddleConfigured(),
       apiKey: Boolean(paddle?.apiKey),
+      apiKeyShape: {
+        usable: keyReport.usable,
+        problem: keyReport.problem,
+        explanation: explainPaddleKeyProblem(keyReport),
+        length: keyReport.length,
+        expectedLength: PADDLE_API_KEY_LENGTH,
+        prefix: keyReport.prefix,
+        legacyFormat: keyReport.looksLegacy,
+      },
       pricePro: Boolean(paddle?.prices.pro),
       priceLifetime: Boolean(paddle?.prices.lifetime),
       webhookSecret: Boolean(paddle?.webhookSecret),
@@ -63,8 +87,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
    * three produce the same "we could not start the checkout" for the customer.
    */
   const client = new Paddle(paddle.apiKey, {
-    environment:
-      paddle.environment === 'production' ? Environment.production : Environment.sandbox,
+    environment: paddle.environment === 'production' ? Environment.production : Environment.sandbox,
   });
 
   const check = async (label: string, priceId: string) => {

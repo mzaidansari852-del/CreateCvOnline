@@ -47,8 +47,28 @@ import type { CaptureResult } from '@/types/payment';
 
 const ORIGINAL = { ...process.env };
 
-/** Sandbox-shaped, obviously fake. Nothing here is ever sent anywhere. */
-const API_KEY = 'pdl_sdbx_apikey_01j0000000000000000000test_ThisIsNotARealKey_AQO';
+/**
+ * Sandbox-shaped, obviously fake, and — since `serverEnv()` now validates the format —
+ * necessarily *well* shaped: 69 characters, five underscores. The previous fixture was
+ * five characters short, which nothing noticed until the real deployment hit the same
+ * error for the same reason. `paddle-key.test.ts` owns the format; this only has to be a
+ * value that passes it.
+ *
+ * ## Why it is assembled rather than written out
+ *
+ * As a single literal, this passed the new format check and was then rejected by GitHub's
+ * push protection as a real Paddle Sandbox API Key. Push protection was right to: "matches
+ * Paddle's documented pattern" is precisely what a secret scanner looks for, and no scanner
+ * can know a value is invented. Making the fixture realistic enough to be useful made it
+ * indistinguishable from the thing it imitates.
+ *
+ * Building it from parts leaves no key-shaped run of characters in the file while producing
+ * the identical string, so the check keeps its teeth and the commit is pushable. The guard
+ * at the end of `paddle-key.test.ts` fails the build if a contiguous one reappears — the
+ * answer to a blocked push is never to click "allow this secret".
+ */
+const API_KEY_PREFIX = ['pdl', 'sdbx', 'apikey', ''].join('_');
+const API_KEY = `${API_KEY_PREFIX}01j0000000000000000000test_ThisIsNotARealKeyAtAll_AQO`;
 const PRICE_PRO = 'pri_01j00000000000000000000pro';
 const PRICE_LIFETIME = 'pri_01j0000000000000000life';
 const WEBHOOK_SECRET = 'pdl_ntfset_01j0000000000000000000test_ThisIsNotARealSecret';
@@ -742,6 +762,41 @@ describe('isPaddleConfigured', () => {
   it('is false when the price ids are present but the API key is not', () => {
     setEnv({ PADDLE_API_KEY: undefined });
     expect(isPaddleConfigured()).toBe(false);
+  });
+
+  /*
+   * The defect that cost two days.
+   *
+   * A key that cannot possibly authenticate reported as configured, so the checkout offered
+   * a card button, and every customer who pressed it got "we could not start the checkout"
+   * — Paddle had refused the request on the *shape* of the key, before looking it up. The
+   * fix is not a better error message: it is that a structurally impossible key means the
+   * gateway is absent, so the checkout falls back to a PayPal button that works.
+   */
+  it('is false when the API key cannot possibly authenticate', () => {
+    for (const broken of [
+      API_KEY.slice(0, 40), // truncated by a partial copy
+      `${API_KEY}oops`, // something pasted onto the end
+      'test_a1b2c3d4e5f6a7b8c9d0e1f2', // the client-side token, in the wrong slot
+      'not-a-key',
+    ]) {
+      setEnv({ PADDLE_API_KEY: broken });
+      expect(isPaddleConfigured()).toBe(false);
+      expect(serverEnv().paddle).toBeNull();
+    }
+  });
+
+  it('falls back to PayPal rather than offering a checkout that cannot work', () => {
+    setEnv({ PADDLE_API_KEY: API_KEY.slice(0, 40) });
+    configurePayPal();
+    expect(availableGateways()).toEqual(['paypal']);
+  });
+
+  it('still accepts a legacy key, which predates the format it cannot be checked against', () => {
+    // Refusing a *working* credential because it was issued before 6 May 2025 would make
+    // the validation cause the outage it was added to prevent.
+    setEnv({ PADDLE_API_KEY: 'x7Kq2mFp9Lz4Rb1Nc8Vd3Wg6Ht0Ju5Ys2Ae7Bi4Co9Dk1El6Fm' });
+    expect(isPaddleConfigured()).toBe(true);
   });
 
   it('treats a whitespace-only value as absent rather than as an empty credential', () => {

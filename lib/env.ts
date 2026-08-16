@@ -11,6 +11,8 @@
  *     loudly with an actionable message instead of a cryptic `undefined`.
  */
 
+import { describePaddleApiKey, explainPaddleKeyProblem } from '@/lib/payments/paddle-key';
+
 /* -------------------------------------------------------------------------- */
 /* Public                                                                      */
 /* -------------------------------------------------------------------------- */
@@ -238,7 +240,14 @@ function readServiceAccount(): {
 function readOpaqueToken(raw: string | undefined): string | undefined {
   if (!raw) return undefined;
   const unquoted = raw.trim().replace(/^["']|["']$/g, '');
-  const compact = unquoted.replace(/\s+/g, '');
+  /*
+   * `Bearer ` is stripped because the value is a *credential*, not a header. Anyone
+   * copying from an API reference — where the example is `Authorization: Bearer <key>` —
+   * takes the word along with it, and the result is a header reading `Bearer Bearer …`
+   * that every provider rejects as malformed rather than as wrong.
+   */
+  const bare = unquoted.replace(/^Bearer\s+/i, '');
+  const compact = bare.replace(/\s+/g, '');
   return compact.length > 0 ? compact : undefined;
 }
 
@@ -283,6 +292,22 @@ export function serverEnv(): ServerEnv {
   ).toLowerCase();
 
   const paddleApiKey = readOpaqueToken(process.env.PADDLE_API_KEY);
+  /*
+   * The key is checked against Paddle's documented format before anything is built from it.
+   *
+   * A key that cannot possibly authenticate is not a working gateway with a bad credential;
+   * it is an absent gateway. Treating it as present is what produced the failure this check
+   * exists for — the checkout offered a card button, the button asked for a transaction,
+   * and Paddle answered "Authentication header included, but incorrectly formatted" to
+   * every customer who pressed it. Failing the configuration test instead means the
+   * checkout quietly offers PayPal, which works, while the status endpoint says exactly
+   * what is wrong with the key.
+   */
+  const paddleKeyReport = describePaddleApiKey(paddleApiKey);
+  if (paddleApiKey && !paddleKeyReport.usable) {
+    // Once per process, at the point the value is first read. Never the value itself.
+    console.error('[paddle]', explainPaddleKeyProblem(paddleKeyReport));
+  }
   const paddleWebhookSecret = readOpaqueToken(process.env.PADDLE_WEBHOOK_SECRET);
   const paddleEnvironment = (
     readOpaqueToken(process.env.PADDLE_ENVIRONMENT) || 'sandbox'
@@ -325,7 +350,7 @@ export function serverEnv(): ServerEnv {
      * whereas one that cannot take a payment at all is not.
      */
     paddle:
-      paddleApiKey && paddlePrices.pro && paddlePrices.lifetime
+      paddleApiKey && paddleKeyReport.usable && paddlePrices.pro && paddlePrices.lifetime
         ? {
             apiKey: paddleApiKey,
             webhookSecret: paddleWebhookSecret,

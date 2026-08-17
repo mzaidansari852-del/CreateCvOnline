@@ -101,6 +101,21 @@ export interface EditorCopy {
     copyLink: string;
     linkCopied: string;
     notSaved: string;
+    /**
+     * Shown *visibly* when a save fails, next to the server's own reason.
+     *
+     * The reason used to live in the badge's `title` attribute — a hover tooltip, which is
+     * nothing at all on a phone and almost nothing on a desktop. A user filled in an entire
+     * CV against a failing autosave, saw only "Not saved — retry", and had no way to learn
+     * that the server had named the problem on every single attempt.
+     */
+    saveFailedHeading: string;
+    /** The reassurance that matters most at that moment: the work is not gone. */
+    saveFailedKept: string;
+    draftFoundHeading: string;
+    draftFoundBody: string;
+    draftRestore: string;
+    draftDiscard: string;
     unsaved: string;
     /** Autosave could not reach the server at all — distinct from the server refusing. */
     offline: string;
@@ -526,6 +541,14 @@ const EN: EditorCopy = {
     copyLink: 'Copy',
     linkCopied: 'Link copied',
     notSaved: 'Not saved — retry',
+    saveFailedHeading: 'This CV has not been saved',
+    saveFailedKept:
+      'Your work is kept in this browser, so it is safe to keep editing — but do not close this tab until it saves.',
+    draftFoundHeading: 'Unsaved work recovered',
+    draftFoundBody:
+      'A previous save failed and this browser kept a copy. It is newer than the version on our server.',
+    draftRestore: 'Restore my work',
+    draftDiscard: 'Discard it',
     unsaved: 'Unsaved',
     offline: 'Could not reach the server. Your changes are still here.',
 
@@ -1072,6 +1095,14 @@ const FR: EditorCopy = {
     copyLink: 'Copier',
     linkCopied: 'Lien copié',
     notSaved: 'Non enregistré — réessayer',
+    saveFailedHeading: 'Ce CV n’a pas été enregistré',
+    saveFailedKept:
+      'Votre travail est conservé dans ce navigateur : vous pouvez continuer à modifier, mais ne fermez pas cet onglet avant l’enregistrement.',
+    draftFoundHeading: 'Travail non enregistré récupéré',
+    draftFoundBody:
+      'Un enregistrement précédent a échoué et ce navigateur en a gardé une copie. Elle est plus récente que la version sur notre serveur.',
+    draftRestore: 'Restaurer mon travail',
+    draftDiscard: 'Ignorer',
     unsaved: 'Non enregistré',
     offline: 'Le serveur est injoignable. Vos modifications sont toujours là.',
 
@@ -1621,6 +1652,14 @@ const DE: EditorCopy = {
     copyLink: 'Kopieren',
     linkCopied: 'Link kopiert',
     notSaved: 'Nicht gespeichert — erneut versuchen',
+    saveFailedHeading: 'Dieser Lebenslauf wurde nicht gespeichert',
+    saveFailedKept:
+      'Ihre Arbeit wird in diesem Browser aufbewahrt — Sie können weiterarbeiten, schließen Sie diesen Tab aber nicht, bevor gespeichert wurde.',
+    draftFoundHeading: 'Nicht gespeicherte Arbeit wiederhergestellt',
+    draftFoundBody:
+      'Ein früherer Speichervorgang ist fehlgeschlagen und dieser Browser hat eine Kopie behalten. Sie ist neuer als die Version auf unserem Server.',
+    draftRestore: 'Arbeit wiederherstellen',
+    draftDiscard: 'Verwerfen',
     unsaved: 'Nicht gespeichert',
     offline: 'Der Server ist nicht erreichbar. Ihre Änderungen sind weiterhin vorhanden.',
 

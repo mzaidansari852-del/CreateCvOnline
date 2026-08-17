@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { apiRequest, ApiRequestError } from '@/components/dashboard/api';
 import { useCopy } from '@/components/i18n/LocaleProvider';
+import { clearDraft, draftIsUsable, readDraft, writeDraft, type StoredDraft } from './draftBackup';
 import type { CVCustomization, CVData, CVDocument } from '@/types/cv';
 
 /**
@@ -52,6 +53,16 @@ export interface EditorDocument {
   /** Forces an immediate save and resolves once the server has acknowledged it. */
   saveNow: () => Promise<void>;
   dirty: boolean;
+  /**
+   * Work this browser saved locally because the server refused it, found on load.
+   *
+   * `null` once it has been restored or dismissed. It exists because the alternative —
+   * a tab holding the only copy of an hour's work with nothing on screen saying so — cost
+   * a real user a complete CV.
+   */
+  recoveredDraft: StoredDraft | null;
+  restoreDraft: () => void;
+  discardDraft: () => void;
 }
 
 interface History {
@@ -81,8 +92,26 @@ export function useEditorDocument(
   const [status, setStatus] = useState<SaveStatus>('idle');
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(initial.updatedAt);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  /*
+   * Read once, during the first render, rather than in an effect. An effect would paint the
+   * editor with the server's (older) content first and offer the recovery a frame later,
+   * which is exactly long enough for someone to start retyping what they already wrote.
+   */
+  const [recoveredDraft, setRecoveredDraft] = useState<StoredDraft | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const draft = readDraft(initial.id);
+    return draftIsUsable(draft, initial.updatedAt) ? draft : null;
+  });
 
   const cvId = initial.id;
+  /**
+   * The server's `updatedAt` at the moment this tab loaded the document.
+   *
+   * Stored with a failed draft so the next load can tell "my draft is newer than the
+   * server" from "someone edited this on another device since" — the second must not be
+   * silently overwritten by a draft this tab happens to be holding.
+   */
+  const baseUpdatedAt = useRef<string | null>(initial.updatedAt);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inFlight = useRef(false);
   /** The newest snapshot that still needs persisting. `null` when everything is saved. */
@@ -121,17 +150,24 @@ export function useEditorDocument(
           setLastSavedAt(response.cv.updatedAt);
           setErrorMessage(null);
           setStatus(pending.current ? 'dirty' : 'saved');
+          // The server has it, so the local copy is now the stale one.
+          clearDraft(cvId);
         } catch (error) {
           // Put the work back so the next attempt still carries it, then stop: retrying
           // in a tight loop against a failing server helps nobody.
           pending.current = pending.current ?? snapshot;
           setStatus('error');
-          if (error instanceof ApiRequestError) {
-            setErrorMessage(error.message);
-            if (error.isEntitlement) onEntitlementError.current?.(error);
-          } else {
-            setErrorMessage(copy.editor.offline);
+          const reason = error instanceof ApiRequestError ? error.message : copy.editor.offline;
+          setErrorMessage(reason);
+          if (error instanceof ApiRequestError && error.isEntitlement) {
+            onEntitlementError.current?.(error);
           }
+          /*
+           * Before anything else. The work is in memory and the server has just refused it,
+           * which makes this tab the only place it exists — the exact state in which closing
+           * a tab has destroyed a finished CV.
+           */
+          writeDraft(cvId, snapshot, baseUpdatedAt.current, reason);
           break;
         }
       }
@@ -283,6 +319,32 @@ export function useEditorDocument(
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [saveNow, undo, redo]);
 
+  /**
+   * Adopt the recovered draft as the current document.
+   *
+   * Pushed through the history stack rather than swapped in underneath it, so the restore
+   * is undoable: someone who restores a draft and then realises the server copy was the one
+   * they wanted presses Ctrl+Z, which is the behaviour every other change in this editor
+   * already has.
+   */
+  const restoreDraft = useCallback(() => {
+    setRecoveredDraft((draft) => {
+      if (!draft) return null;
+      setHistory((current) => ({
+        past: [...current.past, current.present].slice(-HISTORY_LIMIT),
+        present: draft.snapshot,
+        future: [],
+      }));
+      queueSave(draft.snapshot);
+      return null;
+    });
+  }, [queueSave]);
+
+  const discardDraft = useCallback(() => {
+    clearDraft(cvId);
+    setRecoveredDraft(null);
+  }, [cvId]);
+
   return {
     title: history.present.title,
     data: history.present.data,
@@ -298,6 +360,9 @@ export function useEditorDocument(
     status,
     lastSavedAt,
     errorMessage,
+    recoveredDraft,
+    restoreDraft,
+    discardDraft,
     saveNow,
     dirty: status === 'dirty' || status === 'error',
   };

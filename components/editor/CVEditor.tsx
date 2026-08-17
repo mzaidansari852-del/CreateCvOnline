@@ -307,6 +307,58 @@ export function CVEditor({
         />
       </header>
 
+      {/*
+        Two banners that must be impossible to miss, mounted directly under the toolbar.
+
+        Both exist because of one incident: a user completed an entire CV while every
+        autosave failed, and the only signal was a small "Not saved — retry" badge whose
+        explanation lived in a `title` tooltip. The server had named the problem on every
+        attempt and the browser never showed it; closing that tab would have destroyed the
+        work with no warning that it was the only copy.
+      */}
+      {editor.recoveredDraft ? (
+        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-warning-200 bg-warning-50 px-4 py-2.5 text-[13px] text-warning-900">
+          <span className="font-semibold">{copy.editor.draftFoundHeading}</span>
+          <span className="min-w-0 flex-1">{copy.editor.draftFoundBody}</span>
+          <Button size="sm" onClick={editor.restoreDraft}>
+            {copy.editor.draftRestore}
+          </Button>
+          <button
+            type="button"
+            onClick={editor.discardDraft}
+            className="cursor-pointer font-semibold underline underline-offset-2"
+          >
+            {copy.editor.draftDiscard}
+          </button>
+        </div>
+      ) : null}
+
+      {editor.status === 'error' ? (
+        <div
+          role="alert"
+          className="flex shrink-0 flex-col gap-1 border-b border-danger-200 bg-danger-50 px-4 py-2.5 text-[13px] text-danger-900"
+        >
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <CloudOff className="size-3.5 shrink-0" aria-hidden />
+            <span className="font-semibold">{copy.editor.saveFailedHeading}</span>
+            {/*
+              The server's own sentence, shown rather than hidden. It is the only thing that
+              names *which* rule was broken — a generic "could not save" sends someone
+              hunting through fifteen sections for a fault the server already identified.
+            */}
+            {editor.errorMessage ? <span className="min-w-0">{editor.errorMessage}</span> : null}
+            <button
+              type="button"
+              onClick={() => void editor.saveNow()}
+              className="cursor-pointer font-semibold underline underline-offset-2"
+            >
+              {copy.common.retry}
+            </button>
+          </div>
+          <p className="text-danger-800">{copy.editor.saveFailedKept}</p>
+        </div>
+      ) : null}
+
       {shareUrl ? (
         <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-brand-200 bg-brand-50 px-4 py-2 text-[13px] text-brand-900">
           <Share2 className="size-3.5 shrink-0" aria-hidden />

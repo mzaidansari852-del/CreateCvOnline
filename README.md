@@ -26,17 +26,16 @@ variables to set — rather than a stack trace.
 3. [Configuration](#configuration)
 4. [Firebase setup](#firebase-setup)
 5. [PayPal setup](#paypal-setup)
-6. [Paddle setup](#paddle-setup)
-7. [PDF export](#pdf-export)
-8. [Adding a template](#adding-a-template)
-9. [Adding a blog article](#adding-a-blog-article)
-10. [SEO](#seo)
-11. [Security](#security)
-12. [Testing](#testing)
-13. [Deployment](#deployment)
-14. [Project structure](#project-structure)
-15. [Scripts](#scripts)
-16. [Known limitations](#known-limitations)
+6. [PDF export](#pdf-export)
+7. [Adding a template](#adding-a-template)
+8. [Adding a blog article](#adding-a-blog-article)
+9. [SEO](#seo)
+10. [Security](#security)
+11. [Testing](#testing)
+12. [Deployment](#deployment)
+13. [Project structure](#project-structure)
+14. [Scripts](#scripts)
+15. [Known limitations](#known-limitations)
 
 ---
 
@@ -48,7 +47,7 @@ variables to set — rather than a stack trace.
 | **Editor** | Split-pane desktop workspace, three-tab mobile workspace, live page preview with real page-break guides, autosave, undo/redo, drag-and-drop section reordering, template switching that preserves every byte of content. |
 | **PDF** | Server-side headless Chromium. Rendered from the same React tree as the preview, so the export matches the screen. Handles 1, 2 and 3+ page documents. |
 | **Auth** | Firebase Authentication — email/password and Google — exchanged for an httpOnly session cookie. Verification, password reset, protected routes. |
-| **Payments** | Paddle Billing (merchant of record) and PayPal, side by side. Server-side amount and currency verification, signed webhooks, idempotent fulfilment. |
+| **Payments** | PayPal. Server-side amount and currency verification, signed webhooks, idempotent fulfilment. The gateway sits behind a small interface (`lib/payments/`), so a second provider is a contained change. |
 | **Plans** | Free / Pro / Lifetime. Every limit enforced on the server before the mutation runs, never by hiding a button. |
 | **Dashboard** | CV CRUD, duplication, renaming, sharing, downloads, quota meters, completeness scoring. |
 | **Admin** | Users, entitlements, payments, template usage, blog inventory, configuration readiness. Authorised by Firebase custom claims. |
@@ -112,10 +111,7 @@ The essentials:
 | `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` | All server data | Service-account key. **Never** prefix with `NEXT_PUBLIC_`. |
 | `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` / `PAYPAL_ENVIRONMENT` | Payments (PayPal) | `sandbox` or `live`. |
 | `NEXT_PUBLIC_PAYPAL_CLIENT_ID` | PayPal buttons | Must match `PAYPAL_CLIENT_ID`. |
-| `PADDLE_API_KEY` / `PADDLE_PRICE_PRO` / `PADDLE_PRICE_LIFETIME` | Payments (Paddle) | All three or the gateway stays off. Secret key, `pdl_…`. |
-| `PADDLE_WEBHOOK_SECRET` / `PADDLE_ENVIRONMENT` | Paddle webhooks | `sandbox` or **`production`** — not `live`. |
-| `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` / `NEXT_PUBLIC_PADDLE_ENVIRONMENT` | Paddle overlay | Public token (`test_`/`live_`). **Never** the `pdl_…` API key. |
-| `NEXT_PUBLIC_STORE_CURRENCY` | Both gateways | Currency `lib/plans.ts` is priced in. Falls back to `NEXT_PUBLIC_PAYPAL_CURRENCY`. |
+| `NEXT_PUBLIC_STORE_CURRENCY` | Pricing | Currency `lib/plans.ts` is priced in. Falls back to `NEXT_PUBLIC_PAYPAL_CURRENCY`. |
 | `PDF_RENDER_SECRET` | PDF/print | `openssl rand -hex 32`. |
 | `ADMIN_EMAILS` | Admin bootstrap | Comma-separated. |
 
@@ -294,41 +290,6 @@ codebase.
 
 ---
 
-## Paddle setup
-
-Paddle Billing runs alongside PayPal and is **preferred whenever it is configured**
-(`lib/payments/index.ts`), because Paddle is a merchant of record: it collects and remits
-VAT and sales tax. PayPal stays wired so that switching is a configuration change rather
-than a deployment gamble, and so that payments already recorded against it keep resolving.
-
-**The full sandbox walkthrough is [`docs/PADDLE_SETUP.md`](docs/PADDLE_SETUP.md)** — account,
-products and prices, every variable, the webhook, tunnelling for local testing, the current
-sandbox test cards, and how to confirm a purchase actually granted a plan.
-
-The short version:
-
-```env
-PADDLE_API_KEY=pdl_sdbx_apikey_…          # secret  — Developer tools > Authentication
-PADDLE_PRICE_PRO=pri_…                    # not secret, but sandbox ≠ production
-PADDLE_PRICE_LIFETIME=pri_…
-PADDLE_WEBHOOK_SECRET=pdl_ntfset_…        # secret  — Developer tools > Notifications
-PADDLE_ENVIRONMENT=sandbox                # "production" to go live. Not "live".
-NEXT_PUBLIC_PADDLE_CLIENT_TOKEN=test_…    # PUBLIC. Never the pdl_… API key.
-NEXT_PUBLIC_PADDLE_ENVIRONMENT=sandbox
-NEXT_PUBLIC_STORE_CURRENCY=USD
-```
-
-Webhook URL `https://your-domain.com/api/payments/paddle/webhook`, subscribed to
-`transaction.completed` and `transaction.paid`. Without `PADDLE_WEBHOOK_SECRET` that
-endpoint rejects every event with 401, for the same reason PayPal's does.
-
-The money is protected the same way, with one addition: the overlay is opened against a
-transaction the *server* created from the plan's own price id, so the client never names an
-amount, and the plan a webhook grants is derived from the price id rather than from the
-`customData` we round-tripped through Paddle. See `tests/lib/paddle.test.ts`.
-
----
-
 ## PDF export
 
 Resolution order at run time:
@@ -495,7 +456,6 @@ locally, and no tool can produce it before the site is deployed.
 | Firestore + Storage rules, deny by default | `firestore.rules`, `storage.rules` |
 | Signed, expiring render tokens for `/print` | `lib/pdf/token.ts` |
 | PayPal amount, currency and signature verification | `lib/payments/paypal.ts` |
-| Paddle amount verification, plan derived from the price id, HMAC webhook signatures | `lib/payments/paddle.ts` |
 | Honeypot + rate limit on the contact form | `app/api/contact/route.ts` |
 
 Two things worth stating plainly:
@@ -529,9 +489,8 @@ What is covered:
   page-break classes present.
 - **Entitlements** — quotas, expiry, downgrade behaviour, customization sanitisation.
 - **Payment verification** — underpayment, plan substitution, currency swap, malformed
-  `custom_id`; for Paddle, minor-unit conversion (including zero-decimal currencies),
-  price-id-to-plan mapping, the localised-currency rule, webhook parsing and HMAC
-  signature checks, and gateway selection.
+  `custom_id`, webhook parsing and signature checks, gateway selection, and that a failed
+  payment is reported in the customer's own language rather than the API's English.
 - **Render tokens** — tampering, expiry, cross-user forgery.
 - **The real PDF pipeline** — one-page, three-page, sidebar-across-pages, US Letter, and
   one template from every category, rendered in an actual Chromium. Skipped
@@ -550,10 +509,8 @@ What is covered:
    Set `NEXT_PUBLIC_SITE_URL` to your production URL.
 3. Deploy. `prebuild` regenerates the template registry automatically.
 4. Add your domain, then add it to Firebase **Authorized domains**.
-5. Update the PayPal webhook URL to the production domain, and — if Paddle is in use —
-   create a live Paddle notification destination for the production domain and set both
-   `PADDLE_ENVIRONMENT` and `NEXT_PUBLIC_PADDLE_ENVIRONMENT` to `production`
-   (see [`docs/PADDLE_SETUP.md` §9](docs/PADDLE_SETUP.md#9-going-live)).
+5. Update the PayPal webhook URL to the production domain and set `PAYPAL_ENVIRONMENT`
+   to `live`.
 
 Pasting `FIREBASE_PRIVATE_KEY` into the Vercel UI: keep the literal `\n` sequences and
 wrap the whole value in double quotes.

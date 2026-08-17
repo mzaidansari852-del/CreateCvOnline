@@ -4,8 +4,6 @@ import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 
 import { CheckoutButton } from '@/components/payments/CheckoutButton';
-import { CheckoutMethodChoice } from '@/components/payments/CheckoutMethodChoice';
-import { PaddleCheckoutButton } from '@/components/payments/PaddleCheckoutButton';
 import { ButtonLink } from '@/components/ui/button';
 import { Alert } from '@/components/ui/feedback';
 import { requireViewer } from '@/lib/auth/guards';
@@ -81,32 +79,11 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
   const priceLabel = `${formatPrice(plan.price)} ${interval}`;
 
   /*
-   * `availableGateways()` reports what the *server* can talk to. Paddle needs a second
-   * thing the server never uses — its public client token in the browser — and the two are
-   * configured independently, so a deployment with the API key and no
-   * `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` would render a button whose overlay can never open.
-   * Dropping it here means the payer sees the gateway that works rather than the one that
-   * is half-installed.
+   * Asked rather than assumed. A deployment with no PayPal credentials must not render a
+   * pay button — the payer would reach a 503 after committing to buy — so the page checks
+   * and shows the "no payment provider" notice instead.
    */
-  const serverGateways = availableGateways();
-  const paddleClientReady = publicEnv.paddleClientToken.length > 0;
-  const gateways = serverGateways.filter((id) => id !== 'paddle' || paddleClientReady);
-
-  /*
-   * Say so in the log when Paddle is dropped for this reason.
-   *
-   * Silently falling back is right for the customer and baffling for whoever configured
-   * the deployment: the API key is set, the price ids are set, and the checkout still
-   * offers PayPal with nothing to explain it. The usual cause is that
-   * `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` is inlined into the client bundle at *build* time,
-   * so adding it to the hosting dashboard after a deploy has no effect until a rebuild.
-   */
-  if (serverGateways.includes('paddle') && !paddleClientReady) {
-    console.warn(
-      '[checkout] Paddle is configured server-side but NEXT_PUBLIC_PADDLE_CLIENT_TOKEN is empty, ' +
-        'so it is not being offered. That variable is baked in at build time — set it and redeploy.',
-    );
-  }
+  const gateways = availableGateways();
 
   // Someone who already owns Lifetime has nothing to buy; someone on Pro can still move
   // up to Lifetime, so only the strictly-pointless purchase is blocked.
@@ -233,17 +210,8 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
           <Alert tone="danger" title={copy.checkout.unavailableTitle}>
             {copy.checkout.unavailableBody(site.supportEmail)}
           </Alert>
-        ) : gateways.length > 1 ? (
-          <CheckoutMethodChoice
-            planId={planId}
-            planName={plan.name}
-            priceLabel={priceLabel}
-            defaultMethod={gateways[0] === 'paypal' ? 'paypal' : 'paddle'}
-          />
-        ) : gateways[0] === 'paypal' ? (
-          <CheckoutButton planId={planId} planName={plan.name} priceLabel={priceLabel} />
         ) : (
-          <PaddleCheckoutButton planId={planId} planName={plan.name} priceLabel={priceLabel} />
+          <CheckoutButton planId={planId} planName={plan.name} priceLabel={priceLabel} />
         )}
       </div>
 

@@ -58,9 +58,18 @@ const paymentRoutes = walk('app/api/payments');
 
 describe('payment failures speak the customer’s language', () => {
   it('finds the payment components and routes it is meant to be checking', () => {
-    // Without this the suite passes vacuously if either directory is ever renamed.
-    expect(paymentComponents.length).toBeGreaterThanOrEqual(4);
-    expect(paymentRoutes.length).toBeGreaterThanOrEqual(4);
+    /*
+     * Without this the suite passes vacuously if either directory is ever renamed — a
+     * `walk()` over a path that no longer exists yields nothing, and a `.each` over nothing
+     * reports green.
+     *
+     * The numbers are floors, not counts, and deliberately low: they were 4 and 4 when two
+     * gateways were wired and had to come down when Paddle was removed. A floor that tracks
+     * the exact shape of the tree is a floor that gets edited every time the tree changes,
+     * which is how it ends up at zero.
+     */
+    expect(paymentComponents.length).toBeGreaterThanOrEqual(3);
+    expect(paymentRoutes.length).toBeGreaterThanOrEqual(3);
   });
 
   it.each(paymentComponents)('%s never renders the API’s English message', (file) => {

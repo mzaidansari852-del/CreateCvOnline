@@ -2,9 +2,12 @@ import { z } from 'zod';
 import { planIdSchema } from './user';
 
 /**
- * `manual` is an admin grant, not a gateway. Both real gateways are listed because they
- * run side by side: existing PayPal records must keep parsing after Paddle becomes the
- * default, and a payment's provider is how support knows where to look for it.
+ * `manual` is an admin grant, not a gateway.
+ *
+ * `paddle` stays in the enum although nothing writes it any more. This schema parses
+ * *stored* records, and removing a value from it would turn any historical order into a
+ * parse error rather than a readable row — a support ticket about a payment from last year
+ * would fail on the way out of the database. It costs one string to keep old data readable.
  */
 export const paymentProviderSchema = z.enum(['paypal', 'paddle', 'manual']);
 export type PaymentProvider = z.infer<typeof paymentProviderSchema>;
@@ -43,7 +46,7 @@ export type PaymentRecord = z.infer<typeof paymentRecordSchema>;
 /**
  * Provider-agnostic checkout contract.
  *
- * Swapping PayPal for Stripe/Paddle later means implementing this interface and
+ * Swapping PayPal for another provider later means implementing this interface and
  * changing one line in `lib/payments/index.ts` — no call-site touches routes or UI.
  */
 export interface CheckoutOrder {

@@ -478,28 +478,7 @@ export interface DashboardCopy {
    * of them is what makes that decision for them.
    */
   checkout: {
-    noTransactionTitle: string;
-    noTransactionBody: string;
-    unconfiguredTitle: string;
-    unconfiguredBody: string;
-    openFailedTitle: string;
-    openFailedBody: string;
-    openingCheckout: string;
-    completing: string;
-    reopen: string;
-    /** Rendered only when both gateways are configured; one option is not a choice. */
-    methodHeading: string;
-    methodPaddle: string;
-    methodPaypal: string;
-    methodPaddleHint: string;
-    methodPaypalHint: string;
-    /** `priceLabel` is already formatted by the page, e.g. `$9 per month`. */
-    payNow: (priceLabel: string) => string;
-    opening: string;
-    confirming: string;
-    paddleNote: (planName: string) => string;
     startFailedTitle: string;
-    startFailedBody: string;
     /**
      * The customer-facing sentence for an API error code.
      *
@@ -511,18 +490,10 @@ export interface DashboardCopy {
      * fall back to its own already-translated wording rather than to the server's English.
      */
     serverError: (code: string | undefined) => string | null;
-    scriptFailed: string;
     offline: string;
     confirmTitle: string;
-    confirmBody: string;
-    stillConfirmingBody: string;
     confirmFailedTitle: string;
     nextSignIn: string;
-    nextSupport: (email: string) => string;
-    /** Shown when the answer is "not yet" rather than "no" — the webhook may still land. */
-    nextWait: string;
-    receiptNote: string;
-    transactionRef: string;
     unavailableTitle: string;
     unavailableBody: (email: string) => string;
 
@@ -606,7 +577,11 @@ export interface DashboardCopy {
     payerReferenceNote: string;
     paypalConfirmBody: string;
     paypalFailedBody: string;
-    /** The PayPal wording of `nextSupport` and its unknown-order case, which name Paddle. */
+    /**
+     * What to do next when a payment could not be confirmed — the general case, and the one
+     * where we hold no record of the order. Both name PayPal, because a customer chasing
+     * money needs to know which company to look for on their statement.
+     */
     paypalNextSupport: (email: string) => string;
     paypalNextUnknownOrder: (email: string) => string;
     confirmOffline: string;
@@ -1079,33 +1054,7 @@ const EN: DashboardCopy = {
       `Please delete my ${siteName} account (${email}) and everything stored under it: my saved CVs, my payment history and my profile.`,
   },
   checkout: {
-    noTransactionTitle: 'This link is missing its payment reference',
-    noTransactionBody:
-      'Payment links expire and can only be opened once. Start again from the pricing page, or reply to the email you received and we will send a new one.',
-    unconfiguredTitle: 'Card payments are not available right now',
-    unconfiguredBody:
-      'This is a problem on our side, not with your payment — nothing has been charged. Please try again shortly, or contact us and we will send you a working link.',
-    openFailedTitle: 'We could not open the payment window',
-    openFailedBody:
-      'Nothing has been charged. Refresh the page to try again — if it keeps failing, contact us and quote the link you followed.',
-    openingCheckout: 'Opening the payment window…',
-    completing: 'Payment received — confirming it now…',
-    reopen: 'Reopen the payment window',
-    methodHeading: 'How would you like to pay?',
-    methodPaddle: 'Card or wallet',
-    methodPaypal: 'PayPal',
-    methodPaddleHint:
-      'Card, Apple Pay, Google Pay or PayPal, in a window that opens over this page. Paddle is the seller of record, so the VAT or sales tax for your country is worked out and shown before you pay.',
-    methodPaypalHint:
-      'You approve the payment on PayPal and come straight back here. A PayPal account is not required — a bank or debit card works too.',
-    payNow: (priceLabel) => `Pay ${priceLabel}`,
-    opening: 'Opening the payment window…',
-    confirming: 'Confirming your payment…',
-    paddleNote: (planName) =>
-      `The payment window is Paddle's, not ours — we never see or store your card details. ${planName} is unlocked only after our server confirms the payment with Paddle.`,
     startFailedTitle: 'Checkout could not start',
-    startFailedBody:
-      'We could not start the payment. Nothing has been charged — please try again in a moment.',
     serverError: (code) =>
       ({
         unauthenticated: 'Your session has ended. Sign in again and the payment will resume.',
@@ -1132,24 +1081,12 @@ const EN: DashboardCopy = {
         'server-error': 'Something went wrong on our side. Nothing has been charged.',
         'request-failed': 'Something went wrong on our side. Nothing has been charged.',
       })[code ?? ''] ?? null,
-    scriptFailed:
-      'The payment window could not load. Check that no ad blocker or privacy extension is blocking Paddle, then try again — nothing has been charged.',
     offline:
       'We could not reach the server. Check your connection and try again — nothing has been charged.',
     confirmTitle: 'Confirming your payment…',
-    confirmBody:
-      'Paddle has taken the payment and we are checking it with them before unlocking anything. You can close this tab if you need to — your plan is granted either way.',
-    stillConfirmingBody:
-      'Paddle has not confirmed the payment yet. We are still asking — this can take a few seconds while your bank settles it. Nothing is lost by waiting here.',
     confirmFailedTitle: 'We could not confirm that payment',
     nextSignIn:
       'Sign in with the account you paid with and open this page again. Your payment is safe — the plan is granted as soon as we can match it to your account.',
-    nextSupport: (email) =>
-      `If money left your account, e-mail ${email} with your Paddle transaction id and we will fix it or refund it.`,
-    nextWait:
-      'If you completed the payment, the plan is granted on its own within a minute. Press “Try again”, or open your account page shortly — you do not need to pay twice.',
-    receiptNote: 'Paddle has e-mailed you a receipt and an invoice you can claim as an expense.',
-    transactionRef: 'Transaction',
     unavailableTitle: 'Payments are not available right now',
     unavailableBody: (email) =>
       `No payment provider is configured on this deployment, so there is nothing here to pay with and nothing has been charged. Write to ${email} and we will set your plan up by hand.`,
@@ -1732,33 +1669,7 @@ const FR: DashboardCopy = {
       `Merci de supprimer mon compte ${siteName} (${email}) ainsi que tout ce qu’il contient : mes CV enregistrés, mon historique de paiement et mon profil.`,
   },
   checkout: {
-    noTransactionTitle: 'Il manque la référence de paiement dans ce lien',
-    noTransactionBody:
-      'Les liens de paiement expirent et ne peuvent être ouverts qu’une seule fois. Recommencez depuis la page des tarifs, ou répondez à l’e-mail reçu et nous vous en enverrons un nouveau.',
-    unconfiguredTitle: 'Le paiement par carte est indisponible pour le moment',
-    unconfiguredBody:
-      'Le problème vient de chez nous, pas de votre paiement — aucun montant n’a été débité. Réessayez dans quelques instants, ou contactez-nous et nous vous enverrons un lien fonctionnel.',
-    openFailedTitle: 'Impossible d’ouvrir la fenêtre de paiement',
-    openFailedBody:
-      'Aucun montant n’a été débité. Actualisez la page pour réessayer — si le problème persiste, contactez-nous en indiquant le lien que vous avez suivi.',
-    openingCheckout: 'Ouverture de la fenêtre de paiement…',
-    completing: 'Paiement reçu — confirmation en cours…',
-    reopen: 'Rouvrir la fenêtre de paiement',
-    methodHeading: 'Comment souhaitez-vous payer ?',
-    methodPaddle: 'Carte ou portefeuille',
-    methodPaypal: 'PayPal',
-    methodPaddleHint:
-      'Carte, Apple Pay, Google Pay ou PayPal, dans une fenêtre qui s’ouvre par-dessus cette page. Paddle est le vendeur officiel : la TVA applicable à votre pays est calculée et affichée avant le paiement.',
-    methodPaypalHint:
-      'Vous validez le paiement sur PayPal, puis vous revenez directement ici. Aucun compte PayPal n’est nécessaire : une carte bancaire suffit.',
-    payNow: (priceLabel) => `Payer ${priceLabel}`,
-    opening: 'Ouverture de la fenêtre de paiement…',
-    confirming: 'Confirmation du paiement…',
-    paddleNote: (planName) =>
-      `La fenêtre de paiement est celle de Paddle, pas la nôtre : nous ne voyons ni ne conservons vos données bancaires. La formule ${planName} n’est activée qu’une fois le paiement confirmé par notre serveur auprès de Paddle.`,
     startFailedTitle: 'Le paiement n’a pas pu démarrer',
-    startFailedBody:
-      'Nous n’avons pas pu démarrer le paiement. Rien n’a été débité — réessayez dans un instant.',
     serverError: (code) =>
       ({
         unauthenticated:
@@ -1786,25 +1697,12 @@ const FR: DashboardCopy = {
         'server-error': 'Une erreur est survenue de notre côté. Rien n’a été débité.',
         'request-failed': 'Une erreur est survenue de notre côté. Rien n’a été débité.',
       })[code ?? ''] ?? null,
-    scriptFailed:
-      'La fenêtre de paiement n’a pas pu se charger. Vérifiez qu’aucun bloqueur de publicités ni aucune extension de confidentialité ne bloque Paddle, puis réessayez — rien n’a été débité.',
     offline:
       'Impossible de joindre le serveur. Vérifiez votre connexion et réessayez — rien n’a été débité.',
     confirmTitle: 'Confirmation de votre paiement…',
-    confirmBody:
-      'Paddle a encaissé le paiement et nous le vérifions auprès d’eux avant de débloquer quoi que ce soit. Vous pouvez fermer cet onglet si nécessaire : votre formule sera activée dans tous les cas.',
-    stillConfirmingBody:
-      'Paddle n’a pas encore confirmé le paiement. Nous continuons de demander — cela peut prendre quelques secondes, le temps que votre banque le valide. Attendre ici ne fait rien perdre.',
     confirmFailedTitle: 'Nous n’avons pas pu confirmer ce paiement',
     nextSignIn:
       'Connectez-vous avec le compte utilisé pour payer, puis rouvrez cette page. Votre paiement n’est pas perdu : la formule est activée dès que nous pouvons la rattacher à votre compte.',
-    nextSupport: (email) =>
-      `Si un montant a été débité, écrivez à ${email} en indiquant votre identifiant de transaction Paddle : nous corrigerons la situation ou vous rembourserons.`,
-    nextWait:
-      'Si vous avez finalisé le paiement, la formule s’active d’elle-même en moins d’une minute. Appuyez sur « Réessayer » ou ouvrez la page de votre compte dans un instant — inutile de payer une seconde fois.',
-    receiptNote:
-      'Paddle vous a envoyé par e-mail un reçu ainsi qu’une facture que vous pouvez passer en frais.',
-    transactionRef: 'Transaction',
     unavailableTitle: 'Les paiements sont indisponibles pour le moment',
     unavailableBody: (email) =>
       `Aucun prestataire de paiement n’est configuré sur ce déploiement : il n’y a donc rien à payer ici et rien n’a été débité. Écrivez à ${email} et nous activerons votre formule manuellement.`,
@@ -2379,33 +2277,7 @@ const DE: DashboardCopy = {
       `Bitte löschen Sie mein ${siteName}-Konto (${email}) und alles, was darunter gespeichert ist: meine gespeicherten Lebensläufe, meinen Zahlungsverlauf und mein Profil.`,
   },
   checkout: {
-    noTransactionTitle: 'Diesem Link fehlt die Zahlungsreferenz',
-    noTransactionBody:
-      'Zahlungslinks laufen ab und lassen sich nur einmal öffnen. Beginnen Sie erneut auf der Preisseite, oder antworten Sie auf die erhaltene E-Mail — wir senden Ihnen dann einen neuen Link.',
-    unconfiguredTitle: 'Kartenzahlung ist derzeit nicht verfügbar',
-    unconfiguredBody:
-      'Das liegt an uns und nicht an Ihrer Zahlung — es wurde nichts abgebucht. Bitte versuchen Sie es in Kürze erneut, oder kontaktieren Sie uns; wir senden Ihnen dann einen funktionierenden Link.',
-    openFailedTitle: 'Das Zahlungsfenster konnte nicht geöffnet werden',
-    openFailedBody:
-      'Es wurde nichts abgebucht. Laden Sie die Seite neu, um es erneut zu versuchen — falls es weiterhin fehlschlägt, kontaktieren Sie uns und nennen Sie den verwendeten Link.',
-    openingCheckout: 'Zahlungsfenster wird geöffnet…',
-    completing: 'Zahlung eingegangen — wird bestätigt…',
-    reopen: 'Zahlungsfenster erneut öffnen',
-    methodHeading: 'Wie möchten Sie bezahlen?',
-    methodPaddle: 'Karte oder Wallet',
-    methodPaypal: 'PayPal',
-    methodPaddleHint:
-      'Karte, Apple Pay, Google Pay oder PayPal — in einem Fenster, das sich über dieser Seite öffnet. Paddle ist der Verkäufer, die Umsatzsteuer für Ihr Land wird also berechnet und vor dem Bezahlen angezeigt.',
-    methodPaypalHint:
-      'Sie bestätigen die Zahlung bei PayPal und kommen direkt hierher zurück. Ein PayPal-Konto ist nicht nötig — eine Bankkarte genügt.',
-    payNow: (priceLabel) => `${priceLabel} bezahlen`,
-    opening: 'Zahlungsfenster wird geöffnet…',
-    confirming: 'Zahlung wird bestätigt…',
-    paddleNote: (planName) =>
-      `Das Zahlungsfenster gehört Paddle, nicht uns — wir sehen und speichern Ihre Kartendaten nicht. ${planName} wird erst freigeschaltet, wenn unser Server die Zahlung bei Paddle bestätigt hat.`,
     startFailedTitle: 'Der Bezahlvorgang konnte nicht starten',
-    startFailedBody:
-      'Wir konnten die Zahlung nicht starten. Es wurde nichts abgebucht — bitte versuchen Sie es gleich noch einmal.',
     serverError: (code) =>
       ({
         unauthenticated:
@@ -2433,25 +2305,12 @@ const DE: DashboardCopy = {
         'server-error': 'Auf unserer Seite ist etwas schiefgelaufen. Es wurde nichts abgebucht.',
         'request-failed': 'Auf unserer Seite ist etwas schiefgelaufen. Es wurde nichts abgebucht.',
       })[code ?? ''] ?? null,
-    scriptFailed:
-      'Das Zahlungsfenster konnte nicht geladen werden. Prüfen Sie, ob ein Werbeblocker oder eine Datenschutz-Erweiterung Paddle blockiert, und versuchen Sie es erneut — es wurde nichts abgebucht.',
     offline:
       'Der Server ist nicht erreichbar. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut — es wurde nichts abgebucht.',
     confirmTitle: 'Ihre Zahlung wird bestätigt…',
-    confirmBody:
-      'Paddle hat die Zahlung eingezogen und wir prüfen sie dort, bevor etwas freigeschaltet wird. Sie können diesen Tab schließen, wenn Sie müssen — Ihr Tarif wird so oder so freigeschaltet.',
-    stillConfirmingBody:
-      'Paddle hat die Zahlung noch nicht bestätigt. Wir fragen weiter nach — das kann ein paar Sekunden dauern, bis Ihre Bank sie verbucht hat. Warten kostet Sie nichts.',
     confirmFailedTitle: 'Wir konnten diese Zahlung nicht bestätigen',
     nextSignIn:
       'Melden Sie sich mit dem Konto an, mit dem Sie bezahlt haben, und öffnen Sie diese Seite erneut. Ihre Zahlung ist sicher — der Tarif wird freigeschaltet, sobald wir sie Ihrem Konto zuordnen können.',
-    nextSupport: (email) =>
-      `Falls Geld von Ihrem Konto abgebucht wurde, schreiben Sie an ${email} und nennen Sie Ihre Paddle-Transaktionsnummer — wir bringen das in Ordnung oder erstatten den Betrag.`,
-    nextWait:
-      'Wenn Sie die Zahlung abgeschlossen haben, wird der Tarif innerhalb einer Minute von selbst freigeschaltet. Klicken Sie auf „Erneut versuchen“ oder öffnen Sie gleich Ihre Kontoseite — ein zweites Mal bezahlen müssen Sie nicht.',
-    receiptNote:
-      'Paddle hat Ihnen einen Beleg und eine Rechnung per E-Mail geschickt, die Sie als Ausgabe geltend machen können.',
-    transactionRef: 'Transaktion',
     unavailableTitle: 'Zahlungen sind derzeit nicht möglich',
     unavailableBody: (email) =>
       `Auf dieser Installation ist kein Zahlungsanbieter eingerichtet — es gibt hier also nichts zu bezahlen und es wurde nichts abgebucht. Schreiben Sie an ${email}, dann richten wir Ihren Tarif von Hand ein.`,

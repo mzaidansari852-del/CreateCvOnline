@@ -73,12 +73,12 @@ function bandIsUsed(cv: CVData): boolean {
   const { personal } = cv;
   const hasContact = Boolean(
     personal.email ||
-      personal.phone ||
-      personal.location ||
-      personal.website ||
-      personal.linkedin ||
-      personal.github ||
-      personal.links.length > 0,
+    personal.phone ||
+    personal.location ||
+    personal.website ||
+    personal.linkedin ||
+    personal.github ||
+    personal.links.length > 0,
   );
   return aside.length > 0 || Boolean(personal.photoUrl) || hasContact;
 }
@@ -188,7 +188,25 @@ export default function CascadeSidebar({ cv, customization: c }: CVTemplateProps
         ))}
       </aside>
 
-      <div style={{ padding: `${c.pageMargin}px ${c.pageMargin}px ${c.pageMargin}px 0` }}>
+      {/*
+        A real gutter on the left, not zero.
+
+        The left padding used to be `0`, on the reasoning that the band's own right padding
+        already separated the two columns. It does not: that padding sits *inside* the blue,
+        so it holds the band's own text off the boundary and does nothing for this column.
+        The measured gap between the band's right edge and this column's `<h1>` was 0px —
+        the name started on the exact pixel the colour ended, and every heading and paragraph
+        below it did the same.
+
+        `pageMargin` rather than something smaller, so the white column is inset by the same
+        amount on all four sides. A gutter narrower than the page margin reads as a mistake
+        rather than as a choice.
+      */}
+      <div
+        style={{
+          padding: `${c.pageMargin}px ${c.pageMargin}px ${c.pageMargin}px ${c.pageMargin}px`,
+        }}
+      >
         <header>
           <h1
             style={{

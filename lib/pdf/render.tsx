@@ -91,7 +91,8 @@ export async function renderCVHtml({
   const markup = `${letterMarkup}${cvMarkup}`;
   const paper = PAPER[customization.paperSize];
   const fontsHref = googleFontsHref([customization.bodyFont, customization.headingFont]);
-  const background = wantsCv && !wantsLetter ? documentPageBackground(customization, cv) : undefined;
+  const background =
+    wantsCv && !wantsLetter ? documentPageBackground(customization, cv) : undefined;
   const name = fullName(cv) || 'Curriculum Vitae';
 
   const brandingMarkup = branding
@@ -192,7 +193,18 @@ async function openBrowser(): Promise<Browser> {
     return puppeteer.launch({ executablePath, args: baseArgs, headless: true });
   }
 
-  // Serverless: @sparticuz/chromium ships a Lambda-compatible binary.
+  /*
+   * Serverless: @sparticuz/chromium ships a Lambda-compatible binary.
+   *
+   * The failure is logged rather than swallowed. This `catch` used to be empty, on the
+   * reasoning that a throw here just means "not on a serverless platform" — true on a
+   * laptop and badly wrong on Vercel, where it is the *only* path that can work. When it
+   * failed there, the deployment reported "No Chromium binary is available" and the actual
+   * reason — the binary not traced into the function, a mismatched runtime, an unwritable
+   * /tmp — was discarded. Two other bugs in this codebase were prolonged by exactly this
+   * shape of empty catch; it is not worth a third.
+   */
+  let serverlessFailure: string | null = null;
   try {
     const chromium = (await import('@sparticuz/chromium')).default;
     const serverlessPath = await chromium.executablePath();
@@ -204,8 +216,12 @@ async function openBrowser(): Promise<Browser> {
       };
       return puppeteer.launch(options);
     }
-  } catch {
-    /* Not running on a supported serverless platform — fall through to a local browser. */
+    serverlessFailure = '@sparticuz/chromium resolved no executable path';
+  } catch (cause) {
+    serverlessFailure = cause instanceof Error ? cause.message : String(cause);
+  }
+  if (serverlessFailure) {
+    console.error('[pdf] serverless Chromium unavailable:', serverlessFailure);
   }
 
   const local = await firstExistingPath(LOCAL_CHROMIUM_CANDIDATES);
@@ -297,9 +313,7 @@ export async function renderCVPdf(options: RenderOptions): Promise<PdfResult> {
     });
 
     // Fonts must be laid out before pagination, or the page breaks land in the wrong place.
-    await page
-      .evaluate(() => document.fonts?.ready)
-      .catch(() => undefined);
+    await page.evaluate(() => document.fonts?.ready).catch(() => undefined);
     await page.emulateMediaType('print');
 
     const print = (footer: string | null) =>

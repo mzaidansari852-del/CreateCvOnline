@@ -254,6 +254,8 @@ export interface DashboardCopy {
     pdfReadyTitle: string;
     pdfReadyBody: string;
     pdfFailed: string;
+    /** Body for the toast whose title is `pdfFailed`. Never the server's own wording. */
+    pdfUnavailableBody: string;
     duplicatedBody: (title: string) => string;
     duplicateFailed: string;
     nameLabel: string;
@@ -828,6 +830,7 @@ const EN: DashboardCopy = {
     pdfReadyTitle: 'PDF ready',
     pdfReadyBody: 'Your download should start automatically.',
     pdfFailed: 'Could not create the PDF',
+    pdfUnavailableBody: 'Unable to generate your PDF right now. Please try again in a moment.',
     duplicatedBody: (title) => `“${title}” is in your list.`,
     duplicateFailed: 'Could not duplicate that CV',
     nameLabel: 'CV name',
@@ -1424,6 +1427,8 @@ const FR: DashboardCopy = {
     pdfReadyTitle: 'PDF prêt',
     pdfReadyBody: 'Le téléchargement devrait démarrer automatiquement.',
     pdfFailed: 'Impossible de créer le PDF',
+    pdfUnavailableBody:
+      'Impossible de générer votre PDF pour le moment. Réessayez dans un instant.',
     duplicatedBody: (title) => `« ${title} » figure dans votre liste.`,
     duplicateFailed: 'Impossible de dupliquer ce CV',
     nameLabel: 'Nom du CV',
@@ -2039,6 +2044,8 @@ const DE: DashboardCopy = {
     pdfReadyTitle: 'PDF bereit',
     pdfReadyBody: 'Der Download sollte automatisch starten.',
     pdfFailed: 'PDF konnte nicht erstellt werden',
+    pdfUnavailableBody:
+      'Ihr PDF kann im Moment nicht erstellt werden. Bitte versuchen Sie es gleich noch einmal.',
     duplicatedBody: (title) => `„${title}“ steht in Ihrer Liste.`,
     duplicateFailed: 'Dieser Lebenslauf konnte nicht dupliziert werden',
     nameLabel: 'Name des Lebenslaufs',

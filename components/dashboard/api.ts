@@ -194,6 +194,13 @@ function isUserFacing(message: string | null | undefined): message is string {
 
 /** The sentence to show for a failed request, translated when the server supplied none. */
 function describeError(error: ApiRequestError, copy: AppCopy): string {
+  /*
+   * Checked before the server's sentence, which is the one exception to the rule below.
+   * A `pdf-unavailable` message is written for whoever deploys the site — it names
+   * environment variables and a README section — so unlike a quota message, the server is
+   * not the better-informed party about what the *reader* should be told.
+   */
+  if (error.code === 'pdf-unavailable') return copy.cvs.pdfUnavailableBody;
   if (isUserFacing(error.serverMessage)) return error.serverMessage;
   if (error.code === 'network') return copy.dashboard.networkError;
   if (error.isEntitlement) return copy.dashboard.planLimitBody;

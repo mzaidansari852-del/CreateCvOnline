@@ -52,6 +52,25 @@ const nextConfig: NextConfig = {
   // binaries (firebase-admin gRPC, the headless Chromium used for PDF export).
   serverExternalPackages: ['firebase-admin', 'puppeteer-core', '@sparticuz/chromium'],
 
+  /*
+   * Ship Chromium's payload with the function that launches it.
+   *
+   * `serverExternalPackages` stops the compiler bundling the package; it does not decide
+   * what gets *deployed*. Next traces a function's dependencies by following `import` and
+   * `require`, and `@sparticuz/chromium` does not require its binaries — it decompresses
+   * `bin/chromium.br` from disk at run time, by path. Nothing in the module graph mentions
+   * those files, so tracing leaves them behind and the deployed function contains the
+   * library without the browser: `executablePath()` finds nothing, and PDF export fails at
+   * the moment a customer presses Download, having built fine.
+   *
+   * Vercel raised the function size limit to 5 GB on 30 June 2026, so including the ~68 MB
+   * of Brotli payload is no longer the trade-off it once was — `@sparticuz/chromium-min`
+   * plus a remotely-hosted pack exists for the old 250 MB ceiling and is not needed here.
+   */
+  outputFileTracingIncludes: {
+    'app/api/cvs/**': ['./node_modules/@sparticuz/chromium/bin/**'],
+  },
+
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [

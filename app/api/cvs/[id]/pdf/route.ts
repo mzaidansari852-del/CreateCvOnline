@@ -72,8 +72,20 @@ export const GET = authedRoute<Params>(
       });
     } catch (error) {
       if (error instanceof PdfUnavailableError) {
-        return apiError(503, 'pdf-unavailable', error.message);
+        /*
+         * The operator's diagnosis goes to the log; the customer gets a sentence.
+         *
+         * `PdfUnavailableError.message` is a paragraph about `PDF_CHROMIUM_EXECUTABLE_PATH`,
+         * `@sparticuz/chromium` and a README section — written for whoever deploys this, and
+         * it was being rendered verbatim in a toast to someone who pressed Download. It
+         * names internals, it is untranslated, and there is nothing in it that person can
+         * act on.
+         */
+        console.error('[pdf] export unavailable:', error.message);
+        return apiError(503, 'pdf-unavailable', 'Unable to generate your PDF. Please try again.');
       }
+      // Anything else is a real fault: log it with the CV id, then let the handler answer 500.
+      console.error('[pdf] render failed for', params.id, error);
       throw error;
     }
   },

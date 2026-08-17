@@ -10,6 +10,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { useScrolledPast } from '@/hooks/browser';
 import { CHROME, navFor, otherLocales } from '@/lib/i18n/nav';
 import { LOCALE_META, alternatesFor, localeOf } from '@/lib/i18n/locales';
+import { navGroupIsMenu } from '@/lib/site';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -78,7 +79,7 @@ export function SiteHeader() {
           <nav aria-label="Main" className="hidden lg:block">
             <ul className="flex items-center gap-1">
               {nav.map((group) => {
-                const hasChildren = group.links.length > 0;
+                const hasChildren = navGroupIsMenu(group);
                 const open = openGroup === group.label;
 
                 return (
@@ -111,7 +112,13 @@ export function SiteHeader() {
                           aria-hidden
                           className={cn('transition-transform', open && 'rotate-180')}
                         >
-                          <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          <path
+                            d="m6 9 6 6 6-6"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
                         </svg>
                       </button>
                     ) : (
@@ -223,9 +230,19 @@ export function SiteHeader() {
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
               {mobileOpen ? (
-                <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path
+                  d="m6 6 12 12M18 6 6 18"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
               ) : (
-                <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path
+                  d="M4 7h16M4 12h16M4 17h16"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
               )}
             </svg>
           </button>
@@ -239,37 +256,50 @@ export function SiteHeader() {
         >
           <div className="container-page py-6">
             <nav aria-label="Mobile">
-              {nav.map((group) => (
-                <div key={group.label} className="mb-6">
-                  {group.href ? (
+              {nav.map((group) =>
+                navGroupIsMenu(group) ? (
+                  <div key={group.label} className="mb-6">
+                    {group.href ? (
+                      <Link
+                        href={group.href}
+                        className="mb-2 block text-xs font-bold tracking-[0.12em] text-ink-500 uppercase"
+                      >
+                        {group.label}
+                      </Link>
+                    ) : (
+                      <p className="mb-2 text-xs font-bold tracking-[0.12em] text-ink-500 uppercase">
+                        {group.label}
+                      </p>
+                    )}
+                    <ul className="flex flex-col">
+                      {group.links.map((link) => (
+                        <li key={link.href}>
+                          <Link
+                            href={link.href}
+                            className="block border-b border-ink-100 py-3 text-[15px] font-medium text-ink-800"
+                          >
+                            {link.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  /*
+                    One destination, so one row — at the size of a thing you tap, not the
+                    size of a section heading. The previous version printed the label twice:
+                    once small and uppercase, once again underneath as its own only child.
+                  */
+                  <div key={group.label} className="mb-6">
                     <Link
-                      href={group.href}
-                      className="mb-2 block text-xs font-bold tracking-[0.12em] text-ink-500 uppercase"
+                      href={group.href ?? '#'}
+                      className="block border-b border-ink-100 py-3 text-[15px] font-medium text-ink-800"
                     >
                       {group.label}
                     </Link>
-                  ) : (
-                    <p className="mb-2 text-xs font-bold tracking-[0.12em] text-ink-500 uppercase">
-                      {group.label}
-                    </p>
-                  )}
-                  <ul className="flex flex-col">
-                    {(group.links.length > 0
-                      ? group.links
-                      : [{ label: group.label, href: group.href ?? '#', description: undefined }]
-                    ).map((link) => (
-                      <li key={link.href}>
-                        <Link
-                          href={link.href}
-                          className="block border-b border-ink-100 py-3 text-[15px] font-medium text-ink-800"
-                        >
-                          {link.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+                  </div>
+                ),
+              )}
             </nav>
 
             <div className="mt-2 flex flex-col gap-3">

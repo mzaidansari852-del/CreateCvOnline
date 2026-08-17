@@ -55,6 +55,23 @@ export interface NavGroup {
   links: NavLink[];
 }
 
+/**
+ * Whether a nav group should open a dropdown, or just be a link.
+ *
+ * The test is not "does it have children" — it is "do those children lead anywhere the
+ * label does not already lead". The French and German navs each carry a Pricing group whose
+ * single child is the pricing page, which is also the group's own destination, so the header
+ * grew a chevron promising a menu and delivering one duplicate of the label above it. The
+ * English header shows Pricing as a plain link, so the two languages disagreed about a
+ * control that does the same thing in both.
+ *
+ * Keeping the rule here rather than in the header means the desktop menubar and the mobile
+ * sheet cannot answer it differently, which they previously did.
+ */
+export function navGroupIsMenu(group: NavGroup): boolean {
+  return group.links.some((link) => link.href !== group.href);
+}
+
 export const primaryNav: NavGroup[] = [
   {
     label: 'CV Builder',

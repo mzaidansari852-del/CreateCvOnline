@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/utils/cn';
@@ -97,11 +98,76 @@ export function DropdownMenu({
   const rootRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  /**
+   * Where the menu goes, in viewport coordinates.
+   *
+   * The menu used to be an absolutely-positioned child of the trigger, which meant any
+   * ancestor that clipped its overflow clipped the menu. Two shipped surfaces did: the CV
+   * card, which sets `overflow-hidden` to round its thumbnail, and the admin table, whose
+   * `overflow-x-auto` also clips vertically. On a CV card the menu was cut off mid-item —
+   * "Modifier" visible, everything below it gone, including Delete.
+   *
+   * So it renders in a portal at the document root and is positioned by measurement. That
+   * makes it immune to every ancestor, at the cost of having to recompute on scroll and
+   * resize — which is what the listeners below are for.
+   */
+  const place = useCallback(() => {
+    const trigger = rootRef.current;
+    const menu = menuRef.current;
+    if (!trigger || !menu) return;
+
+    const anchor = trigger.getBoundingClientRect();
+    const { offsetWidth: width, offsetHeight: height } = menu;
+    const GAP = 6;
+    const EDGE = 8;
+
+    // Flip above the trigger when there is no room below — the case that made this visible
+    // in the first place is a menu opening near the bottom of a list.
+    const below = anchor.bottom + GAP;
+    const top =
+      below + height > window.innerHeight - EDGE && anchor.top - GAP - height > EDGE
+        ? anchor.top - GAP - height
+        : below;
+
+    const preferred = align === 'end' ? anchor.right - width : anchor.left;
+    const left = Math.min(Math.max(EDGE, preferred), window.innerWidth - width - EDGE);
+
+    /*
+     * Written to the node rather than held in state. This runs on every scroll frame while
+     * the menu is open, and a `setState` there would re-render the whole menu per tick to
+     * move it two pixels. The DOM is the right place for a value that only the DOM reads.
+     */
+    menu.style.top = `${top}px`;
+    menu.style.left = `${left}px`;
+    menu.style.visibility = 'visible';
+  }, [align]);
+
+  /*
+   * Layout effect, not effect: the menu is rendered before it has been placed, and painting
+   * it at 0,0 for one frame before it jumps into position is a visible flicker.
+   */
+  useLayoutEffect(() => {
+    if (!open) return;
+    place();
+    window.addEventListener('resize', place);
+    // Capture phase, because the thing that scrolls is usually an inner container rather
+    // than the window — a dashboard list, the admin table — and those do not bubble.
+    window.addEventListener('scroll', place, true);
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [open, place]);
+
   useEffect(() => {
     if (!open) return;
 
     const onPointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      // The menu is no longer a DOM descendant of the trigger, so "outside" has to be
+      // asked of both. Checking only the root would close the menu on its own items.
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+      setOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -113,7 +179,9 @@ export function DropdownMenu({
     document.addEventListener('mousedown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
     const timer = setTimeout(() => {
-      menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])')?.focus();
+      menuRef.current
+        ?.querySelector<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])')
+        ?.focus();
     }, 10);
 
     return () => {
@@ -127,7 +195,9 @@ export function DropdownMenu({
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
     event.preventDefault();
     const focusable = Array.from(
-      menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])') ?? [],
+      menuRef.current?.querySelectorAll<HTMLElement>(
+        '[role="menuitem"]:not([aria-disabled="true"])',
+      ) ?? [],
     );
     if (focusable.length === 0) return;
     const index = focusable.indexOf(document.activeElement as HTMLElement);
@@ -151,58 +221,73 @@ export function DropdownMenu({
         {trigger({ open })}
       </button>
 
-      {open ? (
-        <div
-          ref={menuRef}
-          role="menu"
-          aria-label={ariaLabel}
-          onKeyDown={onMenuKeyDown}
-          className={cn(
-            'absolute z-80 mt-1.5 min-w-52 animate-[--animate-scale-in] overflow-hidden rounded-xl border border-ink-200 bg-white p-1 shadow-pop',
-            align === 'end' ? 'right-0 origin-top-right' : 'left-0 origin-top-left',
-            menuClassName,
-          )}
-        >
-          {items.map((item, index) => {
-            const classes = cn(
-              'flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
-              item.disabled
-                ? 'cursor-not-allowed text-ink-400'
-                : item.tone === 'danger'
-                  ? 'text-danger-700 hover:bg-danger-50 focus-visible:bg-danger-50'
-                  : 'text-ink-700 hover:bg-ink-100 focus-visible:bg-ink-100',
-            );
+      {open
+        ? createPortal(
+            <div
+              ref={menuRef}
+              role="menu"
+              aria-label={ariaLabel}
+              onKeyDown={onMenuKeyDown}
+              /*
+               * Hidden until `place()` has measured it, so it never paints at the viewport's
+               * top-left for a frame before jumping to the trigger.
+               */
+              style={{ visibility: 'hidden' }}
+              className={cn(
+                'fixed z-80 min-w-52 animate-[--animate-scale-in] overflow-hidden rounded-xl border border-ink-200 bg-white p-1 shadow-pop',
+                align === 'end' ? 'origin-top-right' : 'origin-top-left',
+                menuClassName,
+              )}
+            >
+              {items.map((item, index) => {
+                const classes = cn(
+                  'flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
+                  item.disabled
+                    ? 'cursor-not-allowed text-ink-400'
+                    : item.tone === 'danger'
+                      ? 'text-danger-700 hover:bg-danger-50 focus-visible:bg-danger-50'
+                      : 'text-ink-700 hover:bg-ink-100 focus-visible:bg-ink-100',
+                );
 
-            return (
-              <div key={`${item.label}-${index}`}>
-                {item.separatorBefore ? <div className="my-1 h-px bg-ink-100" role="separator" /> : null}
-                {item.href && !item.disabled ? (
-                  <a role="menuitem" href={item.href} className={classes} onClick={() => setOpen(false)}>
-                    {item.icon}
-                    {item.label}
-                  </a>
-                ) : (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    aria-disabled={item.disabled || undefined}
-                    disabled={item.disabled}
-                    className={classes}
-                    onClick={() => {
-                      if (item.disabled) return;
-                      setOpen(false);
-                      item.onSelect?.();
-                    }}
-                  >
-                    {item.icon}
-                    {item.label}
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ) : null}
+                return (
+                  <div key={`${item.label}-${index}`}>
+                    {item.separatorBefore ? (
+                      <div className="my-1 h-px bg-ink-100" role="separator" />
+                    ) : null}
+                    {item.href && !item.disabled ? (
+                      <a
+                        role="menuitem"
+                        href={item.href}
+                        className={classes}
+                        onClick={() => setOpen(false)}
+                      >
+                        {item.icon}
+                        {item.label}
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        aria-disabled={item.disabled || undefined}
+                        disabled={item.disabled}
+                        className={classes}
+                        onClick={() => {
+                          if (item.disabled) return;
+                          setOpen(false);
+                          item.onSelect?.();
+                        }}
+                      >
+                        {item.icon}
+                        {item.label}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
@@ -233,7 +318,12 @@ export function Accordion({
   const baseId = useId();
 
   return (
-    <div className={cn('divide-y divide-ink-200 overflow-hidden rounded-xl border border-ink-200 bg-white', className)}>
+    <div
+      className={cn(
+        'divide-y divide-ink-200 overflow-hidden rounded-xl border border-ink-200 bg-white',
+        className,
+      )}
+    >
       {items.map((item, index) => {
         const open = openIndex === index;
         return (
@@ -257,7 +347,13 @@ export function Accordion({
                   fill="none"
                   aria-hidden
                 >
-                  <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="m6 9 6 6 6-6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </button>
             </h3>

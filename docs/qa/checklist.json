@@ -1,0 +1,638 @@
+{
+  "title": "CreateCVOnline — full-site test checklist",
+  "subtitle": "Grounded in this codebase: 61 templates, 6 categories, 3 languages, PayPal, Firebase. Counts and route names below are read from the source, not guessed — if a number on screen disagrees with a number here, that is the finding.",
+  "principles": [
+    "Measure the rendered artefact, not the source. Nearly every real defect in this project was invisible in the code and obvious in the built page: a footer that asked for the wrong locale, a search box advertising terms that returned nothing, a price computed from the wrong count. Open the page, read what it actually says.",
+    "Test the failure paths in all three languages. The half-English error card survived weeks of review because it only appeared when a payment failed — every screenshot of a working checkout looked perfectly translated.",
+    "NEXT_PUBLIC_* is inlined at build time. Changing one in the hosting dashboard does nothing until the next deploy. If you changed one, confirm the deploy happened after you saved it.",
+    "Use a fresh incognito window. A warm session and an existing locale cookie hide most auth, paywall and language bugs.",
+    "Keep the browser console open the whole time. Several bugs here logged loudly and showed nothing on screen."
+  ],
+  "sections": [
+    {
+      "id": "prep",
+      "name": "Before you start",
+      "note": "Five minutes here saves an afternoon of testing the wrong build.",
+      "items": [
+        {
+          "t": "The deployed commit is the one you pushed",
+          "d": "Vercel → Deployments → top entry. Compare the SHA with `git log --oneline -1`. A green deploy of yesterday's commit looks identical to a fresh one."
+        },
+        {
+          "t": "The build finished without warnings you have not read",
+          "d": "Open the build log. `next build` reports unused variables, failed prerenders and missing env vars, and nobody reads it until something breaks."
+        },
+        {
+          "t": "Two accounts ready: one free, one paid",
+          "d": "Most quota and paywall bugs only appear on the free account. Grant the paid one through /admin so you are not spending sandbox money on every pass."
+        },
+        {
+          "t": "Fresh incognito window, console open, network tab open",
+          "d": "Console for the errors, network for the request bodies — you will need both in the payment section."
+        },
+        {
+          "t": "A phone on the same page as the desktop",
+          "d": "Not DevTools' device mode. Real touch targets, real font rendering, real keyboard."
+        }
+      ]
+    },
+    {
+      "id": "marketing-en",
+      "name": "Marketing pages — English",
+      "note": "28 public routes. For each: it renders, exactly one <h1>, no `undefined` or `NaN` anywhere on the page, header and footer present, no console errors.",
+      "items": [
+        { "t": "/", "d": "Home. Hero, template preview strip, CTAs all resolve." },
+        {
+          "t": "/pricing",
+          "d": "Free / Pro $9 per month / Lifetime $69. Check the FREE plan claims **20 templates, 18 of them rated 5/5 for ATS** — those two numbers are computed from the registry. If they read 16 and 5, the computation broke."
+        },
+        {
+          "t": "/templates — the gallery",
+          "d": "**61** templates, **6** categories (modern, corporate, creative, technology, classic, ats). Count them."
+        },
+        {
+          "t": "Category filter on /templates",
+          "d": "Each of the 6 filters narrows the grid and the count matches. Clearing returns to 61."
+        },
+        {
+          "t": "Search on /templates",
+          "d": "Search the exact terms the placeholder advertises. Every suggested term must return results — a placeholder promising a word that returns zero is worse than an empty box."
+        },
+        {
+          "t": "Phrase search returns the phrase, not the words",
+          "d": "Search `two column`. It must return the templates that are two-column (17), not every template matching `two` OR `column` (20). This exact off-by-three is how the bug was found."
+        },
+        {
+          "t": "/templates/[slug] — spot-check 6, one per category",
+          "d": "Preview image loads, description present, CTA works, related templates resolve."
+        },
+        { "t": "/cv-templates and /resume-templates", "d": "Both landing variants." },
+        {
+          "t": "/cv-builder, /resume-builder, /cv-maker, /resume-maker",
+          "d": "Four keyword landing pages."
+        },
+        { "t": "/free-cv-builder, /professional-cv, /create-cv-online", "d": "Three more." },
+        {
+          "t": "/ats-cv and /ats-resume",
+          "d": "ATS landing pages. Any template count quoted here must match the 18 figure."
+        },
+        { "t": "/cv-examples and /cv-examples/[role]", "d": "Index plus at least three roles." },
+        { "t": "/cv-for/[profession]", "d": "At least three professions." },
+        { "t": "/features, /about, /faq", "d": "Static content pages." },
+        {
+          "t": "/contact — and actually submit it",
+          "d": "The form posts to /api/contact. Submit it and confirm the message arrives; a contact form that silently fails is the most expensive kind of broken."
+        },
+        {
+          "t": "/blog and /blog/[slug]",
+          "d": "Index paginates, at least three articles render, no broken images."
+        },
+        {
+          "t": "/terms, /privacy, /cookies, /refund-policy",
+          "d": "Legal pages. Every footer link resolves — these are the links nobody clicks until a customer does."
+        },
+        {
+          "t": "Every footer and nav link, clicked",
+          "d": "Tedious, and it is where dead links live."
+        }
+      ]
+    },
+    {
+      "id": "fr",
+      "name": "French — /fr",
+      "note": "Translation bugs hide in the parts nobody screenshots: filter bars, search terms, footers, error states.",
+      "items": [
+        { "t": "/fr — home", "d": "Fully French. No English strings." },
+        {
+          "t": "/fr/tarifs",
+          "d": "Pricing. Plan names, taglines, all 15 highlights, the billing cadence, and the currency."
+        },
+        { "t": "/fr/modeles-de-cv", "d": "Gallery. All 61 templates with French taglines." },
+        {
+          "t": "The filter bar is in French",
+          "d": "The category filter component was absent from the French gallery entirely until a widened test caught it. Check the labels, not just that the buttons exist."
+        },
+        {
+          "t": "Search works in French",
+          "d": "Try « banque », « étudiant », « minimaliste ». All three were advertised in the placeholder and all three returned zero results, because the query was never translated before matching."
+        },
+        {
+          "t": "/fr/modeles-de-cv/[slug] — spot-check 3",
+          "d": "French description, and the URLs in the page point at /fr/ paths."
+        },
+        {
+          "t": "The footer is French",
+          "d": "German shipped correct copy that never rendered for weeks because the footer asked `locale === 'fr'`. Read the footer in every language."
+        },
+        { "t": "`<html lang=\"fr\">`", "d": "View source. Screen readers and Google both use it." },
+        {
+          "t": "Canonical and hreflang",
+          "d": "Canonical points at the /fr URL, not the English one. hreflang lists en, fr, de and x-default, and each points back."
+        },
+        {
+          "t": "JSON-LD uses French URLs and images",
+          "d": "The structured data on the French gallery used English URLs and English preview images. View source and read the ld+json block."
+        }
+      ]
+    },
+    {
+      "id": "de",
+      "name": "German — /de",
+      "note": "Same list, different language. Do not assume it follows from French — these two diverged in production.",
+      "items": [
+        { "t": "/de — home", "d": "Fully German." },
+        { "t": "/de/preise", "d": "Pricing, all plan copy and highlights." },
+        { "t": "/de/lebenslauf-vorlagen", "d": "Gallery, 61 templates, German taglines." },
+        { "t": "The filter bar is in German", "d": "Labels, not just presence." },
+        {
+          "t": "Search works in German",
+          "d": "Try „Bank\", „Student\", „minimalistisch\" — and any term the placeholder advertises."
+        },
+        {
+          "t": "/de/lebenslauf-vorlagen/[slug] — spot-check 3",
+          "d": "German description, /de/ URLs."
+        },
+        { "t": "The footer is German", "d": "This is the one that was silently English." },
+        {
+          "t": "`<html lang=\"de\">`, canonical, hreflang, JSON-LD",
+          "d": "Same four checks as French."
+        }
+      ]
+    },
+    {
+      "id": "locale",
+      "name": "Language switching and the locale cookie",
+      "note": "The subtlest bugs in the project live here. All four items below were real.",
+      "items": [
+        {
+          "t": "The switcher changes the language and it sticks",
+          "d": "EN → FR, then navigate to two more pages. Still French."
+        },
+        {
+          "t": "A French preference survives a visit to /dashboard",
+          "d": "Switch to French, then open /dashboard, then go back to the marketing site. If you are in English, the cookie was reset — /dashboard is not in a translated cluster and only paths that are may write the cookie."
+        },
+        {
+          "t": "Prefetch does not change the language",
+          "d": "Set French. Scroll a page with many in-viewport links so Next prefetches them. Then navigate. Still French. Prefetches used to rewrite the locale cookie, and curl never reproduced it — this one needs a real browser."
+        },
+        {
+          "t": "A signed-in profile locale beats the cookie",
+          "d": "Set the account language to German in /dashboard/settings, then set the cookie to French by visiting /fr. Signed in, you should get German."
+        },
+        {
+          "t": "The preference survives sign-out and sign-in",
+          "d": "Set French, sign out, sign in. Still French."
+        },
+        {
+          "t": "Switching language inside the editor does not lose work",
+          "d": "Type into a CV, switch language, confirm nothing was dropped and your renamed sections kept their custom names."
+        }
+      ]
+    },
+    {
+      "id": "auth",
+      "name": "Authentication",
+      "items": [
+        {
+          "t": "Register with email and password",
+          "d": "New address. Account created, verification email arrives."
+        },
+        {
+          "t": "The unverified state is honest about what is blocked",
+          "d": "Sign in before verifying. You should be told what to do, not silently limited."
+        },
+        {
+          "t": "The verification link works, and works only once",
+          "d": "Click it. Then click it again."
+        },
+        {
+          "t": "Google sign-in",
+          "d": "Both a brand-new Google account and one that already has an email/password account with the same address."
+        },
+        {
+          "t": "Forgot password, end to end",
+          "d": "Request → email → reset → sign in with the new password → old password rejected."
+        },
+        {
+          "t": "Wrong password and unknown email give useful, localised errors",
+          "d": "In all three languages. Auth errors are an error path, which is exactly where English leaks."
+        },
+        {
+          "t": "The session cookie is httpOnly",
+          "d": "DevTools → Application → Cookies. If JavaScript can read it, a single XSS becomes account takeover."
+        },
+        {
+          "t": "Protected routes bounce to /login and come back",
+          "d": "Open /dashboard/cvs signed out. You should land on /login?next=… and be returned to /dashboard/cvs after signing in."
+        },
+        {
+          "t": "Sign out really ends the session",
+          "d": "Sign out, then press Back. No dashboard content, no cached private data. Then reload."
+        },
+        {
+          "t": "An expired session mid-action is handled",
+          "d": "Sign in, delete the session cookie in DevTools, then try to save a CV. You should be asked to sign in, not shown a stack trace."
+        }
+      ]
+    },
+    {
+      "id": "dashboard",
+      "name": "Dashboard and CV management",
+      "items": [
+        {
+          "t": "/dashboard loads and the quota meters are right",
+          "d": "On a free account: 0 of 2 CVs, 0 of 5 downloads."
+        },
+        {
+          "t": "Create, rename, duplicate, delete a CV",
+          "d": "All four, and each survives a page reload."
+        },
+        { "t": "/dashboard/cvs and /dashboard/cvs/[id]", "d": "List and detail." },
+        {
+          "t": "The free CV limit is enforced by the SERVER",
+          "d": "Create 2 CVs on a free account. The button should disappear — then POST to /api/cvs directly from the console and confirm the server also refuses. A limit enforced by hiding a button is not a limit."
+        },
+        {
+          "t": "The completeness score changes as you fill the CV",
+          "d": "And is not stuck at a number."
+        },
+        {
+          "t": "/dashboard/account shows the right plan and expiry",
+          "d": "Pro should show 31 days from purchase. Lifetime should show no expiry. Free should show no expiry either — not \"expired\"."
+        },
+        { "t": "Billing history lists real orders", "d": "And nothing belonging to anyone else." },
+        { "t": "/dashboard/settings", "d": "Profile fields save; the language switcher works." },
+        {
+          "t": "/dashboard/templates",
+          "d": "Premium templates marked locked on free, unlocked on Pro."
+        },
+        {
+          "t": "A brand-new account's empty dashboard reads well",
+          "d": "Empty states are shipped once and reviewed never. Register a fresh account and look at it."
+        }
+      ]
+    },
+    {
+      "id": "editor",
+      "name": "The editor",
+      "items": [
+        { "t": "Split pane on desktop, three tabs on mobile", "d": "Both layouts, both usable." },
+        {
+          "t": "Autosave",
+          "d": "Edit, wait, reload without touching a save button. The change is there."
+        },
+        { "t": "Undo and redo", "d": "Several steps deep, including after a template switch." },
+        { "t": "Drag and drop section reordering", "d": "With a mouse and with touch." },
+        {
+          "t": "Add, remove and rename sections",
+          "d": "Then switch language: a section YOU renamed must keep your name, while untouched ones translate."
+        },
+        {
+          "t": "Template switching preserves every field",
+          "d": "Fill a CV completely, switch template three times, and confirm nothing was dropped — including custom sections."
+        },
+        {
+          "t": "Accent colour, fonts, spacing",
+          "d": "Each visibly changes the preview and persists."
+        },
+        { "t": "Paper size A4 and US Letter", "d": "Both, and the PDF matches the choice." },
+        {
+          "t": "Photo upload",
+          "d": "Known dependency: this needs Firebase Storage enabled on the project. If it fails, check that before debugging the code."
+        },
+        {
+          "t": "Page-break guides match the real PDF",
+          "d": "Add content until a guide appears, export, and compare. A guide that lies is worse than no guide."
+        },
+        {
+          "t": "A CV long enough to be 2 pages, and one long enough to be 3+",
+          "d": "Both in the preview and the PDF."
+        },
+        {
+          "t": "A completely empty CV does not crash the preview",
+          "d": "New CV, type nothing, look at the preview."
+        },
+        {
+          "t": "Hostile content",
+          "d": "300-character job title, emoji, accented and non-Latin characters, a URL with no spaces. Nothing should overflow the page or break the layout."
+        }
+      ]
+    },
+    {
+      "id": "templates",
+      "name": "Templates — 61 of them",
+      "note": "The automated suite covers all 61 against full, sparse and empty CVs. This is the human pass: does it look like something you would send to an employer.",
+      "items": [
+        {
+          "t": "One template from each of the 6 categories, with a FULL CV",
+          "d": "modern, corporate, creative, technology, classic, ats."
+        },
+        {
+          "t": "The same six with a SPARSE CV",
+          "d": "Name and one job only. Nothing should collapse or leave a huge void."
+        },
+        { "t": "The same six with an EMPTY CV", "d": "No crash, no `undefined`, no `NaN`." },
+        {
+          "t": "Accent colour is honoured in every one you check",
+          "d": "Some templates ignore it, which reads as the setting being broken."
+        },
+        {
+          "t": "Premium templates are locked on free and open on Pro",
+          "d": "And the lock is enforced server-side when rendering the PDF, not just in the picker."
+        },
+        {
+          "t": "Every preview image in the gallery loads",
+          "d": "61 cards. A missing preview is a template nobody will choose."
+        }
+      ]
+    },
+    {
+      "id": "pdf",
+      "name": "PDF export",
+      "items": [
+        { "t": "Download from the editor and from the dashboard", "d": "Both entry points." },
+        {
+          "t": "The PDF matches the on-screen preview",
+          "d": "Same fonts, same spacing, same page breaks. Open it in a real PDF reader, not the browser's inline viewer."
+        },
+        {
+          "t": "1-page, 3-page, sidebar-crossing-pages, and US Letter",
+          "d": "Four shapes that break differently."
+        },
+        {
+          "t": "Free plan: branding present. Pro: absent.",
+          "d": "And confirm the Pro version really has none, on the last page too."
+        },
+        {
+          "t": "The free download limit is enforced",
+          "d": "Five downloads in a calendar month, then the sixth is refused — by the server. Call /api/cvs/[id]/pdf directly to be sure."
+        },
+        {
+          "t": "The filename is something a person would keep",
+          "d": "Not `download.pdf` or a UUID."
+        },
+        {
+          "t": "A render token cannot be reused across users",
+          "d": "Take the PDF request from one account and replay it against another account's CV id. It must be refused."
+        }
+      ]
+    },
+    {
+      "id": "share",
+      "name": "Sharing and the public CV page",
+      "note": "This is the one place private user data is deliberately exposed. Get it wrong and it gets indexed.",
+      "items": [
+        {
+          "t": "Free plan cannot create a share link",
+          "d": "Hidden in the UI and refused by the API."
+        },
+        {
+          "t": "Pro can create one, and /cv/[shareId] opens in incognito",
+          "d": "Signed out, in a different browser."
+        },
+        {
+          "t": "The share page is noindex",
+          "d": "View source and check the robots meta. Then check /robots.txt disallows /cv/."
+        },
+        {
+          "t": "Revoking the link kills it",
+          "d": "Revoke, then reload the old URL. 404, not a cached copy."
+        },
+        {
+          "t": "A guessed share id returns nothing",
+          "d": "Change a character. No data, no error detail that helps a guesser."
+        },
+        {
+          "t": "The public page shows only the CV",
+          "d": "No email address, no account details, no dashboard chrome."
+        }
+      ]
+    },
+    {
+      "id": "payment",
+      "name": "Payment — PayPal",
+      "note": "The only path where a bug costs money or a customer. PayPal is the sole gateway; Paddle has been removed.",
+      "items": [
+        {
+          "t": "/pricing → Pro → /payment/checkout?plan=pro",
+          "d": "The card reads: Pro, $9, every 31 days, cancellable, and YOUR email address."
+        },
+        { "t": "The same for Lifetime", "d": "$69, one-time, no renewal." },
+        {
+          "t": "The checkout card is fully translated — in all three languages",
+          "d": "Heading, order summary, all six feature bullets, the button, and the small print under it. This is where an English feature list sat under a French heading."
+        },
+        {
+          "t": "The request body contains a plan id and NO amount",
+          "d": "Network tab → the POST to /api/payments/paypal/create-order. If a price, amount or currency appears in that body, a customer can name their own price."
+        },
+        {
+          "t": "Happy path, end to end",
+          "d": "Continue → PayPal sandbox → approve → return → /payment/success → the plan is active in /dashboard/account."
+        },
+        {
+          "t": "Cancel at PayPal",
+          "d": "→ /payment/cancel. Nothing charged, no plan granted, and the page says so plainly."
+        },
+        {
+          "t": "Close the tab immediately after approving",
+          "d": "The webhook must still grant the plan. Check /dashboard/account a minute later. This is the case a customer will hit on a phone."
+        },
+        {
+          "t": "Pay twice in a row for Pro",
+          "d": "The second purchase must not double-charge or corrupt the expiry. Idempotent fulfilment is claimed — verify it."
+        },
+        {
+          "t": "A Lifetime owner opening /payment/checkout?plan=pro",
+          "d": "Told there is nothing to buy, with a way back — not shown a pay button."
+        },
+        {
+          "t": "A Pro owner CAN still upgrade to Lifetime",
+          "d": "That purchase must remain available."
+        },
+        { "t": "/payment/checkout?plan=nonsense", "d": "Refused cleanly." },
+        {
+          "t": "/payment/success with no ?token=",
+          "d": "\"Missing reference\" and a way forward. Not a crash, not a spinner forever."
+        },
+        {
+          "t": "A forced failure is reported ENTIRELY in the page's language",
+          "d": "The important one. Break PayPal on a preview deploy (wrong secret), set the site to French, and try to pay. The heading AND the body AND the next step must all be French. The old code rendered our API's English `message` in preference to the translated string sitting beside it — and it only ever showed on failure."
+        },
+        {
+          "t": "Network failure mid-payment",
+          "d": "Approve, then kill your connection before the return. The page should tell you the payment may have gone through and not to pay twice."
+        },
+        {
+          "t": "The admin ledger records the order",
+          "d": "/admin/payments shows it with the right plan, amount and provider."
+        },
+        {
+          "t": "No PADDLE_ variables remain in Vercel",
+          "d": "Nothing reads them now. A live API key sitting in a dashboard that no code uses is a credential nobody is watching."
+        }
+      ]
+    },
+    {
+      "id": "admin",
+      "name": "Admin",
+      "items": [
+        {
+          "t": "A normal account cannot reach /admin",
+          "d": "Not \"the link is hidden\" — type the URL. Then call /api/admin/users/[uid] directly and confirm 403."
+        },
+        { "t": "/admin overview", "d": "Counts and readiness indicators load." },
+        { "t": "/admin/users and /admin/users/[uid]", "d": "Search, pagination, detail." },
+        {
+          "t": "Granting and revoking a plan by hand",
+          "d": "Grant Pro to a test account, confirm the account sees it, revoke it, confirm it is gone."
+        },
+        {
+          "t": "Changing a role",
+          "d": "Promote a test account to admin and back. Confirm the change takes effect on their next request."
+        },
+        { "t": "/admin/payments", "d": "The ledger, and a single order's detail." },
+        { "t": "/admin/templates", "d": "Usage figures across 61 templates." },
+        { "t": "/admin/blog", "d": "Inventory." },
+        {
+          "t": "/admin/settings — configuration readiness",
+          "d": "Should now report PayPal configured, Firebase configured, and no Paddle anywhere."
+        }
+      ]
+    },
+    {
+      "id": "seo",
+      "name": "SEO and crawlability",
+      "items": [
+        {
+          "t": "/robots.txt",
+          "d": "Correct production host. /api/, /dashboard/, /admin/, /cv/ and /payment/ disallowed."
+        },
+        {
+          "t": "/sitemap.xml",
+          "d": "Every public URL in all three languages. No /dashboard, no /admin, no /cv/[shareId], and no `localhost` — that last one has no runtime symptom at all."
+        },
+        {
+          "t": "Canonicals are absolute and locale-correct",
+          "d": "Spot-check six pages across all three languages."
+        },
+        {
+          "t": "hreflang is reciprocal",
+          "d": "The English page points at fr and de; each of those points back at the other two and at x-default."
+        },
+        {
+          "t": "OG and Twitter images resolve",
+          "d": "Paste three URLs into a link-preview debugger and look at the rendered card."
+        },
+        {
+          "t": "JSON-LD validates",
+          "d": "Google Rich Results Test on /, /pricing, a template page and a blog post — in each language."
+        },
+        {
+          "t": "noindex is on exactly the right pages",
+          "d": "Present on /payment/*, /cv/[shareId], /dashboard/*, /admin/*. ABSENT from every marketing page — a stray noindex on /pricing is silent and expensive."
+        },
+        {
+          "t": "/manifest.webmanifest and the favicons",
+          "d": "Install the PWA on a phone and look at the icon."
+        },
+        { "t": "404 page", "d": "A real 404 status, in all three languages, with a way back." }
+      ]
+    },
+    {
+      "id": "security",
+      "name": "Security spot checks",
+      "items": [
+        {
+          "t": "No secret is in the client bundle",
+          "d": "View source on /pricing, then search the /_next/static/*.js chunks for `pdl_`, `sk_`, `-----BEGIN`, your admin email and your PayPal secret. The browser is the only honest place to check this."
+        },
+        {
+          "t": "Another user's CV is not readable by id",
+          "d": "GET /api/cvs/[someone-elses-id] while signed in as a different user. 403 or 404 — never their data."
+        },
+        { "t": "Another user's CV is not editable by id", "d": "PATCH and DELETE the same id." },
+        {
+          "t": "A normal user cannot change a plan",
+          "d": "POST to /api/admin/users/[uid]/plan. 403."
+        },
+        {
+          "t": "Rate limiting bites",
+          "d": "Hammer /api/contact and the create-order endpoint. You should get 429 with a Retry-After, and the message should be translated."
+        },
+        {
+          "t": "Firestore rules deny direct client reads of other users' data",
+          "d": "Test from the Firebase console rules simulator, not only through the app."
+        },
+        {
+          "t": "The contact form cannot be used to send mail as someone else",
+          "d": "Submit with a spoofed from-address and check what actually arrives."
+        },
+        {
+          "t": "Private CV data is not indexed",
+          "d": "Search `site:createcvonline.com` for /cv/ and /dashboard URLs. Do this after the site has been live a while, not just today."
+        }
+      ]
+    },
+    {
+      "id": "mobile",
+      "name": "Mobile and performance",
+      "items": [
+        {
+          "t": "375px wide: nav, pricing cards, template grid, checkout",
+          "d": "Nothing overflows horizontally. No two-finger zoom needed to read a price."
+        },
+        {
+          "t": "The editor on a real phone",
+          "d": "Three tabs, keyboard does not cover the field you are typing into, drag-to-reorder works with touch."
+        },
+        {
+          "t": "Tap targets are big enough",
+          "d": "Anything you have to aim at on a phone is a bug."
+        },
+        {
+          "t": "Lighthouse on /, /pricing, /templates",
+          "d": "Mobile profile. Watch LCP and CLS specifically — the template grid is the likely CLS offender."
+        },
+        {
+          "t": "The template grid does not shift as images load",
+          "d": "Reload with a throttled connection and watch."
+        },
+        {
+          "t": "The site is usable with JavaScript slow, not just absent",
+          "d": "Throttle to Slow 3G and load /pricing. Anything that renders the wrong branch until hydration will show here — that class of bug put \"this link is missing its payment reference\" in front of paying customers."
+        }
+      ]
+    },
+    {
+      "id": "smoke",
+      "name": "Five-minute smoke test",
+      "note": "Run this after EVERY deploy. If all seven pass, nothing structural is broken.",
+      "items": [
+        {
+          "t": "/ loads in English, French and German",
+          "d": "Three URLs, three languages, no console errors."
+        },
+        {
+          "t": "/pricing shows 20 free templates and 18 ATS-rated",
+          "d": "The computed numbers are a canary for the whole registry."
+        },
+        { "t": "/templates shows 61 templates", "d": "Count the grid or read the heading." },
+        { "t": "Sign in works", "d": "One account, one password." },
+        {
+          "t": "Create a CV, type a name, reload — it persisted",
+          "d": "Proves auth, Firestore write and autosave in one action."
+        },
+        {
+          "t": "Download a PDF and open it",
+          "d": "Proves the render pipeline and the quota check."
+        },
+        {
+          "t": "/payment/checkout?plan=pro shows the PayPal button and the right price",
+          "d": "Do not complete it. Just confirm the gateway is offered and says $9."
+        }
+      ]
+    }
+  ]
+}

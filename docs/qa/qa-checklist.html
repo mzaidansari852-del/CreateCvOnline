@@ -1,0 +1,1997 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CreateCVOnline — full-site test checklist</title>
+<style>
+  /*
+   * Colour does three jobs here and only three.
+   *
+   * Progress is a MAGNITUDE, so it is one hue, light to dark — brand blue, the site's own.
+   * Item state is a STATUS, so it uses the reserved good/critical pair and, per the rule
+   * that matters, never carries meaning by colour alone: every state also has a distinct
+   * glyph and a written label. Red and green are 5.0 ΔE apart under deuteranopia, which is
+   * to say indistinguishable — the glyph and the word are what a colourblind tester reads.
+   * Everything else is ink: text wears text tokens, never the status colour.
+   */
+  :root {
+    --brand-50:#eff4ff; --brand-100:#dbe5ff; --brand-200:#bfd0ff; --brand-400:#6086ff;
+    --brand-600:#1f3af5; --brand-700:#1a2de1; --brand-900:#1c288f;
+    --ink-50:#f7f8fa; --ink-100:#eef0f4; --ink-200:#dde1e9; --ink-300:#c2c9d6;
+    --ink-400:#939eb3; --ink-500:#6b7791; --ink-600:#515c74; --ink-800:#2a3141;
+    --ink-900:#171c28; --ink-950:#0a0e18;
+    --good-bg:#dcfce7; --good-fg:#15803d; --good-br:#86efac;
+    --bad-bg:#fee2e2;  --bad-fg:#b91c1c;  --bad-br:#fca5a5;
+    --surface:#ffffff;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin:0; background:var(--ink-50); color:var(--ink-800);
+    font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  code {
+    font:0.86em/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    background:var(--ink-100); padding:.1em .35em; border-radius:4px; color:var(--ink-900);
+    overflow-wrap:break-word;
+  }
+  .wrap { max-width:1000px; margin:0 auto; padding:0 20px 80px; }
+
+  /* ---------------------------------------------------------------- masthead */
+  .masthead { padding:44px 0 26px; }
+  .masthead h1 { margin:0 0 10px; font-size:clamp(25px,4.4vw,36px); line-height:1.15; letter-spacing:-.02em; color:var(--ink-950); }
+  .masthead .sub { margin:0; max-width:70ch; color:var(--ink-600); }
+
+  /* ------------------------------------------------------------- the meter
+     A hero number, not a chart: one quantity, read at a glance. The bar is the
+     same quantity again in a form you can judge without reading — one hue, no
+     ticks, no gridlines, nothing to decode. */
+  .meter { background:var(--surface); border:1px solid var(--ink-200); border-radius:14px; padding:20px 22px; margin:8px 0 30px; }
+  .meter-top { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .hero { font-size:38px; font-weight:800; letter-spacing:-.03em; color:var(--ink-950); line-height:1; font-variant-numeric:tabular-nums; }
+  .hero-of { font-size:17px; font-weight:600; color:var(--ink-400); }
+  .hero-lbl { font-size:13px; color:var(--ink-500); margin-left:auto; }
+  .hero-lbl b { color:var(--bad-fg); font-variant-numeric:tabular-nums; }
+  .track { height:8px; background:var(--ink-100); border-radius:99px; margin-top:16px; overflow:hidden; }
+  .fill { height:100%; width:0%; border-radius:99px; background:linear-gradient(90deg,var(--brand-400),var(--brand-700)); transition:width .18s ease; }
+
+  /* ----------------------------------------------------------------- toolbar */
+  .bar { position:sticky; top:0; z-index:5; display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+         padding:11px 0; margin-bottom:8px; background:color-mix(in srgb,var(--ink-50) 88%,transparent);
+         backdrop-filter:blur(8px); border-bottom:1px solid var(--ink-200); }
+  .btn { font:inherit; font-size:13px; font-weight:600; cursor:pointer; padding:7px 13px; border-radius:8px;
+         border:1px solid var(--ink-300); background:var(--surface); color:var(--ink-800); }
+  .btn:hover { border-color:var(--brand-400); color:var(--brand-700); }
+  .btn[aria-pressed="true"] { background:var(--brand-700); border-color:var(--brand-700); color:#fff; }
+  .btn.ghost { border-color:transparent; background:transparent; color:var(--ink-500); }
+  .btn.ghost:hover { color:var(--brand-700); }
+  .spacer { flex:1 1 auto; }
+
+  /* -------------------------------------------------------------- principles */
+  .how { background:var(--brand-50); border:1px solid var(--brand-100); border-radius:14px; padding:20px 24px; margin:0 0 32px; }
+  .how h2 { margin:0 0 12px; font-size:13px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--brand-900); }
+  .how ol { margin:0; padding-left:20px; color:var(--ink-800); }
+  .how li { margin:0 0 9px; }
+  .how li:last-child { margin-bottom:0; }
+
+  /* ------------------------------------------------------------------ index */
+  .toc { display:flex; flex-wrap:wrap; gap:7px; margin:0 0 34px; }
+  .toc a { font-size:13px; font-weight:600; text-decoration:none; padding:6px 11px; border-radius:99px;
+           background:var(--surface); border:1px solid var(--ink-200); color:var(--ink-600); }
+  .toc a:hover { border-color:var(--brand-400); color:var(--brand-700); }
+  .toc a i { font-style:normal; color:var(--ink-400); font-variant-numeric:tabular-nums; }
+
+  /* --------------------------------------------------------------- sections */
+  .sec { margin:0 0 34px; scroll-margin-top:70px; }
+  .sec-head { display:flex; align-items:center; gap:14px; padding-bottom:9px; border-bottom:2px solid var(--ink-200); }
+  .sec-head h2 { margin:0; font-size:19px; letter-spacing:-.01em; color:var(--ink-950); }
+  .sec-count { margin:0 0 0 auto; font-size:13px; font-weight:700; color:var(--ink-400); font-variant-numeric:tabular-nums; }
+  .sec.done .sec-count { color:var(--good-fg); }
+  .sec-note { margin:13px 0 0; font-size:14px; color:var(--ink-600); max-width:78ch; }
+
+  .items { list-style:none; margin:15px 0 0; padding:0; }
+  .item { display:flex; gap:13px; align-items:flex-start; padding:13px 15px; margin-bottom:7px;
+          background:var(--surface); border:1px solid var(--ink-200); border-radius:11px; }
+  .item .body { flex:1 1 auto; min-width:0; }
+  .item .t { margin:0; font-weight:650; color:var(--ink-900); overflow-wrap:break-word; }
+  .item .d { margin:5px 0 0; font-size:13.5px; color:var(--ink-600); overflow-wrap:break-word; }
+
+  /* The three-state control. Glyph + label + colour, in that order of importance. */
+  .mark { flex:0 0 auto; width:26px; height:26px; margin-top:1px; cursor:pointer; padding:0;
+          display:grid; place-items:center; border-radius:7px;
+          border:1.5px solid var(--ink-300); background:var(--surface); }
+  .mark:hover { border-color:var(--brand-400); }
+  .mark .glyph { font-size:15px; font-weight:800; line-height:1; }
+  .state-label { flex:0 0 auto; align-self:center; font-size:11px; font-weight:700; letter-spacing:.05em;
+                 text-transform:uppercase; color:var(--ink-400); white-space:nowrap; }
+
+  .item[data-state="pass"] { background:var(--good-bg); border-color:var(--good-br); }
+  .item[data-state="pass"] .mark { background:var(--good-fg); border-color:var(--good-fg); }
+  .item[data-state="pass"] .glyph { color:#fff; }
+  .item[data-state="pass"] .glyph::before { content:"\2713"; }
+  .item[data-state="pass"] .state-label { color:var(--good-fg); }
+  .item[data-state="pass"] .t { color:var(--ink-800); }
+
+  .item[data-state="fail"] { background:var(--bad-bg); border-color:var(--bad-br); }
+  .item[data-state="fail"] .mark { background:var(--bad-fg); border-color:var(--bad-fg); }
+  .item[data-state="fail"] .glyph { color:#fff; }
+  .item[data-state="fail"] .glyph::before { content:"\2715"; }
+  .item[data-state="fail"] .state-label { color:var(--bad-fg); }
+
+  .item.hidden { display:none; }
+
+  .foot { margin-top:44px; padding-top:20px; border-top:1px solid var(--ink-200); font-size:13px; color:var(--ink-500); }
+
+  @media (max-width:560px) {
+    .state-label { display:none; }
+    .hero-lbl { margin-left:0; width:100%; }
+  }
+  @media print {
+    body { background:#fff; }
+    .bar, .toc { display:none; }
+    .item, .meter, .how { break-inside:avoid; }
+  }
+</style>
+</head>
+<body data-total="154">
+<div class="wrap">
+
+  <div class="masthead">
+    <h1>CreateCVOnline — full-site test checklist</h1>
+    <p class="sub">Grounded in this codebase: 61 templates, 6 categories, 3 languages, PayPal, Firebase. Counts and route names below are read from the source, not guessed — if a number on screen disagrees with a number here, that is the finding.</p>
+  </div>
+
+  <div class="meter">
+    <div class="meter-top">
+      <span class="hero" id="done">0</span>
+      <span class="hero-of">/ 154 checks</span>
+      <span class="hero-lbl" id="failnote"></span>
+    </div>
+    <div class="track"><div class="fill" id="fill"></div></div>
+  </div>
+
+  <div class="bar">
+    <button class="btn" type="button" id="f-all" aria-pressed="true">All</button>
+    <button class="btn" type="button" id="f-todo" aria-pressed="false">Not tested</button>
+    <button class="btn" type="button" id="f-fail" aria-pressed="false">Failed</button>
+    <span class="spacer"></span>
+    <button class="btn" type="button" id="copy">Copy report</button>
+    <button class="btn ghost" type="button" id="print">Print</button>
+    <button class="btn ghost" type="button" id="reset">Reset</button>
+  </div>
+
+  <div class="how">
+    <h2>How to test</h2>
+    <ol><li>Measure the rendered artefact, not the source. Nearly every real defect in this project was invisible in the code and obvious in the built page: a footer that asked for the wrong locale, a search box advertising terms that returned nothing, a price computed from the wrong count. Open the page, read what it actually says.</li><li>Test the failure paths in all three languages. The half-English error card survived weeks of review because it only appeared when a payment failed — every screenshot of a working checkout looked perfectly translated.</li><li>NEXT_PUBLIC_* is inlined at build time. Changing one in the hosting dashboard does nothing until the next deploy. If you changed one, confirm the deploy happened after you saved it.</li><li>Use a fresh incognito window. A warm session and an existing locale cookie hide most auth, paywall and language bugs.</li><li>Keep the browser console open the whole time. Several bugs here logged loudly and showed nothing on screen.</li></ol>
+  </div>
+
+  <nav class="toc">
+    <a href="#prep">Before you start <i>5</i></a><a href="#marketing-en">Marketing pages — English <i>18</i></a><a href="#fr">French — /fr <i>10</i></a><a href="#de">German — /de <i>8</i></a><a href="#locale">Language switching and the locale cookie <i>6</i></a><a href="#auth">Authentication <i>10</i></a><a href="#dashboard">Dashboard and CV management <i>10</i></a><a href="#editor">The editor <i>13</i></a><a href="#templates">Templates — 61 of them <i>6</i></a><a href="#pdf">PDF export <i>7</i></a><a href="#share">Sharing and the public CV page <i>6</i></a><a href="#payment">Payment — PayPal <i>16</i></a><a href="#admin">Admin <i>9</i></a><a href="#seo">SEO and crawlability <i>9</i></a><a href="#security">Security spot checks <i>8</i></a><a href="#mobile">Mobile and performance <i>6</i></a><a href="#smoke">Five-minute smoke test <i>7</i></a>
+  </nav>
+
+  
+      <section class="sec" id="prep" data-sec="prep">
+        <header class="sec-head">
+          <h2>Before you start</h2>
+          <p class="sec-count"><span class="sc-done">0</span>/<span class="sc-total">5</span></p>
+        </header>
+        <p class="sec-note">Five minutes here saves an afternoon of testing the wrong build.</p>
+        <ul class="items">
+          
+            <li class="item" data-state="todo" data-id="prep-0">
+              <button class="mark" type="button" aria-label="Mark: The deployed commit is the one you pushed">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The deployed commit is the one you pushed</p>
+                <p class="d">Vercel → Deployments → top entry. Compare the SHA with <code>git log --oneline -1</code>. A green deploy of yesterday's commit looks identical to a fresh one.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="prep-1">
+              <button class="mark" type="button" aria-label="Mark: The build finished without warnings you have not read">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The build finished without warnings you have not read</p>
+                <p class="d">Open the build log. <code>next build</code> reports unused variables, failed prerenders and missing env vars, and nobody reads it until something breaks.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="prep-2">
+              <button class="mark" type="button" aria-label="Mark: Two accounts ready: one free, one paid">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Two accounts ready: one free, one paid</p>
+                <p class="d">Most quota and paywall bugs only appear on the free account. Grant the paid one through /admin so you are not spending sandbox money on every pass.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="prep-3">
+              <button class="mark" type="button" aria-label="Mark: Fresh incognito window, console open, network tab open">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Fresh incognito window, console open, network tab open</p>
+                <p class="d">Console for the errors, network for the request bodies — you will need both in the payment section.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="prep-4">
+              <button class="mark" type="button" aria-label="Mark: A phone on the same page as the desktop">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">A phone on the same page as the desktop</p>
+                <p class="d">Not DevTools' device mode. Real touch targets, real font rendering, real keyboard.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+        </ul>
+      </section>
+      <section class="sec" id="marketing-en" data-sec="marketing-en">
+        <header class="sec-head">
+          <h2>Marketing pages — English</h2>
+          <p class="sec-count"><span class="sc-done">0</span>/<span class="sc-total">18</span></p>
+        </header>
+        <p class="sec-note">28 public routes. For each: it renders, exactly one &lt;h1&gt;, no <code>undefined</code> or <code>NaN</code> anywhere on the page, header and footer present, no console errors.</p>
+        <ul class="items">
+          
+            <li class="item" data-state="todo" data-id="marketing-en-0">
+              <button class="mark" type="button" aria-label="Mark: /">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/</p>
+                <p class="d">Home. Hero, template preview strip, CTAs all resolve.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="marketing-en-1">
+              <button class="mark" type="button" aria-label="Mark: /pricing">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/pricing</p>
+                <p class="d">Free / Pro $9 per month / Lifetime $69. Check the FREE plan claims <strong>20 templates, 18 of them rated 5/5 for ATS</strong> — those two numbers are computed from the registry. If they read 16 and 5, the computation broke.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="marketing-en-2">
+              <button class="mark" type="button" aria-label="Mark: /templates — the gallery">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/templates — the gallery</p>
+                <p class="d"><strong>61</strong> templates, <strong>6</strong> categories (modern, corporate, creative, technology, classic, ats). Count them.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="marketing-en-3">
+              <button class="mark" type="button" aria-label="Mark: Category filter on /templates">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Category filter on /templates</p>
+                <p class="d">Each of the 6 filters narrows the grid and the count matches. Clearing returns to 61.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="marketing-en-4">
+              <button class="mark" type="button" aria-label="Mark: Search on /templates">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Search on /templates</p>
+                <p class="d">Search the exact terms the placeholder advertises. Every suggested term must return results — a placeholder promising a word that returns zero is worse than an empty box.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="marketing-en-5">
+              <button class="mark" type="button" aria-label="Mark: Phrase search returns the phrase, not the words">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Phrase search returns the phrase, not the words</p>
+                <p class="d">Search <code>two column</code>. It must return the templates that are two-column (17), not every template matching <code>two</code> OR <code>column</code> (20). This exact off-by-three is how the bug was found.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="marketing-en-6">
+              <button class="mark" type="button" aria-label="Mark: /templates/[slug] — spot-check 6, one per category">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/templates/[slug] — spot-check 6, one per category</p>
+                <p class="d">Preview image loads, description present, CTA works, related templates resolve.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="marketing-en-7">
+              <button class="mark" type="button" aria-label="Mark: /cv-templates and /resume-templates">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/cv-templates and /resume-templates</p>
+                <p class="d">Both landing variants.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="marketing-en-8">
+              <button class="mark" type="button" aria-label="Mark: /cv-builder, /resume-builder, /cv-maker, /resume-maker">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/cv-builder, /resume-builder, /cv-maker, /resume-maker</p>
+                <p class="d">Four keyword landing pages.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="marketing-en-9">
+              <button class="mark" type="button" aria-label="Mark: /free-cv-builder, /professional-cv, /create-cv-online">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/free-cv-builder, /professional-cv, /create-cv-online</p>
+                <p class="d">Three more.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="marketing-en-10">
+              <button class="mark" type="button" aria-label="Mark: /ats-cv and /ats-resume">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/ats-cv and /ats-resume</p>
+                <p class="d">ATS landing pages. Any template count quoted here must match the 18 figure.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="marketing-en-11">
+              <button class="mark" type="button" aria-label="Mark: /cv-examples and /cv-examples/[role]">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/cv-examples and /cv-examples/[role]</p>
+                <p class="d">Index plus at least three roles.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="marketing-en-12">
+              <button class="mark" type="button" aria-label="Mark: /cv-for/[profession]">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/cv-for/[profession]</p>
+                <p class="d">At least three professions.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="marketing-en-13">
+              <button class="mark" type="button" aria-label="Mark: /features, /about, /faq">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/features, /about, /faq</p>
+                <p class="d">Static content pages.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="marketing-en-14">
+              <button class="mark" type="button" aria-label="Mark: /contact — and actually submit it">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/contact — and actually submit it</p>
+                <p class="d">The form posts to /api/contact. Submit it and confirm the message arrives; a contact form that silently fails is the most expensive kind of broken.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="marketing-en-15">
+              <button class="mark" type="button" aria-label="Mark: /blog and /blog/[slug]">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/blog and /blog/[slug]</p>
+                <p class="d">Index paginates, at least three articles render, no broken images.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="marketing-en-16">
+              <button class="mark" type="button" aria-label="Mark: /terms, /privacy, /cookies, /refund-policy">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/terms, /privacy, /cookies, /refund-policy</p>
+                <p class="d">Legal pages. Every footer link resolves — these are the links nobody clicks until a customer does.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="marketing-en-17">
+              <button class="mark" type="button" aria-label="Mark: Every footer and nav link, clicked">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Every footer and nav link, clicked</p>
+                <p class="d">Tedious, and it is where dead links live.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+        </ul>
+      </section>
+      <section class="sec" id="fr" data-sec="fr">
+        <header class="sec-head">
+          <h2>French — /fr</h2>
+          <p class="sec-count"><span class="sc-done">0</span>/<span class="sc-total">10</span></p>
+        </header>
+        <p class="sec-note">Translation bugs hide in the parts nobody screenshots: filter bars, search terms, footers, error states.</p>
+        <ul class="items">
+          
+            <li class="item" data-state="todo" data-id="fr-0">
+              <button class="mark" type="button" aria-label="Mark: /fr — home">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/fr — home</p>
+                <p class="d">Fully French. No English strings.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="fr-1">
+              <button class="mark" type="button" aria-label="Mark: /fr/tarifs">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/fr/tarifs</p>
+                <p class="d">Pricing. Plan names, taglines, all 15 highlights, the billing cadence, and the currency.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="fr-2">
+              <button class="mark" type="button" aria-label="Mark: /fr/modeles-de-cv">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/fr/modeles-de-cv</p>
+                <p class="d">Gallery. All 61 templates with French taglines.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="fr-3">
+              <button class="mark" type="button" aria-label="Mark: The filter bar is in French">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The filter bar is in French</p>
+                <p class="d">The category filter component was absent from the French gallery entirely until a widened test caught it. Check the labels, not just that the buttons exist.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="fr-4">
+              <button class="mark" type="button" aria-label="Mark: Search works in French">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Search works in French</p>
+                <p class="d">Try « banque », « étudiant », « minimaliste ». All three were advertised in the placeholder and all three returned zero results, because the query was never translated before matching.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="fr-5">
+              <button class="mark" type="button" aria-label="Mark: /fr/modeles-de-cv/[slug] — spot-check 3">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/fr/modeles-de-cv/[slug] — spot-check 3</p>
+                <p class="d">French description, and the URLs in the page point at /fr/ paths.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="fr-6">
+              <button class="mark" type="button" aria-label="Mark: The footer is French">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The footer is French</p>
+                <p class="d">German shipped correct copy that never rendered for weeks because the footer asked <code>locale === 'fr'</code>. Read the footer in every language.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="fr-7">
+              <button class="mark" type="button" aria-label="Mark: `&lt;html lang=&quot;fr&quot;&gt;`">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t"><code>&lt;html lang=&quot;fr&quot;&gt;</code></p>
+                <p class="d">View source. Screen readers and Google both use it.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="fr-8">
+              <button class="mark" type="button" aria-label="Mark: Canonical and hreflang">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Canonical and hreflang</p>
+                <p class="d">Canonical points at the /fr URL, not the English one. hreflang lists en, fr, de and x-default, and each points back.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="fr-9">
+              <button class="mark" type="button" aria-label="Mark: JSON-LD uses French URLs and images">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">JSON-LD uses French URLs and images</p>
+                <p class="d">The structured data on the French gallery used English URLs and English preview images. View source and read the ld+json block.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+        </ul>
+      </section>
+      <section class="sec" id="de" data-sec="de">
+        <header class="sec-head">
+          <h2>German — /de</h2>
+          <p class="sec-count"><span class="sc-done">0</span>/<span class="sc-total">8</span></p>
+        </header>
+        <p class="sec-note">Same list, different language. Do not assume it follows from French — these two diverged in production.</p>
+        <ul class="items">
+          
+            <li class="item" data-state="todo" data-id="de-0">
+              <button class="mark" type="button" aria-label="Mark: /de — home">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/de — home</p>
+                <p class="d">Fully German.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="de-1">
+              <button class="mark" type="button" aria-label="Mark: /de/preise">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/de/preise</p>
+                <p class="d">Pricing, all plan copy and highlights.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="de-2">
+              <button class="mark" type="button" aria-label="Mark: /de/lebenslauf-vorlagen">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/de/lebenslauf-vorlagen</p>
+                <p class="d">Gallery, 61 templates, German taglines.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="de-3">
+              <button class="mark" type="button" aria-label="Mark: The filter bar is in German">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The filter bar is in German</p>
+                <p class="d">Labels, not just presence.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="de-4">
+              <button class="mark" type="button" aria-label="Mark: Search works in German">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Search works in German</p>
+                <p class="d">Try „Bank&quot;, „Student&quot;, „minimalistisch&quot; — and any term the placeholder advertises.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="de-5">
+              <button class="mark" type="button" aria-label="Mark: /de/lebenslauf-vorlagen/[slug] — spot-check 3">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/de/lebenslauf-vorlagen/[slug] — spot-check 3</p>
+                <p class="d">German description, /de/ URLs.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="de-6">
+              <button class="mark" type="button" aria-label="Mark: The footer is German">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The footer is German</p>
+                <p class="d">This is the one that was silently English.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="de-7">
+              <button class="mark" type="button" aria-label="Mark: `&lt;html lang=&quot;de&quot;&gt;`, canonical, hreflang, JSON-LD">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t"><code>&lt;html lang=&quot;de&quot;&gt;</code>, canonical, hreflang, JSON-LD</p>
+                <p class="d">Same four checks as French.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+        </ul>
+      </section>
+      <section class="sec" id="locale" data-sec="locale">
+        <header class="sec-head">
+          <h2>Language switching and the locale cookie</h2>
+          <p class="sec-count"><span class="sc-done">0</span>/<span class="sc-total">6</span></p>
+        </header>
+        <p class="sec-note">The subtlest bugs in the project live here. All four items below were real.</p>
+        <ul class="items">
+          
+            <li class="item" data-state="todo" data-id="locale-0">
+              <button class="mark" type="button" aria-label="Mark: The switcher changes the language and it sticks">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The switcher changes the language and it sticks</p>
+                <p class="d">EN → FR, then navigate to two more pages. Still French.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="locale-1">
+              <button class="mark" type="button" aria-label="Mark: A French preference survives a visit to /dashboard">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">A French preference survives a visit to /dashboard</p>
+                <p class="d">Switch to French, then open /dashboard, then go back to the marketing site. If you are in English, the cookie was reset — /dashboard is not in a translated cluster and only paths that are may write the cookie.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="locale-2">
+              <button class="mark" type="button" aria-label="Mark: Prefetch does not change the language">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Prefetch does not change the language</p>
+                <p class="d">Set French. Scroll a page with many in-viewport links so Next prefetches them. Then navigate. Still French. Prefetches used to rewrite the locale cookie, and curl never reproduced it — this one needs a real browser.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="locale-3">
+              <button class="mark" type="button" aria-label="Mark: A signed-in profile locale beats the cookie">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">A signed-in profile locale beats the cookie</p>
+                <p class="d">Set the account language to German in /dashboard/settings, then set the cookie to French by visiting /fr. Signed in, you should get German.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="locale-4">
+              <button class="mark" type="button" aria-label="Mark: The preference survives sign-out and sign-in">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The preference survives sign-out and sign-in</p>
+                <p class="d">Set French, sign out, sign in. Still French.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="locale-5">
+              <button class="mark" type="button" aria-label="Mark: Switching language inside the editor does not lose work">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Switching language inside the editor does not lose work</p>
+                <p class="d">Type into a CV, switch language, confirm nothing was dropped and your renamed sections kept their custom names.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+        </ul>
+      </section>
+      <section class="sec" id="auth" data-sec="auth">
+        <header class="sec-head">
+          <h2>Authentication</h2>
+          <p class="sec-count"><span class="sc-done">0</span>/<span class="sc-total">10</span></p>
+        </header>
+        
+        <ul class="items">
+          
+            <li class="item" data-state="todo" data-id="auth-0">
+              <button class="mark" type="button" aria-label="Mark: Register with email and password">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Register with email and password</p>
+                <p class="d">New address. Account created, verification email arrives.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="auth-1">
+              <button class="mark" type="button" aria-label="Mark: The unverified state is honest about what is blocked">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The unverified state is honest about what is blocked</p>
+                <p class="d">Sign in before verifying. You should be told what to do, not silently limited.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="auth-2">
+              <button class="mark" type="button" aria-label="Mark: The verification link works, and works only once">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The verification link works, and works only once</p>
+                <p class="d">Click it. Then click it again.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="auth-3">
+              <button class="mark" type="button" aria-label="Mark: Google sign-in">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Google sign-in</p>
+                <p class="d">Both a brand-new Google account and one that already has an email/password account with the same address.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="auth-4">
+              <button class="mark" type="button" aria-label="Mark: Forgot password, end to end">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Forgot password, end to end</p>
+                <p class="d">Request → email → reset → sign in with the new password → old password rejected.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="auth-5">
+              <button class="mark" type="button" aria-label="Mark: Wrong password and unknown email give useful, localised errors">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Wrong password and unknown email give useful, localised errors</p>
+                <p class="d">In all three languages. Auth errors are an error path, which is exactly where English leaks.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="auth-6">
+              <button class="mark" type="button" aria-label="Mark: The session cookie is httpOnly">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The session cookie is httpOnly</p>
+                <p class="d">DevTools → Application → Cookies. If JavaScript can read it, a single XSS becomes account takeover.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="auth-7">
+              <button class="mark" type="button" aria-label="Mark: Protected routes bounce to /login and come back">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Protected routes bounce to /login and come back</p>
+                <p class="d">Open /dashboard/cvs signed out. You should land on /login?next=… and be returned to /dashboard/cvs after signing in.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="auth-8">
+              <button class="mark" type="button" aria-label="Mark: Sign out really ends the session">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Sign out really ends the session</p>
+                <p class="d">Sign out, then press Back. No dashboard content, no cached private data. Then reload.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="auth-9">
+              <button class="mark" type="button" aria-label="Mark: An expired session mid-action is handled">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">An expired session mid-action is handled</p>
+                <p class="d">Sign in, delete the session cookie in DevTools, then try to save a CV. You should be asked to sign in, not shown a stack trace.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+        </ul>
+      </section>
+      <section class="sec" id="dashboard" data-sec="dashboard">
+        <header class="sec-head">
+          <h2>Dashboard and CV management</h2>
+          <p class="sec-count"><span class="sc-done">0</span>/<span class="sc-total">10</span></p>
+        </header>
+        
+        <ul class="items">
+          
+            <li class="item" data-state="todo" data-id="dashboard-0">
+              <button class="mark" type="button" aria-label="Mark: /dashboard loads and the quota meters are right">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/dashboard loads and the quota meters are right</p>
+                <p class="d">On a free account: 0 of 2 CVs, 0 of 5 downloads.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="dashboard-1">
+              <button class="mark" type="button" aria-label="Mark: Create, rename, duplicate, delete a CV">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Create, rename, duplicate, delete a CV</p>
+                <p class="d">All four, and each survives a page reload.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="dashboard-2">
+              <button class="mark" type="button" aria-label="Mark: /dashboard/cvs and /dashboard/cvs/[id]">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/dashboard/cvs and /dashboard/cvs/[id]</p>
+                <p class="d">List and detail.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="dashboard-3">
+              <button class="mark" type="button" aria-label="Mark: The free CV limit is enforced by the SERVER">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The free CV limit is enforced by the SERVER</p>
+                <p class="d">Create 2 CVs on a free account. The button should disappear — then POST to /api/cvs directly from the console and confirm the server also refuses. A limit enforced by hiding a button is not a limit.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="dashboard-4">
+              <button class="mark" type="button" aria-label="Mark: The completeness score changes as you fill the CV">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The completeness score changes as you fill the CV</p>
+                <p class="d">And is not stuck at a number.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="dashboard-5">
+              <button class="mark" type="button" aria-label="Mark: /dashboard/account shows the right plan and expiry">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/dashboard/account shows the right plan and expiry</p>
+                <p class="d">Pro should show 31 days from purchase. Lifetime should show no expiry. Free should show no expiry either — not &quot;expired&quot;.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="dashboard-6">
+              <button class="mark" type="button" aria-label="Mark: Billing history lists real orders">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Billing history lists real orders</p>
+                <p class="d">And nothing belonging to anyone else.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="dashboard-7">
+              <button class="mark" type="button" aria-label="Mark: /dashboard/settings">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/dashboard/settings</p>
+                <p class="d">Profile fields save; the language switcher works.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="dashboard-8">
+              <button class="mark" type="button" aria-label="Mark: /dashboard/templates">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/dashboard/templates</p>
+                <p class="d">Premium templates marked locked on free, unlocked on Pro.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="dashboard-9">
+              <button class="mark" type="button" aria-label="Mark: A brand-new account's empty dashboard reads well">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">A brand-new account's empty dashboard reads well</p>
+                <p class="d">Empty states are shipped once and reviewed never. Register a fresh account and look at it.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+        </ul>
+      </section>
+      <section class="sec" id="editor" data-sec="editor">
+        <header class="sec-head">
+          <h2>The editor</h2>
+          <p class="sec-count"><span class="sc-done">0</span>/<span class="sc-total">13</span></p>
+        </header>
+        
+        <ul class="items">
+          
+            <li class="item" data-state="todo" data-id="editor-0">
+              <button class="mark" type="button" aria-label="Mark: Split pane on desktop, three tabs on mobile">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Split pane on desktop, three tabs on mobile</p>
+                <p class="d">Both layouts, both usable.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="editor-1">
+              <button class="mark" type="button" aria-label="Mark: Autosave">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Autosave</p>
+                <p class="d">Edit, wait, reload without touching a save button. The change is there.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="editor-2">
+              <button class="mark" type="button" aria-label="Mark: Undo and redo">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Undo and redo</p>
+                <p class="d">Several steps deep, including after a template switch.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="editor-3">
+              <button class="mark" type="button" aria-label="Mark: Drag and drop section reordering">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Drag and drop section reordering</p>
+                <p class="d">With a mouse and with touch.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="editor-4">
+              <button class="mark" type="button" aria-label="Mark: Add, remove and rename sections">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Add, remove and rename sections</p>
+                <p class="d">Then switch language: a section YOU renamed must keep your name, while untouched ones translate.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="editor-5">
+              <button class="mark" type="button" aria-label="Mark: Template switching preserves every field">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Template switching preserves every field</p>
+                <p class="d">Fill a CV completely, switch template three times, and confirm nothing was dropped — including custom sections.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="editor-6">
+              <button class="mark" type="button" aria-label="Mark: Accent colour, fonts, spacing">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Accent colour, fonts, spacing</p>
+                <p class="d">Each visibly changes the preview and persists.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="editor-7">
+              <button class="mark" type="button" aria-label="Mark: Paper size A4 and US Letter">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Paper size A4 and US Letter</p>
+                <p class="d">Both, and the PDF matches the choice.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="editor-8">
+              <button class="mark" type="button" aria-label="Mark: Photo upload">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Photo upload</p>
+                <p class="d">Known dependency: this needs Firebase Storage enabled on the project. If it fails, check that before debugging the code.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="editor-9">
+              <button class="mark" type="button" aria-label="Mark: Page-break guides match the real PDF">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Page-break guides match the real PDF</p>
+                <p class="d">Add content until a guide appears, export, and compare. A guide that lies is worse than no guide.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="editor-10">
+              <button class="mark" type="button" aria-label="Mark: A CV long enough to be 2 pages, and one long enough to be 3+">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">A CV long enough to be 2 pages, and one long enough to be 3+</p>
+                <p class="d">Both in the preview and the PDF.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="editor-11">
+              <button class="mark" type="button" aria-label="Mark: A completely empty CV does not crash the preview">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">A completely empty CV does not crash the preview</p>
+                <p class="d">New CV, type nothing, look at the preview.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="editor-12">
+              <button class="mark" type="button" aria-label="Mark: Hostile content">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Hostile content</p>
+                <p class="d">300-character job title, emoji, accented and non-Latin characters, a URL with no spaces. Nothing should overflow the page or break the layout.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+        </ul>
+      </section>
+      <section class="sec" id="templates" data-sec="templates">
+        <header class="sec-head">
+          <h2>Templates — 61 of them</h2>
+          <p class="sec-count"><span class="sc-done">0</span>/<span class="sc-total">6</span></p>
+        </header>
+        <p class="sec-note">The automated suite covers all 61 against full, sparse and empty CVs. This is the human pass: does it look like something you would send to an employer.</p>
+        <ul class="items">
+          
+            <li class="item" data-state="todo" data-id="templates-0">
+              <button class="mark" type="button" aria-label="Mark: One template from each of the 6 categories, with a FULL CV">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">One template from each of the 6 categories, with a FULL CV</p>
+                <p class="d">modern, corporate, creative, technology, classic, ats.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="templates-1">
+              <button class="mark" type="button" aria-label="Mark: The same six with a SPARSE CV">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The same six with a SPARSE CV</p>
+                <p class="d">Name and one job only. Nothing should collapse or leave a huge void.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="templates-2">
+              <button class="mark" type="button" aria-label="Mark: The same six with an EMPTY CV">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The same six with an EMPTY CV</p>
+                <p class="d">No crash, no <code>undefined</code>, no <code>NaN</code>.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="templates-3">
+              <button class="mark" type="button" aria-label="Mark: Accent colour is honoured in every one you check">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Accent colour is honoured in every one you check</p>
+                <p class="d">Some templates ignore it, which reads as the setting being broken.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="templates-4">
+              <button class="mark" type="button" aria-label="Mark: Premium templates are locked on free and open on Pro">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Premium templates are locked on free and open on Pro</p>
+                <p class="d">And the lock is enforced server-side when rendering the PDF, not just in the picker.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="templates-5">
+              <button class="mark" type="button" aria-label="Mark: Every preview image in the gallery loads">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Every preview image in the gallery loads</p>
+                <p class="d">61 cards. A missing preview is a template nobody will choose.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+        </ul>
+      </section>
+      <section class="sec" id="pdf" data-sec="pdf">
+        <header class="sec-head">
+          <h2>PDF export</h2>
+          <p class="sec-count"><span class="sc-done">0</span>/<span class="sc-total">7</span></p>
+        </header>
+        
+        <ul class="items">
+          
+            <li class="item" data-state="todo" data-id="pdf-0">
+              <button class="mark" type="button" aria-label="Mark: Download from the editor and from the dashboard">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Download from the editor and from the dashboard</p>
+                <p class="d">Both entry points.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="pdf-1">
+              <button class="mark" type="button" aria-label="Mark: The PDF matches the on-screen preview">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The PDF matches the on-screen preview</p>
+                <p class="d">Same fonts, same spacing, same page breaks. Open it in a real PDF reader, not the browser's inline viewer.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="pdf-2">
+              <button class="mark" type="button" aria-label="Mark: 1-page, 3-page, sidebar-crossing-pages, and US Letter">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">1-page, 3-page, sidebar-crossing-pages, and US Letter</p>
+                <p class="d">Four shapes that break differently.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="pdf-3">
+              <button class="mark" type="button" aria-label="Mark: Free plan: branding present. Pro: absent.">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Free plan: branding present. Pro: absent.</p>
+                <p class="d">And confirm the Pro version really has none, on the last page too.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="pdf-4">
+              <button class="mark" type="button" aria-label="Mark: The free download limit is enforced">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The free download limit is enforced</p>
+                <p class="d">Five downloads in a calendar month, then the sixth is refused — by the server. Call /api/cvs/[id]/pdf directly to be sure.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="pdf-5">
+              <button class="mark" type="button" aria-label="Mark: The filename is something a person would keep">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The filename is something a person would keep</p>
+                <p class="d">Not <code>download.pdf</code> or a UUID.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="pdf-6">
+              <button class="mark" type="button" aria-label="Mark: A render token cannot be reused across users">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">A render token cannot be reused across users</p>
+                <p class="d">Take the PDF request from one account and replay it against another account's CV id. It must be refused.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+        </ul>
+      </section>
+      <section class="sec" id="share" data-sec="share">
+        <header class="sec-head">
+          <h2>Sharing and the public CV page</h2>
+          <p class="sec-count"><span class="sc-done">0</span>/<span class="sc-total">6</span></p>
+        </header>
+        <p class="sec-note">This is the one place private user data is deliberately exposed. Get it wrong and it gets indexed.</p>
+        <ul class="items">
+          
+            <li class="item" data-state="todo" data-id="share-0">
+              <button class="mark" type="button" aria-label="Mark: Free plan cannot create a share link">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Free plan cannot create a share link</p>
+                <p class="d">Hidden in the UI and refused by the API.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="share-1">
+              <button class="mark" type="button" aria-label="Mark: Pro can create one, and /cv/[shareId] opens in incognito">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Pro can create one, and /cv/[shareId] opens in incognito</p>
+                <p class="d">Signed out, in a different browser.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="share-2">
+              <button class="mark" type="button" aria-label="Mark: The share page is noindex">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The share page is noindex</p>
+                <p class="d">View source and check the robots meta. Then check /robots.txt disallows /cv/.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="share-3">
+              <button class="mark" type="button" aria-label="Mark: Revoking the link kills it">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Revoking the link kills it</p>
+                <p class="d">Revoke, then reload the old URL. 404, not a cached copy.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="share-4">
+              <button class="mark" type="button" aria-label="Mark: A guessed share id returns nothing">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">A guessed share id returns nothing</p>
+                <p class="d">Change a character. No data, no error detail that helps a guesser.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="share-5">
+              <button class="mark" type="button" aria-label="Mark: The public page shows only the CV">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The public page shows only the CV</p>
+                <p class="d">No email address, no account details, no dashboard chrome.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+        </ul>
+      </section>
+      <section class="sec" id="payment" data-sec="payment">
+        <header class="sec-head">
+          <h2>Payment — PayPal</h2>
+          <p class="sec-count"><span class="sc-done">0</span>/<span class="sc-total">16</span></p>
+        </header>
+        <p class="sec-note">The only path where a bug costs money or a customer. PayPal is the sole gateway; Paddle has been removed.</p>
+        <ul class="items">
+          
+            <li class="item" data-state="todo" data-id="payment-0">
+              <button class="mark" type="button" aria-label="Mark: /pricing → Pro → /payment/checkout?plan=pro">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/pricing → Pro → /payment/checkout?plan=pro</p>
+                <p class="d">The card reads: Pro, $9, every 31 days, cancellable, and YOUR email address.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="payment-1">
+              <button class="mark" type="button" aria-label="Mark: The same for Lifetime">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The same for Lifetime</p>
+                <p class="d">$69, one-time, no renewal.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="payment-2">
+              <button class="mark" type="button" aria-label="Mark: The checkout card is fully translated — in all three languages">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The checkout card is fully translated — in all three languages</p>
+                <p class="d">Heading, order summary, all six feature bullets, the button, and the small print under it. This is where an English feature list sat under a French heading.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="payment-3">
+              <button class="mark" type="button" aria-label="Mark: The request body contains a plan id and NO amount">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The request body contains a plan id and NO amount</p>
+                <p class="d">Network tab → the POST to /api/payments/paypal/create-order. If a price, amount or currency appears in that body, a customer can name their own price.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="payment-4">
+              <button class="mark" type="button" aria-label="Mark: Happy path, end to end">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Happy path, end to end</p>
+                <p class="d">Continue → PayPal sandbox → approve → return → /payment/success → the plan is active in /dashboard/account.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="payment-5">
+              <button class="mark" type="button" aria-label="Mark: Cancel at PayPal">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Cancel at PayPal</p>
+                <p class="d">→ /payment/cancel. Nothing charged, no plan granted, and the page says so plainly.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="payment-6">
+              <button class="mark" type="button" aria-label="Mark: Close the tab immediately after approving">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Close the tab immediately after approving</p>
+                <p class="d">The webhook must still grant the plan. Check /dashboard/account a minute later. This is the case a customer will hit on a phone.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="payment-7">
+              <button class="mark" type="button" aria-label="Mark: Pay twice in a row for Pro">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Pay twice in a row for Pro</p>
+                <p class="d">The second purchase must not double-charge or corrupt the expiry. Idempotent fulfilment is claimed — verify it.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="payment-8">
+              <button class="mark" type="button" aria-label="Mark: A Lifetime owner opening /payment/checkout?plan=pro">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">A Lifetime owner opening /payment/checkout?plan=pro</p>
+                <p class="d">Told there is nothing to buy, with a way back — not shown a pay button.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="payment-9">
+              <button class="mark" type="button" aria-label="Mark: A Pro owner CAN still upgrade to Lifetime">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">A Pro owner CAN still upgrade to Lifetime</p>
+                <p class="d">That purchase must remain available.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="payment-10">
+              <button class="mark" type="button" aria-label="Mark: /payment/checkout?plan=nonsense">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/payment/checkout?plan=nonsense</p>
+                <p class="d">Refused cleanly.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="payment-11">
+              <button class="mark" type="button" aria-label="Mark: /payment/success with no ?token=">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/payment/success with no ?token=</p>
+                <p class="d">&quot;Missing reference&quot; and a way forward. Not a crash, not a spinner forever.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="payment-12">
+              <button class="mark" type="button" aria-label="Mark: A forced failure is reported ENTIRELY in the page's language">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">A forced failure is reported ENTIRELY in the page's language</p>
+                <p class="d">The important one. Break PayPal on a preview deploy (wrong secret), set the site to French, and try to pay. The heading AND the body AND the next step must all be French. The old code rendered our API's English <code>message</code> in preference to the translated string sitting beside it — and it only ever showed on failure.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="payment-13">
+              <button class="mark" type="button" aria-label="Mark: Network failure mid-payment">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Network failure mid-payment</p>
+                <p class="d">Approve, then kill your connection before the return. The page should tell you the payment may have gone through and not to pay twice.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="payment-14">
+              <button class="mark" type="button" aria-label="Mark: The admin ledger records the order">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The admin ledger records the order</p>
+                <p class="d">/admin/payments shows it with the right plan, amount and provider.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="payment-15">
+              <button class="mark" type="button" aria-label="Mark: No PADDLE_ variables remain in Vercel">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">No PADDLE_ variables remain in Vercel</p>
+                <p class="d">Nothing reads them now. A live API key sitting in a dashboard that no code uses is a credential nobody is watching.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+        </ul>
+      </section>
+      <section class="sec" id="admin" data-sec="admin">
+        <header class="sec-head">
+          <h2>Admin</h2>
+          <p class="sec-count"><span class="sc-done">0</span>/<span class="sc-total">9</span></p>
+        </header>
+        
+        <ul class="items">
+          
+            <li class="item" data-state="todo" data-id="admin-0">
+              <button class="mark" type="button" aria-label="Mark: A normal account cannot reach /admin">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">A normal account cannot reach /admin</p>
+                <p class="d">Not &quot;the link is hidden&quot; — type the URL. Then call /api/admin/users/[uid] directly and confirm 403.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="admin-1">
+              <button class="mark" type="button" aria-label="Mark: /admin overview">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/admin overview</p>
+                <p class="d">Counts and readiness indicators load.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="admin-2">
+              <button class="mark" type="button" aria-label="Mark: /admin/users and /admin/users/[uid]">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/admin/users and /admin/users/[uid]</p>
+                <p class="d">Search, pagination, detail.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="admin-3">
+              <button class="mark" type="button" aria-label="Mark: Granting and revoking a plan by hand">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Granting and revoking a plan by hand</p>
+                <p class="d">Grant Pro to a test account, confirm the account sees it, revoke it, confirm it is gone.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="admin-4">
+              <button class="mark" type="button" aria-label="Mark: Changing a role">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Changing a role</p>
+                <p class="d">Promote a test account to admin and back. Confirm the change takes effect on their next request.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="admin-5">
+              <button class="mark" type="button" aria-label="Mark: /admin/payments">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/admin/payments</p>
+                <p class="d">The ledger, and a single order's detail.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="admin-6">
+              <button class="mark" type="button" aria-label="Mark: /admin/templates">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/admin/templates</p>
+                <p class="d">Usage figures across 61 templates.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="admin-7">
+              <button class="mark" type="button" aria-label="Mark: /admin/blog">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/admin/blog</p>
+                <p class="d">Inventory.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="admin-8">
+              <button class="mark" type="button" aria-label="Mark: /admin/settings — configuration readiness">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/admin/settings — configuration readiness</p>
+                <p class="d">Should now report PayPal configured, Firebase configured, and no Paddle anywhere.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+        </ul>
+      </section>
+      <section class="sec" id="seo" data-sec="seo">
+        <header class="sec-head">
+          <h2>SEO and crawlability</h2>
+          <p class="sec-count"><span class="sc-done">0</span>/<span class="sc-total">9</span></p>
+        </header>
+        
+        <ul class="items">
+          
+            <li class="item" data-state="todo" data-id="seo-0">
+              <button class="mark" type="button" aria-label="Mark: /robots.txt">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/robots.txt</p>
+                <p class="d">Correct production host. /api/, /dashboard/, /admin/, /cv/ and /payment/ disallowed.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="seo-1">
+              <button class="mark" type="button" aria-label="Mark: /sitemap.xml">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/sitemap.xml</p>
+                <p class="d">Every public URL in all three languages. No /dashboard, no /admin, no /cv/[shareId], and no <code>localhost</code> — that last one has no runtime symptom at all.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="seo-2">
+              <button class="mark" type="button" aria-label="Mark: Canonicals are absolute and locale-correct">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Canonicals are absolute and locale-correct</p>
+                <p class="d">Spot-check six pages across all three languages.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="seo-3">
+              <button class="mark" type="button" aria-label="Mark: hreflang is reciprocal">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">hreflang is reciprocal</p>
+                <p class="d">The English page points at fr and de; each of those points back at the other two and at x-default.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="seo-4">
+              <button class="mark" type="button" aria-label="Mark: OG and Twitter images resolve">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">OG and Twitter images resolve</p>
+                <p class="d">Paste three URLs into a link-preview debugger and look at the rendered card.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="seo-5">
+              <button class="mark" type="button" aria-label="Mark: JSON-LD validates">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">JSON-LD validates</p>
+                <p class="d">Google Rich Results Test on /, /pricing, a template page and a blog post — in each language.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="seo-6">
+              <button class="mark" type="button" aria-label="Mark: noindex is on exactly the right pages">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">noindex is on exactly the right pages</p>
+                <p class="d">Present on /payment/*, /cv/[shareId], /dashboard/*, /admin/*. ABSENT from every marketing page — a stray noindex on /pricing is silent and expensive.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="seo-7">
+              <button class="mark" type="button" aria-label="Mark: /manifest.webmanifest and the favicons">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/manifest.webmanifest and the favicons</p>
+                <p class="d">Install the PWA on a phone and look at the icon.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="seo-8">
+              <button class="mark" type="button" aria-label="Mark: 404 page">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">404 page</p>
+                <p class="d">A real 404 status, in all three languages, with a way back.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+        </ul>
+      </section>
+      <section class="sec" id="security" data-sec="security">
+        <header class="sec-head">
+          <h2>Security spot checks</h2>
+          <p class="sec-count"><span class="sc-done">0</span>/<span class="sc-total">8</span></p>
+        </header>
+        
+        <ul class="items">
+          
+            <li class="item" data-state="todo" data-id="security-0">
+              <button class="mark" type="button" aria-label="Mark: No secret is in the client bundle">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">No secret is in the client bundle</p>
+                <p class="d">View source on /pricing, then search the /_next/static/*.js chunks for <code>pdl_</code>, <code>sk_</code>, <code>-----BEGIN</code>, your admin email and your PayPal secret. The browser is the only honest place to check this.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="security-1">
+              <button class="mark" type="button" aria-label="Mark: Another user's CV is not readable by id">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Another user's CV is not readable by id</p>
+                <p class="d">GET /api/cvs/[someone-elses-id] while signed in as a different user. 403 or 404 — never their data.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="security-2">
+              <button class="mark" type="button" aria-label="Mark: Another user's CV is not editable by id">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Another user's CV is not editable by id</p>
+                <p class="d">PATCH and DELETE the same id.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="security-3">
+              <button class="mark" type="button" aria-label="Mark: A normal user cannot change a plan">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">A normal user cannot change a plan</p>
+                <p class="d">POST to /api/admin/users/[uid]/plan. 403.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="security-4">
+              <button class="mark" type="button" aria-label="Mark: Rate limiting bites">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Rate limiting bites</p>
+                <p class="d">Hammer /api/contact and the create-order endpoint. You should get 429 with a Retry-After, and the message should be translated.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="security-5">
+              <button class="mark" type="button" aria-label="Mark: Firestore rules deny direct client reads of other users' data">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Firestore rules deny direct client reads of other users' data</p>
+                <p class="d">Test from the Firebase console rules simulator, not only through the app.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="security-6">
+              <button class="mark" type="button" aria-label="Mark: The contact form cannot be used to send mail as someone else">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The contact form cannot be used to send mail as someone else</p>
+                <p class="d">Submit with a spoofed from-address and check what actually arrives.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="security-7">
+              <button class="mark" type="button" aria-label="Mark: Private CV data is not indexed">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Private CV data is not indexed</p>
+                <p class="d">Search <code>site:createcvonline.com</code> for /cv/ and /dashboard URLs. Do this after the site has been live a while, not just today.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+        </ul>
+      </section>
+      <section class="sec" id="mobile" data-sec="mobile">
+        <header class="sec-head">
+          <h2>Mobile and performance</h2>
+          <p class="sec-count"><span class="sc-done">0</span>/<span class="sc-total">6</span></p>
+        </header>
+        
+        <ul class="items">
+          
+            <li class="item" data-state="todo" data-id="mobile-0">
+              <button class="mark" type="button" aria-label="Mark: 375px wide: nav, pricing cards, template grid, checkout">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">375px wide: nav, pricing cards, template grid, checkout</p>
+                <p class="d">Nothing overflows horizontally. No two-finger zoom needed to read a price.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="mobile-1">
+              <button class="mark" type="button" aria-label="Mark: The editor on a real phone">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The editor on a real phone</p>
+                <p class="d">Three tabs, keyboard does not cover the field you are typing into, drag-to-reorder works with touch.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="mobile-2">
+              <button class="mark" type="button" aria-label="Mark: Tap targets are big enough">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Tap targets are big enough</p>
+                <p class="d">Anything you have to aim at on a phone is a bug.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="mobile-3">
+              <button class="mark" type="button" aria-label="Mark: Lighthouse on /, /pricing, /templates">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Lighthouse on /, /pricing, /templates</p>
+                <p class="d">Mobile profile. Watch LCP and CLS specifically — the template grid is the likely CLS offender.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="mobile-4">
+              <button class="mark" type="button" aria-label="Mark: The template grid does not shift as images load">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The template grid does not shift as images load</p>
+                <p class="d">Reload with a throttled connection and watch.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="mobile-5">
+              <button class="mark" type="button" aria-label="Mark: The site is usable with JavaScript slow, not just absent">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">The site is usable with JavaScript slow, not just absent</p>
+                <p class="d">Throttle to Slow 3G and load /pricing. Anything that renders the wrong branch until hydration will show here — that class of bug put &quot;this link is missing its payment reference&quot; in front of paying customers.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+        </ul>
+      </section>
+      <section class="sec" id="smoke" data-sec="smoke">
+        <header class="sec-head">
+          <h2>Five-minute smoke test</h2>
+          <p class="sec-count"><span class="sc-done">0</span>/<span class="sc-total">7</span></p>
+        </header>
+        <p class="sec-note">Run this after EVERY deploy. If all seven pass, nothing structural is broken.</p>
+        <ul class="items">
+          
+            <li class="item" data-state="todo" data-id="smoke-0">
+              <button class="mark" type="button" aria-label="Mark: / loads in English, French and German">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/ loads in English, French and German</p>
+                <p class="d">Three URLs, three languages, no console errors.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="smoke-1">
+              <button class="mark" type="button" aria-label="Mark: /pricing shows 20 free templates and 18 ATS-rated">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/pricing shows 20 free templates and 18 ATS-rated</p>
+                <p class="d">The computed numbers are a canary for the whole registry.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="smoke-2">
+              <button class="mark" type="button" aria-label="Mark: /templates shows 61 templates">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/templates shows 61 templates</p>
+                <p class="d">Count the grid or read the heading.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="smoke-3">
+              <button class="mark" type="button" aria-label="Mark: Sign in works">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Sign in works</p>
+                <p class="d">One account, one password.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="smoke-4">
+              <button class="mark" type="button" aria-label="Mark: Create a CV, type a name, reload — it persisted">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Create a CV, type a name, reload — it persisted</p>
+                <p class="d">Proves auth, Firestore write and autosave in one action.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="smoke-5">
+              <button class="mark" type="button" aria-label="Mark: Download a PDF and open it">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">Download a PDF and open it</p>
+                <p class="d">Proves the render pipeline and the quota check.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+            <li class="item" data-state="todo" data-id="smoke-6">
+              <button class="mark" type="button" aria-label="Mark: /payment/checkout?plan=pro shows the PayPal button and the right price">
+                <span class="glyph" aria-hidden="true"></span>
+              </button>
+              <div class="body">
+                <p class="t">/payment/checkout?plan=pro shows the PayPal button and the right price</p>
+                <p class="d">Do not complete it. Just confirm the gateway is offered and says $9.</p>
+              </div>
+              <span class="state-label">not tested</span>
+            </li>
+        </ul>
+      </section>
+
+  <p class="foot">
+    Progress lives in this page only &mdash; a reload clears it, so use <strong>Copy report</strong>
+    before you close the tab. The markdown twin of this list is versioned at
+    <code>docs/qa/QA_CHECKLIST.md</code>; both are generated from
+    <code>docs/qa/checklist.json</code>.
+  </p>
+</div>
+
+<script>
+(function () {
+  var NEXT = { todo: 'pass', pass: 'fail', fail: 'todo' };
+  var WORD = { todo: 'not tested', pass: 'pass', fail: 'FAIL' };
+  var items = Array.prototype.slice.call(document.querySelectorAll('.item'));
+  var total = Number(document.body.dataset.total);
+  var filter = 'all';
+
+  function refresh() {
+    var done = 0, failed = 0;
+    document.querySelectorAll('.sec').forEach(function (sec) {
+      var kids = sec.querySelectorAll('.item');
+      var n = 0;
+      kids.forEach(function (li) { if (li.dataset.state !== 'todo') n += 1; });
+      sec.querySelector('.sc-done').textContent = String(n);
+      sec.classList.toggle('done', n === kids.length);
+    });
+    items.forEach(function (li) {
+      if (li.dataset.state !== 'todo') done += 1;
+      if (li.dataset.state === 'fail') failed += 1;
+      var show = filter === 'all'
+        || (filter === 'todo' && li.dataset.state === 'todo')
+        || (filter === 'fail' && li.dataset.state === 'fail');
+      li.classList.toggle('hidden', !show);
+    });
+    document.getElementById('done').textContent = String(done);
+    document.getElementById('fill').style.width = (total ? (done / total) * 100 : 0) + '%';
+    // The failure count is the number that decides whether you can ship, so it is stated
+    // as a word and a number rather than left to the colour of a bar.
+    document.getElementById('failnote').innerHTML =
+      failed ? (failed === 1 ? '<b>1</b> failing check' : '<b>' + failed + '</b> failing checks')
+             : (done === total && total ? 'all checks recorded, none failing' : '');
+  }
+
+  items.forEach(function (li) {
+    var btn = li.querySelector('.mark');
+    function cycle() {
+      li.dataset.state = NEXT[li.dataset.state];
+      li.querySelector('.state-label').textContent = WORD[li.dataset.state];
+      btn.setAttribute('aria-label', WORD[li.dataset.state] + ': ' + li.querySelector('.t').textContent);
+      refresh();
+    }
+    btn.addEventListener('click', cycle);
+  });
+
+  function setFilter(name) {
+    filter = name;
+    ['all', 'todo', 'fail'].forEach(function (k) {
+      document.getElementById('f-' + k).setAttribute('aria-pressed', String(k === name));
+    });
+    refresh();
+  }
+  document.getElementById('f-all').addEventListener('click', function () { setFilter('all'); });
+  document.getElementById('f-todo').addEventListener('click', function () { setFilter('todo'); });
+  document.getElementById('f-fail').addEventListener('click', function () { setFilter('fail'); });
+  document.getElementById('print').addEventListener('click', function () { window.print(); });
+  document.getElementById('reset').addEventListener('click', function () {
+    items.forEach(function (li) {
+      li.dataset.state = 'todo';
+      li.querySelector('.state-label').textContent = WORD.todo;
+    });
+    refresh();
+  });
+
+  /*
+   * The report is markdown, and it leads with the failures. Anyone reading a QA result
+   * wants the broken list first; "142 passed" is context, not news.
+   */
+  document.getElementById('copy').addEventListener('click', function () {
+    var fails = [], todos = [], passed = 0;
+    document.querySelectorAll('.sec').forEach(function (sec) {
+      var name = sec.querySelector('h2').textContent;
+      sec.querySelectorAll('.item').forEach(function (li) {
+        var t = li.querySelector('.t').textContent;
+        if (li.dataset.state === 'fail') fails.push('- **' + name + '** — ' + t);
+        else if (li.dataset.state === 'todo') todos.push('- ' + name + ' — ' + t);
+        else passed += 1;
+      });
+    });
+    var out = ['# QA run — ' + document.title, ''];
+    out.push('Passed ' + passed + ' · Failed ' + fails.length + ' · Not tested ' + todos.length +
+             ' · of ' + total, '');
+    if (fails.length) out.push('## Failing', '', fails.join('\n'), '');
+    if (todos.length) out.push('## Not tested', '', todos.join('\n'), '');
+    if (!fails.length && !todos.length) out.push('All ' + total + ' checks passed.', '');
+    var text = out.join('\n');
+    var btn = document.getElementById('copy');
+    function ok() { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy report'; }, 1400); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(ok, fallback);
+    } else { fallback(); }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); ok(); } catch (e) { btn.textContent = 'Press Ctrl+C'; }
+      document.body.removeChild(ta);
+    }
+  });
+
+  refresh();
+})();
+</script>
+</body>
+</html>

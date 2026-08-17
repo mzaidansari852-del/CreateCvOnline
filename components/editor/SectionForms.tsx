@@ -1,12 +1,13 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { PhotoField } from './PhotoField';
 import { RepeatableList, StringList } from './RepeatableList';
 import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Checkbox, Field, Input, Select, Switch, Textarea } from '@/components/ui/form';
 import { LANGUAGE_LEVELS, SKILL_LEVELS, fullName } from '@/lib/cv/format';
+import { isValidPartialDate, normalisePartialDate } from '@/lib/cv/partial-date';
 import { customSectionKey, isCustomSectionId } from '@/lib/cv/sections';
 import { uid } from '@/lib/utils/id';
 import type {
@@ -35,7 +36,22 @@ function Grid({ children, columns = 2 }: { children: ReactNode; columns?: 1 | 2 
   return <div className={`grid gap-4 ${cols[columns]}`}>{children}</div>;
 }
 
-/** `<input type="month">` produces exactly the `YYYY-MM` the schema expects. */
+/**
+ * A partial date, however the browser chooses to collect it.
+ *
+ * `<input type="month">` produces exactly the `YYYY-MM` the schema wants — on a browser
+ * that implements it. Where one does not, the same element renders as a plain text box and
+ * collects whatever a person types, and the schema then refuses the document *forever*: the
+ * rejected value goes back up on every retry, so the editor can never recover on its own.
+ * That is not hypothetical. A user wrote their education dates the way dates are written,
+ * and lost a complete CV to a save that could not succeed and would not say why.
+ *
+ * So the value is normalised on the way out rather than trusted. `01/2022` becomes
+ * `2022-01`, `Janvier 2022` becomes `2022`, and something unreadable becomes empty — never
+ * a value the server will reject. Typing stays untouched while the field has focus, because
+ * normalising mid-keystroke would fight the person entering `2024-06` one character at a
+ * time.
+ */
 function MonthField({
   label,
   value,
@@ -49,6 +65,28 @@ function MonthField({
   hint?: string;
   disabled?: boolean;
 }) {
+  /*
+   * A local draft so a half-typed date is not repeatedly rewritten under the cursor. It
+   * tracks the prop whenever the prop is the newer of the two — an undo, or a restored
+   * draft, has to win over whatever is sitting in the box.
+   */
+  const [draft, setDraft] = useState(value);
+  const [lastValue, setLastValue] = useState(value);
+  if (value !== lastValue) {
+    setLastValue(value);
+    setDraft(value);
+  }
+
+  const commit = (next: string) => {
+    const normalised = normalisePartialDate(next);
+    // `null` means unreadable. Empty is the only safe landing: a guessed date on a CV is
+    // worse than a blank one, and a rejected one costs the whole document.
+    const settled = normalised ?? '';
+    setDraft(settled);
+    setLastValue(settled);
+    if (settled !== value) onChange(settled);
+  };
+
   return (
     <Field label={label} hint={hint}>
       {({ id, describedBy }) => (
@@ -56,9 +94,21 @@ function MonthField({
           id={id}
           aria-describedby={describedBy}
           type="month"
-          value={value}
+          value={draft}
           disabled={disabled}
-          onChange={(event) => onChange(event.target.value)}
+          /*
+           * Honoured by the text fallback and ignored by a real month picker, so it costs
+           * nothing where the picker works and is the only guidance where it does not.
+           */
+          placeholder="2024-06"
+          onChange={(event) => {
+            const next = event.target.value;
+            setDraft(next);
+            // A real month picker only ever emits valid values, so those commit instantly;
+            // free text waits for blur.
+            if (isValidPartialDate(next)) commit(next);
+          }}
+          onBlur={(event) => commit(event.target.value)}
         />
       )}
     </Field>

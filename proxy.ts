@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { resolveNextUrl } from '@/lib/auth/next-path';
 import { SESSION_COOKIE } from '@/lib/auth/session';
 import { alternatesFor, localeOf, normalisePath } from '@/lib/i18n/locales';
 import { LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE } from '@/lib/i18n/resolve';
@@ -64,13 +65,23 @@ export function proxy(request: NextRequest): NextResponse {
     }
   }
 
-  // Someone already signed in has no use for the sign-in form.
+  /*
+   * Someone already signed in has no use for the sign-in form.
+   *
+   * `resolveNextUrl` builds the target, and that is the whole point of it existing. This
+   * branch used to assign `next` — a path *with a query*, like `/payment/checkout?plan=pro`
+   * — straight to `url.pathname`, which percent-encodes the `?`. The redirect went to
+   * `/payment/checkout%3Fplan=pro`, one path segment matching no route, and answered 404.
+   *
+   * It broke exactly one journey and broke it completely: click "Get Pro" while signed out,
+   * get sent to sign in, sign in, land on page-not-found. Every new customer, and only new
+   * customers — anyone with a session never reached this branch, so the funnel looked fine
+   * to everybody who tested it while logged in.
+   */
   if (hasSession && AUTH_PAGES.includes(pathname)) {
-    const url = request.nextUrl.clone();
-    const next = request.nextUrl.searchParams.get('next');
-    url.pathname = next && next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard';
-    url.search = '';
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(
+      resolveNextUrl(request.nextUrl.searchParams.get('next'), request.nextUrl.origin),
+    );
   }
 
   const response = NextResponse.next();

@@ -16,37 +16,14 @@ import type { AppCopy } from '@/lib/i18n/app-copy';
  * components is a client component that already has the copy in hand.
  */
 
-/** Where a successful sign-in lands when nothing better is asked for. */
-export const AFTER_AUTH_PATH = '/dashboard';
-
-/**
- * Turns an untrusted `?next=` value into a path we are willing to navigate to.
- *
- * Only a same-origin *path* survives: it must begin with a single `/`, and must not
- * begin with `//` or `/\` — a browser resolves both of those as protocol-relative URLs,
- * which would let `?next=//evil.example` bounce a freshly signed-in user off-site.
- *
- * Mirrors the rule `proxy.ts` applies when it redirects an already-signed-in visitor.
+/*
+ * `safeNextPath` used to be defined here. It now lives in `lib/auth/next-path.ts` and is
+ * re-exported so that the four forms importing it from this module keep working — the move
+ * was so that `proxy.ts` could import the *same function* instead of keeping its own copy
+ * of the rule. Its copy had drifted, and the drift sent every new customer who clicked
+ * "Get Pro" while signed out to a 404 after signing in. See that file for the details.
  */
-export function safeNextPath(
-  value: string | string[] | null | undefined,
-  fallback: string = AFTER_AUTH_PATH,
-): string {
-  const raw = Array.isArray(value) ? value[0] : value;
-  if (typeof raw !== 'string') return fallback;
-
-  const candidate = raw.trim();
-  if (!candidate.startsWith('/')) return fallback;
-  if (candidate.startsWith('//') || candidate.startsWith('/\\')) return fallback;
-
-  // A smuggled newline or tab can turn one URL into two once something re-parses it.
-  for (const character of candidate) {
-    const code = character.codePointAt(0) ?? 0;
-    if (code < 0x20 || code === 0x7f) return fallback;
-  }
-
-  return candidate;
-}
+export { AFTER_AUTH_PATH, safeNextPath } from '@/lib/auth/next-path';
 
 /** First value of a `searchParams` entry, trimmed, or `undefined` when empty. */
 export function firstParam(value: string | string[] | undefined): string | undefined {

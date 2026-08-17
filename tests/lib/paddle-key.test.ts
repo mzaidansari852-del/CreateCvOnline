@@ -107,6 +107,29 @@ describe('describePaddleApiKey', () => {
     expect(describePaddleApiKey(wrongAlphabet).usable).toBe(false);
   });
 
+  it('catches a key that lost its prefix, and does not mistake it for a legacy key', () => {
+    /*
+     * The real value, from the deployment that was broken for two days: it began at
+     * `apikey_01m03…`, with `pdl_sdbx_` missing from the front.
+     *
+     * The first version of this function accepted it. No `pdl_` prefix and over forty
+     * characters looked exactly like a pre-2025 legacy key, so it reported the gateway as
+     * configured — the checkout offered a card button and Paddle refused every request. The
+     * module written to prevent that produced it. Hence both assertions: the verdict, and
+     * that the verdict is not `looksLegacy`.
+     */
+    const withoutPrefix = validSandbox.slice('pdl_sdbx_'.length);
+    expect(withoutPrefix.length).toBeGreaterThan(40);
+    const report = describePaddleApiKey(withoutPrefix);
+    expect(report.usable).toBe(false);
+    expect(report.problem).toBe('missing-prefix');
+    expect(report.looksLegacy).toBe(false);
+    expect(explainPaddleKeyProblem(report)).toContain('pdl_sdbx_apikey_');
+
+    // Prepending the missing segment is the whole fix.
+    expect(describePaddleApiKey(`pdl_sdbx_${withoutPrefix}`).usable).toBe(true);
+  });
+
   it('does not reject a legacy key it cannot validate', () => {
     /*
      * Keys issued before 6 May 2025 are 50-character random strings with no prefix. They

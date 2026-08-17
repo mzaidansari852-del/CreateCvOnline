@@ -48,6 +48,7 @@ export const PADDLE_API_KEY_LENGTH = 69;
 export type PaddleKeyProblem =
   | 'missing'
   | 'client-token-in-api-key-slot'
+  | 'missing-prefix'
   | 'truncated'
   | 'too-long'
   | 'wrong-shape'
@@ -123,17 +124,47 @@ export function describePaddleApiKey(raw: string | undefined | null): PaddleKeyR
   }
 
   /*
-   * No `pdl_` prefix and roughly the old length: a legacy key. It cannot be checked, so it
-   * is accepted — refusing to start a checkout because a working credential predates a
-   * format change would be this module causing the outage it exists to prevent.
+   * The prefix is present, so the rest of the value is what is wrong. Length first, because
+   * it is the fact that tells someone what to do: too short means the copy stopped early,
+   * too long means something came along with it, and the right length means the characters
+   * themselves are wrong.
    */
-  if (!key.startsWith('pdl_') && key.length >= 40) {
-    return { ...base, usable: true, looksLegacy: true };
-  }
-
   if (key.startsWith('pdl_')) {
     if (key.length < PADDLE_API_KEY_LENGTH) return { ...base, problem: 'truncated' };
     if (key.length > PADDLE_API_KEY_LENGTH) return { ...base, problem: 'too-long' };
+    return { ...base, problem: 'wrong-shape' };
+  }
+
+  /*
+   * A current-format key that lost its leading segments — which happens far more often in
+   * practice than a wholesale mistype. The real value that broke this deployment for two
+   * days read `apikey_01m03…`: the `pdl_sdbx_` in front of it had simply not been copied,
+   * and Paddle answered "incorrectly formatted" to every request.
+   *
+   * This has to be tested *before* the legacy branch below. `apikey_01m03…` has no `pdl_`
+   * prefix and is comfortably over forty characters, so the first version of this function
+   * waved it through as a pre-2025 legacy key: the gateway reported itself configured, the
+   * checkout offered a card button, and the module written to prevent that failure produced
+   * it instead. Found by running it against the real broken value rather than only against
+   * the cases it had been designed around.
+   */
+  if (key.includes('apikey_') || /^(sdbx|live)_/.test(key)) {
+    return { ...base, problem: 'missing-prefix' };
+  }
+
+  /*
+   * A legacy key: a 50-character random string, issued before 6 May 2025. It cannot be
+   * validated, so it is accepted — refusing to start a checkout because a *working*
+   * credential predates a format change would be this module causing the outage it exists
+   * to prevent.
+   *
+   * The underscore test is what keeps that leniency narrow. Legacy keys are plain random
+   * strings; every current-format key and every mangled fragment of one carries the
+   * underscores of the segment structure, so "no underscores at all" separates "cannot be
+   * checked" from "checked and wrong" without a length guess doing the work.
+   */
+  if (!key.includes('_') && /^[a-zA-Z\d]{40,60}$/.test(key)) {
+    return { ...base, usable: true, looksLegacy: true };
   }
 
   return { ...base, problem: 'wrong-shape' };
@@ -151,6 +182,13 @@ export function explainPaddleKeyProblem(report: PaddleKeyReport): string | null 
         'PADDLE_API_KEY holds a client-side token (it starts with test_ or live_), not an API ' +
         'key. The API key starts pdl_sdbx_apikey_ or pdl_live_apikey_ and is shown once, when ' +
         'you create it in Paddle > Developer tools > Authentication.'
+      );
+    case 'missing-prefix':
+      return (
+        'PADDLE_API_KEY is missing the start of the key. The value begins at "apikey_"; a ' +
+        'Paddle API key begins "pdl_sdbx_apikey_" (sandbox) or "pdl_live_apikey_" (live). ' +
+        'Add the missing prefix to the front of the value — if the rest was copied intact, ' +
+        `that is the whole fix, and the result is ${PADDLE_API_KEY_LENGTH} characters.`
       );
     case 'truncated':
       return (

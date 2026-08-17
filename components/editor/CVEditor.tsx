@@ -106,6 +106,23 @@ export function CVEditor({
 
   const completeness = useMemo(() => completenessScore(editor.data), [editor.data]);
 
+  const activeTemplate = useMemo(
+    () => templates.find((template) => template.id === editor.customization.templateId),
+    [templates, editor.customization.templateId],
+  );
+
+  /**
+   * Choosing a section means leaving the design panel.
+   *
+   * Without this, clicking "Formation" while the design panel is open highlights it in the
+   * rail and changes nothing on screen — the form it selected is behind a panel the click
+   * did not close.
+   */
+  const selectSection = useCallback((id: string) => {
+    setActiveSectionId(id);
+    setPane('content');
+  }, []);
+
   /*
    * Resolved against the *current* document, so a section the author renamed is named the
    * way they named it, and a field they have since corrected stops being listed.
@@ -256,6 +273,33 @@ export function CVEditor({
           title={copy.editor.renameCvTooltip}
         >
           {editor.title}
+        </button>
+
+        {/*
+          The way into the design panel on a desktop.
+
+          The panel was reachable only through the tab bar, and the tab bar is `lg:hidden` —
+          so at desktop widths `pane` could never leave `content` and the template picker,
+          colours, fonts, spacing and paper size were all unreachable. Not hidden: absent.
+          A user asked how to change their template and there was no answer.
+
+          It shows the current template rather than a generic label, because "which design am
+          I on?" is the question you have while looking at the preview, and answering it in
+          the same control that changes it costs no extra space.
+        */}
+        <button
+          type="button"
+          onClick={() => setPane(pane === 'design' ? 'content' : 'design')}
+          aria-pressed={pane === 'design'}
+          className={cn(
+            'hidden shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors lg:flex',
+            pane === 'design'
+              ? 'bg-brand-50 text-brand-800'
+              : 'text-ink-600 hover:bg-ink-100 hover:text-ink-950',
+          )}
+        >
+          <Palette className="size-4 shrink-0" aria-hidden />
+          <span className="max-w-40 truncate">{activeTemplate?.name ?? copy.editor.designTab}</span>
         </button>
 
         <SaveIndicator
@@ -458,10 +502,10 @@ export function CVEditor({
 
           <button
             type="button"
-            onClick={() => setActiveSectionId('personal')}
+            onClick={() => selectSection('personal')}
             className={cn(
               'mb-2 flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-left text-[13px] font-medium transition-colors',
-              activeSectionId === 'personal'
+              pane !== 'design' && activeSectionId === 'personal'
                 ? 'bg-brand-50 text-brand-800'
                 : 'text-ink-800 hover:bg-ink-50',
             )}
@@ -472,10 +516,10 @@ export function CVEditor({
 
           <button
             type="button"
-            onClick={() => setActiveSectionId('cover-letter')}
+            onClick={() => selectSection('cover-letter')}
             className={cn(
               'mb-2 flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-left text-[13px] font-medium transition-colors',
-              activeSectionId === 'cover-letter'
+              pane !== 'design' && activeSectionId === 'cover-letter'
                 ? 'bg-brand-50 text-brand-800'
                 : 'text-ink-800 hover:bg-ink-50',
             )}
@@ -487,6 +531,23 @@ export function CVEditor({
             ) : null}
           </button>
 
+          <button
+            type="button"
+            onClick={() => setPane('design')}
+            className={cn(
+              'mb-2 flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-left text-[13px] font-medium transition-colors',
+              pane === 'design' ? 'bg-brand-50 text-brand-800' : 'text-ink-800 hover:bg-ink-50',
+            )}
+          >
+            <Palette className="size-3.5 shrink-0 text-ink-400" aria-hidden />
+            {copy.editor.designTab}
+            {activeTemplate ? (
+              <span className="ml-auto max-w-24 truncate text-[11px] text-ink-400">
+                {activeTemplate.name}
+              </span>
+            ) : null}
+          </button>
+
           <p className="mt-4 mb-2 px-2 text-xs font-bold tracking-[0.1em] text-ink-500 uppercase">
             {copy.editor.sectionsTab}
           </p>
@@ -494,7 +555,7 @@ export function CVEditor({
             cv={editor.data}
             onChange={editor.setData}
             activeSectionId={activeSectionId}
-            onSelect={setActiveSectionId}
+            onSelect={selectSection}
             canUseCustomSections={permissions.canUseCustomSections}
             onUpgradeNeeded={() => upgradePrompt(copy.editor.pro.customSections)}
           />

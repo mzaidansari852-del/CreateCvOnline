@@ -47,6 +47,7 @@ import { trackEvent } from '@/lib/analytics/events';
 import { completenessScore } from '@/lib/cv/sections';
 import { cn } from '@/lib/utils/cn';
 import type { CVDocument } from '@/types/cv';
+import { describeIssues } from './describeIssues';
 
 /**
  * The CV editor.
@@ -104,6 +105,20 @@ export function CVEditor({
   );
 
   const completeness = useMemo(() => completenessScore(editor.data), [editor.data]);
+
+  /*
+   * Resolved against the *current* document, so a section the author renamed is named the
+   * way they named it, and a field they have since corrected stops being listed.
+   */
+  const issueLines = useMemo(
+    () =>
+      describeIssues(editor.saveIssues, editor.data, {
+        entry: copy.editor.issueEntry,
+        dateFormat: copy.editor.issueDateFormat,
+        tooLong: copy.editor.issueTooLong,
+      }),
+    [editor.saveIssues, editor.data, copy],
+  );
 
   const orderedSectionIds = useMemo(
     () => ['personal', ...editor.data.sections.map((section) => section.id), 'cover-letter'],
@@ -355,6 +370,20 @@ export function CVEditor({
               {copy.common.retry}
             </button>
           </div>
+          {/*
+            The fields, named. This is what turns an unfixable error into a two-minute fix:
+            the server has always sent the paths, and the screen never showed them.
+          */}
+          {issueLines.length > 0 ? (
+            <div className="mt-0.5">
+              <p className="font-semibold">{copy.editor.invalidFieldsHeading}</p>
+              <ul className="mt-1 list-disc pl-5">
+                {issueLines.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           <p className="text-danger-800">{copy.editor.saveFailedKept}</p>
         </div>
       ) : null}

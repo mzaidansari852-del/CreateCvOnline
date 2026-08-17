@@ -116,6 +116,12 @@ export interface EditorCopy {
     draftFoundBody: string;
     draftRestore: string;
     draftDiscard: string;
+    /** Which fields the server rejected — the list under a failed save. */
+    invalidFieldsHeading: string;
+    /** `(section, n) => 'Experience — entry 2'` */
+    issueEntry: (sectionLabel: string, index: number) => string;
+    issueDateFormat: string;
+    issueTooLong: string;
     unsaved: string;
     /** Autosave could not reach the server at all — distinct from the server refusing. */
     offline: string;
@@ -549,6 +555,10 @@ const EN: EditorCopy = {
       'A previous save failed and this browser kept a copy. It is newer than the version on our server.',
     draftRestore: 'Restore my work',
     draftDiscard: 'Discard it',
+    invalidFieldsHeading: 'These fields need fixing before this CV can save:',
+    issueEntry: (sectionLabel, index) => `${sectionLabel} — entry ${index}`,
+    issueDateFormat: 'Use a year (2024) or a year and month (2024-06).',
+    issueTooLong: 'This is longer than the maximum allowed. Shorten it.',
     unsaved: 'Unsaved',
     offline: 'Could not reach the server. Your changes are still here.',
 
@@ -1103,6 +1113,11 @@ const FR: EditorCopy = {
       'Un enregistrement précédent a échoué et ce navigateur en a gardé une copie. Elle est plus récente que la version sur notre serveur.',
     draftRestore: 'Restaurer mon travail',
     draftDiscard: 'Ignorer',
+    invalidFieldsHeading:
+      'Ces champs doivent être corrigés pour que ce CV puisse être enregistré :',
+    issueEntry: (sectionLabel, index) => `${sectionLabel} — entrée ${index}`,
+    issueDateFormat: 'Indiquez une année (2024) ou une année et un mois (2024-06).',
+    issueTooLong: 'Ce texte dépasse la longueur maximale autorisée. Raccourcissez-le.',
     unsaved: 'Non enregistré',
     offline: 'Le serveur est injoignable. Vos modifications sont toujours là.',
 
@@ -1660,6 +1675,10 @@ const DE: EditorCopy = {
       'Ein früherer Speichervorgang ist fehlgeschlagen und dieser Browser hat eine Kopie behalten. Sie ist neuer als die Version auf unserem Server.',
     draftRestore: 'Arbeit wiederherstellen',
     draftDiscard: 'Verwerfen',
+    invalidFieldsHeading: 'Diese Felder müssen korrigiert werden, damit gespeichert werden kann:',
+    issueEntry: (sectionLabel, index) => `${sectionLabel} — Eintrag ${index}`,
+    issueDateFormat: 'Geben Sie ein Jahr (2024) oder Jahr und Monat (2024-06) an.',
+    issueTooLong: 'Dieser Text ist länger als erlaubt. Kürzen Sie ihn.',
     unsaved: 'Nicht gespeichert',
     offline: 'Der Server ist nicht erreichbar. Ihre Änderungen sind weiterhin vorhanden.',
 

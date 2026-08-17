@@ -32,6 +32,17 @@ export class ApiRequestError extends Error {
    * server's sentence and a translated one.
    */
   readonly serverMessage: string | null;
+  /**
+   * Which fields the server rejected, for a `422`.
+   *
+   * The API has always sent these — `toErrorResponse` maps every `ZodError` issue to a
+   * `path` and a `message` — and this class used to drop them on the floor. The cost was
+   * concrete: a user filled in an entire CV, every save was refused with "Some of the
+   * submitted values are not valid", and the one thing that would have ended it in seconds
+   * (`data.experience.0.startDate — Use YYYY, YYYY-MM or YYYY-MM-DD`) was in the response
+   * body the whole time, thrown away one layer below the screen that needed it.
+   */
+  readonly issues: readonly { path: string; message: string }[];
 
   constructor(
     status: number,
@@ -39,6 +50,7 @@ export class ApiRequestError extends Error {
     message: string,
     upgradeUrl: string | null = null,
     serverMessage: string | null = null,
+    issues: readonly { path: string; message: string }[] = [],
   ) {
     super(message);
     this.name = 'ApiRequestError';
@@ -46,6 +58,7 @@ export class ApiRequestError extends Error {
     this.code = code;
     this.upgradeUrl = upgradeUrl;
     this.serverMessage = serverMessage;
+    this.issues = issues;
   }
 
   /** True when the request was refused because of the user's plan. */
@@ -56,6 +69,26 @@ export class ApiRequestError extends Error {
 
 interface ErrorEnvelope {
   error?: { code?: unknown; message?: unknown; details?: unknown };
+}
+
+/** The `issues` array a `422` carries, shape-checked. Anything unexpected reads as none. */
+function issuesFrom(details: unknown): { path: string; message: string }[] {
+  if (!details || typeof details !== 'object' || !('issues' in details)) return [];
+  const raw = (details as { issues: unknown }).issues;
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((entry) =>
+    entry &&
+    typeof entry === 'object' &&
+    typeof (entry as { path?: unknown }).path === 'string' &&
+    typeof (entry as { message?: unknown }).message === 'string'
+      ? [
+          {
+            path: (entry as { path: string }).path,
+            message: (entry as { message: string }).message,
+          },
+        ]
+      : [],
+  );
 }
 
 function upgradeUrlFrom(details: unknown): string | null {
@@ -81,6 +114,7 @@ export async function readApiError(response: Response): Promise<ApiRequestError>
     sent ?? `The server refused that request (${response.status}).`,
     upgradeUrlFrom(body?.error?.details),
     sent,
+    issuesFrom(body?.error?.details),
   );
 }
 

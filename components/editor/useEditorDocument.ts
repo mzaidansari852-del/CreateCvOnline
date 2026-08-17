@@ -50,6 +50,14 @@ export interface EditorDocument {
   status: SaveStatus;
   lastSavedAt: string | null;
   errorMessage: string | null;
+  /**
+   * The specific fields the server rejected, when it named any.
+   *
+   * Separate from `errorMessage` because the two answer different questions: the message
+   * says a save failed, and this says where to go and fix it. Only the second one ends the
+   * problem, and it was being discarded.
+   */
+  saveIssues: readonly { path: string; message: string }[];
   /** Forces an immediate save and resolves once the server has acknowledged it. */
   saveNow: () => Promise<void>;
   dirty: boolean;
@@ -92,6 +100,7 @@ export function useEditorDocument(
   const [status, setStatus] = useState<SaveStatus>('idle');
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(initial.updatedAt);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [saveIssues, setSaveIssues] = useState<readonly { path: string; message: string }[]>([]);
   /*
    * Read once, during the first render, rather than in an effect. An effect would paint the
    * editor with the server's (older) content first and offer the recovery a frame later,
@@ -149,6 +158,7 @@ export function useEditorDocument(
           });
           setLastSavedAt(response.cv.updatedAt);
           setErrorMessage(null);
+          setSaveIssues([]);
           setStatus(pending.current ? 'dirty' : 'saved');
           // The server has it, so the local copy is now the stale one.
           clearDraft(cvId);
@@ -159,6 +169,7 @@ export function useEditorDocument(
           setStatus('error');
           const reason = error instanceof ApiRequestError ? error.message : copy.editor.offline;
           setErrorMessage(reason);
+          setSaveIssues(error instanceof ApiRequestError ? error.issues : []);
           if (error instanceof ApiRequestError && error.isEntitlement) {
             onEntitlementError.current?.(error);
           }
@@ -360,6 +371,7 @@ export function useEditorDocument(
     status,
     lastSavedAt,
     errorMessage,
+    saveIssues,
     recoveredDraft,
     restoreDraft,
     discardDraft,

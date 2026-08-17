@@ -76,6 +76,33 @@ describe('describePaddleApiKey', () => {
     expect(explainPaddleKeyProblem(report)).toContain(String(PADDLE_API_KEY_LENGTH));
   });
 
+  it('recognises the dashboard’s masked display, which is 42 characters', () => {
+    /*
+     * The real value that ended two days of this: 42 characters, prefix correct, first
+     * segment correct, nothing after it. That is not a mistype — it is precisely what
+     * Paddle's key list renders, `pdl_sdbx_apikey_01m03rj3hn****`, where the asterisks
+     * stand for 27 characters that were never on screen to copy.
+     *
+     * "The value was cut short" is true and useless here; it sends someone back to the
+     * dashboard to read the mask more carefully. So this length gets its own sentence.
+     */
+    const asDisplayed = validSandbox.slice(0, 42);
+    expect(asDisplayed).toHaveLength(42);
+    const report = describePaddleApiKey(asDisplayed);
+    expect(report.problem).toBe('truncated');
+    expect(report.prefix).toBe('pdl_sdbx_apikey_');
+
+    const explanation = explainPaddleKeyProblem(report) ?? '';
+    expect(explanation).toContain('42');
+    expect(explanation).toContain('69');
+    expect(explanation).toContain('dashboard displays');
+    expect(explanation).toContain('copy button');
+
+    // Any other short length keeps the generic wording — the specific claim would be a lie.
+    const otherwiseShort = explainPaddleKeyProblem(describePaddleApiKey(validSandbox.slice(0, 50)));
+    expect(otherwiseShort).not.toContain('dashboard displays');
+  });
+
   it('reports a key with something pasted onto it as too long', () => {
     expect(describePaddleApiKey(`${validSandbox}extra`).problem).toBe('too-long');
   });

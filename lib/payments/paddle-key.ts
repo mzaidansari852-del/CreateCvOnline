@@ -45,6 +45,17 @@ const PADDLE_CLIENT_TOKEN = /^(live|test)_[a-zA-Z\d]{10,}$/;
 
 export const PADDLE_API_KEY_LENGTH = 69;
 
+/**
+ * What Paddle's dashboard shows in the key list: `pdl_sdbx_apikey_` plus the 26-character
+ * first segment, then asterisks — 42 characters of real value standing in for 69.
+ *
+ * Worth naming as a constant because it is a *diagnosis*, not a coincidence. A value of
+ * exactly this length is not a key that was mistyped; it is the masked display copied off
+ * the screen, and the remaining 27 characters were never available to copy. Telling someone
+ * "it was cut short" sends them back to that screen to look harder at four asterisks.
+ */
+const DASHBOARD_DISPLAY_LENGTH = 42;
+
 export type PaddleKeyProblem =
   | 'missing'
   | 'client-token-in-api-key-slot'
@@ -193,8 +204,22 @@ export function explainPaddleKeyProblem(report: PaddleKeyReport): string | null 
     case 'truncated':
       return (
         `PADDLE_API_KEY is ${report.length} characters; a Paddle API key is ` +
-        `${PADDLE_API_KEY_LENGTH}. The value was cut short when it was copied — Paddle shows ` +
-        'the key only at the moment it is created, so it has to be generated again.'
+        `${PADDLE_API_KEY_LENGTH}. ` +
+        (report.length === DASHBOARD_DISPLAY_LENGTH
+          ? /*
+             * The specific trap, called by name. 42 characters is exactly the prefix plus
+             * the first segment — which is exactly what Paddle's dashboard shows, as
+             * `pdl_sdbx_apikey_01m03rj3hn****`. Someone reading that screen and typing what
+             * they see lands on 42 every time, and "the value was cut short" sends them back
+             * to the same screen to look harder at four asterisks standing in for 27
+             * characters that are not there.
+             */
+            'That is exactly the length of what the Paddle dashboard displays — the masked ' +
+            'form of the key, not the key. The full value is shown once, on the screen where ' +
+            'the key is created, and cannot be retrieved afterwards: create a new API key and ' +
+            'use the copy button on that screen.'
+          : 'The value was cut short when it was copied. Paddle shows the key only at the ' +
+            'moment it is created, so it has to be generated again.')
       );
     case 'too-long':
       return (

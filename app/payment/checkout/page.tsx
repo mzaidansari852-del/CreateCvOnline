@@ -10,7 +10,7 @@ import { ButtonLink } from '@/components/ui/button';
 import { Alert } from '@/components/ui/feedback';
 import { requireViewer } from '@/lib/auth/guards';
 import { appCopy } from '@/lib/i18n/app-copy';
-import { planDescription, planHighlights } from '@/lib/i18n/copy/content';
+import { planHighlights, planTagline } from '@/lib/i18n/copy/content';
 import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { availableGateways } from '@/lib/payments';
 import { publicEnv } from '@/lib/env';
@@ -35,6 +35,15 @@ import type { PlanId } from '@/types/user';
  *
  * Which gateway is offered is also decided here rather than in the browser. The client is
  * told what it may use; it does not get to nominate one.
+ *
+ * ## What this page deliberately no longer says
+ *
+ * It used to open with the plan's full description and a six-item feature grid. Both were
+ * accurate and both were in the way: someone who has clicked "Get Pro" and signed in has
+ * already been sold, and re-selling them only delays the thing they came here to do. The
+ * highlights are one click away in a `<details>` for the minority who want to re-check;
+ * everything else is cut to what a payer actually verifies — which account, which plan,
+ * whether it renews, and how much leaves their card today.
  */
 
 export const metadata: Metadata = privateMetadata('Checkout', 'Review your plan before you pay.');
@@ -79,34 +88,17 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
   // reach the payer unlabelled in one language and labelled in another.
   const interval = copy.checkout.interval[plan.interval];
   const priceLabel = `${formatPrice(plan.price)} ${interval}`;
+  const billing =
+    plan.accessDays === null
+      ? copy.checkout.billingOneOff
+      : copy.checkout.billingRecurring(plan.accessDays);
 
   /*
-   * `availableGateways()` reports what the *server* can talk to. Paddle needs a second
-   * thing the server never uses — its public client token in the browser — and the two are
-   * configured independently, so a deployment with the API key and no
-   * `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` would render a button whose overlay can never open.
-   * Dropping it here means the payer sees the gateway that works rather than the one that
-   * is half-installed.
+   * Asked rather than assumed. A deployment with no gateway credentials must not render a
+   * pay button — the payer would reach a 503 after committing to buy — so the page checks
+   * and shows the "no payment provider" notice instead.
    */
-  const serverGateways = availableGateways();
-  const paddleClientReady = publicEnv.paddleClientToken.length > 0;
-  const gateways = serverGateways.filter((id) => id !== 'paddle' || paddleClientReady);
-
-  /*
-   * Say so in the log when Paddle is dropped for this reason.
-   *
-   * Silently falling back is right for the customer and baffling for whoever configured
-   * the deployment: the API key is set, the price ids are set, and the checkout still
-   * offers PayPal with nothing to explain it. The usual cause is that
-   * `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` is inlined into the client bundle at *build* time,
-   * so adding it to the hosting dashboard after a deploy has no effect until a rebuild.
-   */
-  if (serverGateways.includes('paddle') && !paddleClientReady) {
-    console.warn(
-      '[checkout] Paddle is configured server-side but NEXT_PUBLIC_PADDLE_CLIENT_TOKEN is empty, ' +
-        'so it is not being offered. That variable is baked in at build time — set it and redeploy.',
-    );
-  }
+  const gateways = availableGateways();
 
   // Someone who already owns Lifetime has nothing to buy; someone on Pro can still move
   // up to Lifetime, so only the strictly-pointless purchase is blocked.
@@ -134,22 +126,111 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
     );
   }
 
+  /*
+   * The four facts a payer checks before committing, and nothing else.
+   *
+   * The billing row earns its place: the other three are visible elsewhere on the site,
+   * but whether money will be taken again is the question people actually hesitate on, and
+   * leaving it to be inferred from "per month" is how a fixed-term purchase gets read as a
+   * subscription. It is answered in words either way, not only when the answer is the
+   * reassuring one.
+   *
+   * Built here and handed to the client component as a prop, so the figures never leave
+   * the server.
+   */
+  const summary = (
+    <div className="overflow-hidden rounded-2xl border border-ink-200 bg-white">
+      <dl className="text-[13.5px]">
+        <div className="flex items-center justify-between gap-3 border-b border-ink-100 px-4 py-3">
+          <dt className="text-ink-500">{copy.nav.account}</dt>
+          <dd className="text-right font-medium break-all text-ink-900">{viewer.user.email}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-3 border-b border-ink-100 px-4 py-3">
+          <dt className="text-ink-500">{copy.checkout.rowPlan}</dt>
+          <dd className="text-right font-semibold text-ink-900">{plan.name}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
+          <dt className="text-ink-500">{copy.checkout.rowBilling}</dt>
+          <dd className="text-right font-medium text-ink-900">{billing}</dd>
+        </div>
+      </dl>
+
+      <div className="flex items-end justify-between gap-3 bg-ink-50 px-4 py-4">
+        <span className="text-sm font-extrabold text-ink-950">{copy.checkout.totalToday}</span>
+        <span className="text-right">
+          <span className="text-[27px] leading-none font-extrabold tracking-tight text-ink-950">
+            {formatPrice(plan.price)}
+          </span>
+          <span className="ml-1.5 text-xs font-semibold text-ink-500">
+            {publicEnv.storeCurrency}
+          </span>
+          <span className="mt-1 block text-[11.5px] text-ink-500">{interval}</span>
+        </span>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="rounded-2xl border border-ink-200 bg-white p-6 shadow-card sm:p-9">
+    <div className="rounded-2xl border border-ink-200 bg-white p-5 shadow-card sm:p-8">
       <p className="text-xs font-bold tracking-[0.14em] text-brand-700 uppercase">
         {copy.checkout.stepReview}
       </p>
-      <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-balance text-ink-950 sm:text-4xl">
+      <h1 className="mt-2.5 text-2xl font-extrabold tracking-tight text-balance text-ink-950 sm:text-3xl">
         {copy.checkout.confirmPlanTitle(plan.name)}
       </h1>
-      {/* Still English in every language: `lib/i18n/copy/content.ts` localises a plan's
-          tagline and highlights but not its description, and this page cannot add that. */}
-      <p className="mt-3 text-[15px] leading-relaxed text-pretty text-ink-600">
-        {planDescription(plan, locale)}
+      {/* The tagline, not the description: one localised line in place of a paragraph. */}
+      <p className="mt-2 text-sm leading-relaxed text-pretty text-ink-500">
+        {planTagline(plan, locale)}
       </p>
 
+      {/*
+        Closed by default. The customer chose this plan on the pricing page, where the same
+        list was open and unavoidable; repeating it here charges every payer six lines of
+        reading to serve the few who want to check.
+      */}
+      <details className="group mt-4">
+        <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 text-[12.5px] font-semibold text-brand-700 underline underline-offset-2 marker:content-none hover:text-brand-800">
+          {copy.checkout.whatsIncluded}
+          <svg
+            className="size-3.5 transition-transform group-open:rotate-180"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden
+          >
+            <path
+              d="m6 9 6 6 6-6"
+              stroke="currentColor"
+              strokeWidth="2.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </summary>
+        <ul className="mt-3 grid gap-2 rounded-xl border border-ink-200 bg-ink-50 p-4 sm:grid-cols-2">
+          {planHighlights(plan, locale).map((highlight) => (
+            <li key={highlight} className="flex gap-2 text-[13px] leading-snug text-ink-700">
+              <svg
+                className="mt-0.5 size-3.5 shrink-0 text-brand-600"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden
+              >
+                <path
+                  d="m5 12.5 4.5 4.5L19 7.5"
+                  stroke="currentColor"
+                  strokeWidth="2.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              {highlight}
+            </li>
+          ))}
+        </ul>
+      </details>
+
       {repeatPurchase ? (
-        <Alert tone="info" title={copy.checkout.repeatTitle(plan.name)} className="mt-6">
+        <Alert tone="info" title={copy.checkout.repeatTitle(plan.name)} className="mt-5">
           {/* Only Pro reaches this branch and Pro grants a fixed term, so the fallback is
               unreachable — it exists because `accessDays` is nullable for Lifetime. */}
           {copy.checkout.repeatBody(
@@ -171,64 +252,7 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
         </Alert>
       ) : null}
 
-      <div className="mt-7 rounded-xl border border-ink-200 bg-ink-50 p-5">
-        <h2 className="text-sm font-bold tracking-wide text-ink-500 uppercase">
-          {copy.checkout.orderSummary}
-        </h2>
-
-        <dl className="mt-4 flex flex-col divide-y divide-ink-200">
-          <div className="flex flex-wrap items-baseline justify-between gap-2 pb-3">
-            <dt className="text-sm text-ink-600">{copy.checkout.rowPlan}</dt>
-            <dd className="text-sm font-semibold text-ink-950">{plan.name}</dd>
-          </div>
-          <div className="flex flex-wrap items-baseline justify-between gap-2 py-3">
-            <dt className="text-sm text-ink-600">{copy.checkout.rowBilling}</dt>
-            <dd className="text-sm font-medium text-ink-900">
-              {plan.accessDays === null
-                ? copy.checkout.billingOneOff
-                : copy.checkout.billingRecurring(plan.accessDays)}
-            </dd>
-          </div>
-          <div className="flex flex-wrap items-baseline justify-between gap-2 py-3">
-            <dt className="text-sm text-ink-600">{copy.nav.account}</dt>
-            <dd className="text-sm font-medium break-all text-ink-900">{viewer.user.email}</dd>
-          </div>
-          <div className="flex flex-wrap items-baseline justify-between gap-2 pt-3">
-            <dt className="text-base font-semibold text-ink-950">{copy.checkout.totalToday}</dt>
-            <dd className="text-right">
-              <span className="text-2xl font-extrabold tracking-tight text-ink-950">
-                {formatPrice(plan.price)}
-              </span>
-              <span className="ml-1.5 text-sm text-ink-500">{publicEnv.storeCurrency}</span>
-              <span className="block text-xs text-ink-500">{interval}</span>
-            </dd>
-          </div>
-        </dl>
-      </div>
-
-      <ul className="mt-6 grid gap-2.5 sm:grid-cols-2">
-        {planHighlights(plan, locale).map((highlight) => (
-          <li key={highlight} className="flex gap-2.5 text-sm leading-snug text-ink-700">
-            <svg
-              className="mt-0.5 size-4 shrink-0 text-brand-600"
-              viewBox="0 0 24 24"
-              fill="none"
-              aria-hidden
-            >
-              <path
-                d="m5 12.5 4.5 4.5L19 7.5"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            {highlight}
-          </li>
-        ))}
-      </ul>
-
-      <div className="mt-8">
+      <div className="mt-6">
         {gateways.length === 0 ? (
           <Alert tone="danger" title={copy.checkout.unavailableTitle}>
             {copy.checkout.unavailableBody(site.supportEmail)}
@@ -239,44 +263,39 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
             planName={plan.name}
             priceLabel={priceLabel}
             defaultMethod={gateways[0] === 'paypal' ? 'paypal' : 'paddle'}
+            summary={summary}
           />
-        ) : gateways[0] === 'paypal' ? (
-          <CheckoutButton planId={planId} planName={plan.name} priceLabel={priceLabel} />
         ) : (
-          <PaddleCheckoutButton planId={planId} planName={plan.name} priceLabel={priceLabel} />
+          /*
+            One gateway: no picker, because a choice of one is a control that asks to be
+            read and teaches nothing. The summary still sits directly above the button, so
+            the total is the last thing seen either way.
+          */
+          <div className="flex flex-col gap-4">
+            {summary}
+            {gateways[0] === 'paypal' ? (
+              <CheckoutButton planId={planId} planName={plan.name} priceLabel={priceLabel} />
+            ) : (
+              <PaddleCheckoutButton planId={planId} planName={plan.name} priceLabel={priceLabel} />
+            )}
+          </div>
         )}
       </div>
 
-      <div className="mt-7 border-t border-ink-100 pt-5 text-center text-xs leading-relaxed text-ink-500">
-        <p>
-          {copy.checkout.termsIntro}{' '}
-          <Link href="/terms" className="font-medium text-brand-700 underline underline-offset-2">
-            {copy.checkout.termsLink}
-          </Link>{' '}
-          {copy.checkout.termsAnd}{' '}
-          <Link
-            href="/refund-policy"
-            className="font-medium text-brand-700 underline underline-offset-2"
-          >
-            {copy.checkout.refundLink}
-          </Link>
-          . {copy.checkout.cardDetailsNote}
-        </p>
-        <p className="mt-2">
-          {copy.checkout.changedMind}{' '}
-          <Link href="/pricing" className="font-medium text-brand-700 underline underline-offset-2">
-            {copy.checkout.comparePlansAgain}
-          </Link>{' '}
-          {copy.checkout.orWriteTo}{' '}
-          <a
-            href={`mailto:${site.supportEmail}`}
-            className="font-medium text-brand-700 underline underline-offset-2"
-          >
-            {site.supportEmail}
-          </a>
-          .
-        </p>
-      </div>
+      <p className="mt-5 text-center text-[11.5px] leading-relaxed text-ink-500">
+        {copy.checkout.termsIntro}{' '}
+        <Link href="/terms" className="font-semibold text-brand-700 underline underline-offset-2">
+          {copy.checkout.termsLink}
+        </Link>{' '}
+        {copy.checkout.termsAnd}{' '}
+        <Link
+          href="/refund-policy"
+          className="font-semibold text-brand-700 underline underline-offset-2"
+        >
+          {copy.checkout.refundLink}
+        </Link>
+        . {copy.checkout.cardDetailsNote}
+      </p>
     </div>
   );
 }

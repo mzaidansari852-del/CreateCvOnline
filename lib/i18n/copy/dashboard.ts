@@ -493,6 +493,7 @@ export interface DashboardCopy {
     methodHeading: string;
     methodPaddle: string;
     methodPaypal: string;
+    /** One short line under the tile name — not a paragraph about tax treatment. */
     methodPaddleHint: string;
     methodPaypalHint: string;
     /** `priceLabel` is already formatted by the page, e.g. `$9 per month`. */
@@ -546,6 +547,14 @@ export interface DashboardCopy {
     interval: Record<Plan['interval'], string>;
     stepReview: string;
     confirmPlanTitle: (planName: string) => string;
+    /**
+     * Opens the plan's feature list, which is collapsed by default.
+     *
+     * The list is the same one the pricing page shows open. Repeating it here charged
+     * every payer six lines of reading to serve the few who wanted to re-check, on the
+     * one screen where the goal is to get out of the way.
+     */
+    whatsIncluded: string;
     orderSummary: string;
     rowPlan: string;
     rowBilling: string;
@@ -1095,17 +1104,15 @@ const EN: DashboardCopy = {
     completing: 'Payment received — confirming it now…',
     reopen: 'Reopen the payment window',
     methodHeading: 'How would you like to pay?',
-    methodPaddle: 'Card or wallet',
+    methodPaddle: 'Credit or debit card',
     methodPaypal: 'PayPal',
-    methodPaddleHint:
-      'Card, Apple Pay, Google Pay or PayPal, in a window that opens over this page. Paddle is the seller of record, so the VAT or sales tax for your country is worked out and shown before you pay.',
-    methodPaypalHint:
-      'You approve the payment on PayPal and come straight back here. A PayPal account is not required — a bank or debit card works too.',
+    methodPaddleHint: 'Apple Pay and Google Pay too',
+    methodPaypalHint: 'No PayPal account needed',
     payNow: (priceLabel) => `Pay ${priceLabel}`,
     opening: 'Opening the payment window…',
     confirming: 'Confirming your payment…',
     paddleNote: (planName) =>
-      `The payment window is Paddle's, not ours — we never see or store your card details. ${planName} is unlocked only after our server confirms the payment with Paddle.`,
+      `Paddle handles the payment — we never see your card details. ${planName} unlocks once it is confirmed.`,
     startFailedTitle: 'Checkout could not start',
     startFailedBody:
       'We could not start the payment. Nothing has been charged — please try again in a moment.',
@@ -1170,6 +1177,7 @@ const EN: DashboardCopy = {
     },
     stepReview: 'Step 1 of 3 · Review',
     confirmPlanTitle: (planName) => `Confirm your ${planName} plan`,
+    whatsIncluded: "What's included?",
     orderSummary: 'Order summary',
     rowPlan: 'Plan',
     rowBilling: 'Billing',
@@ -1198,7 +1206,7 @@ const EN: DashboardCopy = {
     continueToPaypal: (priceLabel) => `Continue to PayPal — ${priceLabel}`,
     redirectingToPaypal: 'Taking you to PayPal…',
     paypalNote: (planName) =>
-      `You will approve the payment on PayPal, then come straight back here. You can pay with a PayPal balance, a bank account, or a debit or credit card — a PayPal account is not required. ${planName} is unlocked only after our server confirms the payment with PayPal.`,
+      `You approve on PayPal and come straight back. ${planName} unlocks once it is confirmed.`,
     paypalStartFailed: 'PayPal could not start this payment. Please try again in a moment.',
     paypalNoApproveUrl: (email) =>
       `The order was created but PayPal did not return a checkout link. Nothing has been charged — please try again, or contact ${email} if it keeps happening.`,
@@ -1750,17 +1758,15 @@ const FR: DashboardCopy = {
     completing: 'Paiement reçu — confirmation en cours…',
     reopen: 'Rouvrir la fenêtre de paiement',
     methodHeading: 'Comment souhaitez-vous payer ?',
-    methodPaddle: 'Carte ou portefeuille',
+    methodPaddle: 'Carte bancaire',
     methodPaypal: 'PayPal',
-    methodPaddleHint:
-      'Carte, Apple Pay, Google Pay ou PayPal, dans une fenêtre qui s’ouvre par-dessus cette page. Paddle est le vendeur officiel : la TVA applicable à votre pays est calculée et affichée avant le paiement.',
-    methodPaypalHint:
-      'Vous validez le paiement sur PayPal, puis vous revenez directement ici. Aucun compte PayPal n’est nécessaire : une carte bancaire suffit.',
+    methodPaddleHint: 'Apple Pay et Google Pay aussi',
+    methodPaypalHint: 'Sans compte PayPal',
     payNow: (priceLabel) => `Payer ${priceLabel}`,
     opening: 'Ouverture de la fenêtre de paiement…',
     confirming: 'Confirmation du paiement…',
     paddleNote: (planName) =>
-      `La fenêtre de paiement est celle de Paddle, pas la nôtre : nous ne voyons ni ne conservons vos données bancaires. La formule ${planName} n’est activée qu’une fois le paiement confirmé par notre serveur auprès de Paddle.`,
+      `Paddle gère le paiement : nous ne voyons pas vos données bancaires. ${planName} est activé dès la confirmation.`,
     startFailedTitle: 'Le paiement n’a pas pu démarrer',
     startFailedBody:
       'Nous n’avons pas pu démarrer le paiement. Rien n’a été débité — réessayez dans un instant.',
@@ -1827,6 +1833,7 @@ const FR: DashboardCopy = {
     },
     stepReview: 'Étape 1 sur 3 · Vérification',
     confirmPlanTitle: (planName) => `Confirmez votre formule ${planName}`,
+    whatsIncluded: 'Ce qui est inclus',
     orderSummary: 'Récapitulatif de la commande',
     rowPlan: 'Formule',
     rowBilling: 'Facturation',
@@ -1855,7 +1862,7 @@ const FR: DashboardCopy = {
     continueToPaypal: (priceLabel) => `Continuer vers PayPal — ${priceLabel}`,
     redirectingToPaypal: 'Redirection vers PayPal…',
     paypalNote: (planName) =>
-      `Vous validez le paiement sur PayPal, puis vous revenez directement ici. Vous pouvez payer avec votre solde PayPal, un compte bancaire ou une carte bancaire — aucun compte PayPal n’est nécessaire. La formule ${planName} n’est activée qu’une fois le paiement confirmé par notre serveur auprès de PayPal.`,
+      `Vous validez sur PayPal, puis vous revenez ici. ${planName} est activé dès la confirmation.`,
     paypalStartFailed: 'PayPal n’a pas pu démarrer ce paiement. Réessayez dans un instant.',
     paypalNoApproveUrl: (email) =>
       `La commande a bien été créée, mais PayPal n’a renvoyé aucun lien de paiement. Rien n’a été débité — réessayez, ou écrivez à ${email} si cela se reproduit.`,
@@ -2399,17 +2406,15 @@ const DE: DashboardCopy = {
     completing: 'Zahlung eingegangen — wird bestätigt…',
     reopen: 'Zahlungsfenster erneut öffnen',
     methodHeading: 'Wie möchten Sie bezahlen?',
-    methodPaddle: 'Karte oder Wallet',
+    methodPaddle: 'Kredit- oder Debitkarte',
     methodPaypal: 'PayPal',
-    methodPaddleHint:
-      'Karte, Apple Pay, Google Pay oder PayPal — in einem Fenster, das sich über dieser Seite öffnet. Paddle ist der Verkäufer, die Umsatzsteuer für Ihr Land wird also berechnet und vor dem Bezahlen angezeigt.',
-    methodPaypalHint:
-      'Sie bestätigen die Zahlung bei PayPal und kommen direkt hierher zurück. Ein PayPal-Konto ist nicht nötig — eine Bankkarte genügt.',
+    methodPaddleHint: 'Auch Apple Pay und Google Pay',
+    methodPaypalHint: 'Ohne PayPal-Konto möglich',
     payNow: (priceLabel) => `${priceLabel} bezahlen`,
     opening: 'Zahlungsfenster wird geöffnet…',
     confirming: 'Zahlung wird bestätigt…',
     paddleNote: (planName) =>
-      `Das Zahlungsfenster gehört Paddle, nicht uns — wir sehen und speichern Ihre Kartendaten nicht. ${planName} wird erst freigeschaltet, wenn unser Server die Zahlung bei Paddle bestätigt hat.`,
+      `Paddle wickelt die Zahlung ab — wir sehen Ihre Kartendaten nicht. ${planName} wird nach der Bestätigung freigeschaltet.`,
     startFailedTitle: 'Der Bezahlvorgang konnte nicht starten',
     startFailedBody:
       'Wir konnten die Zahlung nicht starten. Es wurde nichts abgebucht — bitte versuchen Sie es gleich noch einmal.',
@@ -2476,6 +2481,7 @@ const DE: DashboardCopy = {
     },
     stepReview: 'Schritt 1 von 3 · Prüfen',
     confirmPlanTitle: (planName) => `Bestätigen Sie Ihren ${planName}-Tarif`,
+    whatsIncluded: 'Was ist enthalten?',
     orderSummary: 'Bestellübersicht',
     rowPlan: 'Tarif',
     rowBilling: 'Abrechnung',
@@ -2504,7 +2510,7 @@ const DE: DashboardCopy = {
     continueToPaypal: (priceLabel) => `Weiter zu PayPal — ${priceLabel}`,
     redirectingToPaypal: 'Sie werden zu PayPal weitergeleitet…',
     paypalNote: (planName) =>
-      `Sie bestätigen die Zahlung bei PayPal und kommen direkt hierher zurück. Zahlen können Sie mit PayPal-Guthaben, per Bankkonto oder mit Debit- oder Kreditkarte — ein PayPal-Konto ist nicht nötig. ${planName} wird erst freigeschaltet, wenn unser Server die Zahlung bei PayPal bestätigt hat.`,
+      `Sie bestätigen bei PayPal und kommen direkt zurück. ${planName} wird nach der Bestätigung freigeschaltet.`,
     paypalStartFailed:
       'PayPal konnte diese Zahlung nicht starten. Bitte versuchen Sie es gleich noch einmal.',
     paypalNoApproveUrl: (email) =>

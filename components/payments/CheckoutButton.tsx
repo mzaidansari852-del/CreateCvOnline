@@ -84,12 +84,7 @@ export function CheckoutButton({
           router.push(`/login?next=${encodeURIComponent(`/payment/checkout?plan=${planId}`)}`);
           return;
         }
-        /*
-         * The error *code*, mapped to translated copy — never `payload.error.message`. Our
-         * API writes that message in English for whoever reads the logs, and rendering it
-         * here put an English sentence under a French heading on the one screen where a
-         * customer is deciding whether their money is safe.
-         */
+        // The code, not the API's English `message` — see PaddleCheckoutButton for why.
         setError(
           copy.checkout.serverError(payload?.error?.code) ?? copy.checkout.paypalStartFailed,
         );

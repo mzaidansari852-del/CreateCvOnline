@@ -65,8 +65,8 @@ export async function recordOrderCreated(input: {
   amount: string;
   currency: string;
   /**
-   * Which gateway took the order. Defaults to PayPal, which is the only one that writes
-   * orders; the field stays explicit so a historical record still reports what took it.
+   * Which gateway took the order. Defaults to PayPal so records written before Paddle
+   * existed keep their provider, and so no existing call site changes meaning.
    */
   provider?: PaymentProvider;
 }): Promise<void> {

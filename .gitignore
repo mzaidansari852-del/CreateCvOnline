@@ -43,3 +43,7 @@ yarn-error.log*
 
 # misc
 .vercel
+
+# staging area for files on their way out — never committed, never compiled
+# (see tsconfig.json "exclude")
+/_to_delete

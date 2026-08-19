@@ -46,6 +46,10 @@
   "exclude": [
     "node_modules",
     ".next",
-    "out"
+    "out",
+    // Files parked for deletion are still files. Anything left here would otherwise be
+    // type-checked against a codebase it has already been cut out of, and fail the build
+    // with errors about code nobody intends to keep.
+    "_to_delete"
   ]
 }

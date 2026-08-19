@@ -2,9 +2,14 @@ import { z } from 'zod';
 import { planIdSchema } from './user';
 
 /**
- * `manual` is an admin grant, not a gateway. Both real gateways are listed because they
- * run side by side: existing PayPal records must keep parsing after Paddle becomes the
- * default, and a payment's provider is how support knows where to look for it.
+ * `manual` is an admin grant, not a gateway.
+ *
+ * `paypal` stays in the enum although nothing writes it any more. This schema parses
+ * *stored* records, and removing a value from it would turn any historical order into a
+ * parse error rather than a readable row — a support ticket about a payment from last year
+ * would fail on the way out of the database. It costs one string to keep old data readable.
+ * `gatewayFor('paypal')` still throws, so a record can be displayed but never re-checked
+ * against an API that no longer knows us.
  */
 export const paymentProviderSchema = z.enum(['paypal', 'paddle', 'manual']);
 export type PaymentProvider = z.infer<typeof paymentProviderSchema>;
@@ -23,7 +28,8 @@ export const paymentRecordSchema = z.object({
   id: z.string(),
   userId: z.string(),
   provider: paymentProviderSchema,
-  /** Provider-side identifier (PayPal order id). */
+  /** Provider-side identifier — a Paddle transaction id, or a PayPal order id on an
+   * older record. */
   providerOrderId: z.string(),
   /** Provider-side capture/transaction id, present once money moved. */
   providerCaptureId: z.string().nullable().default(null),
@@ -43,7 +49,7 @@ export type PaymentRecord = z.infer<typeof paymentRecordSchema>;
 /**
  * Provider-agnostic checkout contract.
  *
- * Swapping PayPal for Stripe/Paddle later means implementing this interface and
+ * Swapping Paddle for Stripe later means implementing this interface and
  * changing one line in `lib/payments/index.ts` — no call-site touches routes or UI.
  */
 export interface CheckoutOrder {

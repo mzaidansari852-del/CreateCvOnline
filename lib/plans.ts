@@ -36,7 +36,7 @@ export interface Plan {
   name: string;
   /** Decimal string in the store currency. `"0.00"` for the free plan. */
   price: string;
-  /** Human billing cadence, used in the UI and the PayPal order description. */
+  /** Human billing cadence, used in the UI and the gateway's line-item description. */
   interval: 'forever' | 'month' | 'year' | 'one-time';
   /** Days of access granted by one successful payment. `null` = never expires. */
   accessDays: number | null;

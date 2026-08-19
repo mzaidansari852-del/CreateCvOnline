@@ -3,7 +3,7 @@
 Everything in the repo is deploy-ready. This is the exact sequence, plus the three things
 that genuinely bite people on this stack.
 
-Budget about 25 minutes: 5 for the deploy, 20 for Firebase and PayPal.
+Budget about 25 minutes: 5 for the deploy, 20 for Firebase and Paddle.
 
 ---
 
@@ -14,10 +14,11 @@ You need:
 - a **Vercel** account (Hobby is fine to start — see the PDF warning below),
 - a **GitHub/GitLab/Bitbucket** account,
 - a **Firebase** project — [README → Firebase setup](README.md#firebase-setup),
-- a **PayPal** developer app — [README → PayPal setup](README.md#paypal-setup),
+- a **Paddle** account — [README → Paddle setup](README.md#paddle-setup), and the full
+  sandbox walkthrough in [`docs/PADDLE_SETUP.md`](docs/PADDLE_SETUP.md),
 - the **createcvonline.com** domain, if you want it live on the real address.
 
-You can deploy *before* Firebase and PayPal are ready. The site will render completely —
+You can deploy *before* Firebase and Paddle are ready. The site will render completely —
 all 133 pages, all 56 template previews — and sign-in will show an honest "not configured"
 message rather than breaking. Adding the variables later triggers a redeploy that lights
 everything up.
@@ -58,9 +59,9 @@ NEXT_PUBLIC_SITE_URL = https://createcvonline.com
 ```
 
 Get this wrong and every canonical URL, every sitemap entry, every Open Graph tag and
-every PayPal return URL points at the wrong host. If you have not attached the domain
-yet, use your `*.vercel.app` URL and change it later — but do change it before you submit
-anything to Search Console.
+every checkout return URL handed to Paddle points at the wrong host. If you have not
+attached the domain yet, use your `*.vercel.app` URL and change it later — but do change it
+before you submit anything to Search Console.
 
 ### Pasting `FIREBASE_PRIVATE_KEY`
 
@@ -116,8 +117,9 @@ Then by hand:
 - [ ] Register an account. The verification e-mail arrives.
 - [ ] Create a CV, edit it, confirm autosave shows "Saved".
 - [ ] **Download a PDF.** See the warning below if this fails.
-- [ ] Buy Pro with a PayPal **sandbox** account; confirm `/dashboard/account` shows Pro
-      and `/admin/payments` shows the order as completed.
+- [ ] Buy Pro against **sandbox** Paddle with the test card `4242 4242 4242 4242`; confirm
+      the overlay actually opens, `/dashboard/account` shows Pro and `/admin/payments`
+      shows the transaction as completed.
 - [ ] `npm run set-admin -- --email you@example.com`, sign out and in, open `/admin`.
 - [ ] Open the site on a real phone.
 

@@ -105,23 +105,37 @@ const SECTIONS: LegalSection[] = [
           </li>
           <li>
             <strong>{pro.name}</strong> is a single payment of {pro.price}{' '}
-            {publicEnv.paypalCurrency} granting {pro.accessDays} days of access.
+            {publicEnv.storeCurrency} granting {pro.accessDays} days of access.
           </li>
           <li>
             <strong>{lifetime.name}</strong> is a single payment of {lifetime.price}{' '}
-            {publicEnv.paypalCurrency} with no expiry date on the account.
+            {publicEnv.storeCurrency} with no expiry date on the account.
           </li>
         </ul>
         <p>
-          <strong>Nothing renews automatically.</strong> We do not store a payment method and we do
-          not create a recurring billing agreement, so there is no subscription to cancel. When a
-          paid period ends, the account returns to the free plan on its own.
+          <strong>
+            What you buy is a fixed term of access, and the term is the one listed above.
+          </strong>{' '}
+          When a paid period ends, the account returns to the free plan on its own and the paid
+          features switch off. We hold no card details of our own; your account page lists every
+          payment recorded against the account and the date your access ends.
         </p>
         <p>
-          Payment is taken by PayPal. Access is granted only after our server has confirmed with
-          PayPal that the payment completed and that the amount and currency match the plan
-          ordered. Prices are shown in {publicEnv.paypalCurrency}; conversion and any cross-border
-          fee charged by your bank or PayPal are between you and them.
+          Payment is taken through <strong>Paddle</strong>, which acts as the{' '}
+          <strong>merchant of record</strong> for the sale. Paddle is therefore the seller for the
+          transaction itself: it takes the payment, calculates and remits any VAT or sales tax due
+          in your country, and issues the invoice or receipt.{' '}
+          <strong>
+            The charge on your card or bank statement shows Paddle rather than {site.name}
+          </strong>{' '}
+          — worth knowing before an unfamiliar line looks like fraud.
+        </p>
+        <p>
+          The checkout opens as an overlay on our page, and the payment form inside it is served by
+          Paddle: card details are entered there and never reach our servers. Access is granted only
+          after our server has confirmed with Paddle that the payment completed and that the amount
+          and currency match the plan ordered. Prices are shown in {publicEnv.storeCurrency};
+          conversion and any cross-border fee charged by your bank are between you and them.
         </p>
         <p>
           We may change prices. A change never affects a payment already made, and access you have
@@ -424,8 +438,8 @@ export default function TermsPage() {
           templates or use them to build a competing builder.
         </>,
         <>
-          <strong>Nothing renews automatically</strong>, no card is stored, and there is no
-          subscription to cancel.
+          <strong>A payment buys a fixed term of access</strong>, taken through Paddle as merchant
+          of record — so your statement reads Paddle, and Paddle handles the tax and the receipt.
         </>,
         <>
           <strong>We do not promise a job, an interview, or perfect ATS parsing.</strong> We promise

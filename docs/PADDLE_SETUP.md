@@ -14,11 +14,12 @@ server and `@paddle/paddle-js` in the browser.
 3. [Create the products and prices](#3-create-the-products-and-prices)
 4. [Fill in the environment](#4-fill-in-the-environment)
 5. [Create the webhook](#5-create-the-webhook)
-6. [Testing locally, where Paddle cannot reach you](#6-testing-locally-where-paddle-cannot-reach-you)
-7. [Sandbox test cards](#7-sandbox-test-cards)
-8. [How to tell it worked](#8-how-to-tell-it-worked)
-9. [Going live](#9-going-live)
-10. [Troubleshooting](#10-troubleshooting)
+6. [Allow Paddle through the Content Security Policy](#6-allow-paddle-through-the-content-security-policy)
+7. [Testing locally, where Paddle cannot reach you](#7-testing-locally-where-paddle-cannot-reach-you)
+8. [Sandbox test cards](#8-sandbox-test-cards)
+9. [How to tell it worked](#9-how-to-tell-it-worked)
+10. [Going live](#10-going-live)
+11. [Troubleshooting](#11-troubleshooting)
 
 ---
 
@@ -132,7 +133,7 @@ keeps charging them. Force a renewal in sandbox and watch the log before going l
 Set the base price in the same currency as `NEXT_PUBLIC_STORE_CURRENCY` (default `USD`).
 Leave localised price overrides alone at first: Paddle converts automatically, and a
 hand-typed override in a weak currency is the one thing that can make the amount check in
-`paddleCaptureMatchesPlan` misbehave (see [§10](#10-troubleshooting)).
+`paddleCaptureMatchesPlan` misbehave (see [§11](#11-troubleshooting)).
 
 The prices must match `lib/plans.ts` **exactly**, to the cent. A payment whose amount does
 not match the plan is refused, marked `failed` and never granted — that is the anti-tamper
@@ -174,23 +175,26 @@ NEXT_PUBLIC_STORE_CURRENCY=USD
 | `PADDLE_PRICE_LIFETIME` | not secret | `pri_…` | As above. |
 | `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` | **public** | `test_…` / `live_…` | Paddle.js cannot initialise: the overlay never opens. |
 | `NEXT_PUBLIC_PADDLE_ENVIRONMENT` | **public** | `sandbox` \| `production` | Defaults to `sandbox`. Anything other than `production` *is* sandbox. |
-| `NEXT_PUBLIC_STORE_CURRENCY` | **public** | `USD` | The currency `lib/plans.ts` prices are quoted in, and the one an amount must match exactly. Falls back to `NEXT_PUBLIC_PAYPAL_CURRENCY`, then `USD`. Only the first three characters are used. |
+| `NEXT_PUBLIC_STORE_CURRENCY` | **public** | `USD` | The currency `lib/plans.ts` prices are quoted in, and the one an amount must match exactly. Falls back to the retired `NEXT_PUBLIC_PAYPAL_CURRENCY`, then `USD`, so a deployment that predates the rename needs no new entry. Only the first three characters are used. |
 
 Three traps worth naming:
 
-- **`PADDLE_ENVIRONMENT=live` silently means sandbox.** PayPal spells it `live`; Paddle
-  spells it `production`, and `lib/env.ts` only accepts that exact word. A production
-  deployment configured with `live` quietly talks to the sandbox API and every real
-  purchase fails. (Pinned by a test in `tests/lib/paddle.test.ts`.)
+- **`PADDLE_ENVIRONMENT=live` silently means sandbox.** Most gateways spell it `live` —
+  the PayPal integration this one replaced did, and the habit outlives it. Paddle spells it
+  `production`, and `lib/env.ts` accepts only that exact word. A production deployment
+  configured with `live` quietly talks to the sandbox API and every real purchase fails.
+  Failing that way round is the deliberate choice: the other way round charges real cards
+  from a test build. (Pinned by a test in `tests/lib/paddle.test.ts`.)
 - **Both environment variables must agree.** `NEXT_PUBLIC_PADDLE_ENVIRONMENT` chooses
   which Paddle.js the browser loads; `PADDLE_ENVIRONMENT` chooses which API the server
   calls. Mixed, the overlay opens against a transaction the other environment has never
   heard of.
 - **Half a Paddle is no Paddle.** The gateway counts as configured only when the API key
-  *and* both price ids are present (`isPaddleConfigured()`), so an incomplete setup falls
-  back to PayPal instead of rendering a checkout button that cannot work. The webhook
-  secret is deliberately excluded from that test — you can take a payment before the
-  webhook exists and reconcile afterwards.
+  *and* both price ids are present (`isPaddleConfigured()`). Paddle is the only gateway,
+  so an incomplete setup means no checkout at all: `/payment/checkout` says plainly that
+  payments are unavailable rather than rendering a button that fails on the customer's
+  card. The webhook secret is deliberately excluded from that test — you can take a payment
+  before the webhook exists and reconcile afterwards.
 
 Restart the dev server after editing `.env.local`. On a deployment, remember that the
 `NEXT_PUBLIC_*` values are inlined at build time: changing one needs a **rebuild**, not a
@@ -208,7 +212,7 @@ restart.
    https://<your-domain>/api/payments/paddle/webhook
    ```
 
-   Locally that is the tunnel URL from [§6](#6-testing-locally-where-paddle-cannot-reach-you),
+   Locally that is the tunnel URL from [§7](#7-testing-locally-where-paddle-cannot-reach-you),
    not `localhost`.
 
 2. **Events** — subscribe to exactly these two:
@@ -239,7 +243,66 @@ replayed.
 
 ---
 
-## 6. Testing locally, where Paddle cannot reach you
+## 6. Allow Paddle through the Content Security Policy
+
+The step that is invisible until it is not. Everything server-side can be green —
+`/api/payments/paddle/status` reporting every field set, `npm run paddle:doctor` passing,
+not one line in the log — while the customer sees a checkout that never opens, because the
+browser refused to fetch Paddle's script before any of our code ran.
+
+**The symptom.** Pressing the checkout button produces the error "the payment window could
+not load", or an overlay that opens as an empty rectangle, and the browser console holds a
+line like:
+
+```
+Refused to load the script 'https://cdn.paddle.com/paddle/v2/paddle.js' because it violates
+the following Content Security Policy directive: "script-src 'self' 'unsafe-inline' …".
+```
+
+That console line is the only place the failure is visible. Nothing reaches the server, so
+nothing server-side can report it. Note that the on-screen message suggests an ad blocker
+or a privacy extension, because that is the far more common cause of the same symptom in
+front of a customer — a policy that omits an origin looks identical from the page.
+
+**The cause.** The overlay is not one script from one host. It is assembled from several
+`*.paddle.com` subdomains, each doing a different job and each with a `sandbox-` twin:
+`cdn.` serves Paddle.js, `buy.` renders the card form inside an iframe,
+`checkout-service.` takes the XHR it makes while pricing and completing the transaction.
+Which ones appear also depends on the payment method the customer chooses, so a policy
+naming only some of them fails for some customers — harder to notice than failing for all.
+
+**The fix**, already in `next.config.ts`: `https://*.paddle.com` in all six directives the
+overlay touches.
+
+| Directive | What Paddle needs it for | What breaks without it |
+| --- | --- | --- |
+| `script-src` | Paddle.js from `cdn.paddle.com` | Nothing opens at all — the loudest failure. |
+| `frame-src` | The checkout iframe from `buy.paddle.com` | The overlay opens empty, which reads as a broken page rather than a blocked origin. |
+| `connect-src` | The overlay's XHR to `checkout-service.paddle.com` | The overlay opens and then cannot price or complete anything. |
+| `img-src` | Card and wallet logos | A card form full of missing images. |
+| `style-src` | The overlay's stylesheet | An unstyled form. |
+| `font-src` | Its webfont | Fallback typography. |
+
+The wildcard is deliberate. It is bounded by a domain Paddle controls, which is the
+property that matters, and enumerating subdomains buys nothing while breaking the next time
+Paddle adds one. A bare `https:` or `*` would not be acceptable — that is not a policy.
+
+`tests/lib/csp.test.ts` pins all six, that the allowance stays scoped to `*.paddle.com`,
+and that origins belonging to the removed PayPal integration are no longer named. Run it
+before trusting a policy change: the browser is the only other thing that will tell you,
+and only in front of a customer.
+
+One thing the test cannot see: if the app sits behind a proxy, a CDN or a platform that
+sets its own `Content-Security-Policy`, that header is the one the browser obeys. Check the
+deployment, not just the file:
+
+```bash
+curl -sI https://your-domain.com | grep -i content-security-policy
+```
+
+---
+
+## 7. Testing locally, where Paddle cannot reach you
 
 Paddle delivers webhooks from its own servers, so `http://localhost:3000` is unreachable.
 Two ways round it, and you want both:
@@ -279,7 +342,7 @@ test card for anything that has to end in an entitlement.
 
 ---
 
-## 7. Sandbox test cards
+## 8. Sandbox test cards
 
 Real card numbers do not work in sandbox, and sandbox cards do not work in live. From
 Paddle's [Credit and debit cards](https://developer.paddle.com/concepts/payment-methods/credit-debit-card)
@@ -307,7 +370,7 @@ for sandbox and `live_` for live, and the dashboard hostname is `sandbox-vendors
 
 ---
 
-## 8. How to tell it worked
+## 9. How to tell it worked
 
 Buy Pro with `4242 4242 4242 4242`, then check all four:
 
@@ -364,7 +427,7 @@ destination's log in the Paddle dashboard is the other way to force the collisio
 
 ---
 
-## 9. Going live
+## 10. Going live
 
 Nothing carries over. In the live dashboard at <https://vendors.paddle.com>:
 
@@ -381,7 +444,7 @@ Nothing carries over. In the live dashboard at <https://vendors.paddle.com>:
 
 ---
 
-## 10. Troubleshooting
+## 11. Troubleshooting
 
 **503 `paddle-not-configured` on every payment route.** One of `PADDLE_API_KEY`,
 `PADDLE_PRICE_PRO`, `PADDLE_PRICE_LIFETIME` is missing or blank. All three or nothing.
@@ -389,7 +452,9 @@ Nothing carries over. In the live dashboard at <https://vendors.paddle.com>:
 **The overlay never opens.** `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` is missing, or it is an API
 key rather than a client token, or the two `*_ENVIRONMENT` variables disagree. Public
 variables are inlined at build time — a hosting provider needs a **rebuild**, not a
-restart, after you change one.
+restart, after you change one. If all of those look right, open the browser console: a
+Content Security Policy violation naming `cdn.paddle.com` is the cause no server-side check
+can see (see [§6](#6-allow-paddle-through-the-content-security-policy)).
 
 **Every webhook is 401.** `PADDLE_WEBHOOK_SECRET` is missing or is another destination's.
 Note that a 401 is the *correct* answer to an unverifiable webhook: the route cannot tell

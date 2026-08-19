@@ -7,7 +7,7 @@ import { site } from '@/lib/site';
 
 export const metadata: Metadata = pageMetadata({
   title: 'Cookie Policy',
-  description: `Every cookie ${site.name} sets, what each is for and how long it lasts: one necessary session cookie, optional analytics and PayPal's own at checkout.`,
+  description: `Every cookie ${site.name} sets, what each is for and how long it lasts: one necessary session cookie, optional analytics and Paddle's own once you open the checkout.`,
   path: '/cookies',
 });
 
@@ -15,8 +15,13 @@ export const metadata: Metadata = pageMetadata({
  * The cookie policy.
  *
  * Deliberately short, because the honest list is short: one strictly necessary session
- * cookie, analytics that is off unless the operator switches it on, and PayPal's own
- * cookies on PayPal's own domain. Anything longer than that would be padding.
+ * cookie, analytics that is off unless the operator switches it on, and whatever Paddle
+ * sets once the checkout is open. Anything longer than that would be padding.
+ *
+ * The Paddle section is the one that needs care. Under the old gateway the whole of
+ * checkout happened on somebody else's domain, so the honest answer was "nothing of theirs
+ * runs here". Paddle's overlay runs a script on our pages and embeds an iframe from theirs,
+ * which is a different disclosure and has to read like one.
  */
 
 /** Rendered inside `Prose`, so the plain table below picks up its own styling. */
@@ -181,32 +186,42 @@ const SECTIONS: LegalSection[] = [
     ),
   },
   {
-    id: 'paypal',
-    title: 'PayPal cookies during checkout',
+    id: 'paddle',
+    title: 'Paddle cookies during checkout',
     body: (
       <>
         <p>
-          Buying a plan sends you to PayPal. We do not embed PayPal&apos;s checkout in our own
-          pages and we do not load PayPal&apos;s JavaScript SDK on {site.domain}, so PayPal
-          sets nothing in your browser until you are actually on PayPal&apos;s site.
+          Buying a plan does not send you anywhere. Paddle&apos;s checkout opens as an overlay
+          on the page you are already on, which means two third-party things happen inside
+          your browser on {site.domain}: our page loads Paddle&apos;s script from{' '}
+          <code>https://cdn.paddle.com/paddle/v2/paddle.js</code>, and that script embeds the
+          payment form as an iframe served from Paddle&apos;s own domain,{' '}
+          <code>buy.paddle.com</code>. Both happen only when you press a buy button — no page
+          of this site loads Paddle before that.
         </p>
         <p>
-          Once you are there, PayPal sets its own cookies on its own domains for its own
-          purposes — keeping you signed in to PayPal, remembering your progress through
-          checkout, and its fraud and risk checks. Those cookies are governed by{' '}
+          <strong>Paddle sets cookies of its own.</strong> They are for its own purposes:
+          carrying your progress through the checkout, and the fraud and risk checks that come
+          with taking a payment. Because Paddle&apos;s script runs on our pages as well as
+          inside its iframe, one of its cookies can appear listed under {site.domain} in your
+          browser&apos;s developer tools rather than only under a Paddle domain. Either way it
+          is Paddle&apos;s: we do not read it, we do not set it and we cannot tell it what to
+          contain. It is governed by{' '}
           <a
-            href="https://www.paypal.com/webapps/mpp/ua/cookie-full"
+            href="https://www.paddle.com/legal/cookies"
             target="_blank"
             rel="noopener noreferrer"
           >
-            PayPal&apos;s own cookie statement
+            Paddle&apos;s own cookie policy
           </a>
-          , not by this one. We cannot read them, delete them or turn them off.
+          , not by this one.
         </p>
         <p>
-          When PayPal sends you back to us, the only thing that travels with you is an order
-          reference in the URL. Our server then confirms the order with PayPal directly before
-          any plan is unlocked.
+          What does not change is where your card details go. You type them into Paddle&apos;s
+          iframe, which is Paddle&apos;s page inside a frame on ours — the keystrokes are not
+          readable by our code and the number never reaches our servers. When the payment
+          completes, what comes back to us is a transaction reference, and our server confirms
+          that transaction with Paddle directly before any plan is unlocked.
         </p>
       </>
     ),
@@ -272,11 +287,11 @@ const SECTIONS: LegalSection[] = [
               duration: 'Google default, approximately 2 years',
             },
             {
-              name: 'PayPal cookies',
+              name: 'Paddle cookies',
               purpose:
-                'Set by PayPal on PayPal’s own domains while you complete a payment: sign-in state, checkout progress, fraud and risk checks. We cannot read or control them.',
-              type: 'Third-party cookies, set on paypal.com · not set by this site',
-              duration: 'Determined by PayPal',
+                'Set by Paddle once you open the checkout: checkout progress, fraud and risk checks. Paddle’s script runs on our pages and its payment form is an iframe on Paddle’s domain, so these can appear under either domain. We cannot read or control them.',
+              type: 'Third-party cookies, set by Paddle · only after you open the checkout',
+              duration: 'Determined by Paddle',
             },
             {
               name: 'createcvonline:preferences',
@@ -320,6 +335,12 @@ const SECTIONS: LegalSection[] = [
             browser tracking-protection setting, an extension, or the browser&apos;s{' '}
             &ldquo;Do Not Track&rdquo; signal will all stop it, and where analytics has not
             been configured there is nothing to block in the first place.
+          </li>
+          <li>
+            <strong>Blocking Paddle</strong> — through a content blocker, a strict
+            tracking-protection mode, or a rule against <code>cdn.paddle.com</code> — stops the
+            checkout overlay from opening at all, because the form is Paddle&apos;s. Everything
+            except buying a plan carries on working.
           </li>
           <li>
             <strong>Signing out</strong> is the cleanest way to remove the session cookie: it
@@ -376,8 +397,9 @@ export default function CookiePolicyPage() {
           installation loads no analytics script and sets no analytics cookie.
         </>,
         <>
-          <strong>PayPal&apos;s cookies are set on PayPal&apos;s site, not ours.</strong> We do
-          not embed their checkout or load their SDK here.
+          <strong>Paddle sets its own cookies once you open the checkout.</strong> Its script
+          loads on our pages and its payment form is an iframe on Paddle&apos;s domain, so a
+          Paddle cookie can appear under either.
         </>,
         <>
           <strong>Your dashboard preferences use localStorage, which is not a cookie</strong>{' '}

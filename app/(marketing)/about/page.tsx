@@ -255,11 +255,12 @@ export default function AboutPage() {
             </p>
             <h3>The paid plans</h3>
             <p>
-              {PLANS.pro.name} costs {PLANS.pro.price} {publicEnv.paypalCurrency} and grants{' '}
+              {PLANS.pro.name} costs {PLANS.pro.price} {publicEnv.storeCurrency} and grants{' '}
               {PLANS.pro.accessDays} days of access as a single payment. {PLANS.lifetime.name} is a
               one-off payment with no expiry. Both unlock all {TEMPLATE_COUNT} templates, unlimited
               CVs and downloads, full typography control, custom sections and a share link. Payment
-              is processed by PayPal; we never see a card number.
+              is taken through Paddle, which is the merchant of record for the sale and handles the
+              tax and the receipt; we never see a card number.
             </p>
             <h3>What the free plan costs us</h3>
             <p>

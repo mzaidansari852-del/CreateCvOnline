@@ -58,9 +58,10 @@ const SECTIONS: LegalSection[] = [
         </p>
         <h3>Payment data</h3>
         <p>
-          If you buy a plan, we store the PayPal order id, the plan purchased, the amount, the
-          currency, the status and the time. <strong>We never see your card number.</strong> Card
-          details are entered on PayPal&apos;s own pages and are processed entirely by PayPal.
+          If you buy a plan, we store the Paddle transaction id, the plan purchased, the amount,
+          the currency, the status and the time. <strong>We never see your card number.</strong>{' '}
+          The checkout opens as an overlay on our page, but the form inside it is an iframe served
+          by Paddle: card details are entered there and processed entirely by Paddle.
         </p>
         <h3>Usage and technical data</h3>
         <p>
@@ -140,9 +141,12 @@ const SECTIONS: LegalSection[] = [
             CV documents, your payment records and contact messages.
           </li>
           <li>
-            <strong>PayPal.</strong> Processes payments as an independent controller for the
-            transaction. Receives whatever you give PayPal directly; we receive only the order
-            reference, amount, currency and status.
+            <strong>Paddle.</strong> Takes payments as the merchant of record for the sale, and is
+            an independent controller for the transaction: the payment, the tax and the receipt are
+            Paddle&apos;s to handle. Receives whatever you enter in its checkout; we receive only
+            the transaction reference, amount, currency and status. Paddle&apos;s script also runs
+            on our pages while the checkout is open, which the{' '}
+            <Link href="/cookies">cookie policy</Link> sets out in detail.
           </li>
           <li>
             <strong>Google Fonts.</strong> Typefaces used by the interface and by the CV templates
@@ -221,7 +225,7 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>
           Firebase and Firestore are Google Cloud services and the storage region is chosen by the
-          operator of this deployment when the project is created. PayPal, Google Analytics and
+          operator of this deployment when the project is created. Paddle, Google Analytics and
           Google Fonts operate globally. That means your personal data may be processed outside the
           country you live in, including in the United States.
         </p>
@@ -401,7 +405,8 @@ export default function PrivacyPolicyPage() {
         </>,
         <>
           <strong>We never see your password or your card number.</strong> Sign-in is handled by
-          Firebase Authentication and payment by PayPal.
+          Firebase Authentication and payment by Paddle, in a form served from Paddle&apos;s own
+          domain.
         </>,
         <>
           <strong>One cookie keeps you signed in.</strong> Analytics is optional, off unless
@@ -412,7 +417,7 @@ export default function PrivacyPolicyPage() {
           removes the account, the profile, every CV and the payment records.
         </>,
         <>
-          <strong>The processors are Google (Firebase and Firestore) and PayPal</strong>, plus
+          <strong>The third parties are Google (Firebase and Firestore) and Paddle</strong>, plus
           Google Fonts for typefaces and, optionally, Google Analytics.
         </>,
       ]}

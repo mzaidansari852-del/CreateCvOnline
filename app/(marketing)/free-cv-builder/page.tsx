@@ -50,7 +50,7 @@ const limits = freePlan.limits;
 const currencySymbols: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', MAD: 'MAD ' };
 
 function formatPrice(value: string): string {
-  const symbol = currencySymbols[publicEnv.paypalCurrency] ?? `${publicEnv.paypalCurrency} `;
+  const symbol = currencySymbols[publicEnv.storeCurrency] ?? `${publicEnv.storeCurrency} `;
   const amount = Number.parseFloat(value);
   return `${symbol}${Number.isInteger(amount) ? String(amount) : amount.toFixed(2)}`;
 }
@@ -131,7 +131,7 @@ const faqs: FaqEntry[] = [
   {
     question: 'Do I have to enter a credit card?',
     answer:
-      'No. An email address and a password create the account, and the editor opens straight away. Payment details are only requested if you decide to buy a paid plan, and checkout runs through PayPal rather than us storing card details.',
+      'No. An email address and a password create the account, and the editor opens straight away. Payment details are only requested if you decide to buy a paid plan, and even then they are entered in Paddle’s checkout rather than stored by us.',
   },
   {
     question: `What happens after my ${limits.maxDownloadsPerMonth} downloads?`,

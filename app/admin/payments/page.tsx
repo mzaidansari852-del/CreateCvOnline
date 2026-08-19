@@ -66,8 +66,8 @@ export default async function AdminPaymentsPage({
       <Alert tone="warning" title="Refunds here are bookkeeping only">
         <p>
           Marking an order as refunded rewrites the status on our ledger document. It does
-          not call PayPal, no money moves, and the customer is not notified. Issue the actual
-          refund in the PayPal dashboard, then record it here so the two agree. Changing the
+          not call Paddle, no money moves, and the customer is not notified. Issue the actual
+          refund in the Paddle dashboard, then record it here so the two agree. Changing the
           status also leaves the account&rsquo;s plan alone — end access from the user&rsquo;s
           page if that is part of the refund.
         </p>

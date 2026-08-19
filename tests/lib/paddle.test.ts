@@ -20,7 +20,6 @@ import {
   priceIdFor,
   readWebhookTransaction,
 } from '@/lib/payments/paddle';
-import { paypalGateway } from '@/lib/payments/paypal';
 import { PLANS } from '@/lib/plans';
 import type { CaptureResult } from '@/types/payment';
 
@@ -73,9 +72,6 @@ const PRICE_PRO = 'pri_01j00000000000000000000pro';
 const PRICE_LIFETIME = 'pri_01j0000000000000000life';
 const WEBHOOK_SECRET = 'pdl_ntfset_01j0000000000000000000test_ThisIsNotARealSecret';
 
-const PAYPAL_CLIENT_ID = 'AXtest0000000000000000000000000000000000000000000000000000000000';
-const PAYPAL_CLIENT_SECRET = 'EJtest0000000000000000000000000000000000000000000000000000000000';
-
 /**
  * Applies environment changes and drops both memoised caches.
  *
@@ -92,21 +88,19 @@ function setEnv(vars: Record<string, string | undefined>): void {
   __resetPaddleClient();
 }
 
-/** A fully configured Paddle, no PayPal. The starting point for most cases. */
-function configurePaddleOnly(): void {
+/** A fully configured Paddle. The starting point for most cases. */
+function configurePaddle(): void {
   setEnv({
     PADDLE_API_KEY: API_KEY,
     PADDLE_PRICE_PRO: PRICE_PRO,
     PADDLE_PRICE_LIFETIME: PRICE_LIFETIME,
     PADDLE_WEBHOOK_SECRET: WEBHOOK_SECRET,
     PADDLE_ENVIRONMENT: 'sandbox',
-    PAYPAL_CLIENT_ID: undefined,
-    PAYPAL_CLIENT_SECRET: undefined,
   });
 }
 
 beforeEach(() => {
-  configurePaddleOnly();
+  configurePaddle();
 });
 
 afterEach(() => {
@@ -661,80 +655,59 @@ describe('readWebhookTransaction', () => {
 /* Gateway selection                                                           */
 /* -------------------------------------------------------------------------- */
 
-function configurePayPal(): void {
-  setEnv({ PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET });
-}
-
 describe('gateway selection', () => {
-  it('offers only Paddle when only Paddle is configured', () => {
+  it('offers Paddle when Paddle is configured', () => {
     expect(availableGateways()).toEqual(['paddle']);
     expect(paymentsAvailable()).toBe(true);
     expect(gateway()).toBe(paddleGateway);
   });
 
-  it('offers only PayPal when only PayPal is configured', () => {
-    setEnv({ PADDLE_API_KEY: undefined });
-    configurePayPal();
-    expect(availableGateways()).toEqual(['paypal']);
-    expect(gateway()).toBe(paypalGateway);
-  });
-
-  it('prefers Paddle when both are configured, and lists it first', () => {
-    configurePayPal();
-    expect(availableGateways()).toEqual(['paddle', 'paypal']);
-    expect(gateway()).toBe(paddleGateway);
-  });
-
-  it('offers nothing when neither is configured', () => {
+  it('offers nothing when Paddle is not configured', () => {
     setEnv({
       PADDLE_API_KEY: undefined,
       PADDLE_PRICE_PRO: undefined,
       PADDLE_PRICE_LIFETIME: undefined,
-      PAYPAL_CLIENT_ID: undefined,
-      PAYPAL_CLIENT_SECRET: undefined,
     });
     expect(availableGateways()).toEqual([]);
     expect(paymentsAvailable()).toBe(false);
     expect(() => gateway()).toThrow(PaymentsUnavailableError);
   });
 
+  /*
+   * Half-configured must read as absent. A gateway that can open a checkout but has no
+   * price to charge fails *after* the customer has entered a card, which is the worst
+   * possible moment to discover a configuration mistake.
+   */
   it('does not offer a half-configured Paddle', () => {
     setEnv({ PADDLE_PRICE_LIFETIME: undefined });
-    configurePayPal();
-    expect(availableGateways()).toEqual(['paypal']);
-    expect(gateway()).toBe(paypalGateway);
+    expect(availableGateways()).toEqual([]);
+    expect(paymentsAvailable()).toBe(false);
+    expect(() => gateway()).toThrow(PaymentsUnavailableError);
   });
 });
 
 describe('gatewayFor', () => {
-  it('never answers a PayPal question with the Paddle gateway', () => {
-    // A payment recorded against PayPal must be reconciled through PayPal, even when
-    // Paddle is the preferred gateway today. Falling back would produce a confident
-    // wrong answer.
-    configurePayPal();
-    expect(gatewayFor('paypal')).toBe(paypalGateway);
-    expect(gatewayFor('paypal')).not.toBe(paddleGateway);
-    expect(gatewayFor('paypal').id).toBe('paypal');
-  });
-
   it('returns the Paddle gateway for paddle', () => {
     expect(gatewayFor('paddle')).toBe(paddleGateway);
     expect(gatewayFor('paddle').id).toBe('paddle');
   });
 
-  it('throws rather than falling back when PayPal is unconfigured', () => {
-    // Paddle *is* configured here — the point is that it is not offered as a substitute.
+  /*
+   * PayPal is still a value in the stored-payment schema, because records taken through it
+   * must keep parsing. It is no longer a gateway, and it must not resolve to Paddle:
+   * asking Paddle about a transaction it never took returns "not found", which reads as
+   * "this customer did not pay" — a confident wrong answer about someone's money.
+   */
+  it('refuses to answer a PayPal question with the Paddle gateway', () => {
     expect(() => gatewayFor('paypal')).toThrow(PaymentsUnavailableError);
   });
 
   it('throws when Paddle is unconfigured', () => {
     setEnv({ PADDLE_API_KEY: undefined });
-    configurePayPal();
     expect(() => gatewayFor('paddle')).toThrow(PaymentsUnavailableError);
   });
 
   it('throws for manual, which has no gateway behind it', () => {
-    configurePayPal();
     expect(() => gatewayFor('manual')).toThrow(PaymentsUnavailableError);
   });
 });
@@ -754,7 +727,7 @@ describe('isPaddleConfigured', () => {
     setEnv({ PADDLE_PRICE_LIFETIME: undefined });
     expect(isPaddleConfigured()).toBe(false);
 
-    configurePaddleOnly();
+    configurePaddle();
     setEnv({ PADDLE_PRICE_PRO: undefined });
     expect(isPaddleConfigured()).toBe(false);
   });
@@ -786,10 +759,15 @@ describe('isPaddleConfigured', () => {
     }
   });
 
-  it('falls back to PayPal rather than offering a checkout that cannot work', () => {
+  /*
+   * There is no second gateway to fall back to any more, so a malformed key has to mean
+   * "no checkout" rather than "a checkout that fails on the customer's card". Saying
+   * payments are unavailable is honest; rendering a button that cannot work is not.
+   */
+  it('offers no checkout at all rather than one that cannot work', () => {
     setEnv({ PADDLE_API_KEY: API_KEY.slice(0, 40) });
-    configurePayPal();
-    expect(availableGateways()).toEqual(['paypal']);
+    expect(availableGateways()).toEqual([]);
+    expect(paymentsAvailable()).toBe(false);
   });
 
   it('still accepts a legacy key, which predates the format it cannot be checked against', () => {

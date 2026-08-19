@@ -103,7 +103,7 @@ export default async function AdminOverviewPage() {
           <div className="grid gap-6 lg:grid-cols-2">
             <Panel
               title="Revenue by currency"
-              description="Summed from completed payments. Amounts are gross — PayPal fees, taxes and refunds recorded outside the app are not deducted."
+              description="Summed from completed payments. Amounts are gross — Paddle fees, taxes and refunds recorded outside the app are not deducted."
             >
               {currencies.length === 0 ? (
                 <p className="text-sm text-ink-600">

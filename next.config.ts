@@ -4,8 +4,7 @@ import type { NextConfig } from 'next';
  * Content Security Policy.
  *
  * The policy is intentionally explicit: every third-party origin the app talks to
- * (Firebase, PayPal, Paddle, Google Analytics, Google Fonts) is listed here and nowhere
- * else.
+ * (Firebase, Paddle, Google Analytics, Google Fonts) is listed here and nowhere else.
  *
  * Paddle is the one entry that is a wildcard rather than a host list, and it is deliberate.
  * Its overlay is assembled from several subdomains that differ by environment and by payment
@@ -19,21 +18,21 @@ import type { NextConfig } from 'next';
  * `'unsafe-inline'` is required in `script-src` because the public marketing pages are
  * statically pre-rendered and Next.js emits inline bootstrap scripts for them. A stricter
  * nonce-based policy would force every page into dynamic rendering, which would defeat the
- * performance goals of the marketing site. See `README.md` → "Strict CSP" for how to opt in
- * to nonce-based CSP if you are willing to trade static rendering for it.
+ * performance goals of the marketing site. Moving to a nonce-based policy means opting
+ * every page into dynamic rendering, which is a trade this site has not made.
  */
 const csp = [
   `default-src 'self'`,
   `base-uri 'self'`,
   `object-src 'none'`,
   `frame-ancestors 'none'`,
-  `form-action 'self' https://www.paypal.com https://www.sandbox.paypal.com`,
-  `script-src 'self' 'unsafe-inline' https://www.paypal.com https://www.sandbox.paypal.com https://www.paypalobjects.com https://www.googletagmanager.com https://apis.google.com https://*.firebaseapp.com https://*.paddle.com`,
+  `form-action 'self'`,
+  `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://apis.google.com https://*.firebaseapp.com https://*.paddle.com`,
   `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.paddle.com`,
   `font-src 'self' data: https://fonts.gstatic.com https://*.paddle.com`,
-  `img-src 'self' data: blob: https://*.googleusercontent.com https://firebasestorage.googleapis.com https://www.paypalobjects.com https://www.google-analytics.com https://*.paddle.com`,
-  `connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebase.com wss://*.firebaseio.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firebasestorage.googleapis.com https://www.google-analytics.com https://api-m.paypal.com https://api-m.sandbox.paypal.com https://www.paypal.com https://www.sandbox.paypal.com https://*.paddle.com`,
-  `frame-src 'self' https://www.paypal.com https://www.sandbox.paypal.com https://*.firebaseapp.com https://accounts.google.com https://*.paddle.com`,
+  `img-src 'self' data: blob: https://*.googleusercontent.com https://firebasestorage.googleapis.com https://www.google-analytics.com https://*.paddle.com`,
+  `connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebase.com wss://*.firebaseio.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firebasestorage.googleapis.com https://www.google-analytics.com https://*.paddle.com`,
+  `frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://*.paddle.com`,
   `worker-src 'self' blob:`,
   `manifest-src 'self'`,
   `upgrade-insecure-requests`,

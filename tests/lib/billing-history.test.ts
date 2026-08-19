@@ -11,8 +11,8 @@ import type { PaymentStatus } from '@/types/payment';
 /**
  * "Billing history" must only ever list money that actually moved.
  *
- * An order sits at `created` from the moment checkout starts until PayPal confirms a
- * capture, and plenty never get further — the payer closes the tab, or PayPal refuses
+ * An order sits at `created` from the moment checkout starts until the gateway confirms
+ * payment, and plenty never get further — the payer closes the tab, or the card is refused
  * (`CANNOT_PAY_SELF` during sandbox testing, a declined card in production). Listing those
  * rows under a heading that says "Billing history", beside a column headed "Amount"
  * showing `69.00 USD`, reads as a charge however the status chip is styled. That is the
@@ -57,7 +57,7 @@ describe('billing history', () => {
      * This used to grep the page source for the English sentence, which pinned the words
      * in the JSX and blocked translating them. Asserting on the copy table instead is
      * strictly stronger: the reassurance now has to exist in *every* language, and a
-     * French user reading an abandoned PayPal order still gets told plainly that nothing
+     * French user reading an abandoned order still gets told plainly that nothing
      * was taken. That is the expensive support call this test exists to prevent.
      */
     expect(source).toContain('copy.account.unfinishedHeading');

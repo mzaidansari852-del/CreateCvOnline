@@ -11,7 +11,7 @@ import { afterEach, beforeAll, vi } from 'vitest';
 beforeAll(() => {
   process.env.NEXT_PUBLIC_SITE_URL ??= 'https://createcvonline.com';
   process.env.NEXT_PUBLIC_SITE_NAME ??= 'CreateCVOnline';
-  process.env.NEXT_PUBLIC_PAYPAL_CURRENCY ??= 'USD';
+  process.env.NEXT_PUBLIC_STORE_CURRENCY ??= 'USD';
   process.env.PDF_RENDER_SECRET ??= 'test-secret-not-used-in-production';
 
   // A few files opt into `@vitest-environment node` — anything asserting on code that

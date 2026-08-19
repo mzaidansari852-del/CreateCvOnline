@@ -7,7 +7,7 @@ import {
   describePaddleApiKey,
   explainPaddleKeyProblem,
 } from '@/lib/payments/paddle-key';
-import { isPaddleConfigured, isPayPalConfigured, publicEnv, serverEnv } from '@/lib/env';
+import { isPaddleConfigured, publicEnv, serverEnv } from '@/lib/env';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,8 +17,8 @@ export const dynamic = 'force-dynamic';
  *
  * ## Why this exists
  *
- * "The checkout still says Continue with PayPal" has several causes and the page can show
- * none of them: it falls back silently on purpose, because a customer must never be handed
+ * "The checkout says payments are unavailable" has several causes and the page can show
+ * none of them: it degrades silently on purpose, because a customer must never be handed
  * a payment button that cannot work. The hosting dashboard shows whether a variable is
  * *set*, not whether the running build *received* it, and the checkout page needs a session
  * so it cannot be fetched from outside. Without this the only way forward was a loop of
@@ -70,7 +70,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       environment: paddle?.environment ?? null,
       publicEnvironment: publicEnv.paddleEnvironment,
     },
-    paypal: { configured: isPayPalConfigured() },
     checkoutWillOfferPaddle: isPaddleConfigured() && clientTokenInBuild,
   };
 

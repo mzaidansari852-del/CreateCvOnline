@@ -3,8 +3,6 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 
-import { CheckoutButton } from '@/components/payments/CheckoutButton';
-import { CheckoutMethodChoice } from '@/components/payments/CheckoutMethodChoice';
 import { PaddleCheckoutButton } from '@/components/payments/PaddleCheckoutButton';
 import { ButtonLink } from '@/components/ui/button';
 import { Alert } from '@/components/ui/feedback';
@@ -33,8 +31,8 @@ import type { PlanId } from '@/types/user';
  * the payer what they are about to agree to; what the gateway actually charges is looked
  * up again, server-side, when the order or transaction is created.
  *
- * Which gateway is offered is also decided here rather than in the browser. The client is
- * told what it may use; it does not get to nominate one.
+ * Whether there is a gateway at all is also decided here rather than in the browser. The
+ * client is told what it may use; it does not get to nominate one.
  *
  * ## What this page deliberately no longer says
  *
@@ -51,8 +49,8 @@ export const metadata: Metadata = privateMetadata('Checkout', 'Review your plan 
 const currencySymbols: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', MAD: 'MAD ' };
 
 /**
- * Prices are quoted in the store's currency, not a gateway's. `paypalCurrency` used to
- * stand in for both, which stopped being true the moment a second gateway read it.
+ * Prices are quoted in the store's currency, not a gateway's — the two were the same
+ * variable once, and stopped being the same thing the moment a second gateway read it.
  */
 function formatPrice(value: string): string {
   const symbol = currencySymbols[publicEnv.storeCurrency] ?? `${publicEnv.storeCurrency} `;
@@ -257,27 +255,16 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
           <Alert tone="danger" title={copy.checkout.unavailableTitle}>
             {copy.checkout.unavailableBody(site.supportEmail)}
           </Alert>
-        ) : gateways.length > 1 ? (
-          <CheckoutMethodChoice
-            planId={planId}
-            planName={plan.name}
-            priceLabel={priceLabel}
-            defaultMethod={gateways[0] === 'paypal' ? 'paypal' : 'paddle'}
-            summary={summary}
-          />
         ) : (
           /*
-            One gateway: no picker, because a choice of one is a control that asks to be
-            read and teaches nothing. The summary still sits directly above the button, so
-            the total is the last thing seen either way.
+            No method picker: Paddle's overlay presents card, PayPal, Apple Pay and Google
+            Pay itself, and asking the customer to choose out here only to be asked again
+            inside the overlay is a question posed twice. The summary sits directly above
+            the button so the total is the last thing read before committing.
           */
           <div className="flex flex-col gap-4">
             {summary}
-            {gateways[0] === 'paypal' ? (
-              <CheckoutButton planId={planId} planName={plan.name} priceLabel={priceLabel} />
-            ) : (
-              <PaddleCheckoutButton planId={planId} planName={plan.name} priceLabel={priceLabel} />
-            )}
+            <PaddleCheckoutButton planId={planId} planName={plan.name} priceLabel={priceLabel} />
           </div>
         )}
       </div>

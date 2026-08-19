@@ -9,7 +9,7 @@ import { site } from '@/lib/site';
 
 const pro = PLANS.pro;
 const lifetime = PLANS.lifetime;
-const currency = publicEnv.paypalCurrency;
+const currency = publicEnv.storeCurrency;
 
 export const metadata: Metadata = pageMetadata({
   title: 'Refund Policy',
@@ -75,14 +75,14 @@ const SECTIONS: LegalSection[] = [
             created, that is our problem to fix, not yours.
           </li>
           <li>
-            <strong>A payment that took money without unlocking anything.</strong> If PayPal
-            debited you and your account is still on {PLANS.free.name}, tell us and we will
-            either grant the plan you paid for or refund you, whichever you prefer. No time
-            limit.
+            <strong>A payment that took money without unlocking anything.</strong> If the
+            money left your account and your account here is still on {PLANS.free.name}, tell
+            us and we will either grant the plan you paid for or refund you, whichever you
+            prefer. No time limit.
           </li>
           <li>
-            <strong>A payment you did not authorise.</strong> Contact us and PayPal both.
-            There is no time limit and we will not argue about it.
+            <strong>A payment you did not authorise.</strong> Contact us and your bank or
+            card issuer both. There is no time limit and we will not argue about it.
           </li>
         </ul>
         <p>
@@ -145,8 +145,9 @@ const SECTIONS: LegalSection[] = [
         </p>
         <ul>
           <li>
-            <strong>The PayPal transaction id</strong> — the order reference for the payment.
-            This is the one detail that makes the request instant instead of a conversation.
+            <strong>The Paddle transaction id</strong> — the reference for the payment, which
+            looks like <code>txn_01j…</code>. This is the one detail that makes the request
+            instant instead of a conversation.
           </li>
           <li>
             <strong>The e-mail address on your {site.name} account</strong>, if it differs from
@@ -169,8 +170,9 @@ const SECTIONS: LegalSection[] = [
             bottom of the page you landed on after paying.
           </li>
           <li>
-            <strong>In PayPal:</strong> the receipt PayPal e-mailed you, or your PayPal
-            activity list.
+            <strong>In your e-mail:</strong> the receipt Paddle sent when the payment went
+            through. Paddle is the seller of record for the sale, so the receipt comes from
+            them rather than from us, and the same reference is printed on it.
           </li>
         </ul>
         <p>
@@ -194,26 +196,30 @@ const SECTIONS: LegalSection[] = [
         <ul>
           <li>
             <strong>Our part: within 2 working days</strong>, usually the same day. We reply to
-            confirm, issue the refund through PayPal and remove the paid plan from the account
+            confirm, issue the refund through Paddle and remove the paid plan from the account
             in the same action.
           </li>
           <li>
-            <strong>PayPal&apos;s part: typically 3 to 5 working days</strong> for the money to
-            appear, and it can be longer if the original payment was made by card, because the
+            <strong>
+              Paddle&apos;s part and your bank&apos;s: typically 3 to 5 working days
+            </strong>{' '}
+            for the money to appear, and it can be longer if you paid by card, because the
             refund has to travel back through your card issuer. That leg is outside our
             control and we cannot speed it up.
           </li>
         </ul>
         <p>
-          The refund goes back to <strong>the same payment method you used</strong> — a PayPal
-          balance, a linked bank account, or the card you paid with. We cannot send it
-          somewhere else, and we never hold a store credit or a voucher instead of returning
-          real money.
+          The refund goes back to <strong>the same payment method you used</strong> — the card
+          you paid with, or the PayPal, Apple Pay or Google Pay account you chose inside the
+          checkout. We cannot send it somewhere else, and we never hold a store credit or a
+          voucher instead of returning real money.
         </p>
         <p>
-          You will get a confirmation from us and a separate one from PayPal. If more than five
-          working days pass after our confirmation and nothing has arrived, reply to that
-          e-mail and we will chase it with the transaction id.
+          You will get a confirmation from us and a separate one from Paddle, which is the
+          merchant of record for the sale and therefore the party that issues both the original
+          receipt and the credit note. If more than five working days pass after our
+          confirmation and nothing has arrived, reply to that e-mail and we will chase it with
+          the transaction id.
         </p>
       </>
     ),
@@ -272,24 +278,25 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          <strong>There is nothing to cancel, because nothing renews.</strong> We do not store
-          your payment method and we do not create a recurring PayPal billing agreement.{' '}
-          {pro.name} is a single payment covering {pro.accessDays} days; when those days are
-          up, the account quietly returns to {PLANS.free.name} and you decide whether to buy
-          another period. {lifetime.name} is bought once and never expires.
+          <strong>What a payment buys is a fixed term of access.</strong> {pro.name} covers{' '}
+          {pro.accessDays} days; when those days are up, the account returns to{' '}
+          {PLANS.free.name} on its own and the paid features switch off. {lifetime.name} is
+          bought once and never expires. We hold no card details of our own — they are typed
+          into Paddle&apos;s checkout and never reach us — so there is nothing on our side to
+          delete.
         </p>
         <p>
-          So there is no cancellation form to find, no notice period, and no dark pattern to
-          survive. <strong>To stop paying, simply do not buy again.</strong>
+          <Link href="/dashboard/account">Your account page</Link> is the quickest way to see
+          where you stand: it lists every payment recorded against the account and the date
+          your current access ends. Paddle e-mails a receipt for each payment as well, and
+          because Paddle is the seller of record, that receipt is the thread to pull on for
+          anything to do with the billing itself.
         </p>
         <p>
-          If you want to be certain, two things are worth doing. Check{' '}
-          <Link href="/dashboard/account">your account page</Link>, which shows every payment
-          recorded against the account and the date your current access ends. And check your
-          PayPal account under Settings → Payments → Automatic payments: you should find no
-          agreement for {site.name} listed there. If you ever do find one, that is a bug —
-          tell us at <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a> and we
-          will cancel it and refund whatever it took.
+          <strong>If a charge appears that you were not expecting, tell us.</strong> Write to{' '}
+          <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a> from the address on
+          the account, quoting the transaction id, and we will refund it and find out what
+          caused it — inside the 14-day window or well outside it.
         </p>
       </>
     ),
@@ -300,10 +307,18 @@ const SECTIONS: LegalSection[] = [
     body: (
       <>
         <p>
-          If you open a PayPal dispute or ask your bank for a chargeback, we will not fight it.
-          But please ask us first: a refund from us takes a couple of days, whereas a dispute
-          takes weeks, freezes the payment while it runs, and usually ends in exactly the same
-          place.
+          <strong>
+            The line on your statement reads Paddle, not {site.name}.
+          </strong>{' '}
+          Paddle is the merchant of record, so it is Paddle&apos;s name your bank prints next to
+          the amount. That is worth knowing before you decide an unfamiliar charge is fraud —
+          it is the commonest reason a perfectly ordinary payment turns into a dispute.
+        </p>
+        <p>
+          If you do raise a dispute with Paddle or ask your bank for a chargeback, we will not
+          fight it. But please ask us first: a refund from us takes a couple of days, whereas a
+          dispute takes weeks, freezes the payment while it runs, and usually ends in exactly
+          the same place.
         </p>
         <p>
           While a dispute is open we may pause the paid plan on the account, because the money
@@ -311,7 +326,7 @@ const SECTIONS: LegalSection[] = [
           the dispute is closed in our favour or withdrawn.
         </p>
         <p>
-          If a payment was genuinely not made by you, do the opposite — raise it with PayPal
+          If a payment was genuinely not made by you, do the opposite — raise it with your bank
           straight away, and tell us so we can lock the account down at our end too.
         </p>
       </>
@@ -374,19 +389,20 @@ export default function RefundPolicyPage() {
           <strong>
             Ask through the <Link href="/contact">contact form</Link> or by e-mail
           </strong>
-          , quoting your PayPal transaction id and writing from the address on the account.
+          , quoting your Paddle transaction id and writing from the address on the account.
         </>,
         <>
-          <strong>We process it within 2 working days;</strong> PayPal then takes about 3 to 5
-          for the money to land back on your original payment method.
+          <strong>We process it within 2 working days;</strong> Paddle and your bank then take
+          about 3 to 5 for the money to land back on your original payment method.
         </>,
         <>
           <strong>Your CVs are not deleted.</strong> The account returns to the free plan, and
           PDFs you already downloaded stay yours.
         </>,
         <>
-          <strong>Nothing renews, so there is nothing to cancel.</strong> No card is stored and
-          no recurring PayPal agreement is created.
+          <strong>A payment buys a fixed term of access</strong> — {pro.accessDays} days for{' '}
+          {pro.name}, no expiry for {lifetime.name} — and your card details are entered in
+          Paddle&apos;s checkout, never on our pages.
         </>,
       ]}
       sections={SECTIONS}

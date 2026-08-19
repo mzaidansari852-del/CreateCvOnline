@@ -59,7 +59,7 @@ const paymentRoutes = walk('app/api/payments');
 describe('payment failures speak the customer’s language', () => {
   it('finds the payment components and routes it is meant to be checking', () => {
     // Without this the suite passes vacuously if either directory is ever renamed.
-    expect(paymentComponents.length).toBeGreaterThanOrEqual(4);
+    expect(paymentComponents.length).toBeGreaterThanOrEqual(2);
     expect(paymentRoutes.length).toBeGreaterThanOrEqual(4);
   });
 

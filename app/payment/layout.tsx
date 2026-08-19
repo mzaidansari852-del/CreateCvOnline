@@ -9,7 +9,7 @@ import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { site } from '@/lib/site';
 
 /**
- * The shell for the two PayPal return pages.
+ * The shell for the pages a payer lands on after checkout.
  *
  * `/payment/*` sits outside the `(marketing)` group on purpose: someone returning from a
  * checkout should be looking at the outcome of their payment, not at a navigation bar
@@ -24,7 +24,7 @@ export default async function PaymentLayout({ children }: { children: React.Reac
    * `useLocale()` returns English silently — the page would look correct in review and be
    * wrong for every French and German buyer.
    *
-   * `getViewer()` rather than `requireViewer()`: a visitor can land here from a PayPal
+   * `getViewer()` rather than `requireViewer()`: a visitor can land here from a gateway
    * redirect with an expired session, and the right response to that is the page
    * explaining what happened, not a bounce to the sign-in form.
    */

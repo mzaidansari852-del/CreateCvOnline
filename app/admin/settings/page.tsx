@@ -5,12 +5,8 @@ import { AdminPageHeader, Env } from '@/components/admin/primitives';
 import { Alert, Badge, type BadgeTone } from '@/components/ui/feedback';
 import { Card, Panel } from '@/components/ui/card';
 import { requireAdmin } from '@/lib/auth/guards';
-import {
-  isFirebaseClientConfigured,
-  isPayPalConfigured,
-  publicEnv,
-  serverEnv,
-} from '@/lib/env';
+import { isFirebaseClientConfigured, isPaddleConfigured, publicEnv, serverEnv } from '@/lib/env';
+import { describePaddleApiKey, explainPaddleKeyProblem } from '@/lib/payments/paddle-key';
 import { hasAdminCredentials } from '@/lib/firebase/admin';
 import { privateMetadata } from '@/lib/seo/metadata';
 import { site } from '@/lib/site';
@@ -51,8 +47,14 @@ export default async function AdminSettingsPage() {
   await requireAdmin();
 
   const env = serverEnv();
-  // `isPayPalConfigured()` is the yes/no check; the object carries the detail to show.
-  const paypal = isPayPalConfigured() ? env.paypal : null;
+  // `isPaddleConfigured()` is the yes/no check; the object carries the detail to show.
+  const paddle = isPaddleConfigured() ? env.paddle : null;
+  /*
+   * Read straight from `process.env` rather than from `env.paddle` — a key that fails the
+   * format check leaves `paddle` null, and this report is the only thing that can say why.
+   * It returns lengths and fixed prefixes, never any part of the random portion.
+   */
+  const paddleKey = describePaddleApiKey(process.env.PADDLE_API_KEY?.trim());
   const firebaseAdminReady = hasAdminCredentials();
   const analyticsId = publicEnv.gaMeasurementId;
   const pdfPinned = Boolean(env.pdf.browserWSEndpoint || env.pdf.executablePath);
@@ -120,71 +122,60 @@ export default async function AdminSettingsPage() {
         />
 
         <ReadinessCard
-          title="PayPal"
-          state={paypal ? (paypal.webhookId ? 'ready' : 'partial') : 'missing'}
+          title="Paddle"
+          state={paddle ? (paddle.webhookSecret ? 'ready' : 'partial') : 'missing'}
           summary={
-            paypal
-              ? `Server-side checkout is configured against the ${paypal.environment} environment.${
-                  paypal.webhookId
+            paddle
+              ? `Checkout is configured against the ${paddle.environment} environment.${
+                  paddle.webhookSecret
                     ? ''
-                    : ' No webhook id is set, so PayPal callbacks cannot be verified and fulfilment relies on the browser completing the capture.'
+                    : ' No webhook secret is set, so the webhook route rejects every event with a 401 and a plan is granted only if the browser finishes the verify step.'
                 }`
               : 'Checkout is disabled. Purchase routes answer 503 and the pricing page cannot take money.'
           }
           badges={
-            paypal
+            paddle
               ? [
                   {
-                    label: paypal.environment === 'live' ? 'Live' : 'Sandbox',
-                    tone: paypal.environment === 'live' ? 'accent' : 'neutral',
+                    label: paddle.environment === 'production' ? 'Live' : 'Sandbox',
+                    tone: paddle.environment === 'production' ? 'accent' : 'neutral',
                   },
                 ]
               : []
           }
           variables={[
-            'PAYPAL_CLIENT_ID',
-            'PAYPAL_CLIENT_SECRET',
-            'PAYPAL_ENVIRONMENT',
-            'PAYPAL_WEBHOOK_ID',
-            'NEXT_PUBLIC_PAYPAL_CLIENT_ID',
+            'PADDLE_API_KEY',
+            'PADDLE_PRICE_PRO',
+            'PADDLE_PRICE_LIFETIME',
+            'PADDLE_WEBHOOK_SECRET',
+            'PADDLE_ENVIRONMENT',
+            'NEXT_PUBLIC_PADDLE_CLIENT_TOKEN',
+            'NEXT_PUBLIC_PADDLE_ENVIRONMENT',
           ]}
           note={
             <>
-              <Env>PAYPAL_ENVIRONMENT</Env> accepts <Env>sandbox</Env> or <Env>live</Env> and
-              defaults to sandbox — a deployment that takes real money must set it explicitly.
-              The browser buttons additionally need{' '}
-              <Env>NEXT_PUBLIC_PAYPAL_CLIENT_ID</Env>, which is currently{' '}
-              {publicEnv.paypalClientId ? 'present' : 'missing'}. Store currency:{' '}
-              <span className="font-medium">{publicEnv.paypalCurrency}</span>.
-              {paypal ? (
-                <>
-                  {' '}
-                  <span className="mt-2 block">
-                    <strong className="font-semibold">What this deployment received.</strong>{' '}
-                    A 401 from PayPal on credentials that work elsewhere means the hosting
-                    dashboard delivered something other than what you pasted — a duplicate
-                    variable at a narrower scope, a stale value from before the last build, or
-                    a truncated paste. Compare these against the console rather than
-                    redeploying and hoping. No secret is shown: the client id is public, and
-                    the secret is only measured.
-                  </span>
-                  <span className="mt-2 block font-mono text-2xs">
-                    client id — {paypal.clientId.length} chars, {paypal.clientId.slice(0, 8)}…
-                    {paypal.clientId.slice(-6)}
-                    <br />
-                    secret — {paypal.clientSecret.length} chars
-                    <br />
-                    webhook id — {paypal.webhookId ? `${paypal.webhookId.length} chars` : 'not set'}
-                    <br />
-                    browser copy —{' '}
-                    {publicEnv.paypalClientId
-                      ? publicEnv.paypalClientId === paypal.clientId
-                        ? 'matches the server value'
-                        : 'DIFFERS from the server value'
-                      : 'not set'}
-                  </span>
-                </>
+              <Env>PADDLE_ENVIRONMENT</Env> accepts <Env>sandbox</Env> or{' '}
+              <Env>production</Env> — not <Env>live</Env> — and defaults to sandbox, so a
+              deployment that takes real money must set it explicitly.{' '}
+              <Env>NEXT_PUBLIC_PADDLE_ENVIRONMENT</Env> must agree with it, and is currently{' '}
+              <span className="font-medium">{publicEnv.paddleEnvironment}</span>. The overlay
+              additionally needs <Env>NEXT_PUBLIC_PADDLE_CLIENT_TOKEN</Env>, which is{' '}
+              {publicEnv.paddleClientToken ? 'present' : 'missing'}. Store currency:{' '}
+              <span className="font-medium">{publicEnv.storeCurrency}</span>.
+              {paddleKey.problem ? (
+                <span className="mt-2 block">
+                  <strong className="font-semibold">The API key is unusable.</strong>{' '}
+                  {explainPaddleKeyProblem(paddleKey)}
+                </span>
               ) : null}
+              <span className="mt-2 block">
+                For the fuller picture — including whether the configured price ids exist in
+                this Paddle account — open{' '}
+                <Env>/api/payments/paddle/status?probe=1</Env>, which asks Paddle directly
+                and returns its own error text. A blocked <Env>cdn.paddle.com</Env> in the
+                Content Security Policy is the one failure it cannot see, because that one
+                happens in the browser.
+              </span>
             </>
           }
         />

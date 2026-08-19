@@ -5,7 +5,7 @@ import { join } from 'node:path';
 /*
  * Why this exists
  *
- * "The checkout still says Continue with PayPal" has at least five different causes, and
+ * "The checkout says payments are unavailable" has at least five different causes, and
  * they are indistinguishable from the page itself — it falls back silently on purpose,
  * because a customer must never be shown a payment button that cannot work. That is right
  * for the payer and useless for whoever is configuring the deployment.
@@ -125,15 +125,17 @@ if (missing.length) {
   ok('all six Paddle source files are here');
 }
 
-// The checkout page has to actually offer the choice.
+// The checkout page has to ask the server what it may offer, rather than assuming.
 const checkoutPath = join(root, 'app/payment/checkout/page.tsx');
 if (existsSync(checkoutPath)) {
   const checkout = readFileSync(checkoutPath, 'utf8');
-  if (checkout.includes('availableGateways')) ok('the checkout page knows about both gateways');
+  if (checkout.includes('availableGateways'))
+    ok('the checkout page asks the server whether a gateway is configured');
   else
     bad(
-      'app/payment/checkout/page.tsx is the old PayPal-only version',
-      'That file was not replaced. Extract the zip again with Replace.',
+      'app/payment/checkout/page.tsx does not consult availableGateways()',
+      'Without that check the page renders a pay button on a deployment that has no ' +
+        'credentials, and the customer meets a 503 after deciding to buy.',
     );
 }
 

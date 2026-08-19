@@ -29,8 +29,6 @@ export interface PublicEnv {
     appId: string;
     measurementId?: string;
   };
-  paypalClientId: string;
-  paypalCurrency: string;
   /** The currency plan prices are quoted in. */
   storeCurrency: string;
   /** Paddle's client-side token. Public by design; never the API key. */
@@ -63,13 +61,14 @@ export const publicEnv: PublicEnv = {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? '',
     measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || undefined,
   },
-  paypalClientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? '',
-  paypalCurrency: (process.env.NEXT_PUBLIC_PAYPAL_CURRENCY || 'USD').toUpperCase().slice(0, 3),
   /*
-   * The currency `lib/plans.ts` quotes its prices in. Named for the store rather than for
-   * a gateway, because two gateways now read it and `paypalCurrency` was never really a
-   * PayPal setting — it was always "what our prices mean". That variable is kept as the
-   * fallback so existing deployments need no new environment entry.
+   * The currency `lib/plans.ts` quotes its prices in.
+   *
+   * Named for the store rather than for a gateway. It was `paypalCurrency` once, which was
+   * never really a PayPal setting — it always meant "what our prices are denominated in".
+   * `NEXT_PUBLIC_PAYPAL_CURRENCY` is still read as a fallback so a deployment that set it
+   * years ago keeps working without a new environment entry; new ones should set
+   * `NEXT_PUBLIC_STORE_CURRENCY`.
    */
   storeCurrency: (
     process.env.NEXT_PUBLIC_STORE_CURRENCY ||
@@ -103,7 +102,7 @@ export const publicEnv: PublicEnv = {
  * `NEXT_PUBLIC_SITE_URL` is the only variable whose absence is completely invisible.
  *
  * Everything else fails in a way somebody notices: no Firebase key and nobody can sign
- * in, no PayPal secret and checkout returns a 503. Miss this one and the site works
+ * in, no Paddle key and checkout returns a 503. Miss this one and the site works
  * perfectly — while every canonical tag, every `og:url`, every JSON-LD `@id`, every
  * sitemap entry and the robots `Host` directive all point at `http://localhost:3000`,
  * because that is what `normaliseUrl` falls back to. Google is told, on every page, that
@@ -165,9 +164,6 @@ export const isFirebaseClientConfigured =
   publicEnv.firebase.projectId.length > 0 &&
   publicEnv.firebase.appId.length > 0;
 
-/** True when the PayPal Buttons SDK can be loaded in the browser. */
-export const isPayPalClientConfigured = publicEnv.paypalClientId.length > 0;
-
 /* -------------------------------------------------------------------------- */
 /* Server                                                                      */
 /* -------------------------------------------------------------------------- */
@@ -223,19 +219,19 @@ function readServiceAccount(): {
 }
 
 /**
- * Reads an opaque credential — a PayPal client id, secret or webhook id.
+ * Reads an opaque credential — a Paddle API key, client token or webhook secret.
  *
  * These are base64url-ish tokens: letters, digits, `-`, `_`, `.`. They never legitimately
  * contain whitespace or quotes, and both get introduced by hand in a hosting dashboard:
  *
- *  - PayPal's console wraps a long client id across two lines, so select-and-copy yields
- *    a value with a newline in the middle. `trim()` does not touch that.
+ *  - A dashboard wraps a long key across two lines, so select-and-copy yields a value with
+ *    a newline in the middle. `trim()` does not touch that.
  *  - Anyone who has just pasted `FIREBASE_PRIVATE_KEY` — which *must* keep its wrapping
  *    quotes — tends to quote the next value too, out of habit.
  *
- * Either produces a 401 from PayPal's token endpoint and an afternoon spent re-reading
- * credentials that were correct all along. Both are unambiguously mistakes, so repair
- * them here rather than reporting them.
+ * Either produces an authentication failure from the provider and an afternoon spent
+ * re-reading credentials that were correct all along. Both are unambiguously mistakes, so
+ * repair them here rather than reporting them.
  */
 function readOpaqueToken(raw: string | undefined): string | undefined {
   if (!raw) return undefined;
@@ -254,12 +250,6 @@ function readOpaqueToken(raw: string | undefined): string | undefined {
 export interface ServerEnv {
   firebaseAdmin: { projectId: string; clientEmail: string; privateKey: string } | null;
   storageBucket: string | undefined;
-  paypal: {
-    clientId: string;
-    clientSecret: string;
-    environment: 'sandbox' | 'live';
-    webhookId: string | undefined;
-  } | null;
   paddle: {
     apiKey: string;
     /** Undefined until the webhook is created in the Paddle dashboard. */
@@ -285,12 +275,6 @@ export function serverEnv(): ServerEnv {
 
   const firebaseAdmin = readServiceAccount();
 
-  const paypalClientId = readOpaqueToken(process.env.PAYPAL_CLIENT_ID);
-  const paypalClientSecret = readOpaqueToken(process.env.PAYPAL_CLIENT_SECRET);
-  const paypalEnvironment = (
-    readOpaqueToken(process.env.PAYPAL_ENVIRONMENT) || 'sandbox'
-  ).toLowerCase();
-
   const paddleApiKey = readOpaqueToken(process.env.PADDLE_API_KEY);
   /*
    * The key is checked against Paddle's documented format before anything is built from it.
@@ -300,8 +284,8 @@ export function serverEnv(): ServerEnv {
    * exists for — the checkout offered a card button, the button asked for a transaction,
    * and Paddle answered "Authentication header included, but incorrectly formatted" to
    * every customer who pressed it. Failing the configuration test instead means the
-   * checkout quietly offers PayPal, which works, while the status endpoint says exactly
-   * what is wrong with the key.
+   * checkout says payments are unavailable — which is true — while the status endpoint
+   * says exactly what is wrong with the key.
    */
   const paddleKeyReport = describePaddleApiKey(paddleApiKey);
   if (paddleApiKey && !paddleKeyReport.usable) {
@@ -328,21 +312,12 @@ export function serverEnv(): ServerEnv {
     firebaseAdmin,
     storageBucket:
       process.env.FIREBASE_STORAGE_BUCKET?.trim() || publicEnv.firebase.storageBucket || undefined,
-    paypal:
-      paypalClientId && paypalClientSecret
-        ? {
-            clientId: paypalClientId,
-            clientSecret: paypalClientSecret,
-            environment: paypalEnvironment === 'live' ? 'live' : 'sandbox',
-            webhookId: readOpaqueToken(process.env.PAYPAL_WEBHOOK_ID),
-          }
-        : null,
     /*
      * Paddle is configured only when the API key *and* both price ids are present.
      * A half-configured gateway is worse than an absent one: the checkout button would
      * render, the overlay would open, and the purchase would fail after the customer had
      * already entered a card. `paymentsAvailable()` reads this, so an incomplete setup
-     * simply falls back to PayPal.
+     * shows the "payments unavailable" notice rather than a button that cannot work.
      *
      * The webhook secret is deliberately *not* part of that test. It is required to grant
      * entitlements and the webhook route refuses to run without it, but a deployment that
@@ -398,26 +373,9 @@ export function requireFirebaseAdminEnv(): NonNullable<ServerEnv['firebaseAdmin'
   return env.firebaseAdmin;
 }
 
-/** Throws a descriptive `MissingEnvError` when PayPal is not configured. */
-export function requirePayPalEnv(): NonNullable<ServerEnv['paypal']> {
-  const env = serverEnv();
-  if (!env.paypal) {
-    throw new MissingEnvError(
-      ['PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET'],
-      'Create a REST API app at https://developer.paypal.com/dashboard/applications.',
-    );
-  }
-  return env.paypal;
-}
-
 /** True when server-side Firebase operations are possible. */
 export function isFirebaseAdminConfigured(): boolean {
   return serverEnv().firebaseAdmin !== null;
-}
-
-/** True when server-side PayPal operations are possible. */
-export function isPayPalConfigured(): boolean {
-  return serverEnv().paypal !== null;
 }
 
 export function isPaddleConfigured(): boolean {

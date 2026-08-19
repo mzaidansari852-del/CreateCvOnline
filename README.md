@@ -2,10 +2,10 @@
 
 **Create your professional CV online.** A production-oriented CV and résumé builder SaaS:
 56 genuinely different templates, a real-time editor, server-enforced plan limits,
-PayPal checkout and true-to-preview PDF export.
+Paddle checkout and true-to-preview PDF export.
 
 Built with Next.js 16 (App Router), TypeScript in strict mode, Tailwind CSS v4, Firebase
-and PayPal.
+and Paddle.
 
 ```bash
 cp .env.example .env.local     # then fill in the values — see "Configuration" below
@@ -14,7 +14,7 @@ npm run dev                    # http://localhost:3000
 ```
 
 The app boots without any credentials. Pages render, all 56 templates preview, and every
-feature that needs Firebase or PayPal shows an explicit "not configured" state naming the
+feature that needs Firebase or Paddle shows an explicit "not configured" state naming the
 variables to set — rather than a stack trace.
 
 ---
@@ -25,18 +25,17 @@ variables to set — rather than a stack trace.
 2. [Architecture](#architecture)
 3. [Configuration](#configuration)
 4. [Firebase setup](#firebase-setup)
-5. [PayPal setup](#paypal-setup)
-6. [Paddle setup](#paddle-setup)
-7. [PDF export](#pdf-export)
-8. [Adding a template](#adding-a-template)
-9. [Adding a blog article](#adding-a-blog-article)
-10. [SEO](#seo)
-11. [Security](#security)
-12. [Testing](#testing)
-13. [Deployment](#deployment)
-14. [Project structure](#project-structure)
-15. [Scripts](#scripts)
-16. [Known limitations](#known-limitations)
+5. [Paddle setup](#paddle-setup)
+6. [PDF export](#pdf-export)
+7. [Adding a template](#adding-a-template)
+8. [Adding a blog article](#adding-a-blog-article)
+9. [SEO](#seo)
+10. [Security](#security)
+11. [Testing](#testing)
+12. [Deployment](#deployment)
+13. [Project structure](#project-structure)
+14. [Scripts](#scripts)
+15. [Known limitations](#known-limitations)
 
 ---
 
@@ -48,13 +47,13 @@ variables to set — rather than a stack trace.
 | **Editor** | Split-pane desktop workspace, three-tab mobile workspace, live page preview with real page-break guides, autosave, undo/redo, drag-and-drop section reordering, template switching that preserves every byte of content. |
 | **PDF** | Server-side headless Chromium. Rendered from the same React tree as the preview, so the export matches the screen. Handles 1, 2 and 3+ page documents. |
 | **Auth** | Firebase Authentication — email/password and Google — exchanged for an httpOnly session cookie. Verification, password reset, protected routes. |
-| **Payments** | Paddle Billing (merchant of record) and PayPal, side by side. Server-side amount and currency verification, signed webhooks, idempotent fulfilment. |
+| **Payments** | Paddle Billing, the only gateway and the merchant of record. Server-side amount and currency verification, signed webhooks, idempotent fulfilment. Card, PayPal, Apple Pay and Google Pay are methods inside Paddle's overlay, not separate integrations. |
 | **Plans** | Free / Pro / Lifetime. Every limit enforced on the server before the mutation runs, never by hiding a button. |
 | **Dashboard** | CV CRUD, duplication, renaming, sharing, downloads, quota meters, completeness scoring. |
 | **Admin** | Users, entitlements, payments, template usage, blog inventory, configuration readiness. Authorised by Firebase custom claims. |
 | **Public site** | Homepage, 56 template pages, 6 category pages, 13 high-intent SEO landing pages, 10 profession guides, 5 worked CV examples, 10 full-length articles, pricing, features, about, contact, FAQ, four legal pages — 118 indexable URLs. |
 | **SEO** | Dynamic metadata, canonicals, Open Graph, Twitter cards, generated OG images, JSON-LD (Organization, WebSite, SoftwareApplication, Breadcrumb, FAQPage, Article, ItemList, HowTo), sitemap, robots. |
-| **Tests** | 968 tests plus an `seo:check` crawler: the template contract across all 56 designs, entitlements, payment verification, render tokens, the real PDF pipeline, and content/SEO integrity. |
+| **Tests** | 1802 tests across 42 files, plus an `seo:check` crawler: the template contract across all 56 designs, entitlements, payment verification, the security headers, render tokens, the real PDF pipeline, and content/SEO integrity. |
 
 ---
 
@@ -110,12 +109,10 @@ The essentials:
 | `NEXT_PUBLIC_SITE_URL` | Everything SEO | Absolute, no trailing slash. `https://createcvonline.com` in production. |
 | `NEXT_PUBLIC_FIREBASE_*` | Sign-in | Public by design; access is controlled by Security Rules. |
 | `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` | All server data | Service-account key. **Never** prefix with `NEXT_PUBLIC_`. |
-| `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` / `PAYPAL_ENVIRONMENT` | Payments (PayPal) | `sandbox` or `live`. |
-| `NEXT_PUBLIC_PAYPAL_CLIENT_ID` | PayPal buttons | Must match `PAYPAL_CLIENT_ID`. |
-| `PADDLE_API_KEY` / `PADDLE_PRICE_PRO` / `PADDLE_PRICE_LIFETIME` | Payments (Paddle) | All three or the gateway stays off. Secret key, `pdl_…`. |
+| `PADDLE_API_KEY` / `PADDLE_PRICE_PRO` / `PADDLE_PRICE_LIFETIME` | Payments | All three or the gateway stays off, and no checkout is offered at all. Secret key, `pdl_…`. |
 | `PADDLE_WEBHOOK_SECRET` / `PADDLE_ENVIRONMENT` | Paddle webhooks | `sandbox` or **`production`** — not `live`. |
 | `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` / `NEXT_PUBLIC_PADDLE_ENVIRONMENT` | Paddle overlay | Public token (`test_`/`live_`). **Never** the `pdl_…` API key. |
-| `NEXT_PUBLIC_STORE_CURRENCY` | Both gateways | Currency `lib/plans.ts` is priced in. Falls back to `NEXT_PUBLIC_PAYPAL_CURRENCY`. |
+| `NEXT_PUBLIC_STORE_CURRENCY` | Pricing | Currency `lib/plans.ts` is priced in. Falls back to the retired `NEXT_PUBLIC_PAYPAL_CURRENCY`, so a deployment that predates the rename needs no new entry. |
 | `PDF_RENDER_SECRET` | PDF/print | `openssl rand -hex 32`. |
 | `ADMIN_EMAILS` | Admin bootstrap | Comma-separated. |
 
@@ -223,87 +220,24 @@ npm run seed -- --demo-user demo@example.com --demo-password 'choose-something-s
 
 ---
 
-## PayPal setup
-
-### Sandbox
-
-1. Sign in at <https://developer.paypal.com/dashboard>.
-2. **Apps & Credentials → Sandbox → Create App** (type: *Merchant*).
-3. Copy the **Client ID** and **Secret**:
-
-   ```env
-   PAYPAL_ENVIRONMENT=sandbox
-   PAYPAL_CLIENT_ID=AXxxxx…
-   PAYPAL_CLIENT_SECRET=EJxxxx…
-   NEXT_PUBLIC_PAYPAL_CLIENT_ID=AXxxxx…
-   NEXT_PUBLIC_PAYPAL_CURRENCY=USD
-   ```
-
-4. **Testing Tools → Sandbox Accounts** gives you a personal test buyer. Use that
-   account's e-mail and password in the PayPal window — never a real one.
-
-### Testing a payment
-
-1. `npm run dev`, sign in, go to `/pricing`, choose Pro.
-2. You land on `/payment/checkout?plan=pro` — the order summary. Signed out, you are sent
-   through `/login?next=…` and returned here, which is why `/pricing` can stay static.
-3. **Continue to PayPal** calls `POST /api/payments/paypal/create-order`. The browser
-   sends only `{ planId }`; the price is read server-side from `lib/plans.ts`.
-4. Pay with the sandbox buyer account.
-5. You are returned to `/payment/success`, which calls
-   `POST /api/payments/paypal/capture`.
-6. Confirm in `/dashboard/account` that the plan is now Pro, and in `/admin/payments`
-   that the order is `completed`.
-
-### Currency
-
-`NEXT_PUBLIC_PAYPAL_CURRENCY` must be a currency PayPal actually settles in — USD, EUR,
-GBP, CAD, AUD, CHF and about twenty others. **MAD is not one of them**, so a Moroccan
-merchant prices in USD or EUR and receives in that currency; the buyer's card issuer does
-the conversion. Setting an unsupported code makes every order fail at creation with a
-`CURRENCY_NOT_SUPPORTED` error from PayPal.
-
-### Webhooks (recommended)
-
-The browser flow is the happy path; webhooks are the safety net for a user who closes the
-tab mid-redirect, and for refunds issued later from the PayPal dashboard.
-
-1. In your app, **Add Webhook**, URL `https://your-domain.com/api/payments/paypal/webhook`.
-2. Subscribe to: `CHECKOUT.ORDER.APPROVED`, `PAYMENT.CAPTURE.COMPLETED`,
-   `PAYMENT.CAPTURE.DENIED`, `PAYMENT.CAPTURE.REFUNDED`, `CHECKOUT.ORDER.VOIDED`.
-3. Copy the **Webhook ID** into `PAYPAL_WEBHOOK_ID`.
-
-Without `PAYPAL_WEBHOOK_ID` the endpoint **rejects every event with 401**. That is
-deliberate: an unverifiable webhook that grants paid access would be the worst bug in the
-codebase.
-
-### Going live
-
-1. Switch the dashboard toggle to **Live** and create a live app.
-2. Set `PAYPAL_ENVIRONMENT=live` and swap all three credentials.
-3. Create a live webhook and update `PAYPAL_WEBHOOK_ID`.
-4. Run one real low-value transaction end to end before announcing anything.
-
-### How the money is protected
-
-- The browser sends a **plan id**, never a price. The amount comes from `lib/plans.ts`.
-- Capture re-reads the order from PayPal and compares amount **and** currency against the
-  plan. A mismatch grants nothing and logs the discrepancy.
-- Fulfilment is a Firestore transaction keyed by the PayPal order id, so a double click,
-  a retry and a webhook arriving after the browser all converge on one grant.
-
----
-
 ## Paddle setup
 
-Paddle Billing runs alongside PayPal and is **preferred whenever it is configured**
-(`lib/payments/index.ts`), because Paddle is a merchant of record: it collects and remits
-VAT and sales tax. PayPal stays wired so that switching is a configuration change rather
-than a deployment gamble, and so that payments already recorded against it keep resolving.
+Paddle Billing is the only payment gateway, and it is a merchant of record: it is the
+seller on the customer's statement, and it collects and remits VAT and sales tax in every
+country it sells into. That is the whole reason it was chosen — the alternative is a small
+business tracking its own registration thresholds across several dozen tax regimes.
+
+A separate PayPal integration ran beside it until it was removed. Nothing a customer can
+see went with it: Paddle's overlay offers card, PayPal, Apple Pay and Google Pay itself,
+so PayPal is still a way to pay here — a method inside the checkout rather than a checkout
+of its own. What went was a second set of credentials, a second webhook to verify
+and a second failure mode. The gateway interface in `lib/payments/index.ts` stayed, because
+it is what let the removal happen without a single call site changing.
 
 **The full sandbox walkthrough is [`docs/PADDLE_SETUP.md`](docs/PADDLE_SETUP.md)** — account,
-products and prices, every variable, the webhook, tunnelling for local testing, the current
-sandbox test cards, and how to confirm a purchase actually granted a plan.
+products and prices, every variable, the webhook, the Content Security Policy allowances,
+tunnelling for local testing, the current sandbox test cards, and how to confirm a purchase
+actually granted a plan.
 
 The short version:
 
@@ -320,12 +254,60 @@ NEXT_PUBLIC_STORE_CURRENCY=USD
 
 Webhook URL `https://your-domain.com/api/payments/paddle/webhook`, subscribed to
 `transaction.completed` and `transaction.paid`. Without `PADDLE_WEBHOOK_SECRET` that
-endpoint rejects every event with 401, for the same reason PayPal's does.
+endpoint **rejects every event with 401**. That is deliberate: the route cannot tell a
+misconfiguration from a forgery, and an unverifiable webhook that granted paid access would
+be the worst bug in the codebase.
 
-The money is protected the same way, with one addition: the overlay is opened against a
-transaction the *server* created from the plan's own price id, so the client never names an
-amount, and the plan a webhook grants is derived from the price id rather than from the
-`customData` we round-tripped through Paddle. See `tests/lib/paddle.test.ts`.
+The gateway counts as configured only when the API key *and* both price ids are present.
+Half a configuration offers no checkout at all — an honest "payments are not available"
+message rather than a button that fails on the customer's card.
+
+### Taking a test payment
+
+1. `npm run dev`, sign in, go to `/pricing`, choose Pro.
+2. You land on `/payment/checkout?plan=pro` — the order summary. Signed out, you are sent
+   through `/login?next=…` and returned here, which is why `/pricing` can stay static.
+3. The checkout button calls `POST /api/payments/paddle/create-transaction`. The browser
+   sends only `{ planId }`; the price id comes from the environment and the amount from
+   `lib/plans.ts`.
+4. Pay in the overlay with the sandbox card `4242 4242 4242 4242`.
+5. The overlay closes and you land on `/payment/success`, which calls
+   `POST /api/payments/paddle/verify`.
+6. Confirm in `/dashboard/account` that the plan is now Pro, and in `/admin/payments` that
+   the transaction is `completed`.
+
+`npm run paddle:doctor` checks the configuration in the order it has to be true — keys,
+prices, environments, routes — and `npm run paddle:doctor -- --remote https://your-site`
+reads the deployed bundle, which is the only way to catch a `NEXT_PUBLIC_*` value that was
+set in the hosting dashboard after the last build.
+
+### How the money is protected
+
+- The browser sends a **plan id**, never a price. The amount comes from `lib/plans.ts`.
+- The overlay is opened against a transaction the *server* created from the plan's own
+  price id, so the client never names an amount.
+- The plan a webhook grants is derived from the **price id**, not from the `customData` we
+  round-tripped through Paddle and the customer's browser.
+- Verification re-reads the transaction from Paddle and compares amount **and** currency
+  against the plan. A mismatch grants nothing and logs the discrepancy.
+- Fulfilment is a Firestore transaction keyed by the Paddle transaction id, so the two
+  webhook events, a retry and the success page all converge on one grant.
+
+See `tests/lib/paddle.test.ts`.
+
+### Payments taken through PayPal, before the removal
+
+`types/payment.ts` still lists `'paypal'` in `paymentProviderSchema`, and that is
+deliberate rather than an oversight. Every payment recorded through the old integration is
+still in Firestore; drop the value and each of those documents stops parsing and disappears
+from `/admin/payments`, which is the one place support looks when a customer asks about a
+charge from last year.
+
+Reading those records is all that is on offer. `gatewayFor('paypal')` throws instead of
+resolving to Paddle, because asking Paddle about a transaction it never took returns "not
+found" — which reads as "this customer never paid", and a confident wrong answer is worse
+than a refused one. So a historical PayPal row still displays, but cannot be re-checked
+against a live API, and a refund for one is issued in the PayPal dashboard.
 
 ---
 
@@ -494,11 +476,10 @@ locally, and no tool can produce it before the site is deployed.
 | CSP, HSTS, `X-Frame-Options`, `Permissions-Policy` | `next.config.ts` |
 | Firestore + Storage rules, deny by default | `firestore.rules`, `storage.rules` |
 | Signed, expiring render tokens for `/print` | `lib/pdf/token.ts` |
-| PayPal amount, currency and signature verification | `lib/payments/paypal.ts` |
 | Paddle amount verification, plan derived from the price id, HMAC webhook signatures | `lib/payments/paddle.ts` |
 | Honeypot + rate limit on the contact form | `app/api/contact/route.ts` |
 
-Two things worth stating plainly:
+Three things worth stating plainly:
 
 **Rate limiting is per instance.** The built-in limiter is in-memory, so on a horizontally
 scaled deployment the effective limit is `RATE_LIMIT_MAX × instances`. For a hard global
@@ -510,12 +491,33 @@ for statically pre-rendered pages; a nonce-based policy would force every market
 into dynamic rendering. To trade that away, set the CSP header from `proxy.ts` with a
 per-request nonce instead of in `next.config.ts`.
 
+**The CSP has to name Paddle, and nothing on the server can tell you when it does not.**
+The overlay is not one script from one host: `cdn.paddle.com` serves Paddle.js,
+`buy.paddle.com` renders the card form in an iframe, `checkout-service.paddle.com` takes
+the XHR, each with a `sandbox-` twin, and the set differs by payment method. So
+`next.config.ts` allows `https://*.paddle.com` in `script-src`, `frame-src`, `connect-src`,
+`img-src`, `style-src` and `font-src` — a wildcard rather than a host list, because it is
+still bounded by a domain Paddle controls and enumerating subdomains breaks the next time
+Paddle adds one.
+
+Get this wrong and the failure is silent everywhere you would look for it. The customer
+sees "the payment window could not load", or an empty rectangle where the card form should
+be, with a Content Security Policy violation in the browser console naming
+`cdn.paddle.com`. Meanwhile `/api/payments/paddle/status` reports every field green,
+`npm run paddle:doctor` passes and the server log is empty — the browser blocked the
+script before a line of our code ran, so there is nothing server-side that could have
+observed it.
+This cost an afternoon here. The fix is the six directives above; `tests/lib/csp.test.ts`
+pins them, and also asserts that the removed PayPal integration's origins left the policy
+with it, since a CSP naming a gateway nobody uses is a standing permission for a third
+party to run scripts on the checkout page.
+
 ---
 
 ## Testing
 
 ```bash
-npm test              # 968 tests
+npm test              # 1802 tests across 42 files
 npm run typecheck     # next typegen && tsc --noEmit
 npm run lint
 npm run verify        # all of the above, then a production build
@@ -528,10 +530,14 @@ What is covered:
   section, no `undefined`/`NaN` leakage, accent colour honoured, no viewport units, and
   page-break classes present.
 - **Entitlements** — quotas, expiry, downgrade behaviour, customization sanitisation.
-- **Payment verification** — underpayment, plan substitution, currency swap, malformed
-  `custom_id`; for Paddle, minor-unit conversion (including zero-decimal currencies),
-  price-id-to-plan mapping, the localised-currency rule, webhook parsing and HMAC
-  signature checks, and gateway selection.
+- **Payment verification** — underpayment, plan substitution, currency swap, minor-unit
+  conversion (including zero-decimal currencies), price-id-to-plan mapping, the
+  localised-currency rule, webhook parsing and HMAC signature checks, gateway selection,
+  and that `gatewayFor('paypal')` throws rather than answering a question about a retired
+  gateway with the current one.
+- **The security headers** — that every origin Paddle's overlay loads from is allowed in
+  the CSP, that the allowance stays scoped to a domain Paddle controls, and that the
+  removed gateway's origins are gone (`tests/lib/csp.test.ts`).
 - **Render tokens** — tampering, expiry, cross-user forgery.
 - **The real PDF pipeline** — one-page, three-page, sidebar-across-pages, US Letter, and
   one template from every category, rendered in an actual Chromium. Skipped
@@ -550,10 +556,11 @@ What is covered:
    Set `NEXT_PUBLIC_SITE_URL` to your production URL.
 3. Deploy. `prebuild` regenerates the template registry automatically.
 4. Add your domain, then add it to Firebase **Authorized domains**.
-5. Update the PayPal webhook URL to the production domain, and — if Paddle is in use —
-   create a live Paddle notification destination for the production domain and set both
-   `PADDLE_ENVIRONMENT` and `NEXT_PUBLIC_PADDLE_ENVIRONMENT` to `production`
-   (see [`docs/PADDLE_SETUP.md` §9](docs/PADDLE_SETUP.md#9-going-live)).
+5. Create a live Paddle notification destination for the production domain, and set both
+   `PADDLE_ENVIRONMENT` and `NEXT_PUBLIC_PADDLE_ENVIRONMENT` to `production` — the exact
+   word, not `live`. The public value is inlined at build time, so it needs a redeploy
+   rather than a restart (see
+   [`docs/PADDLE_SETUP.md` §10](docs/PADDLE_SETUP.md#10-going-live)).
 
 Pasting `FIREBASE_PRIVATE_KEY` into the Vercel UI: keep the literal `\n` sequences and
 wrap the whole value in double quotes.
@@ -588,7 +595,7 @@ app/
   (auth)/             login, register, forgot-password, verify-email
   dashboard/          CV management, account, settings, and the editor
   admin/              users, payments, templates, blog, configuration
-  api/                auth, CVs, PayPal, OG images, contact, admin
+  api/                auth, CVs, Paddle, OG images, contact, admin
   print/[id]          bare document for browser printing
   cv/[shareId]        public share view (noindex)
   sitemap.ts robots.ts manifest.ts
@@ -625,6 +632,7 @@ firestore.rules  firestore.indexes.json  storage.rules  firebase.json
 | `npm run generate:templates` | Rebuild the template registry |
 | `npm run seed` | Seed settings, template stubs, optional demo data |
 | `npm run set-admin` | Grant or revoke admin |
+| `npm run paddle:doctor` | Check the Paddle configuration layer by layer; `-- --remote <url>` checks a deployment |
 | `npm run firebase:rules` | Deploy rules, indexes and storage rules |
 
 ---
@@ -641,7 +649,8 @@ Stated plainly so nothing is a surprise in production:
 - **The contact form writes to Firestore rather than sending e-mail**, so the project has
   no SMTP dependency. Forward `contactMessages` with a Firestore trigger if you want mail.
 - **Refunds are recorded, not issued.** `/admin/payments` marks an order refunded locally;
-  the actual refund is issued in the PayPal dashboard.
+  the actual refund is issued in the Paddle dashboard — or, for a record taken through the
+  retired PayPal integration, in PayPal's.
 - **Legal pages are a starting template**, clearly labelled as such on each page. Have a
   qualified lawyer review them before launch.
 - **Analytics is opt-in.** With no measurement id configured, the app makes zero

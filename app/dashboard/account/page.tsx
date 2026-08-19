@@ -250,7 +250,7 @@ export default async function AccountPage() {
             <div className="mt-6 rounded-xl border border-ink-200 bg-ink-50 p-4">
               {/*
                 The reassurance is the point of this block, not decoration: an abandoned
-                PayPal order looks like a charge to anyone scanning a billing page, and the
+                checkout looks like a charge to anyone scanning a billing page, and the
                 support cost of that mistake is high. `tests/lib/billing-history.test.ts`
                 holds the copy table to saying so in every language.
               */}

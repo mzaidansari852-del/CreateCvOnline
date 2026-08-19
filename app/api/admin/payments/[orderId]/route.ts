@@ -19,7 +19,7 @@ const bodySchema = z.object({
 /**
  * Corrects the status recorded against an order — in practice, marking a refund.
  *
- * This is *bookkeeping only*. It rewrites our own ledger document and nothing else: PayPal
+ * This is *bookkeeping only*. It rewrites our own ledger document and nothing else: Paddle
  * is not called, no money moves, the customer is not notified, and the account's
  * entitlement is untouched. The console says the same thing in the confirmation dialog,
  * because an operator who assumes otherwise leaves a customer unrefunded.

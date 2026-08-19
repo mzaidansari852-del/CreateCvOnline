@@ -8,20 +8,21 @@ import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { privateMetadata } from '@/lib/seo/metadata';
 
 /**
- * Where PayPal sends the payer after they approve.
+ * Where the payer lands once the checkout overlay closes.
  *
- * This page grants nothing. Landing here only means a button was pressed on PayPal's
- * site — it is a URL anyone can type. `PaymentConfirmation` asks our own capture endpoint
- * to confirm the order, and that endpoint re-checks the order, the amount and the currency
- * with PayPal before a single entitlement changes.
+ * This page grants nothing. Landing here only means a URL was opened, and it is a URL
+ * anyone can type. `PaymentConfirmation` asks our own verify endpoint what happened, and
+ * that endpoint re-reads the transaction, the amount and the currency from Paddle before a
+ * single entitlement changes.
  *
- * PayPal appends `token` (the order id) and `PayerID` to the return URL; `plan` is ours,
- * added when the order was created, and is only ever a hint for the heading.
+ * The transaction id travels in `?transaction=`, read by the component straight from the
+ * URL; `plan` is ours, added when the transaction was created, and is only ever a hint for
+ * the heading before the server answers.
  */
 
 export const metadata: Metadata = privateMetadata(
   'Payment confirmation',
-  'Confirming your payment with PayPal.',
+  'Confirming your payment.',
 );
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -29,15 +30,13 @@ type SearchParams = Record<string, string | string[] | undefined>;
 function firstValue(value: string | string[] | undefined): string | null {
   const raw = Array.isArray(value) ? value[0] : value;
   const trimmed = typeof raw === 'string' ? raw.trim() : '';
-  // PayPal ids are short and alphanumeric; anything else did not come from PayPal.
+  // A plan id is short; anything longer did not come from a checkout of ours.
   return trimmed.length > 0 && trimmed.length <= 64 ? trimmed : null;
 }
 
 export default async function PaymentSuccessPage(props: { searchParams: Promise<SearchParams> }) {
   const params = await props.searchParams;
-  const orderId = firstValue(params.token);
   const planHint = firstValue(params.plan);
-  const payerId = firstValue(params.PayerID);
 
   /*
    * The layout resolves the same language for `LocaleProvider`, but a server component
@@ -65,14 +64,8 @@ export default async function PaymentSuccessPage(props: { searchParams: Promise<
         </p>
       </div>
 
-      <PaymentConfirmation orderId={orderId} planHint={planHint} />
+      <PaymentConfirmation planHint={planHint} />
 
-      {payerId ? (
-        <p className="mt-6 text-center text-xs leading-relaxed text-ink-500">
-          {copy.checkout.payerReference} <code className="font-mono">{payerId}</code>.{' '}
-          {copy.checkout.payerReferenceNote}
-        </p>
-      ) : null}
     </>
   );
 }

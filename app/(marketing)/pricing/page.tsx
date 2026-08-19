@@ -52,7 +52,7 @@ const bool = (value: boolean): Cell => ({ kind: 'bool', value });
 const currencySymbols: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', MAD: 'MAD ' };
 
 function money(value: string): string {
-  const symbol = currencySymbols[publicEnv.paypalCurrency] ?? `${publicEnv.paypalCurrency} `;
+  const symbol = currencySymbols[publicEnv.storeCurrency] ?? `${publicEnv.storeCurrency} `;
   const amount = Number.parseFloat(value);
   return `${symbol}${Number.isInteger(amount) ? amount : amount.toFixed(2)}`;
 }
@@ -267,9 +267,10 @@ const FAQ = [
   {
     question: 'Does Pro renew automatically?',
     answer:
-      `No, and this is deliberate. Pro is a single PayPal payment that grants ${PLANS.pro.accessDays} days of ` +
-      'access. There is no stored payment method, no subscription to hunt for in a settings page and no renewal ' +
-      'e-mail. When the period ends your account simply returns to Free — your CVs stay where they are.',
+      `Pro is a single payment that grants ${PLANS.pro.accessDays} days of access, and that fixed term is the whole ` +
+      'of what you buy. When the period ends your account simply returns to Free — your CVs stay where they are — ' +
+      'and buying another period is a separate, deliberate purchase. We hold no card details of our own; they are ' +
+      'entered in Paddle’s checkout. Your account page lists every payment and the date your access ends.',
   },
   {
     question: 'What happens to my CVs if I stop paying?',
@@ -282,22 +283,24 @@ const FAQ = [
   {
     question: 'Which payment methods can I use?',
     answer:
-      'Checkout runs through PayPal. You can pay from a PayPal balance or a linked bank account, and PayPal also ' +
-      'accepts debit and credit cards at checkout without you needing a PayPal account. We never see or store your ' +
-      'card number — it goes straight to PayPal.',
+      'Checkout runs through Paddle and opens as an overlay on the page rather than sending you elsewhere. Inside ' +
+      'it you can pay by debit or credit card — Visa, Mastercard, American Express — or with PayPal, Apple Pay or ' +
+      'Google Pay. We never see or store your card number: the form is served by Paddle and the number goes ' +
+      'straight to them.',
   },
   {
     question: 'Which currency am I charged in?',
     answer:
-      `All prices on this page are in ${publicEnv.paypalCurrency} and that is the currency PayPal charges in. If ` +
-      'your bank account is in another currency, your bank or PayPal converts it at their rate and may add a ' +
-      'foreign-transaction fee, which is outside our control. The amount you see here is the amount we receive.',
+      `All prices on this page are in ${publicEnv.storeCurrency} and that is the currency you are charged in. If ` +
+      'your bank account is in another currency, your bank or Paddle converts it at their rate and may add a ' +
+      'foreign-transaction fee, which is outside our control. Paddle is the merchant of record, so it adds any VAT ' +
+      'or sales tax your country requires, shows it before you confirm, and remits it.',
   },
   {
     question: 'Can I get a refund?',
     answer:
       'Yes — within 14 days of the payment, for any reason, including simply changing your mind. E-mail ' +
-      `${site.supportEmail} from the address on the account and we will refund the full amount through PayPal. ` +
+      `${site.supportEmail} from the address on the account and we will refund the full amount through Paddle. ` +
       'We do not ask you to justify it and we do not make you talk to anyone first.',
   },
   {
@@ -335,7 +338,7 @@ export default function PricingPage() {
         <PricingCards className="mt-14" />
 
         <p className="mt-8 text-center text-sm text-ink-500">
-          Prices in {publicEnv.paypalCurrency}. Secure checkout through PayPal.{' '}
+          Prices in {publicEnv.storeCurrency}. Secure checkout through Paddle.{' '}
           <Link href="#refunds" className="font-medium text-brand-700 underline underline-offset-2">
             14-day refund
           </Link>{' '}
@@ -529,14 +532,16 @@ export default function PricingPage() {
           <div className="rounded-xl border border-ink-200 bg-white p-6">
             <h3 className="text-base font-semibold text-ink-950">Payment methods</h3>
             <p className="mt-2 text-sm leading-relaxed text-ink-600">
-              Checkout is handled by <strong className="font-semibold text-ink-800">PayPal</strong>.
-              You can pay from a PayPal balance or a linked bank account — and PayPal itself accepts
-              debit and credit cards at checkout, so you do not need a PayPal account to buy. Your
-              card details are entered on PayPal&apos;s pages and never reach our servers.
+              Checkout is handled by <strong className="font-semibold text-ink-800">Paddle</strong>.
+              Inside it you can pay by debit or credit card — Visa, Mastercard, American Express —
+              or with PayPal, Apple Pay or Google Pay. The payment form is served by Paddle, so your
+              card details never reach our servers.
             </p>
             <p className="mt-3 text-sm leading-relaxed text-ink-600">
-              You are sent to PayPal, you approve the payment, and you land back here. Access is
-              granted only after our server has confirmed the capture with PayPal directly.
+              The checkout opens over this page rather than sending you away, and closes when the
+              payment is done. Access is granted only after our server has confirmed the transaction
+              with Paddle directly. Paddle is the merchant of record, so it handles the tax and the
+              receipt — and your statement will read Paddle, not {site.name}.
             </p>
           </div>
 
@@ -551,7 +556,7 @@ export default function PricingPage() {
               >
                 {site.supportEmail}
               </a>{' '}
-              from the address on your account and we refund the full amount through PayPal,
+              from the address on your account and we refund the full amount through Paddle,
               normally within two working days.
             </p>
             <p className="mt-3 text-sm leading-relaxed text-ink-600">
@@ -570,25 +575,27 @@ export default function PricingPage() {
             <h3 className="text-base font-semibold text-ink-950">Currency and tax</h3>
             <p className="mt-2 text-sm leading-relaxed text-ink-600">
               Prices are shown and charged in{' '}
-              <strong className="font-semibold text-ink-800">{publicEnv.paypalCurrency}</strong>. If
-              your account is in a different currency, PayPal or your bank converts at their own
+              <strong className="font-semibold text-ink-800">{publicEnv.storeCurrency}</strong>. If
+              your account is in a different currency, Paddle or your bank converts at their own
               rate and may add a cross-border fee — that part is between you and them.
             </p>
             <p className="mt-3 text-sm leading-relaxed text-ink-600">
-              Any sales tax or VAT that applies to your country is shown by PayPal at checkout
-              before you confirm. Nothing is ever charged after the fact.
+              Paddle is the merchant of record, so any sales tax or VAT your country requires is
+              worked out by Paddle, shown at checkout before you confirm, and remitted by Paddle.
+              Nothing is ever charged after the fact.
             </p>
           </div>
         </div>
 
         <div className="mt-8 rounded-xl border border-ink-200 bg-white p-6">
-          <h3 className="text-base font-semibold text-ink-950">Nothing renews on its own</h3>
+          <h3 className="text-base font-semibold text-ink-950">What a payment actually buys</h3>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-600">
-            We do not store a payment method and we do not create a recurring PayPal agreement.
-            Pro is a one-off payment for {PLANS.pro.accessDays} days; when it ends, the account
-            quietly returns to Free and you decide whether to buy another period. There is no
-            cancellation flow to survive, because there is nothing to cancel — which also means we
-            never have to invent a dark pattern to keep you.
+            A fixed term of access, and nothing more elaborate than that. Pro is a payment for{' '}
+            {PLANS.pro.accessDays} days; when it ends, the account quietly returns to Free and
+            buying another period is a separate, deliberate purchase. Lifetime is bought once and
+            never expires. We hold no card details of our own — they are entered in Paddle&apos;s
+            checkout — and your account page lists every payment recorded against the account
+            alongside the date your access ends.
           </p>
         </div>
       </Section>

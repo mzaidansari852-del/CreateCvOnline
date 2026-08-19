@@ -2,7 +2,7 @@
   "name": "createcvonline",
   "version": "1.0.0",
   "private": true,
-  "description": "CreateCVOnline \u2014 professional CV & resume builder SaaS built with Next.js, TypeScript, Tailwind CSS, Firebase and PayPal.",
+  "description": "CreateCVOnline — professional CV & resume builder SaaS built with Next.js, TypeScript, Tailwind CSS, Firebase and Paddle.",
   "engines": {
     "node": ">=20.9.0"
   },
@@ -35,7 +35,6 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@paddle/paddle-js": "^1.6.4",
     "@paddle/paddle-node-sdk": "^3.10.0",
-    "@paypal/react-paypal-js": "^10.3.0",
     "@sparticuz/chromium": "^149.0.0",
     "clsx": "^2.1.1",
     "firebase": "^12.17.1",

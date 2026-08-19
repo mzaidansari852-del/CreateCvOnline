@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils/cn';
 const currencySymbols: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', MAD: 'MAD ' };
 
 function formatPrice(value: string): string {
-  const symbol = currencySymbols[publicEnv.paypalCurrency] ?? `${publicEnv.paypalCurrency} `;
+  const symbol = currencySymbols[publicEnv.storeCurrency] ?? `${publicEnv.storeCurrency} `;
   const amount = Number.parseFloat(value);
   const display = Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
   return `${symbol}${display}`;
@@ -129,7 +129,7 @@ export function PricingCards({
               <p className="mt-3 text-center text-xs text-ink-500">No card required</p>
             ) : (
               <p className="mt-3 text-center text-xs text-ink-500">
-                Secure checkout with PayPal · 14-day refund
+                Secure checkout with Paddle · 14-day refund
               </p>
             )}
           </div>

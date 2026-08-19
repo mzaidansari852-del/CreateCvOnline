@@ -23,16 +23,13 @@ import { cn } from '@/lib/utils/cn';
  * re-checks the order, the amount and the currency with the gateway before it changes any
  * entitlement.
  *
- * PayPal returns its order id in `token`; Paddle's transaction id arrives in `transaction`,
- * put there by the checkout button. Exactly one of them is present, and that is what picks
- * the branch.
+ * Paddle's transaction id arrives in `?transaction=`, put there by the checkout button.
  *
- * ## Why Paddle needs more than one attempt
+ * ## Why it takes more than one attempt
  *
- * PayPal's flow is sequential: the payer approves, comes back, we capture. Paddle's is a
- * race. The signed webhook is the authoritative grant and it may land before this page
- * does, after it, or — while a bank settles a card — a good few seconds later. So the
- * Paddle branch does not ask once and report a verdict; it asks until the answer stops
+ * Confirmation is a race. The signed webhook is the authoritative grant and it may land
+ * before this page does, after it, or — while a bank settles a card — a good few seconds
+ * later. So this does not ask once and report a verdict; it asks until the answer stops
  * being "not yet". The three states that matters for:
  *
  *   1. the webhook got there first — verify returns immediately and this page agrees,
@@ -134,11 +131,8 @@ async function askPaddle(transactionId: string, copy: AppCopy): Promise<PaddleOu
 }
 
 export function PaymentConfirmation({
-  orderId,
   planHint,
 }: {
-  /** From `?token=` — PayPal's order id. `null` when the link was opened by hand. */
-  orderId: string | null;
   /** From `?plan=` — used only for the heading before the server confirms. */
   planHint: string | null;
 }) {
@@ -147,13 +141,12 @@ export function PaymentConfirmation({
   const searchParams = useSearchParams();
 
   /*
-   * The page above only forwards PayPal's parameters, so Paddle's reference is read
-   * straight from the URL. At most one of the two can be meaningful: a Paddle transaction
-   * id posted to PayPal's capture endpoint would be a confusing 404 for the customer and a
-   * misleading line in the support log.
+   * The reference is read straight from the URL rather than passed down, so a customer who
+   * reopens this page from their history an hour later gets the same answer as the tab the
+   * overlay closed in. Nothing here assumes the checkout ran in *this* tab.
    */
-  const transactionId = orderId ? null : readTransactionId(searchParams.get('transaction'));
-  const reference = orderId ?? transactionId;
+  const transactionId = readTransactionId(searchParams.get('transaction'));
+  const reference = transactionId;
 
   const [phase, setPhase] = useState<Phase>(reference ? 'verifying' : 'failed');
   const [planId, setPlanId] = useState<string | null>(
@@ -172,77 +165,6 @@ export function PaymentConfirmation({
   /** Guards against React's double-invoked effects in development. */
   const lastCapturedKey = useRef<string | null>(null);
 
-  const capture = useCallback(
-    async (id: string) => {
-      setPhase('verifying');
-      setFailure(null);
-
-      try {
-        const response = await fetch('/api/payments/paypal/capture', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderId: id }),
-        });
-
-        const payload = (await response.json().catch(() => null)) as
-          (CaptureResponse & ApiErrorBody) | null;
-
-        if (!response.ok) {
-          const code = payload?.error?.code ?? 'payment-failed';
-          setFailure({
-            message: copy.checkout.serverError(code) ?? copy.checkout.paypalFailedBody,
-            nextStep:
-              code === 'unauthenticated'
-                ? copy.checkout.nextSignIn
-                : code === 'unknown-order'
-                  ? copy.checkout.paypalNextUnknownOrder(site.supportEmail)
-                  : copy.checkout.paypalNextSupport(site.supportEmail),
-            retryable: code !== 'amount-mismatch' && code !== 'unknown-order',
-          });
-          setPhase('failed');
-          trackEvent('payment_failed', { reason: code });
-          return;
-        }
-
-        const resolvedPlan = payload?.planId ?? null;
-        if (resolvedPlan) setPlanId(resolvedPlan);
-
-        if (payload?.alreadyFulfilled) {
-          setPhase('already');
-          return;
-        }
-
-        setPhase('success');
-        const plan = getPlan(resolvedPlan ?? 'free');
-        trackEvent('payment_completed', {
-          plan: plan.id,
-          value: Number.parseFloat(plan.price),
-          currency: publicEnv.paypalCurrency,
-        });
-      } catch {
-        setFailure({
-          message: copy.checkout.confirmOffline,
-          nextStep: copy.checkout.nextRetryConnection,
-          retryable: true,
-        });
-        setPhase('failed');
-        trackEvent('payment_failed', { reason: 'network' });
-      }
-    },
-    [copy],
-  );
-
-  useEffect(() => {
-    if (!orderId) return;
-    // React runs effects twice in development. Capturing twice is harmless on the server
-    // (fulfilment is idempotent) but it would show a first-time buyer the "already
-    // confirmed" state, which reads as a bug.
-    const key = `${orderId}:${attempt}`;
-    if (lastCapturedKey.current === key) return;
-    lastCapturedKey.current = key;
-    void capture(orderId);
-  }, [orderId, attempt, capture]);
-
   const verifyPaddle = useCallback(
     async (id: string) => {
       setPhase('verifying');
@@ -255,8 +177,8 @@ export function PaymentConfirmation({
           const resolvedPlan = outcome.planId;
           if (resolvedPlan) setPlanId(resolvedPlan);
           /*
-           * `alreadyFulfilled` is deliberately not turned into the "already active" panel
-           * the way the PayPal branch does. On this path it is the *expected* answer: the
+           * `alreadyFulfilled` is deliberately not turned into an "already active" panel.
+           * On this path it is the *expected* answer: the
            * checkout button verifies the moment the overlay closes, so by the time this
            * page asks, the transaction is nearly always fulfilled already. Reading that as
            * "you owned this before" would tell every single first-time buyer they had
@@ -310,8 +232,10 @@ export function PaymentConfirmation({
 
   useEffect(() => {
     if (!transactionId) return;
-    // Same double-invoke guard as the PayPal branch, and the same reason to keep the key
-    // prefixed: the two effects share it and only one of them ever has a reference.
+    /*
+     * React runs effects twice in development. Verifying twice is harmless on the server —
+     * fulfilment is idempotent — but the guard keeps the analytics event honest.
+     */
     const key = `paddle:${transactionId}:${attempt}`;
     if (lastCapturedKey.current === key) return;
     lastCapturedKey.current = key;
@@ -325,11 +249,9 @@ export function PaymentConfirmation({
           <Spinner size={32} className="text-brand-600" />
           <h2 className="text-xl font-bold text-ink-950">{copy.checkout.confirmTitle}</h2>
           <p className="max-w-md text-sm leading-relaxed text-ink-600">
-            {transactionId
-              ? phase === 'settling'
-                ? copy.checkout.stillConfirmingBody
-                : copy.checkout.confirmBody
-              : copy.checkout.paypalConfirmBody}
+            {phase === 'settling'
+              ? copy.checkout.stillConfirmingBody
+              : copy.checkout.confirmBody}
           </p>
         </div>
       </Panel>
@@ -428,7 +350,7 @@ export function PaymentConfirmation({
 
       <div className="mt-8 border-t border-ink-100 pt-5 text-center text-xs leading-relaxed text-ink-500">
         <p>
-          {transactionId ? copy.checkout.receiptNote : copy.checkout.paypalReceiptNote}{' '}
+          {copy.checkout.receiptNote}{' '}
           {plan.accessDays === null
             ? copy.checkout.noRenewalNote
             : copy.checkout.accessDaysNote(plan.accessDays)}
@@ -445,9 +367,7 @@ export function PaymentConfirmation({
         </p>
         {reference ? (
           <p className="mt-3 font-mono text-[11px] text-ink-400">
-            {transactionId
-              ? `${copy.checkout.transactionRef} ${transactionId}`
-              : `${copy.checkout.orderRef} ${orderId}`}
+            {copy.checkout.transactionRef} {reference}
           </p>
         ) : null}
       </div>

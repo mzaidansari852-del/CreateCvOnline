@@ -186,29 +186,28 @@ const GROUPS: FaqGroup[] = [
     entries: [
       {
         question: 'What do the plans cost?',
-        answer: `The ${free.name} plan costs nothing and never expires. ${pro.name} is ${pro.price} ${publicEnv.paypalCurrency} for ${pro.accessDays} days of access. ${lifetime.name} is ${lifetime.price} ${publicEnv.paypalCurrency} once, with no expiry. Paid plans unlock all ${TEMPLATE_COUNT} templates, unlimited CVs, unlimited downloads, full typography control, custom sections, a share link and a PDF with no credit line.`,
+        answer: `The ${free.name} plan costs nothing and never expires. ${pro.name} is ${pro.price} ${publicEnv.storeCurrency} for ${pro.accessDays} days of access. ${lifetime.name} is ${lifetime.price} ${publicEnv.storeCurrency} once, with no expiry. Paid plans unlock all ${TEMPLATE_COUNT} templates, unlimited CVs, unlimited downloads, full typography control, custom sections, a share link and a PDF with no credit line.`,
       },
       {
         question: 'Does a paid plan renew automatically?',
-        answer: `No. Every payment is a single, deliberate PayPal transaction. We do not store a payment method and we do not create a recurring agreement, so there is no subscription to find and cancel. When the ${pro.accessDays} days are up, the account quietly returns to the free plan.`,
+        answer: `What a payment buys is a fixed term of access: ${pro.accessDays} days for ${pro.name}, and no expiry at all for ${lifetime.name}. When the ${pro.accessDays} days are up, the account quietly returns to the free plan and the paid features switch off. We hold no card details of our own — they are entered in Paddle’s checkout, never on our pages — and your account page lists every payment recorded against the account with the date your access ends.`,
       },
       {
         question: 'How do I cancel?',
-        answer:
-          'There is nothing to cancel — simply do not buy another period. No cancellation form, no retention offer, no e-mail exchange. If you would like the current period refunded instead, see the refund question below.',
+        answer: `Access runs out at the end of the period you paid for without you doing anything, and buying another period is a separate, deliberate purchase. There is no retention offer and no e-mail exchange to survive. If you would like the current period refunded instead, see the refund question below — and if a charge you were not expecting ever appears, e-mail ${site.supportEmail} and we will refund it.`,
       },
       {
         question: 'Which payment methods do you accept?',
         answer:
-          'Checkout runs through PayPal. You can pay from a PayPal balance or a linked bank account, and PayPal itself accepts debit and credit cards at checkout, so you do not need a PayPal account to buy. Your card details are entered on PayPal’s pages; they never touch our servers and we never store them.',
+          'Checkout runs through Paddle, and opens as an overlay on the page rather than sending you somewhere else. Inside it you can pay by debit or credit card — Visa, Mastercard, American Express — or with PayPal, Apple Pay or Google Pay. PayPal is still perfectly usable; it is one of the methods inside the checkout rather than the checkout itself. The payment form is served by Paddle, so your card details never touch our servers and we never store them.',
       },
       {
         question: 'What currency will I be charged in?',
-        answer: `Prices are shown and charged in ${publicEnv.paypalCurrency}. If your account is in a different currency, PayPal or your bank converts at their rate and may add a cross-border fee, which is outside our control. Any sales tax or VAT that applies to your country is shown by PayPal before you confirm.`,
+        answer: `Prices are shown and charged in ${publicEnv.storeCurrency}. If your account is in a different currency, Paddle or your bank converts at their rate and may add a cross-border fee, which is outside our control. Paddle is the merchant of record for the sale, so it works out any VAT or sales tax due in your country, shows it before you confirm, and remits it — and the charge on your statement reads Paddle rather than ${site.name}.`,
       },
       {
         question: 'Can I get a refund?',
-        answer: `Yes — within 14 days of the payment, for any reason at all, including simply changing your mind or finding a job the same week. E-mail ${site.supportEmail} from the address on the account and we refund the full amount through PayPal, normally within two working days. You keep every CV you made.`,
+        answer: `Yes — within 14 days of the payment, for any reason at all, including simply changing your mind or finding a job the same week. E-mail ${site.supportEmail} from the address on the account and we refund the full amount through Paddle, normally within two working days. Paddle and your bank then take about three to five working days to put the money back. You keep every CV you made.`,
       },
       {
         question: 'What happens to my CVs when a paid plan ends?',
@@ -217,7 +216,7 @@ const GROUPS: FaqGroup[] = [
       },
       {
         question: 'I paid and my account still shows the free plan.',
-        answer: `Access is granted only after our server has confirmed the capture with PayPal directly, so a slow confirmation can leave a short gap. Reload the confirmation page first. If it still has not applied, e-mail ${site.supportEmail} with the PayPal transaction id and we will fix it the same day — we can see the order in our own ledger.`,
+        answer: `Access is granted only after our server has confirmed the payment with Paddle directly, so a slow confirmation can leave a short gap. Reload the confirmation page first. If it still has not applied, e-mail ${site.supportEmail} with the Paddle transaction id — it looks like txn_01j… and is on the receipt Paddle sent you — and we will fix it the same day, because we can see the order in our own ledger.`,
       },
     ],
   },
@@ -254,7 +253,7 @@ const GROUPS: FaqGroup[] = [
       {
         question: 'Who processes my payment data?',
         answer:
-          'PayPal. We store the order id, the plan, the amount and the status so we can support you and honour refunds. We never receive your card number, and we do not store one.',
+          'Paddle, as merchant of record for the sale. We store the transaction id, the plan, the amount and the status so we can support you and honour refunds. We never receive your card number, and we do not store one.',
       },
       {
         question: 'How do I contact a human?',

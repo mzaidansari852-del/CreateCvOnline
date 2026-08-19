@@ -6,12 +6,12 @@ import { describe, expect, it } from 'vitest';
 import { PLANS, PLAN_ORDER } from '@/lib/plans';
 
 /**
- * Guards the wiring between "user wants to pay" and "PayPal order exists".
+ * Guards the wiring between "user wants to pay" and "a transaction exists at the gateway".
  *
- * The original build shipped a complete payment backend — create-order, capture with
- * server-side amount verification, webhook, fulfilment, admin ledger — and no button that
- * called any of it. Every purchase CTA pointed at `/pricing`, and `/pricing` pointed at
- * `/register`, so the create-order route had no caller in the entire application.
+ * The original build shipped a complete payment backend — order creation, server-side
+ * amount verification, webhook, fulfilment, admin ledger — and no button that called any
+ * of it. Every purchase CTA pointed at `/pricing`, and `/pricing` pointed at `/register`,
+ * so the create-order route had no caller in the entire application.
  *
  * Type-checking cannot catch a route nobody fetches, and the SEO crawler only walks
  * public pages, so nothing failed. These tests assert the chain exists end to end.
@@ -19,32 +19,43 @@ import { PLANS, PLAN_ORDER } from '@/lib/plans';
 
 const read = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
 
-const checkoutButton = read('components/payments/CheckoutButton.tsx');
+const checkoutButton = read('components/payments/PaddleCheckoutButton.tsx');
 const checkoutPage = read('app/payment/checkout/page.tsx');
 const pricingCards = read('components/marketing/PricingCards.tsx');
 const upgradeCard = read('components/dashboard/UpgradeCard.tsx');
 const accountPage = read('app/dashboard/account/page.tsx');
 
 describe('checkout flow', () => {
-  it('has a client component that calls the create-order endpoint', () => {
+  it('has a client component that calls the create-transaction endpoint', () => {
     expect(checkoutButton).toContain("'use client'");
-    expect(checkoutButton).toContain('/api/payments/paypal/create-order');
+    expect(checkoutButton).toContain('/api/payments/paddle/create-transaction');
   });
 
   it('sends only a plan id to the server, never a price', () => {
-    // The whole anti-tampering design rests on this: the browser names a plan, the
-    // server prices it. A body carrying an amount would undo that in one line.
-    const body = /body:\s*JSON\.stringify\(\{([^}]*)\}\)/.exec(checkoutButton);
-    expect(body).not.toBeNull();
-    expect(body?.[1]).toContain('planId');
-    expect(body?.[1]).not.toMatch(/amount|price|value|currency/i);
+    /*
+     * The whole anti-tampering design rests on this: the browser names a plan, the server
+     * prices it. A body carrying an amount would undo that in one line.
+     *
+     * Every request body in the file is checked, not just the first. The button makes two
+     * calls — create-transaction and verify — and asserting on one of them would leave the
+     * other free to grow a price field unnoticed.
+     */
+    const bodies = [...checkoutButton.matchAll(/body:\s*JSON\.stringify\(\{([^}]*)\}\)/g)].map(
+      (match) => match[1] ?? '',
+    );
+    expect(bodies.length).toBeGreaterThan(0);
+    expect(bodies.some((body) => body.includes('planId'))).toBe(true);
+    for (const body of bodies) expect(body).not.toMatch(/amount|price|value|currency/i);
   });
 
-  it('refuses to redirect anywhere that is not PayPal', () => {
-    expect(checkoutButton).toContain('isPayPalApproveUrl');
-    expect(checkoutButton).toMatch(/paypal\.com/);
-    // An open redirect here would be handed a URL by an upstream API response.
-    expect(checkoutButton).toMatch(/protocol !== 'https:'/);
+  /*
+   * The overlay is opened against a transaction id the server created, never against a
+   * price id or an amount. Opening with `items: [...]` would put the thing being sold in
+   * the browser's hands; opening with an amount would put the price there.
+   */
+  it('opens the overlay against a server-created transaction, not a price', () => {
+    expect(checkoutButton).toMatch(/transactionId/);
+    expect(checkoutButton).not.toMatch(/Checkout\.open\(\s*\{\s*items/);
   });
 
   it('renders the checkout page behind an auth guard that returns the user to it', () => {
@@ -58,8 +69,8 @@ describe('checkout flow', () => {
   });
 
   it('mounts the checkout button on the checkout page', () => {
-    expect(checkoutPage).toContain('CheckoutButton');
-    expect(checkoutPage).toContain("from '@/components/payments/CheckoutButton'");
+    expect(checkoutPage).toContain('PaddleCheckoutButton');
+    expect(checkoutPage).toContain("from '@/components/payments/PaddleCheckoutButton'");
   });
 
   it('points every purchasable plan on the pricing table at checkout', () => {

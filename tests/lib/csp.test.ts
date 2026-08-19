@@ -14,6 +14,11 @@ import { resolve } from 'node:path';
  *
  * A gateway is not integrated until its origins are in this header. Reading the config as
  * text rather than importing it keeps the assertion on the literal that actually ships.
+ *
+ * The reverse also matters, and is asserted below: when PayPal was removed its origins had
+ * to leave the policy too. A CSP that still names a gateway nobody uses is a standing
+ * permission for a third party to run scripts on the checkout — quiet, harmless-looking,
+ * and exactly the kind of thing that survives for years because nothing fails.
  */
 
 const config = readFileSync(resolve(process.cwd(), 'next.config.ts'), 'utf8');
@@ -37,20 +42,16 @@ describe('Content Security Policy', () => {
     expect(directive(name)).toContain('paddle.com');
   });
 
-  // PayPal needs no `style-src`: its flow is a full-page redirect, not a styled overlay.
-  it.each(['script-src', 'frame-src', 'connect-src', 'img-src'])(
-    'allows PayPal in %s',
-    (name) => {
-      expect(directive(name)).toContain('paypal');
-    },
-  );
-
   it('keeps the Paddle allowance scoped to a domain Paddle controls', () => {
     // A wildcard is acceptable here; a bare `https:` or `*` would not be.
     for (const name of overlayDirectives) {
       expect(directive(name)).not.toMatch(/(^|\s)https:(\s|$)/);
       expect(directive(name)).not.toMatch(/(^|\s)\*(\s|$)/);
     }
+  });
+
+  it.each(overlayDirectives)('no longer names the removed PayPal gateway in %s', (name) => {
+    expect(directive(name)).not.toContain('paypal');
   });
 
   it('still refuses to be framed and still blocks plugins', () => {

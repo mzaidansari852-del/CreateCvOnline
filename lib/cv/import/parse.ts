@@ -1,6 +1,11 @@
 import { LOCALES, type Locale } from '@/lib/i18n/locales';
 import { defaultSectionLabels } from '@/lib/i18n/cv-labels';
-import { BUILT_IN_SECTION_IDS, type BuiltInSectionId, type CVData } from '@/types/cv';
+import {
+  BUILT_IN_SECTION_IDS,
+  type BuiltInSectionId,
+  type CVData,
+  type LanguageLevel,
+} from '@/types/cv';
 
 /**
  * Reading a CV that was written somewhere else.
@@ -60,8 +65,7 @@ const URL = /(?:https?:\/\/)?(?:www\.)[^\s,)]+|https?:\/\/[^\s,)]+/i;
  * `fevrier` and `FÉVRIER` all match. Only the first three letters are compared, which is
  * what makes `Jan`/`Januar`/`januari`/`janvier` one entry instead of four.
  */
-const MONTHS: Record<string, number> = {};
-for (const [index, names] of [
+const MONTH_NAMES: string[][] = [
   ['jan', 'january', 'janvier', 'januar', 'januari'],
   ['feb', 'february', 'février', 'februar', 'februari'],
   ['mar', 'march', 'mars', 'märz', 'maart'],
@@ -74,9 +78,25 @@ for (const [index, names] of [
   ['oct', 'october', 'octobre', 'oktober'],
   ['nov', 'november', 'novembre'],
   ['dec', 'december', 'décembre', 'dezember'],
-].entries()) {
-  for (const name of names as string[]) MONTHS[fold(name).slice(0, 3)] = index + 1;
+];
+
+const MONTHS: Record<string, number> = {};
+for (const [index, names] of MONTH_NAMES.entries()) {
+  for (const name of names) MONTHS[fold(name).slice(0, 3)] = index + 1;
 }
+
+/**
+ * The month names themselves, longest first, for the date patterns below.
+ *
+ * Longest first because alternation is ordered: with `jan` ahead of `january`, the pattern
+ * matches three letters and leaves `uary` behind. Abbreviations are added alongside the full
+ * names so `Sept 2019` and `septembre 2019` both work.
+ */
+const MONTH_ALT = Array.from(
+  new Set(MONTH_NAMES.flat().flatMap((name) => [name, name.slice(0, 3), name.slice(0, 4)])),
+)
+  .sort((a, b) => b.length - a.length)
+  .join('|');
 
 /** Lower-case and strip diacritics, so heading matching survives `Formation` vs `FORMATION`. */
 function fold(value: string): string {
@@ -134,7 +154,15 @@ function normaliseDate(raw: string): string {
  * CVs came out with one merged job instead of three. `\p{L}` with the `u` flag is the fix,
  * and it is the kind of bug that only a fixture in another language ever catches.
  */
-const MONTH_WORD = String.raw`(?:\p{L}{3,}\.?\s+)?`;
+/*
+ * Only real month names, never "any word".
+ *
+ * This was `\p{L}{3,}`, which matched whatever word happened to precede a date — so
+ * `Master …, Cigma 09/2023 - 07/2024` had `Cigma` swallowed as the month and the school
+ * vanished from the qualification. Any CV that writes `Company Name 2019 - 2021` on one line
+ * lost its employer the same way, silently, with the rest of the entry looking correct.
+ */
+const MONTH_WORD = String.raw`(?:(?:${MONTH_ALT})\.?\s+)?`;
 const DATE = String.raw`(?:\d{1,2}[-/])?\d{4}`;
 const CURRENT = String.raw`present|current|now|aujourd'?hui|heute|heden|actuel|aktuell|laufend`;
 /*
@@ -247,8 +275,22 @@ function buildHeadingIndex(): Map<string, BuiltInSectionId> {
     ['over mij', 'summary'],
     ['persoonlijk profiel', 'summary'],
     ['langues', 'languages'],
+    // A real CV said `COMPÉTENCES LINGUISTIQUES`, which matched no heading — so Arabic,
+    // French and English were swept into the skills list as though they were software.
+    ['compétences linguistiques', 'languages'],
+    ['langues parlées', 'languages'],
     ['sprachkenntnisse', 'languages'],
+    ['sprachen', 'languages'],
     ['talenkennis', 'languages'],
+    ['talen', 'languages'],
+    ['interests', 'interests'],
+    ['hobbies', 'interests'],
+    ["centre d'intérêt", 'interests'],
+    ["centres d'intérêt", 'interests'],
+    ['loisirs', 'interests'],
+    ['interessen', 'interests'],
+    ["hobby's", 'interests'],
+    ['interesses', 'interests'],
   ];
   for (const [heading, id] of extras) add(heading, id);
   return index;
@@ -338,10 +380,52 @@ interface Block {
  * four-character floor and two-letter minimum stop an initialism like `PMI`, sitting in a
  * certifications list, from becoming a section boundary.
  */
-function isAllCapsHeading(line: string): boolean {
+function isAllCapsHeading(line: string, previous: string | undefined): boolean {
   if (line.length < 4 || line.length > 45) return false;
   if (/[a-z]/.test(line)) return false;
-  return (line.match(/\p{Lu}/gu) ?? []).length >= 2;
+  if ((line.match(/\p{Lu}/gu) ?? []).length < 2) return false;
+
+  /*
+   * A location, not a heading.
+   *
+   * A CV that prints `11/2024 - present` and then `CASABLANCA` is giving the place, and
+   * treating that as a section boundary discarded every job below it — four of five, on the
+   * first real CV this met. Nothing about the line itself says otherwise; what says it is
+   * the date directly above.
+   */
+  if (previous && parseRange(previous)) return false;
+
+  /*
+   * Two words minimum.
+   *
+   * Single-word all-caps lines are overwhelmingly places and employers — `CASABLANCA`,
+   * `BTSCOM` — while the single-word headings that matter (`EDUCATION`, `FORMATION`,
+   * `PROFILE`) are in the heading table already and never reach here. Missing an unknown
+   * one-word heading costs a section absorbed into its neighbour, visible on the review
+   * screen; guessing wrong costs the user their history, silently. The costs are not
+   * symmetric, so neither is the rule.
+   */
+  return line.split(/\s+/).length >= 2;
+}
+
+/**
+ * Is this line the tail of the bullet above it, broken by the column it was printed in?
+ *
+ * A narrow column wraps `• Coordination, Planification et Reporting de la / maintenance des
+ * sites GSM.` across two lines, and a PDF records that break exactly like any other. Read
+ * literally it becomes two skills, one of which is the fragment "Planification et Reporting
+ * de la" — a real CV produced 34 skills that way, where it lists about fifteen.
+ *
+ * Two signals have to agree, because the cost of joining wrongly is a job title welded onto
+ * the end of someone else's bullet point. The line above must be a bullet that did not
+ * finish its sentence, *and* this line must either begin in lower case or continue a clause
+ * the previous line left open with a comma. A new entry beginning `Coordinateur Du Projet…`
+ * satisfies neither, so it stays where it is.
+ */
+function continuesPrevious(previous: string | undefined, line: string): boolean {
+  if (!previous || !isBullet(previous) || isBullet(line)) return false;
+  if (/[.!?]$/.test(previous)) return false;
+  return /^\p{Ll}/u.test(line) || /,$/.test(previous);
 }
 
 /**
@@ -367,11 +451,23 @@ function splitIntoBlocks(text: string): Block[] {
     .filter((line) => line.length > 0);
 
   const blocks: Block[] = [{ id: 'header', lines: [] }];
-  for (const line of lines) {
+  for (const [index, line] of lines.entries()) {
     const heading = headingFor(line);
-    if (heading) blocks.push({ id: heading, lines: [] });
-    else if (isAllCapsHeading(line)) blocks.push({ id: null, lines: [] });
-    else blocks[blocks.length - 1]!.lines.push(line);
+    if (heading) {
+      blocks.push({ id: heading, lines: [] });
+      continue;
+    }
+    if (isAllCapsHeading(line, lines[index - 1])) {
+      blocks.push({ id: null, lines: [] });
+      continue;
+    }
+
+    const current = blocks[blocks.length - 1]!.lines;
+    if (continuesPrevious(current[current.length - 1], line)) {
+      current[current.length - 1] = `${current[current.length - 1]} ${line}`;
+      continue;
+    }
+    current.push(line);
   }
   return blocks;
 }
@@ -468,9 +564,20 @@ function parseHeader(lines: string[]): { personal: CVData['personal']; filled: s
   };
 }
 
-/** A bullet, in any of the glyphs word processors emit. */
+/**
+ * A bullet, in any of the glyphs word processors emit — with or without a space after it.
+ *
+ * The space used to be required, and a real CV written `•Assurer la maintenance…` did not
+ * have one. Nothing in that section was recognised as a bullet, so the description lines
+ * above each date were read as job titles and four of five roles came back either empty or
+ * named after their own first bullet point.
+ *
+ * A true bullet glyph needs no space, since it appears nowhere else. `-` and `*` still do:
+ * without it they would match `-2020` in a date and `*` in `C*`, and turning a date into a
+ * bullet is how entries stop being found at all.
+ */
 function isBullet(line: string): boolean {
-  return /^[•·▪◦‣⁃*]\s|^[-–—]\s/.test(line);
+  return /^[•·▪◦‣⁃]\s*\S/.test(line) || /^[-–—*]\s/.test(line);
 }
 
 /**
@@ -488,13 +595,13 @@ function isBullet(line: string): boolean {
  */
 function isEntryHeadingLine(line: string): boolean {
   if (isBullet(line) || line.length > 90) return false;
-  return !/[.;:!?]$/.test(line);
+  return line.split(/\s+/).length <= 9;
 }
 
 function stripBullet(line: string): string {
   return line
-    .replace(/^[•·▪◦‣⁃*]\s*/, '')
-    .replace(/^[-–—]\s*/, '')
+    .replace(/^[•·▪◦‣⁃]\s*/, '')
+    .replace(/^[-–—*]\s+/, '')
     .trim();
 }
 
@@ -547,49 +654,79 @@ function splitEntries(
     return head.length ? [{ head, body: lines.slice(head.length), range: null }] : [];
   }
 
-  const entries: { head: string[]; body: string[]; range: ReturnType<typeof parseRange> }[] = [];
-
+  /*
+   * Pass one: where does each entry's heading begin?
+   *
+   * Resolved for every anchor before any body is cut, because a body ends exactly where the
+   * next entry's heading starts. Computing the two independently — as this did — let a body
+   * run into the job below it, so the first entry's description contained the second
+   * entry's title.
+   */
+  const heads: { at: number; lines: string[]; from: number }[] = [];
   for (let a = 0; a < anchors.length; a++) {
     const at = anchors[a]!;
     const previousAnchor = a === 0 ? -1 : anchors[a - 1]!;
 
     /*
-     * Heading lines are the non-bullet lines directly above the date, at most two.
+     * The date line may carry the heading itself: `Baccalauréat …, Lycée … 2012 – 2013`.
      *
-     * Two because that is role-then-employer; a third is almost always the previous entry's
-     * trailing prose, and pulling it up would move a sentence into a job title.
+     * When it does, that is the whole heading and nothing above it is looked at. Scanning up
+     * as well appended the line above — which is the *previous* entry's location — and since
+     * it was unshifted first, it became the degree: one qualification from Oued Zem awarded
+     * by "Baccalauréat Sciences Physiques". The two layouts are mutually exclusive, so
+     * treating them as such removes the failure rather than ordering around it.
      */
-    const head: string[] = [];
-    for (let i = at - 1; i > previousAnchor && head.length < 2; i--) {
-      const line = lines[i]!;
-      if (!isEntryHeadingLine(line)) break;
-      head.unshift(line);
-    }
-
-    // The date line may also carry the title, in the other layout. Strip the range out.
     const onAnchor = lines[at]!.replace(RANGE, '')
       .replace(/[|,•·]\s*$/, '')
       .trim();
-    if (onAnchor) head.push(onAnchor);
-
-    // Body runs from just after the date to the start of the next entry's heading.
-    const nextAnchor = anchors[a + 1] ?? lines.length;
-    let bodyEnd = nextAnchor;
-    if (a + 1 < anchors.length) {
-      let claimed = 0;
-      for (let i = nextAnchor - 1; i > at && claimed < 2; i--) {
-        const line = lines[i]!;
-        if (!isEntryHeadingLine(line)) break;
-        claimed += 1;
-        bodyEnd = i;
-      }
+    if (onAnchor) {
+      heads.push({ at, lines: [onAnchor], from: at });
+      continue;
     }
 
-    entries.push({ head, body: lines.slice(at + 1, bodyEnd), range: parseRange(lines[at]!) });
+    /*
+     * Otherwise the heading is above the date — but not always *directly* above it.
+     *
+     * Plenty of CVs run `Job title / • bullet / • bullet / 11/2024 – present / City`, with
+     * the description split around the date by whatever the PDF's column order was. Stopping
+     * at the first bullet, as this did, left the head empty and produced entries with no
+     * role and no employer at all. So bullets above are stepped over while the head is still
+     * empty; once a heading line has been found, a bullet means the entry above has begun
+     * and the scan stops.
+     */
+    const head: string[] = [];
+    let from = at;
+    for (let i = at - 1; i > previousAnchor && head.length < 2; i--) {
+      const line = lines[i]!;
+      if (isBullet(line)) {
+        if (head.length > 0) break;
+        continue;
+      }
+      if (!isEntryHeadingLine(line)) break;
+      head.unshift(line);
+      from = i;
+    }
+    heads.push({ at, lines: head, from });
   }
 
-  // Anything above the first date — a section intro, or an entry with no dates at all.
-  const preamble = lines.slice(0, Math.max(0, anchors[0]! - (entries[0]?.head.length ?? 0)));
+  // Pass two: bodies, each ending where the next entry's heading begins.
+  const entries: { head: string[]; body: string[]; range: ReturnType<typeof parseRange> }[] = [];
+  for (let a = 0; a < heads.length; a++) {
+    const { at, lines: head } = heads[a]!;
+    const bodyEnd = heads[a + 1]?.from ?? lines.length;
+    entries.push({
+      head,
+      body: lines.slice(at + 1, Math.max(at + 1, bodyEnd)),
+      range: parseRange(lines[at]!),
+    });
+  }
+
+  /*
+   * Anything above the first heading — a section intro, or an entry with no dates at all.
+   * Bounded by that heading's own start rather than by its length, which was wrong whenever
+   * the heading did not sit directly on the line above the date.
+   */
+  const preamble = lines.slice(0, Math.max(0, heads[0]?.from ?? 0));
   if (preamble.length > 0 && entries[0]) entries[0].body.unshift(...preamble);
 
   return entries;
@@ -597,8 +734,22 @@ function splitEntries(
 
 /** `Senior Designer — Atlas Cloud` / `Atlas Cloud, London` → role and company, best effort. */
 function splitRoleAndCompany(head: string[]): { role: string; company: string; location: string } {
-  const first = head[0] ?? '';
-  const second = head[1] ?? '';
+  // Trailing commas and full stops survive PDF extraction and are not part of a name.
+  const tidy = (value: string) => value.replace(/[,;]+$/, '').trim();
+  const first = tidy(head[0] ?? '');
+  const second = tidy(head[1] ?? '');
+
+  /*
+   * `Chef de projet transverse (CIRCET MOROCCO)` — the employer in brackets.
+   *
+   * Checked before the separators below because the brackets are unambiguous: nothing else
+   * puts a parenthesised phrase at the end of a title line. Without this the whole string
+   * became the role and the company came back empty.
+   */
+  const bracketed = first.match(/^(.+?)\s*\(([^()]{2,60})\)$/);
+  if (bracketed && !second) {
+    return { role: bracketed[1]!.trim(), company: bracketed[2]!.trim(), location: '' };
+  }
   /*
    * Strong separators first, comma only as a fallback.
    *
@@ -685,17 +836,82 @@ function parseSkills(lines: string[]): CVData['skills'] {
     .map((name) => ({ id: uid(), name, level: 'advanced' as const, category: '' }));
 }
 
+/**
+ * How well someone speaks a language, from however they chose to write it down.
+ *
+ * Ordered most-specific first: `langue maternelle` has to be tested before `professionnel`,
+ * or "Langue Professionnel" and "Langue Maternelle" would both land on the same level.
+ * Returns null when the phrase says nothing about proficiency, which is how a *name* is told
+ * apart from a *level* below.
+ */
+function levelFor(text: string): LanguageLevel | null {
+  const value = fold(text);
+  if (
+    /maternelle|native|mothertongue|mother tongue|muttersprache|moedertaal|bilingue|bilingual/.test(
+      value,
+    )
+  )
+    return 'native';
+  if (/courant|fluent|full professional|verhandlungssicher|vloeiend|c[12]/.test(value))
+    return 'full-professional';
+  if (/professionnel|professional|beruflich|zakelijk|b[12]/.test(value))
+    return 'professional-working';
+  if (/intermediaire|intermediate|limited|mittelstufe|redelijk/.test(value))
+    return 'limited-working';
+  if (/notions|elementary|basic|debutant|grundkenntnisse|basis|a[12]/.test(value))
+    return 'elementary';
+  return null;
+}
+
+/**
+ * Reads a languages section.
+ *
+ * ## Why the level can be on its own line
+ *
+ * A two-column languages block extracts as `Arabe / Langue Maternelle. / Français / Langue
+ * Professionnel`, and reading each line as a language produced six entries for three
+ * languages, half of them called "Langue Professionnel". So a line that says only how well
+ * someone speaks is attached to the language above it rather than becoming one.
+ */
 function parseLanguages(lines: string[]): CVData['languages'] {
   const out: CVData['languages'] = [];
   for (const line of lines) {
     for (const part of stripBullet(line).split(/[,;|]/)) {
-      const name = part.split(/[-–—:(]/)[0]?.trim() ?? '';
+      const text = part.trim();
+      if (!text) continue;
+
+      const name = text.split(/[-–—:(]/)[0]?.trim() ?? '';
+      const level = levelFor(text);
+
+      // Nothing but a proficiency: it belongs to the language on the line before.
+      if (level && out.length > 0 && isLevelOnly(text)) {
+        out[out.length - 1]!.level = level;
+        continue;
+      }
       if (name && name.length <= 40 && !/\d/.test(name)) {
-        out.push({ id: uid(), name, level: 'professional-working' as const });
+        out.push({ id: uid(), name, level: level ?? 'professional-working' });
       }
     }
   }
   return out.slice(0, 20);
+}
+
+/**
+ * True when the line is a proficiency and nothing else.
+ *
+ * `Langue Maternelle.` is a level; `Français` is a name; `Anglais - courant` is both, and
+ * must stay a name so the language is not lost. The test is whether removing the proficiency
+ * vocabulary leaves anything that could be a language.
+ */
+function isLevelOnly(text: string): boolean {
+  const remainder = fold(text)
+    .replace(
+      /maternelle|native|mother ?tongue|muttersprache|moedertaal|bilingue|bilingual|courant|fluent|full|professionnel|professional|working|beruflich|zakelijk|vloeiend|verhandlungssicher|intermediaire|intermediate|limited|mittelstufe|redelijk|notions|elementary|basic|debutant|grundkenntnisse|basis|langue|language|sprache|taal|niveau|level|[abc][12]/g,
+      '',
+    )
+    .replace(/[^\p{L}]/gu, '')
+    .trim();
+  return remainder.length === 0;
 }
 
 /**

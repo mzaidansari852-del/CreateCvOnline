@@ -27,8 +27,7 @@ import { BUILT_IN_SECTION_IDS, fontKeySchema } from '@/types/cv';
 
 export const metadata: Metadata = pageMetadata({
   title: 'Pricing',
-  description:
-    'Free forever for one solid CV, or unlock all 56 templates, unlimited CVs and unlimited PDF downloads with Pro or a one-off Lifetime licence. 14-day refund.',
+  description: `Free forever for one solid CV, or unlock all ${TEMPLATE_COUNT} templates, unlimited CVs and unlimited PDF downloads with Pro or a one-off Lifetime licence. 14-day refund.`,
   path: '/pricing',
   keywords: ['cv builder pricing', 'resume builder cost', 'free cv builder', 'cv builder plans'],
 });
@@ -321,7 +320,12 @@ export default function PricingPage() {
   return (
     <>
       <Section size="sm">
-        <Breadcrumbs items={[{ name: 'Home', path: '/' }, { name: 'Pricing', path: '/pricing' }]} />
+        <Breadcrumbs
+          items={[
+            { name: 'Home', path: '/' },
+            { name: 'Pricing', path: '/pricing' },
+          ]}
+        />
         <SectionHeading
           as="h1"
           eyebrow="Pricing"
@@ -364,19 +368,19 @@ export default function PricingPage() {
                 </dt>
                 <dd className="mt-1.5 text-sm leading-relaxed text-ink-600">
                   The single highest-leverage thing you can do is reorder and rewrite your CV to
-                  match the posting in front of you. On Free you can keep{' '}
-                  {PLANS.free.limits.maxCvs} versions, which is enough to see why it works. Pro
-                  removes the ceiling on both saved CVs and downloads, so a tailored version costs
-                  you five minutes instead of a decision.
+                  match the posting in front of you. On Free you can keep {PLANS.free.limits.maxCvs}{' '}
+                  versions, which is enough to see why it works. Pro removes the ceiling on both
+                  saved CVs and downloads, so a tailored version costs you five minutes instead of a
+                  decision.
                 </dd>
               </div>
               <div>
                 <dt className="text-base font-semibold text-ink-950">Control over the last page</dt>
                 <dd className="mt-1.5 text-sm leading-relaxed text-ink-600">
                   Almost every CV problem is a spacing problem: three lines spill onto a second
-                  page, or a one-page CV looks empty. Pro unlocks font family and size, line
-                  height, section spacing and page margins, which is the toolkit for fixing that
-                  properly instead of deleting a job you are proud of.
+                  page, or a one-page CV looks empty. Pro unlocks font family and size, line height,
+                  section spacing and page margins, which is the toolkit for fixing that properly
+                  instead of deleting a job you are proud of.
                 </dd>
               </div>
               <div>
@@ -385,8 +389,8 @@ export default function PricingPage() {
                 </dt>
                 <dd className="mt-1.5 text-sm leading-relaxed text-ink-600">
                   Different industries genuinely expect different documents. Pro opens every
-                  category — modern, corporate, creative, technology, classic and ATS-focused —
-                  plus custom sections, a share link, and a PDF with no credit line at the foot.
+                  category — modern, corporate, creative, technology, classic and ATS-focused — plus
+                  custom sections, a share link, and a PDF with no credit line at the foot.
                 </dd>
               </div>
             </dl>
@@ -513,7 +517,10 @@ export default function PricingPage() {
         <p className="mt-6 text-sm text-ink-500">
           Every limit above is checked on the server before the action runs, not just hidden in the
           interface. See{' '}
-          <Link href="/features" className="font-medium text-brand-700 underline underline-offset-2">
+          <Link
+            href="/features"
+            className="font-medium text-brand-700 underline underline-offset-2"
+          >
             the full feature tour
           </Link>{' '}
           for how each of these works in practice.

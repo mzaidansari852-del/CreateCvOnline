@@ -33,8 +33,7 @@ import { BUILT_IN_SECTION_IDS, fontKeySchema, type TemplateDefinition } from '@/
 
 export const metadata: Metadata = pageMetadata({
   title: 'Features — Everything the CV Builder Does',
-  description:
-    'A full tour of the editor: live preview, autosave, drag-to-reorder sections, 56 templates you can switch between without losing data, PDF export and share links.',
+  description: `A full tour of the editor: live preview, autosave, drag-to-reorder sections, ${TEMPLATE_COUNT} templates you can switch between without losing data, PDF export and share links.`,
   path: '/features',
   keywords: [
     'cv builder features',
@@ -89,6 +88,46 @@ const writingFeatures = [
     title: 'Room for a long career',
     description:
       'One document holds up to 40 roles, 20 qualifications, 80 skills and 30 projects. The limit on your CV should be a reader’s attention, not the software.',
+  },
+];
+
+/**
+ * Getting a CV in — import and the AI writer.
+ *
+ * This page claims to describe everything the builder does, and for a while it described
+ * everything except the two ways of starting. Both shipped and neither was mentioned, which
+ * on a page titled "Everything the builder does" is a claim the page itself contradicts.
+ */
+const startingFeatures = [
+  {
+    title: 'Import a PDF or Word CV',
+    description:
+      'Upload the CV you already have and it comes back editable: jobs, dates, bullet points, education, skills and languages. It reads the page layout rather than the raw text order, which is why a two-column CV does not arrive shuffled — most importers extract the text and hope.',
+  },
+  {
+    title: 'Headings found by measurement, not guesswork',
+    description:
+      'Section headings are identified by their type size and checked against what those sections are called in four languages. Templates disagree with each other — some set headings larger than the body, some smaller and in capitals — so guessing from wording alone finds job titles and misses sections.',
+  },
+  {
+    title: 'You see what it read before anything saves',
+    description:
+      'The review screen lists every entry it found, not a count. "3 jobs" tells you nothing about whether they are the right three; the actual roles, employers and dates tell you at a glance. Nothing reaches your account until you have looked.',
+  },
+  {
+    title: 'An AI writer for a blank page',
+    description:
+      'No CV to import? Answer about ten questions in plain words and it writes the first draft: the professional summary from scratch, your sentences turned into achievement bullets, and the dates worked out from however you wrote them.',
+  },
+  {
+    title: 'It will not invent your achievements',
+    description:
+      'Ask any general AI for a CV bullet and it hands back a percentage you never earned. Here, figures are asked for in their own question and nothing else may produce one — any line that comes back carrying a number you did not give is removed before you see it, and you are told how many were.',
+  },
+  {
+    title: 'Every word still yours to change',
+    description:
+      'Whether it arrived by upload or was written from your answers, the result is an ordinary CV in the ordinary editor. Rewrite a bullet, drop a job, switch template. Nothing is locked because a machine produced the first version.',
   },
 ];
 
@@ -301,8 +340,8 @@ export default function FeaturesPage() {
           description={
             <>
               A CV builder is only worth using if it removes work you would otherwise do badly in a
-              word processor. Here is the whole product, grouped by the job it does, with the
-              limits stated where they apply.
+              word processor. Here is the whole product, grouped by the job it does, with the limits
+              stated where they apply.
             </>
           }
         />
@@ -328,10 +367,23 @@ export default function FeaturesPage() {
         </div>
       </Section>
 
+      {/* 0. Starting -------------------------------------------------------- */}
+      <Section id="starting">
+        <SectionHeading
+          eyebrow="01 · Starting"
+          title="Getting your CV in"
+          description="Three ways to begin: upload the one you have, answer questions and let the AI write it, or start from a blank page. The first two are what most people need and what most builders do not offer."
+          align="left"
+        />
+        <div className="mt-10">
+          <FeatureGrid items={startingFeatures} />
+        </div>
+      </Section>
+
       {/* 1. Writing --------------------------------------------------------- */}
       <Section tone="muted" id="writing">
         <SectionHeading
-          eyebrow="01 · Writing"
+          eyebrow="02 · Writing"
           title="The editor"
           description="Three panes, no wizard, and a preview you can trust because it is the same code that makes the PDF."
           align="left"
@@ -344,7 +396,7 @@ export default function FeaturesPage() {
       {/* 2. Design ---------------------------------------------------------- */}
       <Section id="design">
         <SectionHeading
-          eyebrow="02 · Design"
+          eyebrow="03 · Design"
           title="Templates and customisation"
           description={`${TEMPLATE_COUNT} layouts across six families, and the controls to bend any of them to your content.`}
           align="left"
@@ -387,7 +439,7 @@ export default function FeaturesPage() {
       {/* 3. Output ---------------------------------------------------------- */}
       <Section tone="muted" id="output">
         <SectionHeading
-          eyebrow="03 · Output"
+          eyebrow="04 · Output"
           title="Export, pagination and sharing"
           description="The bit most builders get wrong: what actually lands in the recruiter’s inbox."
           align="left"
@@ -406,8 +458,8 @@ export default function FeaturesPage() {
             everywhere, and a builder that promises it is selling you something. What we can do is
             control the things that reliably break parsers: multi-column reading order, text baked
             into images, decorative bullet glyphs, and headings that are styled rather than
-            structural. That is what our {ATS_SAFE_COUNT} highest-scoring templates
-            avoid, and it is why we publish a per-template score instead of a badge.
+            structural. That is what our {ATS_SAFE_COUNT} highest-scoring templates avoid, and it is
+            why we publish a per-template score instead of a badge.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <ButtonLink href="/ats-cv" variant="outline">
@@ -423,7 +475,7 @@ export default function FeaturesPage() {
       {/* 4. Job search ------------------------------------------------------ */}
       <Section id="job-search">
         <SectionHeading
-          eyebrow="04 · Job search"
+          eyebrow="05 · Job search"
           title="Running an actual search"
           description="Twenty applications is twenty documents. The product is organised around that fact."
           align="left"
@@ -436,7 +488,7 @@ export default function FeaturesPage() {
       {/* 5. Account --------------------------------------------------------- */}
       <Section tone="muted" id="account">
         <SectionHeading
-          eyebrow="05 · Your account"
+          eyebrow="06 · Your account"
           title="Data, billing and control"
           description="Boring by design. You should be able to leave as easily as you arrived."
           align="left"

@@ -105,9 +105,9 @@ const editorFeatures = [
       'A4 is 794 × 1123 px at 96 dpi; US Letter is 816 × 1056 px — wider and 67 px shorter. Choose per CV, because the same document on the wrong paper can push your last line onto a second page.',
   },
   {
-    title: 'Twelve built-in sections',
+    title: 'Thirteen built-in sections',
     description:
-      'Profile, experience, education, skills, projects, certifications, languages, awards, volunteering, publications, interests and references. Custom sections beyond those twelve are a paid feature.',
+      'Profile, core competencies, experience, education, skills, projects, certifications, languages, awards, volunteering, publications, interests and references. Custom sections beyond those thirteen are a paid feature.',
   },
   {
     title: 'Room for a long career',

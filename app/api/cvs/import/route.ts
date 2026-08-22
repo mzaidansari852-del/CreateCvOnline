@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 
 import { authedRoute, apiError } from '@/lib/api/handler';
+import { completeCv } from '@/lib/cv/import/complete';
 import { ImportError, MAX_IMPORT_BYTES, extractDocument } from '@/lib/cv/import/extract';
 import { parseCvText, type ParseReport } from '@/lib/cv/import/parse';
+import type { Locale } from '@/lib/i18n/locales';
 import { cvDataSchema, type CVData } from '@/types/cv';
 
 export const runtime = 'nodejs';
@@ -32,7 +34,7 @@ export const dynamic = 'force-dynamic';
  */
 export const POST = authedRoute(
   { scope: 'cvs-import', rateLimit: { max: 8, windowSeconds: 300 } },
-  async ({ request }) => {
+  async ({ request, profile }) => {
     let form: FormData;
     try {
       form = await request.formData();
@@ -62,7 +64,7 @@ export const POST = authedRoute(
        * detail would be least forgivable.
        */
       if (document.kind === 'json') {
-        const drafts = draftsFromExport(document.json);
+        const drafts = draftsFromExport(document.json, profile.locale);
         if (drafts.length === 0) {
           return apiError(
             422,
@@ -104,9 +106,10 @@ export const POST = authedRoute(
         );
       }
 
+      const complete = completeCv(parsed.data, profile.locale);
       return NextResponse.json({
         source: document.kind,
-        drafts: [{ title: titleFrom(parsed.data, file.name), data: parsed.data }],
+        drafts: [{ title: titleFrom(complete, file.name), data: complete }],
         report,
       });
     } catch (error) {
@@ -134,7 +137,10 @@ function titleFrom(data: CVData, filename: string): string {
  * What is *not* tolerated is content — every candidate goes through `cvDataSchema`, so a
  * hand-edited file cannot put an unvalidated document into an account.
  */
-function draftsFromExport(json: unknown): { title: string; data: CVData }[] {
+function draftsFromExport(
+  json: unknown,
+  fallbackLanguage: Locale,
+): { title: string; data: CVData }[] {
   const candidates: unknown[] = [];
 
   if (json && typeof json === 'object') {
@@ -152,9 +158,13 @@ function draftsFromExport(json: unknown): { title: string; data: CVData }[] {
     const nested = cvDataSchema.safeParse(record.data);
     const parsed = nested.success ? nested : cvDataSchema.safeParse(candidate);
     if (!parsed.success) continue;
-    const title = typeof record.title === 'string' && record.title.trim() ? record.title.trim() : '';
-    drafts.push({ title: title || titleFrom(parsed.data, 'Imported CV'), data: parsed.data });
+    // A hand-extracted `data` object can be missing its section list just as a parsed PDF
+    // is, so exports go through the same repair rather than being trusted for being JSON.
+    // An export states its own language; only a file that lacks one falls back.
+    const data = completeCv(parsed.data, parsed.data.language ?? fallbackLanguage);
+    const title =
+      typeof record.title === 'string' && record.title.trim() ? record.title.trim() : '';
+    drafts.push({ title: title || titleFrom(data, 'Imported CV'), data });
   }
   return drafts.slice(0, 25);
 }
-

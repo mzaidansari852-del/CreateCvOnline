@@ -1,7 +1,15 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { ArrowRight, CircleGauge, Download, FileText, Sparkles, Wallet } from 'lucide-react';
+import {
+  ArrowRight,
+  CircleGauge,
+  Download,
+  FileText,
+  Sparkles,
+  Upload,
+  Wallet,
+} from 'lucide-react';
 
 import { CVGridCard } from '@/components/dashboard/CVCard';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
@@ -95,12 +103,28 @@ export default async function DashboardOverviewPage() {
           ? copy.dashboard.overviewLedeEmpty
           : copy.dashboard.overviewLede(summaries.length)
       }
+      /*
+        Import shows on an empty account too, where "View all CVs" does not.
+        An account with nothing in it is the likeliest place for someone holding a finished
+        CV they want to bring over, so hiding every action until they have made one first is
+        exactly backwards.
+      */
       actions={
-        summaries.length > 0 ? (
-          <ButtonLink href="/dashboard/cvs" variant="outline" size="sm">
-            {copy.dashboard.viewAllCvs}
+        <>
+          <ButtonLink
+            href="/dashboard/cvs/import"
+            variant="outline"
+            size="sm"
+            leadingIcon={<Upload size={15} aria-hidden />}
+          >
+            {copy.importCv.title}
           </ButtonLink>
-        ) : undefined
+          {summaries.length > 0 ? (
+            <ButtonLink href="/dashboard/cvs" variant="outline" size="sm">
+              {copy.dashboard.viewAllCvs}
+            </ButtonLink>
+          ) : null}
+        </>
       }
     >
       <div className="flex flex-col gap-6">

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { FilePlus2, LayoutGrid, Rows3 } from 'lucide-react';
+import { FilePlus2, LayoutGrid, Rows3, Upload } from 'lucide-react';
 
 import { CVGridCard, CVListRow } from '@/components/dashboard/CVCard';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
@@ -90,14 +90,32 @@ export default async function MyCVsPage({
           ? copy.cvs.nothingSavedYet
           : copy.cvs.savedSummary(summaries.length, limit, viewer.plan.name)
       }
+      /*
+        Import sits in the header, not only inside the New CV form.
+
+        It was reachable only from `/dashboard/cvs/new`, below the starter options — which
+        asks the one person it is built for to click "New CV" to say "I already have one".
+        Nobody with a finished CV in a folder goes looking there, and the feature may as
+        well not exist. This is the page they land on, so this is where the door goes.
+      */
       actions={
-        <ButtonLink
-          href="/dashboard/cvs/new"
-          size="sm"
-          leadingIcon={<FilePlus2 size={15} aria-hidden />}
-        >
-          {copy.nav.newCv}
-        </ButtonLink>
+        <>
+          <ButtonLink
+            href="/dashboard/cvs/import"
+            size="sm"
+            variant="outline"
+            leadingIcon={<Upload size={15} aria-hidden />}
+          >
+            {copy.importCv.title}
+          </ButtonLink>
+          <ButtonLink
+            href="/dashboard/cvs/new"
+            size="sm"
+            leadingIcon={<FilePlus2 size={15} aria-hidden />}
+          >
+            {copy.nav.newCv}
+          </ButtonLink>
+        </>
       }
     >
       <div className="flex flex-col gap-5">

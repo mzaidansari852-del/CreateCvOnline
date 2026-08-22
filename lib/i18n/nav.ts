@@ -196,7 +196,44 @@ export const NAV_CATEGORIES: Partial<Record<Locale, typeof FR_CATEGORIES>> = {
   nl: NL_CATEGORIES,
 };
 
+/**
+ * The German nav, now that German is more than a gallery and a price list.
+ *
+ * The note at the top of this file explains why the translated navs were deliberately
+ * shorter than the English one: their dropdowns would have pointed at guide pages that did
+ * not exist in the language, and a German menu leading to English pages is worse than a menu
+ * that offers less. That constraint is what has changed — the builder, writing, online, free
+ * and ATS pages are German pages now, so they belong in the German menu. What is still
+ * absent is still absent on purpose: the blog, the role examples and the profession guides
+ * remain English-only and remain unlinked from here.
+ */
 const DE_NAV: NavGroup[] = [
+  {
+    label: 'Lebenslauf erstellen',
+    href: '/de/lebenslauf-erstellen',
+    links: [
+      {
+        label: 'Lebenslauf erstellen',
+        href: '/de/lebenslauf-erstellen',
+        description: 'Der Editor, die Live-Vorschau und der PDF-Export.',
+      },
+      {
+        label: 'Lebenslauf schreiben',
+        href: '/de/lebenslauf-schreiben',
+        description: 'Von der leeren Seite zum fertigen Dokument.',
+      },
+      {
+        label: 'Lebenslauf online',
+        href: '/de/lebenslauf-online',
+        description: 'Im Browser schreiben, gestalten und herunterladen.',
+      },
+      {
+        label: 'Lebenslauf kostenlos',
+        href: '/de/lebenslauf-kostenlos',
+        description: 'Was der kostenlose Tarif enthält — und was nicht.',
+      },
+    ],
+  },
   {
     label: 'Lebenslauf-Vorlagen',
     href: '/de/lebenslauf-vorlagen',
@@ -210,6 +247,27 @@ const DE_NAV: NavGroup[] = [
         label: category.label,
         href: `/de/lebenslauf-vorlagen/${category.slug}`,
       })),
+      {
+        label: 'Lebenslauf-Muster',
+        href: '/de/lebenslauf-muster',
+        description: 'Ausgefüllte Beispiele, Abschnitt für Abschnitt.',
+      },
+      {
+        label: 'ATS-Lebenslauf',
+        href: '/de/ats-lebenslauf',
+        description: 'Layouts, die Bewerbermanagementsysteme fehlerfrei auslesen.',
+      },
+    ],
+  },
+  {
+    label: 'Funktionen',
+    href: '/de/funktionen',
+    links: [
+      {
+        label: 'Funktionen',
+        href: '/de/funktionen',
+        description: 'Alles, was der Editor kann.',
+      },
     ],
   },
   {
@@ -363,9 +421,22 @@ export const FOOTER: Record<Locale, {
       {
         label: 'Produkt',
         links: [
+          { label: 'Lebenslauf erstellen', href: '/de/lebenslauf-erstellen' },
+          { label: 'Lebenslauf schreiben', href: '/de/lebenslauf-schreiben' },
+          { label: 'Lebenslauf online', href: '/de/lebenslauf-online' },
+          { label: 'Lebenslauf kostenlos', href: '/de/lebenslauf-kostenlos' },
+          { label: 'Funktionen', href: '/de/funktionen' },
           { label: 'Preise', href: '/de/preise' },
-          { label: 'Lebenslauf erstellen', href: '/register' },
-          { label: 'Anmelden', href: '/login' },
+        ],
+      },
+      {
+        label: 'Wissen',
+        links: [
+          { label: 'Lebenslauf-Muster', href: '/de/lebenslauf-muster' },
+          { label: 'ATS-Lebenslauf', href: '/de/ats-lebenslauf' },
+          { label: 'Häufige Fragen', href: '/de/faq' },
+          { label: 'Über uns', href: '/de/ueber-uns' },
+          { label: 'Kontakt', href: '/de/kontakt' },
         ],
       },
       {

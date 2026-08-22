@@ -126,25 +126,26 @@ export const TRANSLATED_PATHS: Record<string, PathGroup> = {
   /*
    * The commercial landing pages, English and French only.
    *
-   * These are the pages that carry buying intent — `créer un CV en ligne`, `CV gratuit`,
-   * `CV ATS` — and they are the reason `PathGroup` allows a missing language. The commercial
-   * pages are still English and French only, and the map says so rather than pretending:
-   * each emits a two-language `hreflang` cluster that is complete and reciprocal on its own
-   * terms, which is what Google requires.
+   * These are the pages that carry buying intent — `créer un CV en ligne`,
+   * `Lebenslauf erstellen`, `CV gratuit`, `Lebenslauf Muster` — and they are the reason
+   * `PathGroup` allows a missing language.
    *
-   * The four legal documents are the proof that widening costs one key each: they now carry
-   * all four languages, and nothing else had to change to make that true.
+   * They are English, French and German. Dutch is absent from most of them and the map says
+   * so rather than pretending: each emits a three-language `hreflang` cluster that is
+   * complete and reciprocal on its own terms, which is what Google requires. The four legal
+   * documents alongside them carry all four languages. Nothing had to change to make those
+   * two facts coexist, which is the whole point of the type.
    */
-  '/cv-builder': { en: '/cv-builder', fr: '/fr/creer-un-cv' },
-  '/cv-maker': { en: '/cv-maker', fr: '/fr/faire-un-cv' },
-  '/create-cv-online': { en: '/create-cv-online', fr: '/fr/cv-en-ligne' },
-  '/cv-templates': { en: '/cv-templates', fr: '/fr/exemples-de-cv' },
-  '/ats-cv': { en: '/ats-cv', fr: '/fr/cv-ats' },
-  '/free-cv-builder': { en: '/free-cv-builder', fr: '/fr/cv-gratuit' },
-  '/features': { en: '/features', fr: '/fr/fonctionnalites' },
-  '/faq': { en: '/faq', fr: '/fr/faq' },
-  '/about': { en: '/about', fr: '/fr/a-propos' },
-  '/contact': { en: '/contact', fr: '/fr/contact' },
+  '/cv-builder': { en: '/cv-builder', fr: '/fr/creer-un-cv', de: '/de/lebenslauf-erstellen' },
+  '/cv-maker': { en: '/cv-maker', fr: '/fr/faire-un-cv', de: '/de/lebenslauf-schreiben' },
+  '/create-cv-online': { en: '/create-cv-online', fr: '/fr/cv-en-ligne', de: '/de/lebenslauf-online' },
+  '/cv-templates': { en: '/cv-templates', fr: '/fr/exemples-de-cv', de: '/de/lebenslauf-muster' },
+  '/ats-cv': { en: '/ats-cv', fr: '/fr/cv-ats', de: '/de/ats-lebenslauf' },
+  '/free-cv-builder': { en: '/free-cv-builder', fr: '/fr/cv-gratuit', de: '/de/lebenslauf-kostenlos' },
+  '/features': { en: '/features', fr: '/fr/fonctionnalites', de: '/de/funktionen' },
+  '/faq': { en: '/faq', fr: '/fr/faq', de: '/de/faq' },
+  '/about': { en: '/about', fr: '/fr/a-propos', de: '/de/ueber-uns' },
+  '/contact': { en: '/contact', fr: '/fr/contact', de: '/de/kontakt' },
   '/privacy': {
     en: '/privacy',
     fr: '/fr/confidentialite',

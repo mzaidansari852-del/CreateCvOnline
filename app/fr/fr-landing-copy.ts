@@ -1,3 +1,5 @@
+import type { Landing } from '@/lib/i18n/landing';
+
 /**
  * The eight French commercial landing pages, as data.
  *
@@ -23,39 +25,6 @@
  * redirect it, not to reword it.
  */
 
-export interface FrLandingStep {
-  title: string;
-  body: string;
-}
-
-export interface FrLanding {
-  /** The canonical path. Must match the entry in `TRANSLATED_PATHS`. */
-  path: string;
-  breadcrumb: string;
-  metaTitle: string;
-  metaDescription: string;
-  keywords: string[];
-  heading: string;
-  lede: string;
-  ctaPrimary?: string;
-  badges?: string[];
-  stats?: { value: string; label: string }[];
-  steps?: { title: string; items: FrLandingStep[] };
-  /** Emit `HowTo` structured data. Only true where the steps really are instructions. */
-  howTo?: boolean;
-  features?: {
-    title: string;
-    description?: string;
-    columns?: 2 | 3 | 4;
-    items: FrLandingStep[];
-  };
-  prose?: { heading: string; paragraphs: string[] }[];
-  showTemplates?: boolean;
-  faqTitle?: string;
-  faq: { question: string; answer: string }[];
-  related: { label: string; href: string; description?: string }[];
-}
-
 /** The links every one of these pages offers back into the French subtree. */
 const CORE_LINKS = [
   {
@@ -70,7 +39,7 @@ const CORE_LINKS = [
   },
 ];
 
-export const FR_LANDING: Record<string, FrLanding> = {
+export const FR_LANDING: Record<string, Landing> = {
   'creer-un-cv': {
     path: '/fr/creer-un-cv',
     breadcrumb: 'Créer un CV',

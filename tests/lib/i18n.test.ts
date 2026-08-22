@@ -75,10 +75,17 @@ describe('locale model', () => {
   });
 
   it('lists only the languages a page is actually published in', () => {
-    // The commercial landing pages are English and French; the gallery is all four. A
-    // group must never claim a language it has no path for, because that is what turns
-    // into an `hreflang` pointing at a 404.
-    expect(localesIn(TRANSLATED_PATHS['/cv-builder']!)).toEqual(['en', 'fr']);
+    /*
+     * A group must never claim a language it has no path for — that is what turns into an
+     * `hreflang` pointing at a 404, and Google discards the whole cluster when it finds one.
+     *
+     * These three are pinned because they are currently at three different widths, which is
+     * the property worth protecting: the type has to express partial translation, not just
+     * tolerate it. Update them when a language is genuinely added; the `routeExists` test
+     * below is what stops an update here from being a lie.
+     */
+    expect(localesIn(TRANSLATED_PATHS['/cv-builder']!)).toEqual(['en', 'fr', 'de']);
+    expect(localesIn(TRANSLATED_PATHS['/privacy']!)).toEqual(['en', 'fr', 'de', 'nl']);
     expect(localesIn(TRANSLATED_PATHS['/templates']!)).toEqual(['en', 'fr', 'de', 'nl']);
   });
 });

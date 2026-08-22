@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 
 import { FR_LANDING } from '../fr-landing-copy';
-import { FrenchLandingPage } from '../FrenchLandingPage';
+import { FR_SHELL } from '../fr-shell';
+import { LandingPage } from '@/components/marketing/LandingPage';
 import { pageMetadata } from '@/lib/seo/metadata';
 
 /**
@@ -23,5 +24,5 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default function FrenchOnlineCvPage() {
-  return <FrenchLandingPage page={page} />;
+  return <LandingPage page={page} shell={FR_SHELL} />;
 }

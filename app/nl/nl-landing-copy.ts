@@ -35,6 +35,135 @@ const CORE_LINKS = [
 ];
 
 export const NL_LANDING: Record<string, Landing> = {
+  'cv-importeren': {
+    path: '/nl/cv-importeren',
+    breadcrumb: 'Cv importeren',
+    metaTitle: 'Cv importeren — upload een pdf of Word en bewerk verder',
+    metaDescription:
+      'Upload een bestaand cv en krijg een bewerkbaar document terug: functies, datums, bullets, opleiding en vaardigheden. Er wordt gelezen vanuit de pagina-indeling, dus een cv met twee kolommen komt niet door elkaar terug.',
+    keywords: [
+      'cv importeren',
+      'cv pdf bewerken',
+      'cv omzetten',
+      'cv sjabloon wisselen',
+      'cv converter',
+    ],
+    heading: 'Heb je al een cv? Upload het en bewerk verder',
+    lede: 'Een pdf of Word-bestand gaat erin; functies, datums, bullets, opleiding, vaardigheden en talen komen eruit, in een editor waar je van sjabloon kunt wisselen zonder één woord over te typen. Er wordt gelezen vanuit de pagina-indeling in plaats van de ruwe tekstvolgorde — daarom komt een cv met twee kolommen niet door elkaar terug.',
+    badges: ['Pdf en Word', 'Gratis in elk pakket', 'Bestand wordt niet bewaard'],
+    steps: {
+      title: 'Uploaden, controleren, bewaren',
+      items: [
+        {
+          title: 'Upload het bestand',
+          body: 'Een pdf of .docx, tot 8 MB. Er wordt nog niets bewaard: het bestand wordt in dezelfde aanvraag gelezen en weer weggegooid.',
+        },
+        {
+          title: 'Lees wat er gevonden is',
+          body: 'Elk gelezen onderdeel staat er met inhoud bij: elke functie met werkgever en datums, elke opleiding met de instelling. Geen telling — de vermeldingen zelf, want „3 functies gevonden” zegt niets over de vraag of het de juiste drie zijn.',
+        },
+        {
+          title: 'Corrigeer je contactgegevens',
+          body: 'Naam, functietitel, e-mail en telefoon pas je daar meteen aan. Dat leest een recruiter als eerste, en de naam is de zwakste gok in het hele proces.',
+        },
+        {
+          title: 'Bewaar het en ga verder',
+          body: 'Daarna is het een gewoon cv in de editor. Wissel van sjabloon, hersorteer onderdelen, herschrijf een bullet, exporteer een pdf. Niets zit vast omdat het via een upload binnenkwam.',
+        },
+      ],
+    },
+    howTo: true,
+    features: {
+      title: 'Waarom je kolommen hier niet door elkaar raken',
+      description:
+        'De meeste importfuncties halen de tekst eruit en hopen er het beste van. Dit zijn de concrete redenen waarom deze zich anders gedraagt — elk ervan komt van een echt cv dat hem liet struikelen.',
+      columns: 2,
+      items: [
+        {
+          title: 'Hij leest de indeling, niet de ruwe tekst',
+          body: 'Een pdf bewaart tekst in de volgorde waarin het bestand die opsomt, en dat is niet de leesvolgorde. Hier worden de regels opnieuw opgebouwd uit hun positie op de pagina, wordt de witruimte tussen de kolommen gevonden en wordt elke kolom van boven naar beneden gelezen.',
+        },
+        {
+          title: 'Koppen worden gemeten, niet geraden',
+          body: 'Kopjes worden herkend aan hun tekstgrootte en getoetst aan hoe die onderdelen in vier talen heten. Dat is nodig omdat sjablonen het oneens zijn: sommige zetten koppen groter dan de bodytekst, andere kleiner en in hoofdletters.',
+        },
+        {
+          title: 'Bullets blijven bullets',
+          body: 'Elke bullet wordt een aparte prestatie, woord voor woord — ook die welke Word met een eigen privé-symbool schrijft in plaats van een echt opsommingsteken. Dat is de gebruikelijke reden dat een functie als één doorlopende alinea terugkomt.',
+        },
+        {
+          title: 'Onderdelen zonder eigen veld blijven behouden',
+          body: 'Certificaten, interesses, vrijwilligerswerk, publicaties: elk kopje zonder standaardveld komt terug als eigen onderdeel, onder je eigen titel. Een onderdeel herkennen en het dan weggooien zou het slechtste van beide zijn.',
+        },
+      ],
+    },
+    prose: [
+      {
+        heading: 'Drie redenen om een oud cv te uploaden',
+        paragraphs: [
+          'Het uiterlijk veranderen zonder over te typen: importeren, van sjabloon wisselen, exporteren. Inhoud en vormgeving zijn gescheiden, dus zes indelingen uitproberen met je echte loopbaan kost twee minuten in plaats van een avond.',
+          'Een oud cv ATS-bestendig maken: een cv met twee kolommen en een grafische zijbalk kan onzichtbaar zijn voor een sollicitatiesysteem. Importeer het, stap over op een indeling met één kolom die op leesbaarheid is beoordeeld, en dezelfde woorden worden machineleesbaar.',
+          'Een bestand uit een formaat halen dat je niet meer kunt bewerken: een .docx van een computer waarop het lettertype ontbreekt, of een pdf waarvan het bronbestand al lang weg is.',
+        ],
+      },
+      {
+        heading: 'En als het cv nog niet bestaat?',
+        paragraphs: [
+          'Dan heeft de import niets te lezen. Begin in plaats daarvan met de AI-schrijver: die stelt ongeveer tien vragen en schrijft de eerste versie op basis van je antwoorden — zonder ook maar één getal te verzinnen dat je niet hebt gegeven.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'Welke bestanden kan ik uploaden?',
+        answer:
+          'Pdf en Word (.docx) tot 8 MB, plus een CreateCVOnline JSON-export als je een back-up herstelt of van account wisselt. Die JSON-route is exact in plaats van afgeleid, omdat het bestand ons eigen formaat draagt.',
+      },
+      {
+        question: 'Komt een cv met twee kolommen door elkaar terug?',
+        answer:
+          'Dat is precies het probleem waaromheen de import is gebouwd. Hij werkt vanuit waar de tekst op de pagina staat, vindt de lege ruimte tussen de kolommen en leest elke kolom op zijn beurt. Waar de kolommen zo overlappen dat er geen schone tussenruimte is, waarschuwt het controlescherm dat de volgorde mis kan zijn.',
+      },
+      {
+        question: 'Kan hij een gescand cv lezen?',
+        answer:
+          'Nee, en niets anders kan dat. Een gescande of als afbeelding geëxporteerde pdf heeft geen tekstlaag — er valt niets uit te halen. Dat is breder van belang dan onze import: het is precies de reden dat een cv als afbeelding onzichtbaar is voor elk sollicitatiesysteem waar je het naartoe stuurt.',
+      },
+      {
+        question: 'Wordt mijn formulering aangepast?',
+        answer:
+          'Nee. De import kopieert. Je bullets komen binnen zoals je ze schreef, inclusief typefouten. De AI-schrijver is een aparte functie voor wie bij nul begint — heb je al een cv, dan valt er niets te schrijven.',
+      },
+      {
+        question: 'En als hij iets fout leest?',
+        answer:
+          'Je ziet het voordat er iets wordt bewaard; daar is het controlescherm voor. Het toont elke gelezen vermelding in plaats van een telling, dus een samengevoegde functie of een verkeerde werkgever valt meteen op.',
+      },
+      {
+        question: 'Wordt mijn cv opgeslagen als ik het upload?',
+        answer:
+          'Het bestand zelf nooit. Het wordt in de aanvraag gelezen en weggegooid; alleen het cv dat je aanmaakt wordt in je account bewaard, precies alsof je het had getypt.',
+      },
+      {
+        question: 'Kost importeren iets?',
+        answer:
+          'Nee. Importeren zit in het gratis pakket, binnen het aantal cv’s dat een account mag bevatten. Betaalde accounts krijgen een AI-ondersteunde lezing die beter omgaat met ongebruikelijke indelingen, met de standaardlezer als terugval.',
+      },
+    ],
+    related: [
+      {
+        label: 'Cv met AI',
+        href: '/nl/cv-met-ai',
+        description: 'Om bij nul te beginnen: tien vragen, niets verzonnen.',
+      },
+      {
+        label: 'Cv maken',
+        href: '/nl/cv-maken',
+        description: 'De editor, scherm voor scherm.',
+      },
+      ...CORE_LINKS,
+    ],
+  },
   'cv-met-ai': {
     path: '/nl/cv-met-ai',
     breadcrumb: 'Cv met AI',

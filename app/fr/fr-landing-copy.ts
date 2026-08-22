@@ -40,6 +40,135 @@ const CORE_LINKS = [
 ];
 
 export const FR_LANDING: Record<string, Landing> = {
+  'importer-un-cv': {
+    path: '/fr/importer-un-cv',
+    breadcrumb: 'Importer un CV',
+    metaTitle: 'Importer un CV — reprenez un PDF ou un Word et modifiez-le',
+    metaDescription:
+      'Importez un CV existant et récupérez un document modifiable : postes, dates, puces, formation et compétences. La lecture se fait sur la mise en page, donc un CV en deux colonnes ne revient pas mélangé.',
+    keywords: [
+      'importer un cv',
+      'convertir un cv pdf',
+      'cv pdf modifiable',
+      'changer le modèle de mon cv',
+      'convertisseur de cv',
+    ],
+    heading: 'Vous avez déjà un CV ? Importez-le et continuez à l’éditer',
+    lede: 'Un PDF ou un fichier Word entre ; postes, dates, puces, formation, compétences et langues en ressortent, dans un éditeur où vous pouvez changer de modèle sans retaper un mot. La lecture part de la mise en page plutôt que de l’ordre brut du texte — c’est pour cela qu’un CV en deux colonnes ne revient pas mélangé.',
+    badges: ['PDF et Word', 'Gratuit sur toutes les formules', 'Le fichier n’est pas conservé'],
+    steps: {
+      title: 'Importer, vérifier, garder',
+      items: [
+        {
+          title: 'Déposez le fichier',
+          body: 'Un PDF ou un .docx, jusqu’à 8 Mo. Rien n’est encore enregistré : le fichier est lu puis jeté dans la même requête.',
+        },
+        {
+          title: 'Lisez ce qui a été trouvé',
+          body: 'Chaque rubrique lue est listée avec son contenu : chaque poste avec son employeur et ses dates, chaque diplôme avec son établissement. Pas un décompte — les entrées elles-mêmes, parce que « 3 postes trouvés » ne dit rien sur le fait que ce soient les bons.',
+        },
+        {
+          title: 'Corrigez le bloc de contact',
+          body: 'Nom, intitulé, e-mail et téléphone sont modifiables sur place. C’est ce qu’un recruteur lit en premier, et le nom est la déduction la plus fragile de tout le processus.',
+        },
+        {
+          title: 'Gardez-le et continuez',
+          body: 'Le CV devient un document ordinaire dans l’éditeur. Changez de modèle, réordonnez les rubriques, réécrivez une puce, exportez le PDF. Rien n’est verrouillé parce qu’il est arrivé par import.',
+        },
+      ],
+    },
+    howTo: true,
+    features: {
+      title: 'Pourquoi celui-ci ne mélange pas vos colonnes',
+      description:
+        'La plupart des importeurs extraient le texte et espèrent. Voici les raisons précises pour lesquelles celui-ci se comporte autrement — chacune vient d’un vrai CV qui l’avait mis en échec.',
+      columns: 2,
+      items: [
+        {
+          title: 'Il lit la mise en page, pas le texte brut',
+          body: 'Un PDF stocke le texte dans l’ordre où le fichier le liste, qui n’est pas l’ordre de lecture. Celui-ci reconstruit les lignes à partir de leur position sur la page, repère la gouttière entre les colonnes et lit chaque colonne de haut en bas, comme vous le feriez.',
+        },
+        {
+          title: 'Les titres sont mesurés, pas devinés',
+          body: 'Les intitulés de rubrique sont identifiés par leur corps de texte, puis confirmés avec la façon dont ces rubriques s’appellent en quatre langues. Les modèles ne s’accordent pas : certains grossissent leurs titres, d’autres les réduisent en capitales.',
+        },
+        {
+          title: 'Les puces restent des puces',
+          body: 'Chaque puce devient une réalisation distincte, mot pour mot — y compris celles que Word écrit avec son propre symbole privé, cause habituelle d’un poste qui revient en un seul paragraphe.',
+        },
+        {
+          title: 'Les rubriques sans champ dédié sont conservées',
+          body: 'Certifications, centres d’intérêt, bénévolat, publications : tout intitulé sans champ standard arrive en rubrique personnalisée, sous votre propre titre. Reconnaître une rubrique puis la jeter serait le pire des deux résultats.',
+        },
+      ],
+    },
+    prose: [
+      {
+        heading: 'Trois raisons d’importer un ancien CV',
+        paragraphs: [
+          'Changer l’apparence sans retaper : importez, changez de modèle, exportez. Le contenu et le design sont deux choses distinctes, donc essayer six mises en page avec votre vrai parcours prend deux minutes plutôt qu’une soirée.',
+          'Rendre un vieux CV lisible par les ATS : un CV en deux colonnes avec une barre latérale graphique peut être invisible pour un logiciel de recrutement. Importez-le, passez sur une mise en page en une colonne notée pour sa lisibilité machine, et les mêmes mots deviennent exploitables.',
+          'Sortir un fichier d’un format que vous ne pouvez plus modifier : un .docx dont la police a disparu, ou un PDF dont le fichier source est perdu depuis longtemps.',
+        ],
+      },
+      {
+        heading: 'Et si le CV n’existe pas encore ?',
+        paragraphs: [
+          'L’import n’a alors rien à lire. Commencez plutôt par le rédacteur IA : il vous pose une dizaine de questions et écrit le premier jet à partir de vos réponses — sans inventer le moindre chiffre que vous ne lui auriez pas donné.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'Quels fichiers puis-je importer ?',
+        answer:
+          'PDF et Word (.docx), jusqu’à 8 Mo, ainsi qu’un export JSON CreateCVOnline si vous restaurez une sauvegarde ou changez de compte. Le chemin JSON est exact plutôt que déduit, puisque le fichier porte notre propre format.',
+      },
+      {
+        question: 'Un CV en deux colonnes revient-il mélangé ?',
+        answer:
+          'C’est précisément l’échec autour duquel l’import a été conçu. Il part de l’emplacement du texte sur la page, repère la gouttière vide entre les colonnes et lit chaque colonne à son tour. Lorsque les colonnes se chevauchent au point qu’aucune gouttière nette n’existe, l’écran de vérification vous prévient que l’ordre peut être faux.',
+      },
+      {
+        question: 'Peut-il lire un CV scanné ou photographié ?',
+        answer:
+          'Non, et rien d’autre ne le peut. Un PDF scanné ou exporté en image ne contient aucune couche de texte : il n’y a rien à extraire. C’est utile à savoir au-delà de notre import — c’est exactement pour cette raison qu’un CV en image est invisible pour tous les logiciels de recrutement auxquels vous l’envoyez.',
+      },
+      {
+        question: 'Mes formulations sont-elles modifiées ?',
+        answer:
+          'Non. L’import copie. Vos puces arrivent telles que vous les avez écrites, fautes comprises. Le rédacteur IA est une fonction distincte, pour ceux qui partent de zéro : si vous avez déjà un CV, il n’y a rien à rédiger.',
+      },
+      {
+        question: 'Et s’il se trompe ?',
+        answer:
+          'Vous le verrez avant l’enregistrement, c’est tout l’objet de l’écran de vérification. Il liste chaque entrée lue plutôt qu’un décompte, donc un poste fusionné ou un employeur erroné saute aux yeux.',
+      },
+      {
+        question: 'Mon CV est-il stocké quand je l’importe ?',
+        answer:
+          'Le fichier lui-même n’est jamais stocké. Il est lu dans la requête puis jeté ; seul le CV que vous choisissez de créer est enregistré dans votre compte, exactement comme si vous l’aviez saisi.',
+      },
+      {
+        question: 'L’import est-il payant ?',
+        answer:
+          'Non. L’import est disponible sur la formule gratuite, dans la limite du nombre de CV que peut contenir un compte. Les comptes payants bénéficient d’une lecture assistée par IA qui gère mieux les mises en page inhabituelles, avec la lecture standard en secours.',
+      },
+    ],
+    related: [
+      {
+        label: 'CV avec l’IA',
+        href: '/fr/cv-avec-ia',
+        description: 'Pour partir de zéro : dix questions, rien d’inventé.',
+      },
+      {
+        label: 'Créer un CV en ligne',
+        href: '/fr/creer-un-cv',
+        description: 'L’éditeur, écran par écran.',
+      },
+      ...CORE_LINKS,
+    ],
+  },
   'cv-avec-ia': {
     path: '/fr/cv-avec-ia',
     breadcrumb: 'CV avec l’IA',

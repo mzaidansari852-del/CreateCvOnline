@@ -44,6 +44,135 @@ const CORE_LINKS = [
 ];
 
 export const DE_LANDING: Record<string, Landing> = {
+  'lebenslauf-importieren': {
+    path: '/de/lebenslauf-importieren',
+    breadcrumb: 'Lebenslauf importieren',
+    metaTitle: 'Lebenslauf importieren — PDF oder Word hochladen und weiterbearbeiten',
+    metaDescription:
+      'Laden Sie einen vorhandenen Lebenslauf hoch und erhalten Sie ein bearbeitbares Dokument: Stationen, Daten, Stichpunkte, Ausbildung und Kenntnisse. Gelesen wird das Seitenlayout, damit ein zweispaltiger Lebenslauf nicht durcheinandergerät.',
+    keywords: [
+      'lebenslauf importieren',
+      'lebenslauf pdf bearbeiten',
+      'lebenslauf umwandeln',
+      'lebenslauf vorlage wechseln',
+      'lebenslauf konverter',
+    ],
+    heading: 'Sie haben schon einen Lebenslauf? Hochladen und weiterbearbeiten',
+    lede: 'Eine PDF- oder Word-Datei geht hinein; Stationen, Daten, Stichpunkte, Ausbildung, Kenntnisse und Sprachen kommen heraus — in einem Editor, in dem Sie die Vorlage wechseln können, ohne ein Wort neu zu tippen. Gelesen wird das Seitenlayout statt der rohen Textreihenfolge, und genau deshalb kommt ein zweispaltiger Lebenslauf nicht durcheinander zurück.',
+    badges: ['PDF und Word', 'In jedem Tarif kostenlos', 'Datei wird nicht gespeichert'],
+    steps: {
+      title: 'Hochladen, prüfen, behalten',
+      items: [
+        {
+          title: 'Datei hochladen',
+          body: 'Eine PDF oder .docx, bis 8 MB. Es wird noch nichts gespeichert: Die Datei wird in derselben Anfrage gelesen und wieder verworfen.',
+        },
+        {
+          title: 'Lesen, was gefunden wurde',
+          body: 'Jeder gelesene Abschnitt wird mit seinem Inhalt aufgeführt: jede Station mit Arbeitgeber und Daten, jeder Abschluss mit seiner Einrichtung. Keine Zählung — die Einträge selbst, denn „3 Stationen gefunden“ sagt nichts darüber, ob es die richtigen drei sind.',
+        },
+        {
+          title: 'Kontaktdaten korrigieren',
+          body: 'Name, Bezeichnung, E-Mail und Telefon lassen sich direkt dort ändern. Das liest eine Personalabteilung zuerst, und der Name ist die schwächste Vermutung im ganzen Vorgang.',
+        },
+        {
+          title: 'Behalten und weitermachen',
+          body: 'Danach ist es ein ganz normaler Lebenslauf im Editor. Vorlage wechseln, Abschnitte umsortieren, einen Stichpunkt umschreiben, PDF exportieren. Nichts ist gesperrt, weil er per Upload kam.',
+        },
+      ],
+    },
+    howTo: true,
+    features: {
+      title: 'Warum hier die Spalten nicht durcheinandergeraten',
+      description:
+        'Die meisten Importe ziehen den Text heraus und hoffen. Dies sind die konkreten Gründe, warum dieser sich anders verhält — jeder stammt von einem echten Lebenslauf, an dem er gescheitert ist.',
+      columns: 2,
+      items: [
+        {
+          title: 'Er liest das Layout, nicht den rohen Text',
+          body: 'Eine PDF speichert Text in der Reihenfolge, in der die Datei ihn auflistet — das ist nicht die Lesereihenfolge. Hier werden die Zeilen aus ihrer Position auf der Seite rekonstruiert, der Zwischenraum zwischen den Spalten gefunden und jede Spalte von oben nach unten gelesen.',
+        },
+        {
+          title: 'Überschriften werden gemessen, nicht geraten',
+          body: 'Abschnittsüberschriften werden über ihre Schriftgröße erkannt und mit den Bezeichnungen in vier Sprachen abgeglichen. Das ist nötig, weil Vorlagen uneins sind: Die einen setzen Überschriften größer als den Fließtext, die anderen kleiner und in Versalien.',
+        },
+        {
+          title: 'Stichpunkte bleiben Stichpunkte',
+          body: 'Jeder Stichpunkt wird zu einem eigenen Erfolg, Wort für Wort — auch die, die Word mit einem eigenen privaten Zeichen statt eines echten Aufzählungszeichens schreibt. Das ist der übliche Grund, warum eine Station als ein einziger Absatz zurückkommt.',
+        },
+        {
+          title: 'Abschnitte ohne eigenes Feld bleiben erhalten',
+          body: 'Zertifikate, Interessen, Ehrenamt, Publikationen: Jede Überschrift ohne Standardfeld kommt als eigener Abschnitt unter Ihrem eigenen Titel an. Einen Abschnitt zu erkennen und dann wegzuwerfen wäre das schlechteste beider Ergebnisse.',
+        },
+      ],
+    },
+    prose: [
+      {
+        heading: 'Drei Gründe, einen alten Lebenslauf hochzuladen',
+        paragraphs: [
+          'Das Aussehen ändern, ohne neu zu tippen: importieren, Vorlage wechseln, exportieren. Inhalt und Gestaltung sind getrennt, also dauert es zwei Minuten statt eines Abends, sechs Layouts mit dem echten Werdegang auszuprobieren.',
+          'Einen alten Lebenslauf ATS-tauglich machen: Ein zweispaltiger Lebenslauf mit grafischer Seitenleiste kann für ein Bewerbermanagementsystem unsichtbar sein. Importieren, auf ein einspaltiges Layout mit guter Parser-Bewertung wechseln — und dieselben Worte werden maschinenlesbar.',
+          'Eine Datei aus einem Format holen, das Sie nicht mehr bearbeiten können: eine .docx von einem Rechner, dem die Schrift fehlt, oder eine PDF, deren Quelldatei längst verloren ist.',
+        ],
+      },
+      {
+        heading: 'Und wenn es den Lebenslauf noch gar nicht gibt?',
+        paragraphs: [
+          'Dann hat der Import nichts zu lesen. Beginnen Sie stattdessen mit dem KI-Schreiber: Er stellt rund zehn Fragen und schreibt den ersten Entwurf aus Ihren Antworten — ohne eine einzige Zahl zu erfinden, die Sie ihm nicht gegeben haben.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'Welche Dateien kann ich hochladen?',
+        answer:
+          'PDF und Word (.docx) bis 8 MB, außerdem einen CreateCVOnline-JSON-Export, wenn Sie eine Sicherung wiederherstellen oder das Konto wechseln. Der JSON-Weg ist exakt statt abgeleitet, weil die Datei unser eigenes Format trägt.',
+      },
+      {
+        question: 'Kommt ein zweispaltiger Lebenslauf durcheinander zurück?',
+        answer:
+          'Genau um dieses Versagen herum wurde der Import gebaut. Er geht davon aus, wo der Text auf der Seite steht, findet den leeren Zwischenraum zwischen den Spalten und liest jede Spalte einzeln. Wo die Spalten sich so überlappen, dass es keinen sauberen Zwischenraum gibt, warnt die Prüfseite, dass die Reihenfolge falsch sein könnte.',
+      },
+      {
+        question: 'Kann er einen eingescannten Lebenslauf lesen?',
+        answer:
+          'Nein, und nichts sonst kann das. Eine gescannte oder als Bild exportierte PDF hat keine Textebene — es gibt nichts zu extrahieren. Das ist über unseren Import hinaus wichtig: Genau deshalb ist ein bildbasierter Lebenslauf für jedes Bewerbermanagementsystem unsichtbar, an das Sie ihn schicken.',
+      },
+      {
+        question: 'Werden meine Formulierungen verändert?',
+        answer:
+          'Nein. Der Import kopiert. Ihre Stichpunkte kommen so an, wie Sie sie geschrieben haben, samt Tippfehlern. Der KI-Schreiber ist eine eigene Funktion für Menschen, die bei null anfangen — wer schon einen Lebenslauf hat, hat nichts zu schreiben.',
+      },
+      {
+        question: 'Und wenn etwas falsch gelesen wird?',
+        answer:
+          'Sie sehen es, bevor gespeichert wird — dafür gibt es die Prüfseite. Sie listet jeden gelesenen Eintrag statt einer Zahl, sodass eine zusammengefallene Station oder ein falscher Arbeitgeber sofort auffällt.',
+      },
+      {
+        question: 'Wird mein Lebenslauf beim Hochladen gespeichert?',
+        answer:
+          'Die Datei selbst nie. Sie wird in der Anfrage gelesen und verworfen; gespeichert wird nur der Lebenslauf, den Sie anlegen — genauso, als hätten Sie ihn getippt.',
+      },
+      {
+        question: 'Kostet der Import etwas?',
+        answer:
+          'Nein. Der Import ist im kostenlosen Tarif enthalten, im Rahmen der Anzahl Lebensläufe, die ein Konto hält. Bezahlte Konten erhalten eine KI-gestützte Lesung, die mit ungewöhnlichen Layouts besser umgeht, mit dem Standardverfahren als Rückfalloption.',
+      },
+    ],
+    related: [
+      {
+        label: 'Lebenslauf mit KI',
+        href: '/de/lebenslauf-mit-ki',
+        description: 'Für den Start bei null: zehn Fragen, nichts erfunden.',
+      },
+      {
+        label: 'Lebenslauf erstellen',
+        href: '/de/lebenslauf-erstellen',
+        description: 'Der Editor, Bildschirm für Bildschirm.',
+      },
+      ...CORE_LINKS,
+    ],
+  },
   'lebenslauf-mit-ki': {
     path: '/de/lebenslauf-mit-ki',
     breadcrumb: 'Lebenslauf mit KI',

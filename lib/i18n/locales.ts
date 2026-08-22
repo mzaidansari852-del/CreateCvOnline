@@ -184,6 +184,20 @@ export const TRANSLATED_PATHS: Record<string, PathGroup> = {
    * reason these paths are a table instead of a prefix — a URL that reads as a translation is
    * a URL nobody searched for.
    */
+  /*
+   * Import, in four languages.
+   *
+   * `importer un CV` and `Lebenslauf importieren` are what somebody types when they already
+   * have the document and want it somewhere else — a different intent from `créer un CV`,
+   * and a far less contested one, because it is asked by people mid-task rather than people
+   * shopping.
+   */
+  '/import-cv': {
+    en: '/import-cv',
+    fr: '/fr/importer-un-cv',
+    de: '/de/lebenslauf-importieren',
+    nl: '/nl/cv-importeren',
+  },
   '/ai-cv-builder': {
     en: '/ai-cv-builder',
     fr: '/fr/cv-avec-ia',

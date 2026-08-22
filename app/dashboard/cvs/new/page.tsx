@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 
 import { CVThumbnail } from '@/components/cv/CVThumbnail';
+import { TemplateImage, hasPreview } from '@/components/cv/TemplateImage';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { NewCVFlow } from '@/components/dashboard/NewCVFlow';
 import type { TemplateOption } from '@/components/dashboard/TemplatePicker';
@@ -45,8 +46,27 @@ export default async function NewCVPage({
   const requestedIsLocked = Boolean(requested?.premium) && !viewer.limits.premiumTemplates;
   const initialTemplateId = requested && !requestedIsLocked ? requested.id : DEFAULT_TEMPLATE_ID;
 
-  // A short, realistic document: the picker is judged on layout, and a 140px preview of
-  // a three-page CV is a grey smudge.
+  /*
+   * The picker shows the same pictures as the public gallery.
+   *
+   * It used to render a live `CVThumbnail` of `createMinimalCV()` at 140px, on the
+   * reasoning that "a 140px preview of a three-page CV is a grey smudge" — which is true,
+   * and was the wrong fix for it. A one-job, two-line CV does not smudge; it renders as a
+   * mostly blank page, and sixty-one mostly blank pages look identical. At the one moment
+   * the user is choosing a design, the previews stopped distinguishing the designs.
+   *
+   * The screenshots solve the legibility problem properly: they are captured at 3× device
+   * scale and downscale crisply, so a full sample CV stays readable at this size. They are
+   * also what `/dashboard/templates` and every marketing page already show, so the picker
+   * no longer disagrees with the gallery the user just came from — and they are localised,
+   * so a French account sees French headings rather than English ones.
+   *
+   * It is lighter, too: one ~40KB WebP per card instead of sixty-one live CV documents
+   * inlined into the dashboard's HTML.
+   *
+   * `previewCV` remains for templates with no generated image. There are none today, and
+   * the minimal document is still the right choice there for the original reason.
+   */
   const previewCV = createMinimalCV();
 
   const templates: TemplateOption[] = TEMPLATES.map((template) => ({
@@ -70,7 +90,15 @@ export default async function NewCVPage({
     ]
       .join(' ')
       .toLowerCase(),
-    preview: (
+    preview: hasPreview(template.slug) ? (
+      <TemplateImage
+        template={template}
+        width={168}
+        locale={locale}
+        sizes="(max-width: 640px) 45vw, 180px"
+        className="rounded-md ring-1 ring-ink-200/70"
+      />
+    ) : (
       <CVThumbnail
         cv={previewCV}
         customization={createDefaultCustomization({

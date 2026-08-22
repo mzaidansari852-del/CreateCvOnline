@@ -79,14 +79,29 @@ describe('locale model', () => {
      * A group must never claim a language it has no path for — that is what turns into an
      * `hreflang` pointing at a 404, and Google discards the whole cluster when it finds one.
      *
-     * These three are pinned because they are currently at three different widths, which is
-     * the property worth protecting: the type has to express partial translation, not just
-     * tolerate it. Update them when a language is genuinely added; the `routeExists` test
-     * below is what stops an update here from being a lie.
+     * This asserted specific widths until every page reached all four languages, at which
+     * point it was pinning a number that says nothing: it had already been edited twice, once
+     * per language added, and each edit was mechanical. A test that must be updated whenever
+     * the thing it watches changes is not watching anything.
+     *
+     * So it asserts the rule instead. `localesIn` must report exactly the keys that hold a
+     * usable path, which is the property every consumer depends on — and it is checked
+     * against a constructed partial group as well as the real map, so it keeps working on the
+     * day someone writes a page in one language before the others.
      */
-    expect(localesIn(TRANSLATED_PATHS['/cv-builder']!)).toEqual(['en', 'fr', 'de']);
-    expect(localesIn(TRANSLATED_PATHS['/privacy']!)).toEqual(['en', 'fr', 'de', 'nl']);
-    expect(localesIn(TRANSLATED_PATHS['/templates']!)).toEqual(['en', 'fr', 'de', 'nl']);
+    for (const [key, group] of Object.entries(TRANSLATED_PATHS)) {
+      for (const locale of localesIn(group)) {
+        expect(group[locale], `${key} claims ${locale} without a path`).toBeTruthy();
+      }
+      // Every locale it does *not* report must genuinely be absent, not empty-string present.
+      const claimed = new Set(localesIn(group));
+      for (const locale of LOCALES) {
+        if (!claimed.has(locale)) expect(group[locale]).toBeUndefined();
+      }
+    }
+
+    // And the type still expresses partial translation, which is the reason it exists.
+    expect(localesIn({ en: '/x', de: '/de/x' })).toEqual(['en', 'de']);
   });
 });
 

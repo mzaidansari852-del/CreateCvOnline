@@ -130,22 +130,25 @@ export const TRANSLATED_PATHS: Record<string, PathGroup> = {
    * `Lebenslauf erstellen`, `CV gratuit`, `Lebenslauf Muster` — and they are the reason
    * `PathGroup` allows a missing language.
    *
-   * They are English, French and German. Dutch is absent from most of them and the map says
-   * so rather than pretending: each emits a three-language `hreflang` cluster that is
-   * complete and reciprocal on its own terms, which is what Google requires. The four legal
-   * documents alongside them carry all four languages. Nothing had to change to make those
-   * two facts coexist, which is the whole point of the type.
+   * All four languages now, which was not true when this comment was first written and is
+   * the reason it is worth keeping: the map went from two languages to three to four on
+   * these entries, one key at a time, and nothing outside it changed at any step. `hreflang`,
+   * the sitemap, the language switcher and the footers all widened on their own because they
+   * read the map rather than a list of their own.
+   *
+   * `PathGroup` still allows a missing language, and it should stay that way. The next page
+   * written in one language before the others needs somewhere to say so.
    */
-  '/cv-builder': { en: '/cv-builder', fr: '/fr/creer-un-cv', de: '/de/lebenslauf-erstellen' },
-  '/cv-maker': { en: '/cv-maker', fr: '/fr/faire-un-cv', de: '/de/lebenslauf-schreiben' },
-  '/create-cv-online': { en: '/create-cv-online', fr: '/fr/cv-en-ligne', de: '/de/lebenslauf-online' },
-  '/cv-templates': { en: '/cv-templates', fr: '/fr/exemples-de-cv', de: '/de/lebenslauf-muster' },
-  '/ats-cv': { en: '/ats-cv', fr: '/fr/cv-ats', de: '/de/ats-lebenslauf' },
-  '/free-cv-builder': { en: '/free-cv-builder', fr: '/fr/cv-gratuit', de: '/de/lebenslauf-kostenlos' },
-  '/features': { en: '/features', fr: '/fr/fonctionnalites', de: '/de/funktionen' },
-  '/faq': { en: '/faq', fr: '/fr/faq', de: '/de/faq' },
-  '/about': { en: '/about', fr: '/fr/a-propos', de: '/de/ueber-uns' },
-  '/contact': { en: '/contact', fr: '/fr/contact', de: '/de/kontakt' },
+  '/cv-builder': { en: '/cv-builder', fr: '/fr/creer-un-cv', de: '/de/lebenslauf-erstellen', nl: '/nl/cv-maken' },
+  '/cv-maker': { en: '/cv-maker', fr: '/fr/faire-un-cv', de: '/de/lebenslauf-schreiben', nl: '/nl/cv-schrijven' },
+  '/create-cv-online': { en: '/create-cv-online', fr: '/fr/cv-en-ligne', de: '/de/lebenslauf-online', nl: '/nl/cv-online' },
+  '/cv-templates': { en: '/cv-templates', fr: '/fr/exemples-de-cv', de: '/de/lebenslauf-muster', nl: '/nl/cv-voorbeelden' },
+  '/ats-cv': { en: '/ats-cv', fr: '/fr/cv-ats', de: '/de/ats-lebenslauf', nl: '/nl/ats-cv' },
+  '/free-cv-builder': { en: '/free-cv-builder', fr: '/fr/cv-gratuit', de: '/de/lebenslauf-kostenlos', nl: '/nl/gratis-cv' },
+  '/features': { en: '/features', fr: '/fr/fonctionnalites', de: '/de/funktionen', nl: '/nl/functies' },
+  '/faq': { en: '/faq', fr: '/fr/faq', de: '/de/faq', nl: '/nl/veelgestelde-vragen' },
+  '/about': { en: '/about', fr: '/fr/a-propos', de: '/de/ueber-uns', nl: '/nl/over-ons' },
+  '/contact': { en: '/contact', fr: '/fr/contact', de: '/de/kontakt', nl: '/nl/contact' },
   '/privacy': {
     en: '/privacy',
     fr: '/fr/confidentialite',

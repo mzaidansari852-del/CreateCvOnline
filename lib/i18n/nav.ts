@@ -360,9 +360,36 @@ const FR_NAV: NavGroup[] = [
   },
 ];
 
+/** The Dutch nav. See the note on `DE_NAV` for why the translated navs grew. */
 const NL_NAV: NavGroup[] = [
   {
-    label: 'CV-sjablonen',
+    label: 'Cv maken',
+    href: '/nl/cv-maken',
+    links: [
+      {
+        label: 'Cv maken',
+        href: '/nl/cv-maken',
+        description: 'De editor, het live voorbeeld en de pdf-export.',
+      },
+      {
+        label: 'Cv schrijven',
+        href: '/nl/cv-schrijven',
+        description: 'Van leeg vel tot afgerond document.',
+      },
+      {
+        label: 'Cv online',
+        href: '/nl/cv-online',
+        description: 'Schrijven, opmaken en downloaden in je browser.',
+      },
+      {
+        label: 'Gratis cv',
+        href: '/nl/gratis-cv',
+        description: 'Wat het gratis abonnement bevat — en wat niet.',
+      },
+    ],
+  },
+  {
+    label: 'Cv-sjablonen',
     href: '/nl/cv-sjablonen',
     links: [
       {
@@ -374,6 +401,23 @@ const NL_NAV: NavGroup[] = [
         label: category.label,
         href: `/nl/cv-sjablonen/${category.slug}`,
       })),
+      {
+        label: 'Cv-voorbeelden',
+        href: '/nl/cv-voorbeelden',
+        description: 'Ingevulde cv’s om sectie voor sectie over te nemen.',
+      },
+      {
+        label: 'ATS-vriendelijk cv',
+        href: '/nl/ats-cv',
+        description: 'Opmaak die recruitmentsoftware foutloos uitleest.',
+      },
+    ],
+  },
+  {
+    label: 'Functies',
+    href: '/nl/functies',
+    links: [
+      { label: 'Functies', href: '/nl/functies', description: 'Alles wat de editor doet.' },
     ],
   },
   {
@@ -528,9 +572,22 @@ export const FOOTER: Record<Locale, {
       {
         label: 'Product',
         links: [
+          { label: 'Cv maken', href: '/nl/cv-maken' },
+          { label: 'Cv schrijven', href: '/nl/cv-schrijven' },
+          { label: 'Cv online', href: '/nl/cv-online' },
+          { label: 'Gratis cv', href: '/nl/gratis-cv' },
+          { label: 'Functies', href: '/nl/functies' },
           { label: 'Prijzen', href: '/nl/prijzen' },
-          { label: 'CV maken', href: '/register' },
-          { label: 'Inloggen', href: '/login' },
+        ],
+      },
+      {
+        label: 'Kennis',
+        links: [
+          { label: 'Cv-voorbeelden', href: '/nl/cv-voorbeelden' },
+          { label: 'ATS-vriendelijk cv', href: '/nl/ats-cv' },
+          { label: 'Veelgestelde vragen', href: '/nl/veelgestelde-vragen' },
+          { label: 'Over ons', href: '/nl/over-ons' },
+          { label: 'Contact', href: '/nl/contact' },
         ],
       },
       {

@@ -572,7 +572,7 @@ export const DE_LANDING: Record<string, Landing> = {
   'lebenslauf-kostenlos': {
     path: '/de/lebenslauf-kostenlos',
     breadcrumb: 'Lebenslauf kostenlos',
-    metaTitle: 'Lebenslauf kostenlos erstellen — was wirklich enthalten ist',
+    metaTitle: 'Lebenslauf kostenlos erstellen',
     metaDescription:
       'Lebenslauf erstellen, gestalten und als PDF herunterladen, ohne zu zahlen und ohne Kreditkarte. Genau, was der kostenlose Tarif enthält — und was nicht.',
     keywords: [

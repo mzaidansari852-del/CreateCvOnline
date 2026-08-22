@@ -186,6 +186,45 @@ describe('CV import parser', () => {
       expect(JSON.stringify(data.education)).not.toContain('240 engineers');
     });
 
+    it('anchors an open-ended date that has no separator', () => {
+      /*
+       * `Depuis janvier 2021` has no dash, so the range pattern could not see it — and an
+       * unseen date is not a missing date but a missing *job*, because entries are split on
+       * date anchors. The current role was being absorbed into the one above it.
+       */
+      const { data } = parseCvText(
+        [
+          'Expérience professionnelle',
+          'Coordinateur de projet',
+          'Groupe Meridian',
+          'Depuis janvier 2021',
+          'Pilotage de projets de transformation.',
+          'Chargé de mission',
+          'Ville de Lyon',
+          'septembre 2018 – décembre 2020',
+          'Suivi budgétaire et reporting.',
+        ].join('\n'),
+      );
+      expect(data.experience).toHaveLength(2);
+      expect(data.experience?.[0]?.startDate).toBe('2021-01');
+      expect(data.experience?.[0]?.current).toBe(true);
+      expect(data.experience?.[1]?.endDate).toBe('2020-12');
+    });
+
+    it('does not split a job at a `since` inside its own description', () => {
+      // Anchored to the start of the line, so prose cannot become an entry boundary.
+      const { data } = parseCvText(
+        [
+          'Work Experience',
+          'Programme Manager',
+          'Atlas Group',
+          'Mar 2018 – Present',
+          'Responsible for the transformation programme since 2019, across four sites.',
+        ].join('\n'),
+      );
+      expect(data.experience).toHaveLength(1);
+    });
+
     it('does not mistake a heading-only document for content', () => {
       const { report } = parseCvText('Work Experience\nEducation\nSkills');
       // Headings seen, nothing under them: that is `partial`, not `found`, and the review

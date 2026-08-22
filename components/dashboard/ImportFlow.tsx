@@ -10,6 +10,7 @@ import { Field, Input } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { apiRequest } from '@/components/dashboard/api';
 import { defaultSectionLabels } from '@/lib/i18n/cv-labels';
+import { formatDateRange } from '@/lib/cv/format';
 import type { BuiltInSectionId, CVData } from '@/types/cv';
 
 /**
@@ -86,9 +87,7 @@ export function ImportFlow() {
       // set its own boundary.
       const response = await fetch('/api/cvs/import', { method: 'POST', body });
       const payload = (await response.json().catch(() => null)) as
-        | ImportResponse
-        | { error?: { code?: string; message?: string } }
-        | null;
+        ImportResponse | { error?: { code?: string; message?: string } } | null;
 
       if (!response.ok) {
         const code = (payload as { error?: { code?: string } })?.error?.code ?? '';
@@ -125,7 +124,12 @@ export function ImportFlow() {
 
   function patchPersonal(patch: Partial<CVData['personal']>) {
     setDraft((current) =>
-      current ? { ...current, data: { ...current.data, personal: { ...current.data.personal, ...patch } } } : current,
+      current
+        ? {
+            ...current,
+            data: { ...current.data, personal: { ...current.data.personal, ...patch } },
+          }
+        : current,
     );
   }
 
@@ -171,7 +175,12 @@ export function ImportFlow() {
               event.target.value = '';
             }}
           />
-          <Button className="mt-6" size="lg" loading={busy} onClick={() => inputRef.current?.click()}>
+          <Button
+            className="mt-6"
+            size="lg"
+            loading={busy}
+            onClick={() => inputRef.current?.click()}
+          >
             {busy ? copy.reading : copy.chooseFile}
           </Button>
         </div>
@@ -182,24 +191,76 @@ export function ImportFlow() {
   /* ---------------------------------------------------------------- review step */
 
   const { report } = result;
-  const counts: { id: BuiltInSectionId; label: string; detail: string }[] = [];
-  const add = (id: BuiltInSectionId, count: number, kind: 'entries' | 'items') => {
+
+  /*
+   * Each section is shown with its contents, not just a count.
+   *
+   * "Work Experience — 1 entry" is a number the user cannot check. It is right when the CV
+   * holds one job and badly wrong when it holds four that got merged, and it reads exactly
+   * the same either way — so the screen that exists to catch parsing mistakes was hiding the
+   * only mistake worth catching. Printing the job titles and dates makes a merge obvious at
+   * a glance, which is the entire point of asking someone to review this.
+   */
+  const sections: { id: BuiltInSectionId; label: string; detail: string; lines: string[] }[] = [];
+  const add = (id: BuiltInSectionId, count: number, kind: 'entries' | 'items', lines: string[]) => {
     if (!report.found.includes(id)) return;
-    counts.push({
+    sections.push({
       id,
       label: labels[id],
       detail: kind === 'entries' ? copy.entriesFound(count) : copy.itemsFound(count),
+      lines,
     });
   };
-  add('experience', draft.data.experience.length, 'entries');
-  add('education', draft.data.education.length, 'entries');
-  add('skills', draft.data.skills.length, 'items');
-  add('languages', draft.data.languages.length, 'items');
+
+  /** `Role — Company · Jan 2020 – Present`, with the empty parts dropped rather than padded. */
+  const withDates = (
+    title: string,
+    subtitle: string,
+    start: string,
+    end: string,
+    current: boolean,
+  ) =>
+    [
+      [title, subtitle].filter(Boolean).join(' — '),
+      formatDateRange(start, end, current, 'month-year-short', locale),
+    ]
+      .filter(Boolean)
+      .join('  ·  ');
+
+  add(
+    'experience',
+    draft.data.experience.length,
+    'entries',
+    draft.data.experience.map((job) =>
+      withDates(job.role, job.company, job.startDate, job.endDate, job.current),
+    ),
+  );
+  add(
+    'education',
+    draft.data.education.length,
+    'entries',
+    draft.data.education.map((entry) =>
+      withDates(entry.degree, entry.institution, entry.startDate, entry.endDate, entry.current),
+    ),
+  );
+  // Skills and languages are one line each: a 25-item list down the page would bury the
+  // entries above it, which are the ones that go wrong.
+  add('skills', draft.data.skills.length, 'items', [
+    draft.data.skills.map((skill) => skill.name).join(' · '),
+  ]);
+  add('languages', draft.data.languages.length, 'items', [
+    draft.data.languages.map((language) => language.name).join(' · '),
+  ]);
   if (report.found.includes('summary')) {
-    counts.push({ id: 'summary', label: labels.summary, detail: '' });
+    sections.push({
+      id: 'summary',
+      label: labels.summary,
+      detail: '',
+      lines: [draft.data.summary ?? ''],
+    });
   }
 
-  const readNothing = counts.length === 0;
+  const readNothing = sections.length === 0;
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -229,11 +290,22 @@ export function ImportFlow() {
           <h3 className="text-sm font-bold tracking-wide text-ink-950 uppercase">
             {copy.foundHeading}
           </h3>
-          <ul className="mt-4 flex flex-col gap-2.5">
-            {counts.map((entry) => (
-              <li key={entry.id} className="flex items-baseline justify-between gap-4 text-sm">
-                <span className="font-medium text-ink-900">{entry.label}</span>
-                <span className="text-ink-500">{entry.detail}</span>
+          <ul className="mt-4 flex flex-col gap-5">
+            {sections.map((section) => (
+              <li key={section.id}>
+                <div className="flex items-baseline justify-between gap-4 text-sm">
+                  <span className="font-medium text-ink-900">{section.label}</span>
+                  <span className="shrink-0 text-ink-500">{section.detail}</span>
+                </div>
+                {section.lines.some(Boolean) ? (
+                  <ul className="mt-2 flex flex-col gap-1.5 border-l-2 border-ink-100 pl-3.5">
+                    {section.lines.filter(Boolean).map((line, index) => (
+                      <li key={index} className="text-[13px] leading-snug text-ink-600">
+                        {line.length > 180 ? `${line.slice(0, 180).trimEnd()}…` : line}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </li>
             ))}
           </ul>

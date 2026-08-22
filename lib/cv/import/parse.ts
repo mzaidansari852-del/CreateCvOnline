@@ -147,20 +147,43 @@ const CURRENT = String.raw`present|current|now|aujourd'?hui|heute|heden|actuel|a
  * built to avoid.
  */
 const RANGE = new RegExp(
-  String.raw`(${MONTH_WORD}${DATE})\s*(?:[-–—]|to|à|bis|tot)\s*(${MONTH_WORD}${DATE}|${CURRENT})`,
+  String.raw`(${MONTH_WORD}${DATE})\s*(?:[-–—]|to|à|au|bis|tot|jusqu'?(?:au|à)|until)\s*(${MONTH_WORD}${DATE}|${CURRENT})`,
+  'iu',
+);
+
+/**
+ * An open-ended date with no separator: `Depuis mars 2021`, `Since 2019`, `Seit 2020`.
+ *
+ * These have no dash, so `RANGE` cannot see them — and a job the date scan cannot see is not
+ * a missing date, it is a *missing job*: `splitEntries` anchors on dates, so an unanchored
+ * current role gets absorbed into the entry above it. A French CV whose present job was
+ * written `Depuis janvier 2021` came back with one merged entry covering everything.
+ *
+ * Anchored to the start of the line on purpose. Mid-sentence `since 2019` appears in
+ * descriptions — "responsible for the programme since 2019" — and treating that as an entry
+ * boundary would split a job in half at its own summary.
+ */
+const OPEN_RANGE = new RegExp(
+  String.raw`^(?:depuis|since|seit|sinds|desde|van)\s+(${MONTH_WORD}${DATE})\b`,
   'iu',
 );
 
 function parseRange(line: string): { start: string; end: string; current: boolean } | null {
   const match = line.match(RANGE);
-  if (!match) return null;
-  const endRaw = match[2] ?? '';
-  const current = CURRENT_WORDS.some((word) => fold(endRaw).includes(word));
-  return {
-    start: normaliseDate(match[1] ?? ''),
-    end: current ? '' : normaliseDate(endRaw),
-    current,
-  };
+  if (match) {
+    const endRaw = match[2] ?? '';
+    const current = CURRENT_WORDS.some((word) => fold(endRaw).includes(word));
+    return {
+      start: normaliseDate(match[1] ?? ''),
+      end: current ? '' : normaliseDate(endRaw),
+      current,
+    };
+  }
+
+  const open = line.match(OPEN_RANGE);
+  if (open) return { start: normaliseDate(open[1] ?? ''), end: '', current: true };
+
+  return null;
 }
 
 /**

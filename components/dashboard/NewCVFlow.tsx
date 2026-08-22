@@ -154,18 +154,43 @@ export function NewCVFlow({
         neighbours mean "choose an option", which is the kind of inconsistency that reads
         fine in code and confuses the hand on the mouse.
       */}
-      <Link
-        href="/dashboard/cvs/import"
-        className="flex items-center gap-3 rounded-xl border border-ink-200 bg-white p-4 transition-colors hover:border-brand-300 hover:bg-ink-50"
-      >
-        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600">
-          <Upload className="size-5" aria-hidden />
-        </span>
-        <span className="min-w-0">
-          <span className="block text-sm font-semibold text-ink-950">{copy.importCv.title}</span>
-          <span className="block text-[13px] leading-snug text-ink-600">{copy.importCv.lede}</span>
-        </span>
-      </Link>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {/*
+          Two doors out of the form, for the two people who should not be filling it in.
+          Somebody who already has a CV should upload it; somebody staring at a blank page
+          should be asked questions instead. Both leave this form entirely, which is why
+          neither is an option inside it.
+        */}
+        <Link
+          href="/dashboard/cvs/build"
+          className="flex items-center gap-3 rounded-xl border border-ink-200 bg-white p-4 transition-colors hover:border-brand-300 hover:bg-ink-50"
+        >
+          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600">
+            <Sparkles className="size-5" aria-hidden />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-ink-950">{copy.interview.title}</span>
+            <span className="block text-[13px] leading-snug text-ink-600">
+              {copy.interview.lede}
+            </span>
+          </span>
+        </Link>
+
+        <Link
+          href="/dashboard/cvs/import"
+          className="flex items-center gap-3 rounded-xl border border-ink-200 bg-white p-4 transition-colors hover:border-brand-300 hover:bg-ink-50"
+        >
+          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600">
+            <Upload className="size-5" aria-hidden />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-ink-950">{copy.importCv.title}</span>
+            <span className="block text-[13px] leading-snug text-ink-600">
+              {copy.importCv.lede}
+            </span>
+          </span>
+        </Link>
+      </div>
 
       <section aria-labelledby="template-heading">
         <h2 id="template-heading" className="text-base font-semibold text-ink-950">

@@ -102,22 +102,47 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
             className="pointer-events-none absolute -bottom-48 -left-32 size-[32rem] rounded-full bg-accent-500/15 blur-3xl"
           />
 
-          <div className="relative z-10 mx-auto flex w-full max-w-xl flex-col gap-10 px-12 py-16">
-            <div className="flex items-end gap-5">
+          <div className="relative z-10 mx-auto flex w-full max-w-2xl flex-col gap-8 px-12 py-12">
+            {/*
+              Cropped to the top of the page rather than shrunk to fit it.
+
+              The caption beside this claims the panel is showing a real document rather than
+              a mock-up, and at the 252px it used to render, an A4 page put 10pt body text at
+              about two pixels — a grey smudge that proves nothing and could as easily have
+              been stock art. Cropping to the top third at 520px puts the name, the job title
+              and the first role at a size somebody can actually read, which is the only way
+              that claim gets made rather than merely asserted.
+
+              The page bleeds off the bottom under a gradient in the panel's own colour: it
+              reads as a document continuing past the fold, which is also true.
+
+              520 x 1.45 is 520x359, which is within two pixels of the height the old 252px
+              full page occupied — so the panel column is no taller than it was and cannot
+              clip on a short window. The whole gain is horizontal: twice the scale, in the
+              same space.
+            */}
+            <div className="relative">
               <CVThumbnail
                 cv={cv}
                 customization={customization}
-                width={252}
-                className="-rotate-2 ring-1 ring-white/10"
+                width={520}
+                crop={1.45}
+                rounded={false}
+                className="w-full rounded-xl ring-1 ring-white/10"
               />
-              <div className="flex flex-col gap-3 pb-2">
-                <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-2xs font-semibold text-white ring-1 ring-white/15 ring-inset">
-                  <span className="size-1.5 rounded-full bg-success-500" aria-hidden />
-                  {copy.auth.livePreview}
-                </span>
-                <p className="text-sm leading-relaxed text-ink-300">{copy.auth.livePreviewNote}</p>
-              </div>
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-28 rounded-b-xl bg-gradient-to-t from-ink-950 via-ink-950/80 to-transparent"
+              />
+              <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-ink-950/70 px-2.5 py-1 text-2xs font-semibold text-white ring-1 ring-white/20 ring-inset backdrop-blur-sm">
+                <span className="size-1.5 rounded-full bg-success-500" aria-hidden />
+                {copy.auth.livePreview}
+              </span>
             </div>
+
+            <p className="-mt-2 text-sm leading-relaxed text-ink-300">
+              {copy.auth.livePreviewNote}
+            </p>
 
             <div>
               <h2 className="font-display text-2xl leading-tight font-extrabold tracking-tight text-white">

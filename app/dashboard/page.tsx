@@ -117,7 +117,7 @@ export default async function DashboardOverviewPage() {
             size="sm"
             leadingIcon={<Sparkles size={15} aria-hidden />}
           >
-            {copy.interview.title}
+            {copy.interview.shortLabel}
           </ButtonLink>
           <ButtonLink
             href="/dashboard/cvs/import"
@@ -285,7 +285,7 @@ export default async function DashboardOverviewPage() {
               */
               secondaryAction={
                 <ButtonLink href="/dashboard/cvs/build" variant="outline">
-                  {copy.interview.title}
+                  {copy.interview.shortLabel}
                 </ButtonLink>
               }
             />

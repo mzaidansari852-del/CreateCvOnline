@@ -106,7 +106,7 @@ export default async function MyCVsPage({
             variant="outline"
             leadingIcon={<Sparkles size={15} aria-hidden />}
           >
-            {copy.interview.title}
+            {copy.interview.shortLabel}
           </ButtonLink>
           <ButtonLink
             href="/dashboard/cvs/import"

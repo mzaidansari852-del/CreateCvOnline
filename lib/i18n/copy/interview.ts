@@ -22,7 +22,16 @@ export interface InterviewQuestionCopy {
 
 export interface InterviewCopy {
   interview: {
+    /** Page and card heading. Names the thing, and says it is AI, because it is. */
     title: string;
+    /**
+     * Button label.
+     *
+     * `title` is thirty characters and reads as a sentence, which is right above a form and
+     * wrong inside a toolbar. This is the same promise at the length a button can hold — and
+     * it leads with the word people scan for, rather than making them read to find it.
+     */
+    shortLabel: string;
     lede: string;
     /* ---------------------------------------------------------------- the flow */
     next: string;
@@ -61,7 +70,8 @@ export interface InterviewCopy {
 export const INTERVIEW_COPY: Record<Locale, InterviewCopy> = {
   en: {
     interview: {
-      title: 'Build a CV from a few questions',
+      title: 'Build a CV with AI',
+      shortLabel: 'Build with AI',
       lede: 'Answer about ten questions in your own words and we will write the CV. Nothing is invented — we only use what you tell us, and you can change every word afterwards.',
       next: 'Continue',
       back: 'Back',
@@ -163,7 +173,8 @@ export const INTERVIEW_COPY: Record<Locale, InterviewCopy> = {
 
   fr: {
     interview: {
-      title: 'Créez un CV à partir de quelques questions',
+      title: 'Créer un CV avec l’IA',
+      shortLabel: 'Créer avec l’IA',
       lede: 'Répondez à une dizaine de questions avec vos propres mots et nous rédigeons le CV. Rien n’est inventé : nous n’utilisons que ce que vous nous dites, et vous pourrez tout modifier ensuite.',
       next: 'Continuer',
       back: 'Retour',
@@ -269,7 +280,8 @@ export const INTERVIEW_COPY: Record<Locale, InterviewCopy> = {
 
   de: {
     interview: {
-      title: 'Lebenslauf aus ein paar Fragen erstellen',
+      title: 'Lebenslauf mit KI erstellen',
+      shortLabel: 'Mit KI erstellen',
       lede: 'Beantworten Sie rund zehn Fragen in eigenen Worten, den Rest schreiben wir. Nichts wird erfunden: Wir verwenden nur, was Sie uns sagen, und Sie können danach jedes Wort ändern.',
       next: 'Weiter',
       back: 'Zurück',
@@ -375,7 +387,8 @@ export const INTERVIEW_COPY: Record<Locale, InterviewCopy> = {
 
   nl: {
     interview: {
-      title: 'Maak een cv met een paar vragen',
+      title: 'Maak een cv met AI',
+      shortLabel: 'Maken met AI',
       lede: 'Beantwoord ongeveer tien vragen in je eigen woorden, wij schrijven het cv. Niets wordt verzonnen: we gebruiken alleen wat je ons vertelt, en je kunt daarna elk woord aanpassen.',
       next: 'Verder',
       back: 'Terug',

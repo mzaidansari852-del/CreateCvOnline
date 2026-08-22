@@ -1,5 +1,5 @@
 import { LOCALES, type Locale } from '@/lib/i18n/locales';
-import { ANNOTATION_MARK } from './layout';
+import { ANNOTATION_MARK, ENTRY_MARK } from './layout';
 import { defaultSectionLabels } from '@/lib/i18n/cv-labels';
 import {
   BUILT_IN_SECTION_IDS,
@@ -345,6 +345,17 @@ const HEADING_WORDS: [string, BuiltInSectionId][] = [
   ['summary', 'summary'],
 ];
 
+/**
+ * Is this the name of a CV section, in any language this site speaks?
+ *
+ * Exported so the layout reader can *check its own guess*. Geometry proposes a heading band;
+ * this vocabulary is the independent evidence that the band is really the headings and not,
+ * say, the job titles — which is exactly how the band was wrong on this site's own export.
+ */
+export function isKnownSectionHeading(line: string): boolean {
+  return headingFor(line) !== null;
+}
+
 function headingFor(line: string): BuiltInSectionId | null {
   const cleaned = line
     .replace(/^[•·▪◦\-–—*]\s*/, '')
@@ -479,9 +490,15 @@ function splitIntoBlocks(text: string): Block[] {
     .map((line) => {
       // The leading tab is meaning, not whitespace — collapsing it erases the one signal
       // that separates a right-aligned city from the entry line it sits beside.
-      const annotated = line.startsWith(ANNOTATION_MARK);
-      const body = line.replace(/\s+/g, ' ').trim();
-      return body && annotated ? `${ANNOTATION_MARK}${body}` : body;
+      // Marks are meaning, not whitespace: collapsing them loses the one signal that
+      // separates a right-aligned city from an entry line, and an entry title from prose.
+      const prefix = line.startsWith(ANNOTATION_MARK)
+        ? ANNOTATION_MARK
+        : line.startsWith(ENTRY_MARK)
+          ? ENTRY_MARK
+          : '';
+      const body = line.slice(prefix.length).replace(/\s+/g, ' ').trim();
+      return body ? `${prefix}${body}` : '';
     })
     .filter((line) => line.length > 0);
 
@@ -624,7 +641,14 @@ function isAnnotation(line: string): boolean {
 
 /** The line without its annotation mark. Safe on unmarked lines. */
 function bare(line: string): string {
-  return isAnnotation(line) ? line.slice(ANNOTATION_MARK.length) : line;
+  if (isAnnotation(line)) return line.slice(ANNOTATION_MARK.length).replace(ENTRY_MARK, '').trim();
+  if (isEntryTitle(line)) return line.slice(ENTRY_MARK.length).trim();
+  return line;
+}
+
+/** A job title, a degree — a line the layout set larger than the body but below a heading. */
+function isEntryTitle(line: string): boolean {
+  return line.startsWith(ENTRY_MARK);
 }
 
 /**
@@ -731,7 +755,9 @@ function splitEntries(
     // `lines[1]`, and the non-null assertion turns that into a crash rather than a miss.
     while (head.length < 2 && head.length < lines.length && isEntryHeadingLine(lines[head.length]!))
       head.push(lines[head.length]!);
-    return head.length ? [{ head, body: lines.slice(head.length), range: null }] : [];
+    return head.length
+      ? [{ head: head.map(bare), body: lines.slice(head.length).map(bare), range: null }]
+      : [];
   }
 
   /*
@@ -772,11 +798,22 @@ function splitEntries(
      */
     const head: string[] = [];
     let from = at;
+    /*
+     * Where the layout marked the entry titles, only a marked line may be one.
+     *
+     * This is the difference between reading a job title and reading the last sentence of
+     * the job above it. Without the marks the scan takes whatever sits above the date and
+     * looks short enough, which on a template that wraps its descriptions produced three
+     * consecutive roles named after somebody else's achievements. Where nothing is marked —
+     * a template that sets titles at body size, a DOCX with no font data at all — this is
+     * false everywhere and the old rules apply unchanged.
+     */
+    const marksTitles = lines.some(isEntryTitle);
     // The date line carrying its own heading is the other layout, and settles the head
     // outright — nothing above it is looked at, because the line above belongs to the entry
     // before. The rule below still applies: a heading with no employer may adopt the line
     // beneath it, which is where a school lands when the date is set beside the degree.
-    if (onAnchor) head.push(onAnchor);
+    if (onAnchor) head.push(bare(onAnchor));
 
     for (let i = at - 1; !onAnchor && i > previousAnchor && head.length < 2; i--) {
       const line = lines[i]!;
@@ -789,12 +826,22 @@ function splitEntries(
        * layout does, which is the reason the mark exists.
        */
       if (isAnnotation(line)) break;
+      if (marksTitles) {
+        // Step over everything that is not a marked title; stop once one has been found.
+        if (!isEntryTitle(line)) {
+          if (head.length > 0) break;
+          continue;
+        }
+        head.unshift(bare(line));
+        from = i;
+        break;
+      }
       if (isBullet(line)) {
         if (head.length > 0) break;
         continue;
       }
       if (!isEntryHeadingLine(line)) break;
-      head.unshift(line);
+      head.unshift(bare(line));
       from = i;
     }
 
@@ -810,10 +857,30 @@ function splitEntries(
      * `Marketing Manager - Fieldwire Systems` already has both halves, and appending the next
      * line would overwrite the employer with a sentence.
      */
+    /*
+     * The employer is often on the line *below* the date rather than above it.
+     *
+     *     ## Chef de projet transverse            Licence Génie Logiciel Web et Mobiles,  2018-2020
+     *         Nov 2024 - Present                  École nationale des sciences appliquées Meknès.
+     *         CIRCET MOROCCO
+     *
+     * Two templates, same shape: a title, its dates, then the organisation. The upward scan
+     * cannot reach it, so it is claimed here — but only when the title carried no employer
+     * of its own, since `Marketing Manager - Fieldwire Systems` already has both halves and
+     * appending the line below would overwrite the employer with a sentence.
+     *
+     * The short forward scan steps over a date annotation and stops at a bullet, because a
+     * bullet is the description beginning and there was no employer line to find.
+     */
     if (head.length === 1 && !hasEmployerSeparator(head[0]!)) {
-      const below = lines[at + 1];
-      if (below && !isAnnotation(below) && !isBullet(below) && isEntryHeadingLine(below)) {
-        head.push(below);
+      for (let i = at + 1; i < Math.min(at + 3, lines.length); i++) {
+        const line = lines[i]!;
+        if (isBullet(line) || isEntryTitle(line)) break;
+        const value = bare(line);
+        if (!value || parseRange(value)) continue;
+        if (!isEntryHeadingLine(value)) break;
+        head.push(value);
+        break;
       }
     }
 
@@ -827,7 +894,7 @@ function splitEntries(
     const bodyEnd = heads[a + 1]?.from ?? lines.length;
     entries.push({
       head,
-      body: lines.slice(at + 1, Math.max(at + 1, bodyEnd)),
+      body: lines.slice(at + 1, Math.max(at + 1, bodyEnd)).map(bare),
       range: parseRange(bare(lines[at]!)),
     });
   }
@@ -837,7 +904,7 @@ function splitEntries(
    * Bounded by that heading's own start rather than by its length, which was wrong whenever
    * the heading did not sit directly on the line above the date.
    */
-  const preamble = lines.slice(0, Math.max(0, heads[0]?.from ?? 0));
+  const preamble = lines.slice(0, Math.max(0, heads[0]?.from ?? 0)).map(bare);
   if (preamble.length > 0 && entries[0]) entries[0].body.unshift(...preamble);
 
   return entries;
@@ -1036,7 +1103,9 @@ export function parseCvText(
   options: { likelyMultiColumn?: boolean; locale?: Locale } = {},
 ): ParsedCv {
   const blocks = splitIntoBlocks(text);
-  const header = blocks.find((block) => block.id === 'header')?.lines ?? [];
+  // Bared: the marks are structure, and a name that reads `## Saad TRISS` is the structure
+  // leaking into the document. `splitEntries` gets the marked lines; nothing else needs them.
+  const header = (blocks.find((block) => block.id === 'header')?.lines ?? []).map(bare);
   const { personal, filled } = parseHeader(header);
 
   const data: Partial<CVData> = { personal };
@@ -1059,7 +1128,7 @@ export function parseCvText(
 
   const summaryLines = linesFor('summary');
   if (summaryLines.length) {
-    data.summary = summaryLines.join(' ').trim().slice(0, 3000);
+    data.summary = summaryLines.map(bare).join(' ').trim().slice(0, 3000);
     (data.summary ? found : partial).push('summary');
   }
 
@@ -1075,13 +1144,13 @@ export function parseCvText(
     (education.length ? found : partial).push('education');
   }
 
-  const skills = parseSkills(linesFor('skills'));
+  const skills = parseSkills(linesFor('skills').map(bare));
   if (sawHeading('skills')) {
     data.skills = skills;
     (skills.length ? found : partial).push('skills');
   }
 
-  const languages = parseLanguages(linesFor('languages'));
+  const languages = parseLanguages(linesFor('languages').map(bare));
   if (sawHeading('languages')) {
     data.languages = languages;
     (languages.length ? found : partial).push('languages');

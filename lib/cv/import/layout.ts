@@ -70,6 +70,36 @@ const SAME_LINE_TOLERANCE = 3;
  */
 const COLUMN_GAP = 60;
 
+/**
+ * The narrowest vertical band that counts as a column gutter.
+ *
+ * Narrower than `COLUMN_GAP`, and for a different reason. That one asks "is this whitespace
+ * on a line wide enough to be a tab stop rather than a space", where over-splitting costs a
+ * broken sentence. This one asks "does this page have two columns", where *under*-splitting
+ * costs the whole document: a sidebar CV read as one column comes out with the skills list
+ * interleaved line by line through the work history.
+ *
+ * 28 because a real gutter on A4 is at least a few characters wide at any body size, and
+ * because a page whose text is genuinely full-width has no empty stripe at all — a paragraph
+ * spanning the measure covers every column, so the sweep finds nothing and nothing is split.
+ * The CV that forced this had a 50pt gutter and was being read as one column at 60.
+ */
+const GUTTER_MIN = 28;
+
+/**
+ * Prefix for an entry title — a job, a degree — set larger than the body text.
+ *
+ * Section headings say where a section begins; this says where an *entry* begins, which is
+ * the other thing a CV's typography encodes and the other thing the parser was guessing at.
+ * On a template that sets job titles at 8.3pt against a 7.9pt body, the guess picked up the
+ * trailing sentence of the previous job's description instead, and three roles in a row came
+ * back named after somebody else's achievements.
+ *
+ * `##` because it is a heading one level down, which is what it is — and because the model
+ * reads it that way too, without a line of prompt explaining it.
+ */
+export const ENTRY_MARK = '## ';
+
 /** Prefix for a right-aligned annotation: a date or place set beside the line above it. */
 export const ANNOTATION_MARK = '	';
 
@@ -109,7 +139,7 @@ export async function readLayout(pdf: PDFDocumentProxy): Promise<LayoutDocument>
       const x = transform[4] ?? 0;
       const y = height - (transform[5] ?? 0);
       runs.push({ text: item.str, x, endX: x + (item.width ?? 0), y, size });
-      sizeCounts.set(Math.round(size), (sizeCounts.get(Math.round(size)) ?? 0) + 1);
+      sizeCounts.set(sizeKey(size), (sizeCounts.get(sizeKey(size)) ?? 0) + 1);
     }
     if (runs.length === 0) continue;
 
@@ -123,10 +153,34 @@ export async function readLayout(pdf: PDFDocumentProxy): Promise<LayoutDocument>
      * the left column entire, then the right column entire — which is how it is read, and
      * how it must be shaped before anything tries to find a section in it.
      */
-    for (const [index, bounds] of columns.entries()) {
-      const inColumn = runs.filter((run) => run.x >= bounds.from && run.x < bounds.to);
-      for (const line of groupIntoLines(inColumn)) {
-        lines.push({ ...line, page: pageNumber, column: columns.length > 1 ? index + 1 : 0 });
+    /*
+     * The column with the largest text on the page is read first.
+     *
+     * Not left-to-right. A CV's name is the biggest thing on it, and on a sidebar template
+     * the name is in the *main* column while the sidebar sits to its left — so reading
+     * left-to-right put the entire skills list, headings and all, ahead of the name. The
+     * contact block is whatever precedes the first heading, so it came out empty and the
+     * name was swallowed by the last section of the sidebar.
+     *
+     * Ordering by size restores the order a person reads in, because the thing set largest
+     * is the thing meant to be read first. Columns of equal weight keep their left-to-right
+     * order, which is what a two-column body wants.
+     */
+    const ordered = columns
+      .map((bounds, index) => {
+        const inColumn = runs.filter((run) => run.x >= bounds.from && run.x < bounds.to);
+        const largest = inColumn.reduce((max, run) => Math.max(max, run.size), 0);
+        return { index, inColumn, largest };
+      })
+      .sort((a, b) => b.largest - a.largest || a.index - b.index);
+
+    for (const column of ordered) {
+      for (const line of groupIntoLines(column.inColumn)) {
+        lines.push({
+          ...line,
+          page: pageNumber,
+          column: columns.length > 1 ? column.index + 1 : 0,
+        });
       }
     }
   }
@@ -146,7 +200,7 @@ export async function readLayout(pdf: PDFDocumentProxy): Promise<LayoutDocument>
 function detectColumns(runs: Run[]): { from: number; to: number }[] {
   const left = Math.min(...runs.map((run) => run.x));
   const right = Math.max(...runs.map((run) => run.endX));
-  if (right - left < COLUMN_GAP * 2) return [{ from: -Infinity, to: Infinity }];
+  if (right - left < GUTTER_MIN * 2) return [{ from: -Infinity, to: Infinity }];
 
   // Mark every unit of horizontal space that any run covers.
   const covered = new Uint8Array(Math.ceil(right - left) + 1);
@@ -162,7 +216,7 @@ function detectColumns(runs: Run[]): { from: number; to: number }[] {
     if (covered[i] === 0) {
       if (runStart < 0) runStart = i;
     } else {
-      if (runStart >= 0 && i - runStart >= COLUMN_GAP) gutters.push(left + (runStart + i) / 2);
+      if (runStart >= 0 && i - runStart >= GUTTER_MIN) gutters.push(left + (runStart + i) / 2);
       runStart = -1;
     }
   }
@@ -253,6 +307,18 @@ function groupIntoLines(runs: Run[]): Omit<LayoutLine, 'page' | 'column'>[] {
   return lines.filter((line) => line.text.length > 0);
 }
 
+/**
+ * Font sizes, to one decimal place.
+ *
+ * Rounding to whole points erased the only thing that identified headings on a CV set at
+ * 7.9pt with 8.3pt headings: both became `8`, so nothing was larger than the body and no
+ * heading was found in the entire document. Typographic scales are not integers, and a CV
+ * exported at a smaller size has correspondingly smaller steps between its levels.
+ */
+function sizeKey(size: number): number {
+  return Math.round(size * 10) / 10;
+}
+
 /** The most common font size on the document — body text, by definition. */
 function modeSize(counts: Map<number, number>): number {
   let best = 0;
@@ -277,71 +343,172 @@ function modeSize(counts: Map<number, number>): number {
  * layout paper measured: telling the model where sections begin, rather than making it infer
  * boundaries from wording, is most of the gap between raw-text and layout-aware extraction.
  */
-export function toMarkedText(document: LayoutDocument): string {
-  const sizes = headingSizes(document);
-  const margin = leftMargin(document);
+export function toMarkedText(
+  document: LayoutDocument,
+  isKnownHeading: (text: string) => boolean = () => false,
+): string {
+  const sizes = headingSizes(document, isKnownHeading);
+  const margins = leftMargins(document);
 
   return document.lines
     .map((line) => {
-      if (sizes.has(Math.round(line.size)) && line.text.length <= 60) return `# ${line.text}`;
+      /*
+       * Position is decided first, and it overrules size.
+       *
+       * A line set far to the right of its column's margin is an annotation — the date or
+       * the city printed beside an entry — whatever size it happens to be. Testing size
+       * first was wrong in a way that only showed on a template setting those dates at
+       * heading size: each one returned early as a section, so a CV with five jobs came back
+       * with five sections named after their own dates and its history in pieces.
+       *
+       * The margin is measured per column, so the main column of a sidebar layout is not
+       * judged against the sidebar's left edge — which would make its every line look
+       * indented, and did.
+       */
+      if (line.text.startsWith(ANNOTATION_MARK)) return line.text;
+
+      const indented = line.x > (margins.get(line.column) ?? 0) + COLUMN_GAP;
+      if (indented) return `${ANNOTATION_MARK}${line.text}`;
+
+      if (sizes.has(sizeKey(line.size)) && line.text.length <= 60) return `# ${line.text}`;
 
       /*
-       * A line sitting alone, far to the right of the margin, is an annotation too.
+       * Larger than the body, but not one of the confirmed heading sizes: an entry title.
        *
-       * The mark applied while grouping only catches an annotation that *shares* a baseline
-       * with the line it belongs to. A CV that prints the city on its own line below the date
-       * produces a line with nothing beside it — indistinguishable from an entry heading by
-       * its text, obvious by its position. `Casablanca` at x=500, on a document whose margin
-       * is x=45, was being read as the qualification that the date below it belonged to.
-       *
-       * Skipped on a genuinely multi-column page: there, far right means the second column,
-       * which the column split has already put in the right order.
+       * Only where the document actually distinguishes them. Plenty of templates set job
+       * titles at body size and lean on weight instead — those produce no marks here, and
+       * the parser falls back to the rules it used before any of this existed.
        */
-      const indented = line.column === 0 && line.x > margin + COLUMN_GAP;
-      if (indented && !line.text.startsWith(ANNOTATION_MARK)) {
-        return `${ANNOTATION_MARK}${line.text}`;
+      if (line.size > document.bodySize + 0.15 && line.text.length <= 120) {
+        return `${ENTRY_MARK}${line.text}`;
       }
+
       return line.text;
     })
     .join('\n');
 }
 
-/** Where the body text starts: the most common left edge in the document. */
-function leftMargin(document: LayoutDocument): number {
-  const counts = new Map<number, number>();
+/**
+ * Where the body text starts — measured for each column separately.
+ *
+ * One margin for the whole page was wrong on a sidebar layout. The sidebar starts at the
+ * page margin and the main column starts halfway across, so every line in the main column
+ * looked indented; the rule had to be disabled on multi-column pages to avoid marking the
+ * entire body as annotations, and disabling it let the right-aligned dates through as
+ * ordinary lines. On this site's own export they were set at heading size, so each of them
+ * became a section and the work history came back in pieces.
+ *
+ * Per column, both problems go away: the main column's margin is its own left edge, and a
+ * date set against its right edge is as clearly indented there as it would be on a page
+ * with one column.
+ */
+function leftMargins(document: LayoutDocument): Map<number, number> {
+  const byColumn = new Map<number, Map<number, number>>();
   for (const line of document.lines) {
+    const counts = byColumn.get(line.column) ?? new Map<number, number>();
     const x = Math.round(line.x / 5) * 5;
     counts.set(x, (counts.get(x) ?? 0) + 1);
+    byColumn.set(line.column, counts);
   }
-  let best = 0;
-  let bestCount = -1;
-  for (const [x, count] of counts) {
-    if (count > bestCount) {
-      best = x;
-      bestCount = count;
+
+  const margins = new Map<number, number>();
+  for (const [column, counts] of byColumn) {
+    let best = 0;
+    let bestCount = -1;
+    for (const [x, count] of counts) {
+      if (count > bestCount) {
+        best = x;
+        bestCount = count;
+      }
     }
+    margins.set(column, best);
   }
-  return best;
+  return margins;
 }
 
 /**
- * Which font sizes are section headings — as opposed to the name at the top.
+ * Which font size is the section headings.
  *
- * Bigger-than-body is not enough. A CV sets the person's name largest of all and their job
- * title next, and marking those as headings cost the entire contact block: the name became a
- * section, the title became a section, and the header block the contact parser reads was
- * empty. No name, no email, no phone, on a document where all three were plainly present.
+ * ## Why "bigger than the body" is not the rule
  *
- * What separates the two is repetition. Section headings recur — a CV has four, six, eight of
- * them, set identically. The name appears once and the title once. So a size counts as a
- * heading size when it is larger than the body text *and* used more than once, which leaves
- * the singular large lines at the top to fall through into the header, where they belong.
+ * It was, and it broke on this site's own export. That template sets section headings at
+ * 7.2pt against a 7.9pt body — *smaller* — in capitals with wide letter-spacing, while job
+ * titles are 8.3pt. Judging by size alone found the job titles and missed every section, so
+ * the document came back as one long run of entries with no sections at all.
+ *
+ * Both are real conventions. Some templates shout their headings by making them larger,
+ * others by making them small and spaced. What almost none of them do is set an *entry
+ * title* in capitals — a person's job title and their degree are written the way names are.
+ * So the size only picks out candidates, and other evidence decides between them.
  */
-function headingSizes(document: LayoutDocument): Set<number> {
-  const counts = new Map<number, number>();
+function headingSizes(
+  document: LayoutDocument,
+  isKnownHeading: (text: string) => boolean,
+): Set<number> {
+  const bands = new Map<number, string[]>();
   for (const line of document.lines) {
-    const size = Math.round(line.size);
-    if (size > document.bodySize) counts.set(size, (counts.get(size) ?? 0) + 1);
+    const size = sizeKey(line.size);
+    if (Math.abs(size - document.bodySize) < 0.15) continue;
+    if (line.text.length > 60) continue;
+    /*
+     * An annotation is never a heading.
+     *
+     * This site's own template sets the dates beside each job at the same size as the
+     * section headings, so the band held `WORK EXPERIENCE`, `EDUCATION` and `Nov 2024 –
+     * Present` together. Marking all of them turned every date into a section: the work
+     * history came back as one entry and five empty sections named after their own dates.
+     *
+     * The mark already records the distinction — an annotation sits beside another line,
+     * a section heading stands alone above its content. Size cannot tell them apart;
+     * position already has.
+     */
+    if (line.text.startsWith(ANNOTATION_MARK)) continue;
+    bands.set(size, [...(bands.get(size) ?? []), line.text]);
   }
-  return new Set([...counts.entries()].filter(([, count]) => count >= 2).map(([size]) => size));
+
+  const candidates = [...bands.entries()].filter(([, lines]) => lines.length >= 2);
+  if (candidates.length === 0) return new Set();
+
+  const scored = candidates.map(([size, lines]) => ({
+    size,
+    known: lines.filter(isKnownHeading).length,
+    caps: lines.filter(isShouted).length / lines.length,
+  }));
+
+  /*
+   * Evidence first, appearance second — and every confirmed band, not just the best one.
+   *
+   * A band containing `Work Experience`, `Education` and `Compétences` is the headings, and
+   * no argument from font size outweighs that. Two matches is the threshold because one can
+   * be a coincidence — a job at a company called `Education First`.
+   *
+   * More than one band can qualify: a sidebar template sets its sidebar headings smaller
+   * than those in the main column, because they sit in a narrower measure. Taking only the
+   * strongest band found `SKILLS` and `LANGUAGES` and missed `WORK EXPERIENCE`, which is
+   * worse than finding none — the whole work history lands inside the section before it.
+   *
+   * Once a band is confirmed, every line in it is marked, including ones the vocabulary
+   * missed. That is the point of combining the two: on one CV the heading `EXPERIENCE
+   * PROFESIONNELLE` was spelled with an S missing and matched nothing, but it shared a size
+   * with five headings that did match, so it was marked anyway.
+   */
+  const confirmed = scored.filter((band) => band.known >= 2);
+  if (confirmed.length > 0) return new Set(confirmed.map((band) => band.size));
+
+  /*
+   * Nothing recognised — a CV in a language this site does not speak, or one using headings
+   * nobody else uses. Fall back to appearance: capitals if any band shouts, otherwise the
+   * smallest band above the body text.
+   */
+  const byCaps = [...scored].sort((a, b) => b.caps - a.caps || b.size - a.size)[0]!;
+  if (byCaps.caps >= 0.6) return new Set([byCaps.size]);
+
+  const above = scored.filter((band) => band.size > document.bodySize).map((band) => band.size);
+  return above.length > 0 ? new Set([Math.min(...above)]) : new Set();
+}
+
+/** Written in capitals, the way section headings are and job titles are not. */
+function isShouted(text: string): boolean {
+  if (/\p{Ll}/u.test(text)) return false;
+  return (text.match(/\p{Lu}/gu) ?? []).length >= 2;
 }

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { getDocumentProxy } from 'unpdf';
 
 import { readLayout, toMarkedText, ANNOTATION_MARK } from '@/lib/cv/import/layout';
-import { parseCvText } from '@/lib/cv/import/parse';
+import { isKnownSectionHeading, parseCvText } from '@/lib/cv/import/parse';
 
 /**
  * Layout-aware extraction, against the CV that motivated it.
@@ -32,7 +32,7 @@ async function layout() {
 
 describe('layout extraction', () => {
   it('identifies section headings by font size, not by their wording', async () => {
-    const marked = toMarkedText(await layout());
+    const marked = toMarkedText(await layout(), isKnownSectionHeading);
     const headings = marked
       .split('\n')
       .filter((line) => line.startsWith('# '))
@@ -54,27 +54,31 @@ describe('layout extraction', () => {
      * Marking them as sections emptied the header block the contact parser reads — no name,
      * no email, no phone, on a CV that plainly had all three.
      */
-    const marked = toMarkedText(await layout());
-    expect(marked.startsWith('Nadia Belhaj')).toBe(true);
-    expect(marked).not.toContain('# Nadia Belhaj');
+    const marked = toMarkedText(await layout(), isKnownSectionHeading);
+    // It may carry the entry mark — it is set larger than the body, which is what that mark
+    // means — but it must never be a *section*, or the header block the contact parser
+    // reads is empty and the CV comes back with no name, email or phone.
+    const asLines = marked.split('\n');
+    expect(asLines.filter((line) => line.startsWith('# '))).not.toContain('# Nadia Belhaj');
+    expect(asLines[0]).toContain('Nadia Belhaj');
   });
 
   it('marks the right-aligned city as an annotation, not as a line of its own', async () => {
-    const marked = toMarkedText(await layout());
+    const marked = toMarkedText(await layout(), isKnownSectionHeading);
     expect(marked).toContain(`${ANNOTATION_MARK}Rabat`);
   });
 
   it('keeps words apart and does not glue them together', async () => {
     // pdf.js emits the spaces between words as separate runs; dropping them produced
     // `Chefdeprojettransverse(CIRCETMOROCCO)`.
-    const marked = toMarkedText(await layout());
+    const marked = toMarkedText(await layout(), isKnownSectionHeading);
     expect(marked).toContain('Cheffe de projet transverse');
   });
 });
 
 describe('the whole pipeline on that CV', () => {
   async function parsed() {
-    return parseCvText(toMarkedText(await layout()), { locale: 'fr' });
+    return parseCvText(toMarkedText(await layout(), isKnownSectionHeading), { locale: 'fr' });
   }
 
   it('reads every job, with its employer and dates', async () => {

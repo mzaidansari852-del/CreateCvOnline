@@ -4,6 +4,7 @@ import mammoth from 'mammoth';
 import { getDocumentProxy } from 'unpdf';
 
 import { readLayout, toMarkedText } from './layout';
+import { isKnownSectionHeading } from './parse';
 
 /**
  * Turning an uploaded file into something we can read.
@@ -126,7 +127,7 @@ async function readPdf(bytes: Uint8Array): Promise<ExtractedDocument> {
      * to guess into something it can simply read. See `layout.ts`.
      */
     const layout = await readLayout(pdf);
-    text = toMarkedText(layout);
+    text = toMarkedText(layout, isKnownSectionHeading);
     multiColumn = layout.multiColumn;
   } catch (error) {
     const message = error instanceof Error ? error.message : '';

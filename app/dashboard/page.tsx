@@ -112,6 +112,14 @@ export default async function DashboardOverviewPage() {
       actions={
         <>
           <ButtonLink
+            href="/dashboard/cvs/build"
+            variant="outline"
+            size="sm"
+            leadingIcon={<Sparkles size={15} aria-hidden />}
+          >
+            {copy.interview.title}
+          </ButtonLink>
+          <ButtonLink
             href="/dashboard/cvs/import"
             variant="outline"
             size="sm"
@@ -266,9 +274,18 @@ export default async function DashboardOverviewPage() {
               action={
                 <ButtonLink href="/dashboard/cvs/new">{copy.dashboard.createFirst}</ButtonLink>
               }
+              /*
+                The empty state offers the interview rather than the template gallery.
+
+                An account with no CVs holds the person this was built for: they are looking
+                at a blank page, which is the thing that stops most people finishing a CV at
+                all. Templates are one click away in the sidebar and answer a question they
+                have not reached yet — what it should look like — while this answers the one
+                they are stuck on, which is what to write.
+              */
               secondaryAction={
-                <ButtonLink href="/dashboard/templates" variant="outline">
-                  {copy.dashboard.browseTemplates}
+                <ButtonLink href="/dashboard/cvs/build" variant="outline">
+                  {copy.interview.title}
                 </ButtonLink>
               }
             />

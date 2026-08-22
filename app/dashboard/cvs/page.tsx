@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { FilePlus2, LayoutGrid, Rows3, Upload } from 'lucide-react';
+import { FilePlus2, LayoutGrid, Rows3, Sparkles, Upload } from 'lucide-react';
 
 import { CVGridCard, CVListRow } from '@/components/dashboard/CVCard';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
@@ -100,6 +100,14 @@ export default async function MyCVsPage({
       */
       actions={
         <>
+          <ButtonLink
+            href="/dashboard/cvs/build"
+            size="sm"
+            variant="outline"
+            leadingIcon={<Sparkles size={15} aria-hidden />}
+          >
+            {copy.interview.title}
+          </ButtonLink>
           <ButtonLink
             href="/dashboard/cvs/import"
             size="sm"

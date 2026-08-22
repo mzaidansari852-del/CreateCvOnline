@@ -356,6 +356,27 @@ const PLACEHOLDER_NAME: Record<Locale, string> = {
   nl: 'Jouw naam',
 };
 
+/**
+ * What a screen reader says about the photograph on a CV.
+ *
+ * It was `${name} profile photo`, hardcoded — so a Dutch CV carried English alt text, and
+ * carried it into the exported PDF, where it is the one piece of text a sighted reader
+ * never sees and an assistive one always does.
+ *
+ * The name is not translated, obviously; the noun around it is.
+ */
+const PHOTO_ALT: Record<Locale, (name: string) => string> = {
+  en: (name) => (name ? `${name} — profile photo` : 'Profile photo'),
+  fr: (name) => (name ? `${name} — photo d’identité` : 'Photo d’identité'),
+  de: (name) => (name ? `${name} — Bewerbungsfoto` : 'Bewerbungsfoto'),
+  nl: (name) => (name ? `${name} — pasfoto` : 'Pasfoto'),
+};
+
+/** The alt text for a CV's profile photo, in the language the document is written in. */
+export function photoAlt(name: string, locale: Locale): string {
+  return (PHOTO_ALT[locale] ?? PHOTO_ALT[DEFAULT_LOCALE])(name.trim());
+}
+
 /** The name to print: the applicant's, or the placeholder in the document's language. */
 export function displayName(cv: CVData): string {
   return fullName(cv) || PLACEHOLDER_NAME[cv.language];

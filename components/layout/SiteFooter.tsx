@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 
 import { Logo } from '@/components/brand/Logo';
 import { footerNav, site } from '@/lib/site';
-import { FOOTER, NAV_CATEGORIES } from '@/lib/i18n/nav';
+import { CHROME, FOOTER, NAV_CATEGORIES } from '@/lib/i18n/nav';
 import { TEMPLATE_ROOT, localeOf } from '@/lib/i18n/locales';
 import type { TemplateCategory } from '@/types/cv';
 import {
@@ -30,6 +30,7 @@ export function SiteFooter() {
    */
   const locale = localeOf(usePathname() ?? '/');
   const copy = FOOTER[locale];
+  const chrome = CHROME[locale];
   const groups = copy.columns.length > 0 ? copy.columns : footerNav;
   const navCategories = NAV_CATEGORIES[locale];
   const categoryHref = (id: TemplateCategory) =>
@@ -46,25 +47,25 @@ export function SiteFooter() {
       <div className="container-page py-14">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,3fr)]">
           <div className="max-w-sm">
-            <Logo />
+            <Logo homeLabel={chrome.homeLabel(site.name)} />
             {/* `FOOTER[locale].blurb` — the English wording, written out, was the reason
                 this paragraph stayed English on the French and German pages. */}
             <p className="mt-4 text-sm leading-relaxed text-ink-600">
               {site.name} {copy.blurb(TEMPLATE_COUNT)}
             </p>
             <ul className="mt-5 flex items-center gap-3">
-              <SocialLink href={site.social.linkedin} label="LinkedIn">
+              <SocialLink href={site.social.linkedin} label="LinkedIn" newTab={chrome.newTab}>
                 <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6Z" />
                 <rect x="2" y="9" width="4" height="12" />
                 <circle cx="4" cy="4" r="2" />
               </SocialLink>
-              <SocialLink href={site.social.x} label="X">
+              <SocialLink href={site.social.x} label="X" newTab={chrome.newTab}>
                 <path d="M4 4l7.5 9.6L4.4 20h2.2l5.8-6.2 4.8 6.2H20l-7.8-10 6.7-6h-2.2l-5.4 5.8L6.7 4H4Z" />
               </SocialLink>
-              <SocialLink href={site.social.facebook} label="Facebook">
+              <SocialLink href={site.social.facebook} label="Facebook" newTab={chrome.newTab}>
                 <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3Z" />
               </SocialLink>
-              <SocialLink href={site.social.instagram} label="Instagram">
+              <SocialLink href={site.social.instagram} label="Instagram" newTab={chrome.newTab}>
                 <rect x="2" y="2" width="20" height="20" rx="5" />
                 <circle cx="12" cy="12" r="4" />
                 <circle cx="17.5" cy="6.5" r="1" />
@@ -72,7 +73,7 @@ export function SiteFooter() {
             </ul>
           </div>
 
-          <nav aria-label="Footer" className="grid grid-cols-2 gap-8 sm:grid-cols-4">
+          <nav aria-label={chrome.footerNavLabel} className="grid grid-cols-2 gap-8 sm:grid-cols-4">
             {groups.map((group) => (
               <div key={group.label}>
                 <h2 className="text-xs font-bold tracking-[0.12em] text-ink-950 uppercase">
@@ -102,7 +103,7 @@ export function SiteFooter() {
           places a crawler is least likely to need help getting to. A footer row is the
           cheapest way to give all six a site-wide internal link.
         */}
-        <nav aria-label="Templates by category" className="mt-12 border-t border-ink-200 pt-6">
+        <nav aria-label={chrome.footerCategoriesLabel} className="mt-12 border-t border-ink-200 pt-6">
           <h2 className="text-xs font-bold tracking-[0.12em] text-ink-950 uppercase">
             {copy.browseByCategory}
           </h2>
@@ -139,10 +140,13 @@ export function SiteFooter() {
 function SocialLink({
   href,
   label,
+  newTab,
   children,
 }: {
   href: string;
   label: string;
+  /** Wraps the label with this language's "opens in a new tab" warning. */
+  newTab: (label: string) => string;
   children: React.ReactNode;
 }) {
   return (
@@ -151,7 +155,7 @@ function SocialLink({
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label={`${label} (opens in a new tab)`}
+        aria-label={newTab(label)}
         className="grid size-9 place-items-center rounded-lg border border-ink-200 bg-white text-ink-600 transition-colors hover:border-brand-300 hover:text-brand-700"
       >
         <svg

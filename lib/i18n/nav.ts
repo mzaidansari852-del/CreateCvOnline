@@ -40,6 +40,26 @@ export const CHROME: Record<
     goToDashboard: string;
     signOut: string;
     createFree: string;
+    /*
+     * Accessible names for the two `<nav>` landmarks.
+     *
+     * They were the literals "Main" and "Mobile". A screen-reader user on a Dutch page
+     * heard an English landmark name announced for the primary navigation of a page that
+     * is otherwise entirely in Dutch — and "Mobile" was never a good name in any language:
+     * it describes the breakpoint that reveals the menu, not what the menu is.
+     */
+    mainNavLabel: string;
+    mobileNavLabel: string;
+    /*
+     * The rest of the accessible names on a marketing page. None of these is visible, and
+     * all of them were English on every translated page — the logo link, the footer
+     * landmark, the category nav inside it, and the "opens in a new tab" warning on the
+     * social icons. An audit that only reads the visible copy never finds them.
+     */
+    homeLabel: (brand: string) => string;
+    footerNavLabel: string;
+    footerCategoriesLabel: string;
+    newTab: (label: string) => string;
   }
 > = {
   en: {
@@ -54,6 +74,12 @@ export const CHROME: Record<
     goToDashboard: 'Go to dashboard',
     signOut: 'Sign out',
     createFree: 'Create my CV — free',
+    mainNavLabel: 'Main',
+    mobileNavLabel: 'Site navigation',
+    homeLabel: (brand) => `${brand} home`,
+    footerNavLabel: 'Footer',
+    footerCategoriesLabel: 'Templates by category',
+    newTab: (label) => `${label} (opens in a new tab)`,
   },
   de: {
     dashboard: 'Mein Bereich',
@@ -67,6 +93,12 @@ export const CHROME: Record<
     goToDashboard: 'Zu meinem Bereich',
     signOut: 'Abmelden',
     createFree: 'Lebenslauf erstellen — kostenlos',
+    mainNavLabel: 'Hauptnavigation',
+    mobileNavLabel: 'Seitennavigation',
+    homeLabel: (brand) => `${brand} Startseite`,
+    footerNavLabel: 'Fußzeile',
+    footerCategoriesLabel: 'Vorlagen nach Stil',
+    newTab: (label) => `${label} (wird in einem neuen Tab geöffnet)`,
   },
   fr: {
     dashboard: 'Mon espace',
@@ -80,6 +112,12 @@ export const CHROME: Record<
     goToDashboard: 'Aller à mon espace',
     signOut: 'Se déconnecter',
     createFree: 'Créer mon CV — gratuitement',
+    mainNavLabel: 'Navigation principale',
+    mobileNavLabel: 'Navigation du site',
+    homeLabel: (brand) => `${brand} — accueil`,
+    footerNavLabel: 'Pied de page',
+    footerCategoriesLabel: 'Modèles par style',
+    newTab: (label) => `${label} (ouvre un nouvel onglet)`,
   },
   nl: {
     dashboard: 'Mijn omgeving',
@@ -93,6 +131,12 @@ export const CHROME: Record<
     goToDashboard: 'Naar mijn omgeving',
     signOut: 'Uitloggen',
     createFree: 'Maak mijn cv — gratis',
+    mainNavLabel: 'Hoofdnavigatie',
+    mobileNavLabel: 'Sitenavigatie',
+    homeLabel: (brand) => `${brand} — home`,
+    footerNavLabel: 'Voettekst',
+    footerCategoriesLabel: 'Sjablonen op stijl',
+    newTab: (label) => `${label} (opent in een nieuw tabblad)`,
   },
 };
 

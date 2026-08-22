@@ -10,7 +10,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { useScrolledPast } from '@/hooks/browser';
 import { CHROME, navFor, otherLocales } from '@/lib/i18n/nav';
 import { LOCALE_META, alternatesFor, localeOf } from '@/lib/i18n/locales';
-import { navGroupIsMenu } from '@/lib/site';
+import { navGroupIsMenu, site } from '@/lib/site';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -100,9 +100,9 @@ export function SiteHeader() {
       >
         <div className="container-page">
           <div className="flex h-16 items-center justify-between gap-4">
-            <Logo />
+            <Logo homeLabel={chrome.homeLabel(site.name)} />
 
-            <nav aria-label="Main" className="hidden lg:block">
+            <nav aria-label={chrome.mainNavLabel} className="hidden lg:block">
               <ul className="flex items-center gap-1">
                 {nav.map((group) => {
                   const hasChildren = navGroupIsMenu(group);
@@ -282,7 +282,7 @@ export function SiteHeader() {
           className="fixed inset-x-0 top-16 bottom-0 z-70 overflow-y-auto overscroll-contain border-t border-ink-200 bg-white lg:hidden"
         >
           <div className="container-page py-6">
-            <nav aria-label="Mobile">
+            <nav aria-label={chrome.mobileNavLabel}>
               {nav.map((group) =>
                 navGroupIsMenu(group) ? (
                   <div key={group.label} className="mb-6">

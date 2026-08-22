@@ -29,7 +29,7 @@ const FAN: { templateId: string; width: number; position: string }[] = [
   { templateId: 'modern-01', width: 268, position: 'left-[136px] top-[66px] z-30 rotate-[-2deg]' },
 ];
 
-function FannedPreview() {
+function FannedPreview({ previewLabel }: { previewLabel?: (templateName: string) => string }) {
   const cv = createSampleCV();
 
   return (
@@ -45,6 +45,7 @@ function FannedPreview() {
                   ...templateDefaults(template),
                 })}
                 width={width}
+                label={previewLabel?.(template.name)}
                 className="ring-1 ring-ink-900/5"
               />
             </div>
@@ -94,6 +95,15 @@ export interface HeroCopy {
   browseHref: string;
   atsHref: string;
   trust: string[];
+  /**
+   * Accessible name for each of the three fanned CV previews.
+   *
+   * They are decorative-ish but not decorative: a screen-reader user should be told what
+   * the images beside the heading are. It was hardcoded English, so the Dutch home page
+   * announced "Preview of the Modern Professional CV template" three times in the middle
+   * of an otherwise Dutch page. Optional, so the English default stands when unset.
+   */
+  previewLabel?: (templateName: string) => string;
 }
 
 const EN: HeroCopy = {
@@ -102,6 +112,7 @@ const EN: HeroCopy = {
   headingAfter: ' online',
   lede: `Choose one of ${TEMPLATE_COUNT} recruiter-ready designs, type into structured fields, and watch a real A4 page build itself next to you. When it reads well, export a clean PDF whose text a recruiter — and a parser — can actually select.`,
   badge: (count) => `${count} templates score 5/5 for parsing`,
+  previewLabel: (name) => `Preview of the ${name} CV template`,
   primaryCta: 'Create my CV — free',
   secondaryCta: `Browse ${TEMPLATE_COUNT} templates`,
   browseHref: '/templates',
@@ -163,7 +174,7 @@ export function HomeHero({ copy = EN }: { copy?: HeroCopy } = {}) {
             </ul>
           </div>
 
-          <FannedPreview />
+          <FannedPreview previewLabel={copy.previewLabel} />
         </div>
       </div>
     </section>

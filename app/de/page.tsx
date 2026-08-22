@@ -62,6 +62,7 @@ export default function GermanHomePage() {
           browseHref: '/de/lebenslauf-vorlagen',
           atsHref: '/de/lebenslauf-vorlagen/ats',
           trust: [...DE.home.trust],
+          previewLabel: (name) => `Vorschau der Lebenslauf-Vorlage ${name}`,
         }}
       />
 

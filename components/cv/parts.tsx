@@ -30,6 +30,7 @@ import {
   languageShort,
   mix,
   paragraphs,
+  photoAlt,
   prettyUrl,
   skillDots,
   skillLabel,
@@ -2071,7 +2072,7 @@ export function Photo({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={cv.personal.photoUrl}
-        alt={name ? `${name} profile photo` : 'Profile photo'}
+        alt={photoAlt(name ?? '', cv.language)}
         width={size}
         height={size}
         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}

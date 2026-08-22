@@ -61,12 +61,21 @@ export function Logo({
   showWordmark = true,
   className,
   wordmarkClassName,
+  homeLabel,
 }: {
   href?: string | null;
   size?: number;
   showWordmark?: boolean;
   className?: string;
   wordmarkClassName?: string;
+  /**
+   * Accessible name for the link, when the page is not in English.
+   *
+   * Defaults to the English phrasing rather than requiring every caller to pass one: the
+   * dashboard, the auth pages and the print route all render this logo and none of them is
+   * locale-aware in the same way the marketing header is.
+   */
+  homeLabel?: string;
 }) {
   const content = (
     <>
@@ -95,7 +104,7 @@ export function Logo({
         'inline-flex items-center gap-2.5 rounded-lg transition-opacity hover:opacity-85',
         className,
       )}
-      aria-label={`${site.name} home`}
+      aria-label={homeLabel ?? `${site.name} home`}
     >
       {content}
     </Link>

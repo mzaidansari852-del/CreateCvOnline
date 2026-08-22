@@ -63,6 +63,7 @@ export default function FrenchHomePage() {
           browseHref: '/fr/modeles-de-cv',
           atsHref: '/fr/modeles-de-cv/ats',
           trust: [...FR.home.trust],
+          previewLabel: (name) => `Aperçu du modèle de CV ${name}`,
         }}
       />
 

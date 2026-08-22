@@ -64,6 +64,7 @@ export default function DutchHomePage() {
           browseHref: '/nl/cv-sjablonen',
           atsHref: '/nl/cv-sjablonen/ats',
           trust: [...NL.home.trust],
+          previewLabel: (name) => `Voorbeeld van cv-sjabloon ${name}`,
         }}
       />
 

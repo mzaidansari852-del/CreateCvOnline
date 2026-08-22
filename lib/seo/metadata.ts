@@ -50,11 +50,30 @@ export function ogImageUrl(title: string, subtitle?: string): string {
   return absoluteUrl(`/api/og?${params.toString()}`);
 }
 
+/**
+ * The strapline printed under the title on a generated social card.
+ *
+ * `site.tagline` is one hardcoded English sentence, and it was used for every page in
+ * every language — so a French, German or Dutch page shared to LinkedIn or WhatsApp
+ * rendered a correctly translated title sitting on top of "Create your professional CV
+ * online". The card is the whole of what most people see before deciding to click, and it
+ * was the one surface where the translation work did not reach.
+ *
+ * Keyed here rather than on `site`, because `site` is imported by client components and
+ * has no business knowing about locales.
+ */
+const OG_TAGLINE: Record<Locale, string> = {
+  en: site.tagline,
+  fr: 'Créez votre CV professionnel en ligne',
+  de: 'Erstellen Sie Ihren Lebenslauf online',
+  nl: 'Maak je professionele cv online',
+};
+
 export function pageMetadata(input: PageMetaInput): Metadata {
   const url = absoluteUrl(input.path);
   const title = pageTitle(input.title);
-  const image = input.image ?? ogImageUrl(input.title, site.tagline);
   const locale = input.locale ?? DEFAULT_LOCALE;
+  const image = input.image ?? ogImageUrl(input.title, OG_TAGLINE[locale]);
 
   /*
    * `hreflang`, built from the path map rather than from anything this page knows.

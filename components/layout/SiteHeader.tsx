@@ -8,6 +8,7 @@ import { Logo } from '@/components/brand/Logo';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useScrolledPast } from '@/hooks/browser';
+import { usePublishLocale } from '@/components/i18n/LocaleProvider';
 import { CHROME, navFor, otherLocales } from '@/lib/i18n/nav';
 import { LOCALE_META, alternatesFor, localeOf } from '@/lib/i18n/locales';
 import { navGroupIsMenu, site } from '@/lib/site';
@@ -28,6 +29,8 @@ export function SiteHeader() {
    */
   const locale = localeOf(pathname ?? '/');
   const chrome = CHROME[locale];
+  // Lets the toast viewport, which sits above every provider, name itself in this language.
+  usePublishLocale(locale);
   const nav = navFor(locale);
   const alternate = alternatesFor(pathname ?? '/');
   /*

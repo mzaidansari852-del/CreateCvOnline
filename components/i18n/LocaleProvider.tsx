@@ -66,6 +66,26 @@ export function useActiveLocale(): Locale {
   );
 }
 
+/**
+ * Publishes `locale` to the store above, for a subtree that has no `LocaleProvider`.
+ *
+ * The provider is mounted by the dashboard, the editor and the payment pages — everything
+ * signed-in. The marketing tree has none, because its language comes from the URL and each
+ * page already renders in it. That left `activeLocale` at its English default on every
+ * public page, so the toast viewport announced "Notifications" on the Dutch site.
+ *
+ * `SiteHeader` calls this. It is a client component, it is on every public page, and it has
+ * already computed the locale from the pathname to choose the nav — so this is one line in
+ * the one component that cannot be missed, rather than a provider added to five layouts and
+ * forgotten on the sixth.
+ */
+export function usePublishLocale(locale: Locale): void {
+  useEffect(() => {
+    activeLocale = locale;
+    for (const listener of listeners) listener();
+  }, [locale]);
+}
+
 export function LocaleProvider({
   locale,
   children,
@@ -77,10 +97,7 @@ export function LocaleProvider({
   // memoising the object costs more than it saves, but the wrapper object should be stable.
   const value: LocaleValue = { locale, copy: appCopy(locale) };
 
-  useEffect(() => {
-    activeLocale = locale;
-    for (const listener of listeners) listener();
-  }, [locale]);
+  usePublishLocale(locale);
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 }

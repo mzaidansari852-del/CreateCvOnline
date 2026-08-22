@@ -60,6 +60,8 @@ export const CHROME: Record<
     footerNavLabel: string;
     footerCategoriesLabel: string;
     newTab: (label: string) => string;
+    /** First focusable element on the page. See `components/layout/SkipLink.tsx`. */
+    skipToContent: string;
   }
 > = {
   en: {
@@ -80,6 +82,7 @@ export const CHROME: Record<
     footerNavLabel: 'Footer',
     footerCategoriesLabel: 'Templates by category',
     newTab: (label) => `${label} (opens in a new tab)`,
+    skipToContent: 'Skip to main content',
   },
   de: {
     dashboard: 'Mein Bereich',
@@ -99,6 +102,7 @@ export const CHROME: Record<
     footerNavLabel: 'Fußzeile',
     footerCategoriesLabel: 'Vorlagen nach Stil',
     newTab: (label) => `${label} (wird in einem neuen Tab geöffnet)`,
+    skipToContent: 'Zum Hauptinhalt springen',
   },
   fr: {
     dashboard: 'Mon espace',
@@ -118,6 +122,7 @@ export const CHROME: Record<
     footerNavLabel: 'Pied de page',
     footerCategoriesLabel: 'Modèles par style',
     newTab: (label) => `${label} (ouvre un nouvel onglet)`,
+    skipToContent: 'Aller au contenu principal',
   },
   nl: {
     dashboard: 'Mijn omgeving',
@@ -137,6 +142,7 @@ export const CHROME: Record<
     footerNavLabel: 'Voettekst',
     footerCategoriesLabel: 'Sjablonen op stijl',
     newTab: (label) => `${label} (opent in een nieuw tabblad)`,
+    skipToContent: 'Naar de hoofdinhoud',
   },
 };
 

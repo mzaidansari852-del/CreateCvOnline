@@ -127,11 +127,13 @@ export const TRANSLATED_PATHS: Record<string, PathGroup> = {
    * The commercial landing pages, English and French only.
    *
    * These are the pages that carry buying intent — `créer un CV en ligne`, `CV gratuit`,
-   * `CV ATS` — and they are the reason `PathGroup` allows a missing language. There is no
-   * German or Dutch version yet, and the map says so rather than pretending: each of these
-   * emits a two-language `hreflang` cluster that is complete and reciprocal on its own
-   * terms, which is what Google requires. When the German and Dutch versions are written,
-   * they are one key each, and the annotations widen without anything else changing.
+   * `CV ATS` — and they are the reason `PathGroup` allows a missing language. The commercial
+   * pages are still English and French only, and the map says so rather than pretending:
+   * each emits a two-language `hreflang` cluster that is complete and reciprocal on its own
+   * terms, which is what Google requires.
+   *
+   * The four legal documents are the proof that widening costs one key each: they now carry
+   * all four languages, and nothing else had to change to make that true.
    */
   '/cv-builder': { en: '/cv-builder', fr: '/fr/creer-un-cv' },
   '/cv-maker': { en: '/cv-maker', fr: '/fr/faire-un-cv' },
@@ -143,10 +145,30 @@ export const TRANSLATED_PATHS: Record<string, PathGroup> = {
   '/faq': { en: '/faq', fr: '/fr/faq' },
   '/about': { en: '/about', fr: '/fr/a-propos' },
   '/contact': { en: '/contact', fr: '/fr/contact' },
-  '/privacy': { en: '/privacy', fr: '/fr/confidentialite' },
-  '/terms': { en: '/terms', fr: '/fr/conditions-generales' },
-  '/cookies': { en: '/cookies', fr: '/fr/cookies' },
-  '/refund-policy': { en: '/refund-policy', fr: '/fr/remboursement' },
+  '/privacy': {
+    en: '/privacy',
+    fr: '/fr/confidentialite',
+    de: '/de/datenschutz',
+    nl: '/nl/privacy',
+  },
+  '/terms': {
+    en: '/terms',
+    fr: '/fr/conditions-generales',
+    de: '/de/agb',
+    nl: '/nl/voorwaarden',
+  },
+  '/cookies': {
+    en: '/cookies',
+    fr: '/fr/cookies',
+    de: '/de/cookies',
+    nl: '/nl/cookies',
+  },
+  '/refund-policy': {
+    en: '/refund-policy',
+    fr: '/fr/remboursement',
+    de: '/de/rueckerstattung',
+    nl: '/nl/terugbetaling',
+  },
 };
 
 /** Every path in the map, from either side, so a lookup works in both directions. */

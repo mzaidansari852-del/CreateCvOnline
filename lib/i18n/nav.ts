@@ -369,6 +369,15 @@ export const FOOTER: Record<Locale, {
         ],
       },
       {
+        label: 'Rechtliches',
+        links: [
+          { label: 'Datenschutz', href: '/de/datenschutz' },
+          { label: 'AGB', href: '/de/agb' },
+          { label: 'Cookies', href: '/de/cookies' },
+          { label: 'Rückerstattung', href: '/de/rueckerstattung' },
+        ],
+      },
+      {
         label: 'Seite',
         links: [
           { label: 'Startseite', href: '/de' },
@@ -451,6 +460,15 @@ export const FOOTER: Record<Locale, {
           { label: 'Prijzen', href: '/nl/prijzen' },
           { label: 'CV maken', href: '/register' },
           { label: 'Inloggen', href: '/login' },
+        ],
+      },
+      {
+        label: 'Juridisch',
+        links: [
+          { label: 'Privacy', href: '/nl/privacy' },
+          { label: 'Algemene voorwaarden', href: '/nl/voorwaarden' },
+          { label: 'Cookies', href: '/nl/cookies' },
+          { label: 'Terugbetaling', href: '/nl/terugbetaling' },
         ],
       },
       {

@@ -124,6 +124,62 @@ const CHROME: Record<string, LegalChrome> = {
     footerReply: '. Nous répondons à chaque message sous deux jours ouvrés.',
     contactPath: '/fr/contact',
   },
+  de: {
+    eyebrow: 'Rechtliches',
+    lastUpdated: 'Zuletzt aktualisiert',
+    appliesTo: 'Gilt für',
+    questions: 'Fragen',
+    noticeTitle: 'Bitte zuerst lesen',
+    notice: (brand) => (
+      <p>
+        Dieses Dokument ist eine <strong>Vorlage</strong>. Es beschreibt, wie {brand} gebaut
+        ist und was wir beabsichtigen, wurde aber nicht von einer Juristin oder einem
+        Juristen geprüft — und muss es, bevor der Dienst kommerziell in Betrieb geht. Es ist
+        keine Rechtsberatung, und nichts hier ist als Zusicherung zu verstehen, dass der
+        Dienst einem bestimmten Gesetz in Ihrem Land entspricht. Wenn Sie diese Software
+        betreiben, lassen Sie alle vier Dokumente von einem Anwalt in Ihrer Jurisdiktion
+        prüfen und anpassen.
+      </p>
+    ),
+    summaryTitle: 'Kurzfassung',
+    summaryLede:
+      'Eine Zusammenfassung in verständlicher Sprache. Sie ersetzt den vollständigen Text unten nicht, gibt ihn aber ehrlich wieder.',
+    onThisPage: 'Auf dieser Seite',
+    footerTitle: 'Fragen zu diesem Dokument?',
+    footerWriteTo: 'Schreiben Sie an',
+    footerOrUse: 'oder nutzen Sie das',
+    footerContactForm: 'Kontaktformular',
+    footerReply: '. Wir beantworten jede Nachricht innerhalb von zwei Werktagen.',
+    contactPath: '/contact',
+  },
+  nl: {
+    eyebrow: 'Juridisch',
+    lastUpdated: 'Laatst bijgewerkt',
+    appliesTo: 'Geldt voor',
+    questions: 'Vragen',
+    noticeTitle: 'Lees dit eerst',
+    notice: (brand) => (
+      <p>
+        Dit document is een <strong>sjabloon om mee te beginnen</strong>. Het beschrijft hoe
+        {' '}
+        {brand} is gebouwd en wat wij bedoelen, maar het is niet nagekeken door een jurist —
+        en dat moet gebeuren voordat de dienst commercieel live gaat. Het is geen juridisch
+        advies, en niets hierin mag worden gelezen als bevestiging dat de dienst voldoet aan
+        een bepaalde wet of regeling in jouw land. Laat als je deze software exploiteert alle
+        vier de documenten nakijken en aanpassen door een advocaat in jouw rechtsgebied.
+      </p>
+    ),
+    summaryTitle: 'Kort samengevat',
+    summaryLede:
+      'Een samenvatting in gewone taal. Die vervangt de volledige tekst hieronder niet, maar geeft er wel een eerlijk beeld van.',
+    onThisPage: 'Op deze pagina',
+    footerTitle: 'Vragen over dit document?',
+    footerWriteTo: 'Mail naar',
+    footerOrUse: 'of gebruik het',
+    footerContactForm: 'contactformulier',
+    footerReply: '. We beantwoorden elk bericht binnen twee werkdagen.',
+    contactPath: '/contact',
+  },
 };
 
 export interface LegalSection {

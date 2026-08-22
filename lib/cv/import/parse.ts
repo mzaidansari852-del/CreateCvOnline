@@ -1,6 +1,7 @@
 import { LOCALES, type Locale } from '@/lib/i18n/locales';
 import { ANNOTATION_MARK, ENTRY_MARK } from './layout';
 import { defaultSectionLabels } from '@/lib/i18n/cv-labels';
+import { LANGUAGE_LEVELS, SKILL_LEVELS } from '@/lib/cv/format';
 import {
   BUILT_IN_SECTION_IDS,
   type BuiltInSectionId,
@@ -496,6 +497,33 @@ function continuesPrevious(previous: string | undefined, line: string): boolean 
  * model, and it is better absent — where the review screen reports the section as unread —
  * than smuggled into a neighbour that then looks authoritative.
  */
+/**
+ * Headings that introduce contact details rather than a section of the CV.
+ *
+ * A sidebar template gives these their own heading, and without this the block became a
+ * custom section titled `CONTACT` holding a phone number and an e-mail — both of which had
+ * already been read into the fields they belong in. The user then sees their own address
+ * twice: once where it belongs, and once as a section of their CV that they have to delete.
+ */
+const CONTACT_HEADINGS = new Set(
+  [
+    'contact',
+    'contacts',
+    'contact details',
+    'contact information',
+    'coordonnees',
+    'me contacter',
+    'kontakt',
+    'kontaktdaten',
+    'contactgegevens',
+    'details',
+  ].map(fold),
+);
+
+function isContactHeading(label: string): boolean {
+  return CONTACT_HEADINGS.has(fold(label.replace(/[:：]\s*$/, '')));
+}
+
 function splitIntoBlocks(text: string): Block[] {
   const lines = text
     .split(/\r?\n/)
@@ -529,6 +557,10 @@ function splitIntoBlocks(text: string): Block[] {
      */
     if (line.startsWith(HEADING_MARK)) {
       const label = line.slice(HEADING_MARK.length).trim();
+      if (isContactHeading(label)) {
+        blocks.push({ id: 'header', lines: [] });
+        continue;
+      }
       const known = headingFor(label);
       blocks.push({ id: known ?? { custom: label }, lines: [] });
       continue;
@@ -584,6 +616,21 @@ function parseHeader(lines: string[]): { personal: CVData['personal']; filled: s
   if (site && !LINKEDIN.test(site) && !GITHUB.test(site) && !site.includes('@')) website = site;
 
   /*
+   * The place, which is whatever is left on the contact line once the contact details are
+   * taken out of it.
+   *
+   * `saadtriss@outlook.com 0655934432 Casablanca Maroc` is one line on a real CV, and after
+   * removing the address, the number and any link, `Casablanca Maroc` is what remains — a
+   * city and a country, which is precisely the field. Every CV audited had its location
+   * printed plainly and every one imported without it, because nothing looked here.
+   *
+   * Capped short and required to be free of digits, so a stray sentence cannot become an
+   * address. Wrong here costs a correction on the review screen; absent costs a field the
+   * user retypes.
+   */
+  const location = locationFrom(lines.slice(0, 8));
+
+  /*
    * The name is the weakest inference here and is treated as such.
    *
    * It is the first line that is not a heading, not contact details and not a date — which
@@ -625,6 +672,7 @@ function parseHeader(lines: string[]): { personal: CVData['personal']; filled: s
     ['linkedin', linkedin],
     ['github', github],
     ['website', website],
+    ['location', location],
   ] as const) {
     if (value) filled.push(key);
   }
@@ -636,7 +684,7 @@ function parseHeader(lines: string[]): { personal: CVData['personal']; filled: s
       title,
       email,
       phone,
-      location: '',
+      location,
       website,
       linkedin,
       github,
@@ -645,6 +693,34 @@ function parseHeader(lines: string[]): { personal: CVData['personal']; filled: s
     },
     filled,
   };
+}
+
+/**
+ * The place, taken from whatever is left on a contact line once the contact details are out.
+ *
+ * `saadtriss@outlook.com 0655934432 Casablanca Maroc` is one line on a real CV, and after
+ * removing the address, the number and any link, `Casablanca Maroc` is what remains — a city
+ * and a country, which is exactly the field. Every CV audited printed its location plainly
+ * and every one imported without it, because nothing looked here.
+ *
+ * Kept short and free of digits, so a sentence cannot become an address. Wrong costs a
+ * correction on the review screen; absent costs a field the user retypes.
+ */
+function locationFrom(lines: string[]): string {
+  for (const line of lines) {
+    if (!EMAIL.test(line) && !PHONE.test(line) && !URL.test(line)) continue;
+    const rest = line
+      .replace(EMAIL, ' ')
+      .replace(LINKEDIN, ' ')
+      .replace(GITHUB, ' ')
+      .replace(URL, ' ')
+      .replace(PHONE, ' ')
+      .replace(/[|·•,;/]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (rest && rest.length <= 40 && !/\d/.test(rest) && rest.split(' ').length <= 4) return rest;
+  }
+  return '';
 }
 
 /** A right-aligned date or place, marked by `layout.ts` as belonging to the line above. */
@@ -1247,17 +1323,60 @@ function parseEducation(lines: string[]): CVData['education'] {
 function parseSkills(lines: string[]): CVData['skills'] {
   const names = new Set<string>();
   for (const line of lines) {
-    const cleaned = stripBullet(line);
-    const parts = isBullet(line) && !/[,|•·]/.test(cleaned) ? [cleaned] : cleaned.split(/[,|•·;]/);
-    for (const part of parts) {
-      const name = part.trim().replace(/\s*\(.*\)$/, '');
-      // A "skill" longer than this is a sentence that landed in the skills block.
-      if (name && name.length <= 60 && !/\d{4}/.test(name)) names.add(name);
+    // `Excel Advanced Word Advanced` — our own export lists several per line, separated by
+    // nothing but the proficiency. Split there first, then on ordinary punctuation.
+    for (const chunk of splitOnLevels(stripBullet(line))) {
+      const cleaned = chunk.replace(INLINE_LEVEL, '').trim();
+      const parts =
+        isBullet(line) && !/[,|•·]/.test(cleaned) ? [cleaned] : cleaned.split(/[,|•·;]/);
+      for (const part of parts) {
+        const name = part.trim().replace(/\s*\(.*\)$/, '');
+        // A "skill" longer than this is a sentence that landed in the skills block.
+        if (name && name.length <= 60 && !/\d{4}/.test(name)) names.add(name);
+      }
     }
   }
   return [...names]
     .slice(0, 80)
     .map((name) => ({ id: uid(), name, level: 'advanced' as const, category: '' }));
+}
+
+/**
+ * The proficiency labels this site prints, as a splitter.
+ *
+ * A CV exported from here lists skills and languages inline: `Arabe — Native / bilingual
+ * Français — Professional working`, two of them on one line with nothing between but the
+ * level. Splitting on punctuation finds one entry and loses the rest, which is how
+ * re-importing our own PDF turned nine skills into three.
+ *
+ * Built from `SKILL_LEVELS` and `LANGUAGE_LEVELS` rather than written out again, so a level
+ * added to the editor is understood by the importer without anyone remembering to come here.
+ */
+const LEVEL_LABELS = [...LANGUAGE_LEVELS.map((l) => l.label), ...SKILL_LEVELS.map((l) => l.label)]
+  .sort((a, b) => b.length - a.length)
+  .map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+// `String.raw`, for the reason recorded above `RANGE`: a plain template literal turns `\s`
+// into `s`, and the pattern would then demand a literal "s" before every level label.
+const INLINE_LEVEL = new RegExp(String.raw`\s*[—–-]?\s*(?:${LEVEL_LABELS.join('|')})\b`, 'giu');
+
+/**
+ * Breaks `A — Advanced B — Advanced` into `['A — Advanced', 'B — Advanced']`.
+ *
+ * The level ends an item, so a split *after* each match is what recovers the boundaries the
+ * layout no longer shows. Lines with no level in them come back untouched.
+ */
+function splitOnLevels(line: string): string[] {
+  const parts: string[] = [];
+  let last = 0;
+  for (const match of line.matchAll(INLINE_LEVEL)) {
+    const end = match.index + match[0].length;
+    parts.push(line.slice(last, end).trim());
+    last = end;
+  }
+  const tail = line.slice(last).trim();
+  if (tail) parts.push(tail);
+  return parts.length > 0 ? parts.filter(Boolean) : [line];
 }
 
 /**
@@ -1300,22 +1419,23 @@ function levelFor(text: string): LanguageLevel | null {
 function parseLanguages(lines: string[]): CVData['languages'] {
   const out: CVData['languages'] = [];
   for (const line of lines) {
-    for (const part of stripBullet(line).split(/[,;|]/)) {
-      const text = part.trim();
-      if (!text) continue;
+    for (const chunk of splitOnLevels(stripBullet(line)))
+      for (const part of chunk.split(/[,;|]/)) {
+        const text = part.trim();
+        if (!text) continue;
 
-      const name = text.split(/[-–—:(]/)[0]?.trim() ?? '';
-      const level = levelFor(text);
+        const name = text.split(/[-–—:(]/)[0]?.trim() ?? '';
+        const level = levelFor(text);
 
-      // Nothing but a proficiency: it belongs to the language on the line before.
-      if (level && out.length > 0 && isLevelOnly(text)) {
-        out[out.length - 1]!.level = level;
-        continue;
+        // Nothing but a proficiency: it belongs to the language on the line before.
+        if (level && out.length > 0 && isLevelOnly(text)) {
+          out[out.length - 1]!.level = level;
+          continue;
+        }
+        if (name && name.length <= 40 && !/\d/.test(name)) {
+          out.push({ id: uid(), name, level: level ?? 'professional-working' });
+        }
       }
-      if (name && name.length <= 40 && !/\d/.test(name)) {
-        out.push({ id: uid(), name, level: level ?? 'professional-working' });
-      }
-    }
   }
   return out.slice(0, 20);
 }
@@ -1351,7 +1471,10 @@ export function parseCvText(
   const blocks = splitIntoBlocks(text);
   // Bared: the marks are structure, and a name that reads `## Saad TRISS` is the structure
   // leaking into the document. `splitEntries` gets the marked lines; nothing else needs them.
-  const header = (blocks.find((block) => block.id === 'header')?.lines ?? []).map(bare);
+  const header = blocks
+    .filter((block) => block.id === 'header')
+    .flatMap((block) => block.lines)
+    .map(bare);
   const { personal, filled } = parseHeader(header);
 
   /*
@@ -1378,6 +1501,15 @@ export function parseCvText(
     if (hit) {
       personal[field] = hit.trim();
       filled.push(field);
+    }
+  }
+
+  // The place travels with the contact details, so it is looked for wherever they were.
+  if (!personal.location) {
+    const place = locationFrom(everything);
+    if (place) {
+      personal.location = place;
+      filled.push('location');
     }
   }
 

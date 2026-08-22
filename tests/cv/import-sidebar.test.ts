@@ -99,6 +99,42 @@ describe('a sidebar template', () => {
     expect(data.experience?.[0]?.description).not.toContain('Rabat');
   });
 
+  it('splits skills and languages listed inline with their level', async () => {
+    /*
+     * A CV exported from this site writes `Arabe — Native / bilingual Français —
+     * Professional working` — two entries on one line, separated by nothing but the level.
+     * Splitting on punctuation found one and lost the rest, which is how re-importing our
+     * own PDF turned nine skills into three.
+     */
+    const { data } = parseCvText(
+      [
+        '# LANGUAGES',
+        'Arabe — Native / bilingual Français — Professional working',
+        '# SKILLS',
+        "Gestion financière Advanced Travail d'équipe Advanced",
+      ].join('\n'),
+      { locale: 'en' },
+    );
+    expect(data.languages?.map((language) => language.name)).toEqual(['Arabe', 'Français']);
+    expect(data.languages?.[0]?.level).toBe('native');
+    expect(data.skills?.map((skill) => skill.name)).toEqual([
+      'Gestion financière',
+      "Travail d'équipe",
+    ]);
+  });
+
+  it('reads a CONTACT heading as more header, not as a section', async () => {
+    // Otherwise the user sees their own phone number twice: once in the field it belongs
+    // in, and once as a section of their CV that they have to delete.
+    const { data, report } = parseCvText(
+      ['# CONTACT', 'nadia@example.com', '0612345678 Rabat Maroc'].join('\n'),
+      { locale: 'en' },
+    );
+    expect(report.custom).toEqual([]);
+    expect(data.personal?.email).toBe('nadia@example.com');
+    expect(data.personal?.location).toBe('Rabat Maroc');
+  });
+
   it('leaves no structural marks in the content it stores', async () => {
     // `##` is how the layout says "entry title". A name that reads `## Nadia Belhaj` is
     // that structure leaking into the document the user is about to send to an employer.

@@ -372,6 +372,29 @@ export const NL_LANDING: Record<string, Landing> = {
           'Pdf’s verlopen niet en dragen geen watermerk. Het gratis abonnement zet een kleine vermelding in de voettekst; het betaalde haalt die weg. Er is geen versie van het document die je niet kunt meenemen.',
         ],
       },
+      {
+        heading: 'Waar een Nederlandse recruiter als eerste naar kijkt',
+        paragraphs: [
+          'De eerste zes seconden gaan over de bovenkant van de pagina: je naam, de functie waarop je solliciteert, en je huidige werkgever. Moet iemand zoeken naar wat je nu doet, dan heeft de opmaak al gefaald — daarom staat de kop in elk sjabloon vast en volgt het profiel er direct op.',
+          'Een foto is in Nederland ongebruikelijk geworden, en dat is een echt verschil met Duitsland. Steeds meer werkgevers werken met anoniem solliciteren in de eerste ronde, waarbij foto, naam en geboortedatum juist worden weggelaten. Laat de foto dus weg tenzij er expliciet om wordt gevraagd; sjablonen zonder fotoveld negeren hem gewoon.',
+          'Wat er ook niet meer in hoort: geboortedatum, burgerlijke staat en nationaliteit. Ooit standaard, nu afgeraden op grond van leeftijdsdiscriminatie. Die ruimte is beter besteed aan nog een regel over wat je hebt gedaan.',
+        ],
+      },
+      {
+        heading: 'Eén pagina of twee?',
+        paragraphs: [
+          'Onder de tien jaar ervaring: één pagina. Daarboven zijn twee pagina’s normaal en meestal beter — vijftien jaar op één pagina persen levert bodytekst van 8 punten op die niemand leest. De editor toont de pagina-overgang terwijl je typt, dus je ziet de losse regel aankomen voordat een werkgever hem ziet.',
+          'Belangrijker dan het aantal pagina’s is de verdeling. Een functie van twaalf jaar geleden verdient één regel, geen vijf bullets. Je huidige en vorige functie verdienen de meeste ruimte, want daarover word je bevraagd.',
+        ],
+      },
+      {
+        heading: 'De fouten die een gesprek kosten',
+        paragraphs: [
+          'Het cv met twee kolommen en een grafische zijbalk: mooi op het oog, vaak onleesbaar voor een sollicitatiesysteem, dat het bestand leest in de volgorde waarin het is opgeslagen en niet zoals jij het ziet. Loopt de sollicitatie via een portaal, dan komen dezelfde woorden met één kolom wél door.',
+          'Het cv dat als afbeelding is opgeslagen: een scan of schermafdruk bevat geen tekst. Het is onzichtbaar voor elk selectiesysteem en niet te kopiëren als iemand je gegevens wil overnemen. Exporteer altijd een pdf waarin je tekst kunt selecteren.',
+          'Bullets zonder werkwoord: „verantwoordelijk voor de maandrapportage” beschrijft een taakgebied; „leverde de maandrapportage voor vier vestigingen” beschrijft werk. De tweede versie kost evenveel ruimte en geeft de recruiter iets om naar te vragen.',
+        ],
+      },
     ],
     showTemplates: true,
     faq: [
@@ -768,6 +791,28 @@ export const NL_LANDING: Record<string, Landing> = {
         paragraphs: [
           'Een ATS rangschikt sollicitaties vaak op het voorkomen van termen uit de vacature. Het verstandige antwoord is de woorden van de advertentie gebruiken wanneer die echt beschrijven wat je hebt gedaan — staat er “projectbeheersing” en schrijf jij “projectleiding”, dan mag je beide één keer gebruiken.',
           'Het onverstandige antwoord is een trefwoordenlijst onderaan de pagina, of witte tekst op een witte achtergrond. Het eerste is zichtbaar en maakt een slechte indruk; het tweede wordt herkend en leidt tot afwijzing. Geen van beide is het risico waard.',
+        ],
+      },
+      {
+        heading: 'Wat een sollicitatiesysteem echt met je bestand doet',
+        paragraphs: [
+          'Een ATS is geen jury maar een database met een zoekfunctie ervoor. Het haalt de tekst uit je pdf, raadt waar je functies beginnen en zet het resultaat in velden. Daarna zoekt een mens. Je opmaak bepaalt dus geen geheime score, maar of je überhaupt in de zoekresultaten verschijnt.',
+          'Automatische afwijzing bestaat, maar hangt bijna altijd aan de vragen in het sollicitatieformulier — werkvergunning, rijbewijs, opzegtermijn — en niet aan het bestand zelf. Het cv faalt stiller: het wordt scheef gelezen, je functietitels belanden in het verkeerde veld, en je komt simpelweg nooit in de zoekopdracht voor.',
+        ],
+      },
+      {
+        heading: 'Zes dingen die het uitlezen slopen',
+        paragraphs: [
+          'Twee kolommen met een te smalle tussenruimte: de tekst komt verweven terug, één regel zijbalk, één regel bodytekst. Tabellen, waarvan de cellen in codevolgorde naar buiten komen in plaats van in leesvolgorde. Tekstvakken en paginakoppen, die vaak worden genegeerd — daar verdwijnen je contactgegevens.',
+          'Icoontjes in plaats van labels: een envelopje zegt een parser niet „e-mail”. Bullets uit een symboollettertype, die als lege tekens aankomen. En de pdf-als-afbeelding — scan of schermafdruk — die helemaal geen tekst bevat en volledig onzichtbaar blijft.',
+          'Geen van deze fouten is met het blote oog te zien: het document ziet er perfect uit. Juist daarom zijn ze duur.',
+        ],
+      },
+      {
+        heading: 'Zoekwoorden, zonder stuffing',
+        paragraphs: [
+          'Neem de formulering van de vacature over. Staat er „afdelingsoverstijgend projectmanagement”, schrijf dat dan en niet „aansturing van meerdere teams”: een globale match is onnauwkeurig, een exacte niet. Dat is geen liegen, dat is de taal van het vakgebied gebruiken in plaats van je eigen.',
+          'Het rijtje zoekwoorden onderaan in wit op wit werkt al vijftien jaar niet meer en valt meteen op zodra iemand het bestand opent. Zoekwoorden horen in je bullets, daar waar ze iets beschrijven dat je hebt gedaan.',
         ],
       },
     ],

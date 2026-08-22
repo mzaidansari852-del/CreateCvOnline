@@ -381,6 +381,30 @@ export const DE_LANDING: Record<string, Landing> = {
           'PDFs laufen nicht ab und tragen kein Wasserzeichen. Der kostenlose Tarif setzt einen dezenten Hinweis in die Fußzeile, der bezahlte entfernt ihn. Es gibt keine Fassung des Dokuments, die Sie nicht mitnehmen können.',
         ],
       },
+      {
+        heading: 'Worauf Personalverantwortliche in Deutschland zuerst schauen',
+        paragraphs: [
+          'Der deutsche Lebenslauf ist tabellarisch, rückwärts chronologisch und lückenlos. Alle drei Punkte sind Erwartungen, keine Vorlieben: Eine unerklärte Lücke von acht Monaten wird bemerkt, und eine Zeile, die sie benennt — Elternzeit, Weiterbildung, Pflege eines Angehörigen — nimmt ihr sofort die Bedeutung.',
+          'Das Foto ist in Deutschland weiterhin üblich, anders als in Großbritannien oder den Niederlanden. Vorgeschrieben ist es nicht, und das Allgemeine Gleichbehandlungsgesetz erlaubt Ihnen ausdrücklich, darauf zu verzichten. Wer eines verwendet, sollte ein professionelles nehmen: Ein Urlaubsbild kostet mehr Glaubwürdigkeit, als gar kein Bild kostet.',
+          'Was nicht mehr hineingehört: Konfession, Familienstand und die Namen der Eltern. Das waren einmal Standardangaben und sind heute Angriffsfläche. Der Platz gehört einer weiteren Zeile darüber, was Sie tatsächlich getan haben.',
+        ],
+      },
+      {
+        heading: 'Eine Seite oder zwei?',
+        paragraphs: [
+          'Bis etwa zehn Berufsjahre eine Seite, danach zwei — und zwei sind in Deutschland unauffälliger als anderswo, weil Lückenlosigkeit Platz braucht. Fünfzehn Jahre auf eine Seite zu pressen erzeugt 8-Punkt-Fließtext, den niemand liest.',
+          'Wichtiger als die Seitenzahl ist die Verteilung. Eine Station von vor zwölf Jahren verdient eine Zeile, nicht fünf Stichpunkte. Die aktuelle und die vorige Station verdienen den meisten Raum, denn danach wird gefragt.',
+          'Der Editor zeigt den Seitenumbruch beim Schreiben an, sodass Sie die verwaiste Überschrift finden, bevor eine Personalabteilung sie findet.',
+        ],
+      },
+      {
+        heading: 'Die Fehler, die ein Gespräch kosten',
+        paragraphs: [
+          'Der zweispaltige Lebenslauf mit grafischer Seitenleiste: sieht gut aus, ist für ein Bewerbermanagementsystem aber oft unlesbar, weil das die Datei in ihrer Speicherreihenfolge liest und nicht so, wie Sie sie sehen. Führt die Bewerbung über ein Portal, bringt ein einspaltiges Layout dieselben Worte durch.',
+          'Der als Bild exportierte Lebenslauf: Ein Scan oder Screenshot enthält keinen Text. Er ist für jedes Auswahlsystem unsichtbar und lässt sich nicht kopieren, wenn jemand Ihre Kontaktdaten übernehmen will. Exportieren Sie immer eine PDF, in der sich Text markieren lässt.',
+          'Stichpunkte ohne Verb: „Verantwortlich für das monatliche Reporting“ beschreibt einen Zuständigkeitsbereich; „Erstellte das monatliche Reporting für vier Standorte“ beschreibt Arbeit. Die zweite Fassung braucht denselben Platz und gibt ein Gesprächsthema.',
+        ],
+      },
     ],
     showTemplates: true,
     faq: [
@@ -782,6 +806,28 @@ export const DE_LANDING: Record<string, Landing> = {
         paragraphs: [
           'Ein ATS sortiert Bewerbungen oft nach dem Vorkommen von Begriffen aus der Ausschreibung. Die vernünftige Antwort ist, die Wörter der Anzeige zu verwenden, wenn sie wirklich beschreiben, was Sie getan haben — steht dort „Projektsteuerung“ und Sie schreiben „Projektleitung“, spricht nichts dagegen, beide Formulierungen je einmal zu nutzen.',
           'Die unvernünftige Antwort ist die Schlüsselwortliste am Seitenende oder weißer Text auf weißem Grund. Das Erste ist sichtbar und macht einen schlechten Eindruck; das Zweite wird erkannt und führt zum Aussortieren. Keines von beiden ist das Risiko wert.',
+        ],
+      },
+      {
+        heading: 'Was ein Bewerbermanagementsystem wirklich mit Ihrer Datei macht',
+        paragraphs: [
+          'Ein ATS ist kein Richter, sondern eine Datenbank mit einer Suche davor. Es zieht den Text aus Ihrer PDF, rät, wo Ihre Stationen beginnen, und legt das Ergebnis in Felder. Danach sucht ein Mensch. Ihr Layout entscheidet also nicht über eine geheime Punktzahl, sondern darüber, ob Sie in den Suchergebnissen überhaupt auftauchen.',
+          'Automatische Absagen gibt es, sie hängen aber fast immer an den Fragen im Bewerbungsformular — Arbeitserlaubnis, Führerschein, Kündigungsfrist — und nicht an der Datei. Der Lebenslauf scheitert leiser: Er wird falsch gelesen, Ihre Positionsbezeichnungen landen im falschen Feld, und Sie erscheinen schlicht nie in der Suche.',
+        ],
+      },
+      {
+        heading: 'Sechs Dinge, die das Auslesen zerstören',
+        paragraphs: [
+          'Zwei Spalten mit zu schmalem Zwischenraum: Der Text kommt verschränkt zurück, eine Zeile Seitenleiste, eine Zeile Fließtext. Tabellen, deren Zellen in der Reihenfolge des Codes ausgegeben werden statt in Lesereihenfolge. Textfelder und Kopfzeilen, die häufig ignoriert werden — dort verschwinden Ihre Kontaktdaten.',
+          'Symbole statt Beschriftungen: Ein Briefumschlag sagt einem Parser nicht „E-Mail“. Aufzählungszeichen aus einer Symbolschrift, die als leere Zeichen ankommen. Und die Bild-PDF — Scan oder Screenshot — die überhaupt keinen Text enthält und vollständig unsichtbar bleibt.',
+          'Keiner dieser Fehler ist mit bloßem Auge zu sehen: Das Dokument sieht tadellos aus. Genau das macht sie teuer.',
+        ],
+      },
+      {
+        heading: 'Schlüsselwörter, ohne Keyword-Stuffing',
+        paragraphs: [
+          'Übernehmen Sie die Formulierung der Stellenanzeige. Steht dort „bereichsübergreifendes Projektmanagement“, schreiben Sie das und nicht „Steuerung mehrerer Teams“: Eine ungefähre Übereinstimmung ist ungenau, eine exakte nicht. Das heißt nicht lügen, sondern die Sprache der Branche statt der eigenen zu verwenden.',
+          'Die Schlüsselwortliste am Seitenende in Weiß auf Weiß funktioniert seit fünfzehn Jahren nicht mehr und fällt sofort auf, sobald jemand die Datei öffnet. Schlüsselwörter gehören in Ihre Stichpunkte, dorthin, wo sie etwas beschreiben, das Sie getan haben.',
         ],
       },
     ],

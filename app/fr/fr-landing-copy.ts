@@ -377,6 +377,29 @@ export const FR_LANDING: Record<string, Landing> = {
           'Les PDF n’expirent pas et ne portent pas de filigrane. L’offre gratuite ajoute une mention discrète en pied de page ; l’offre payante la retire. Il n’y a pas de version du document que vous ne pouvez pas emporter.',
         ],
       },
+      {
+        heading: 'Ce qu’un recruteur français regarde en premier',
+        paragraphs: [
+          'Les six premières secondes se jouent en haut de la page : votre nom, l’intitulé du poste visé, et le premier employeur. Si le recruteur doit chercher ce que vous faites actuellement, la mise en page a déjà échoué — c’est pour cela que l’en-tête est fixe dans tous les modèles et que l’accroche vient juste après.',
+          'La photo reste courante en France, mais elle n’est plus attendue, et un nombre croissant de grandes entreprises pratiquent le recrutement anonyme sur les premiers tours. Elle est donc optionnelle dans l’éditeur : les modèles sans emplacement photo l’ignorent simplement, sans laisser de trou dans la mise en page.',
+          'Ce qui n’a plus sa place : l’âge, la date de naissance, la situation familiale, le nombre d’enfants et la nationalité. Aucun de ces éléments n’aide un recruteur à juger votre candidature, et tous exposent l’employeur à un risque de discrimination qu’il préfère éviter. L’espace est mieux employé par une ligne de plus sur ce que vous avez fait.',
+        ],
+      },
+      {
+        heading: 'Une page ou deux ?',
+        paragraphs: [
+          'En dessous de dix ans d’expérience, une page. Au-delà, deux pages sont normales et souvent préférables : comprimer quinze ans en une seule page produit un corps de texte de 8 points que personne ne lit. L’éditeur affiche le saut de page pendant que vous écrivez, donc vous voyez arriver la ligne orpheline avant qu’elle ne parte chez l’employeur.',
+          'Ce qui compte davantage que le nombre de pages, c’est la répartition. Un poste occupé il y a douze ans mérite une ligne, pas cinq puces. Le poste actuel et le précédent méritent l’essentiel de la place, parce que ce sont ceux sur lesquels on vous interrogera.',
+        ],
+      },
+      {
+        heading: 'Les erreurs qui coûtent un entretien',
+        paragraphs: [
+          'Le CV en deux colonnes avec barre latérale graphique : élégant à l’œil, souvent illisible pour un logiciel de recrutement, qui lit le fichier dans l’ordre où il est stocké et non dans celui où vous le voyez. Si l’offre passe par un ATS, une mise en page en une colonne fait passer les mêmes mots.',
+          'Le CV exporté en image : un scan ou une capture ne contient aucun texte. Il est invisible pour tout système de tri, et impossible à relire par un recruteur qui copie-colle vos coordonnées. Exportez toujours un PDF dont le texte se sélectionne.',
+          'Les puces sans verbe : « responsable du reporting mensuel » décrit un périmètre ; « produit le reporting mensuel pour quatre agences » décrit un travail. La deuxième formulation tient dans le même espace et donne au recruteur quelque chose à vous demander.',
+        ],
+      },
     ],
     showTemplates: true,
     faq: [
@@ -779,6 +802,28 @@ export const FR_LANDING: Record<string, Landing> = {
         paragraphs: [
           'Un ATS classe souvent les candidatures selon la présence de termes tirés de l’offre. La réponse raisonnable est d’employer les mots de l’annonce quand ils décrivent réellement ce que vous avez fait — si l’offre dit « gestion de projet » et que vous écrivez « pilotage de projet », rien ne vous empêche d’écrire les deux formulations une fois chacune.',
           'La réponse déraisonnable est la liste de mots-clés en bas de page, ou le texte blanc sur fond blanc. Le premier procédé est visible et fait mauvaise impression ; le second est détecté et fait écarter la candidature. Aucun des deux ne vaut le risque.',
+        ],
+      },
+      {
+        heading: 'Ce qu’un ATS fait réellement de votre fichier',
+        paragraphs: [
+          'Un logiciel de suivi des candidatures n’est pas un juge : c’est une base de données avec une recherche par-dessus. Il extrait le texte de votre PDF, tente de deviner où commencent vos expériences, et range le résultat dans des champs. Le recruteur lance ensuite une recherche. Ce que votre mise en page contrôle, ce n’est pas un score secret, c’est votre présence ou non dans les résultats.',
+          'Le rejet automatique existe, mais il porte presque toujours sur les questions du formulaire de candidature — autorisation de travail, permis, préavis — et non sur le fichier lui-même. Le CV, lui, échoue plus discrètement : il est lu de travers, vos titres de poste atterrissent dans le mauvais champ, et vous n’apparaissez simplement jamais dans la recherche.',
+        ],
+      },
+      {
+        heading: 'Les six choses qui cassent l’extraction',
+        paragraphs: [
+          'Les deux colonnes, quand la gouttière est trop étroite : le texte revient entrelacé, une ligne de la barre latérale pour une ligne du corps. Les tableaux, dont les cellules sortent dans l’ordre du code et non de la lecture. Les zones de texte et les en-têtes de page, souvent ignorés : vos coordonnées y disparaissent.',
+          'Les icônes à la place des libellés : une enveloppe ne dit pas « e-mail » à un analyseur. Les puces dessinées avec une police symbole, qui ressortent en caractères vides. Et le PDF image — scan ou capture — qui ne contient aucun texte du tout et reste totalement invisible.',
+          'Aucun de ces défauts ne se voit à l’œil : le document s’affiche parfaitement. C’est précisément ce qui les rend coûteux.',
+        ],
+      },
+      {
+        heading: 'Les mots-clés, sans bourrage',
+        paragraphs: [
+          'Reprenez la formulation exacte de l’offre. Si elle dit « gestion de projet transverse », écrivez cela plutôt que « pilotage multi-équipes » : la correspondance approximative est imprécise, la correspondance exacte ne l’est pas. Cela ne veut pas dire mentir, cela veut dire employer le vocabulaire du secteur plutôt que le vôtre.',
+          'La liste de mots-clés en bas de page, en blanc sur blanc, ne fonctionne plus depuis quinze ans et se repère immédiatement quand le recruteur ouvre le fichier. Les mots-clés doivent être dans vos puces, là où ils décrivent quelque chose que vous avez fait.',
         ],
       },
     ],

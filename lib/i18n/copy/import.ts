@@ -29,6 +29,10 @@ export interface ImportCopy {
     reviewLede: string;
     foundHeading: string;
     partialHeading: string;
+    keptHeading: string;
+    upgradeTitle: string;
+    upgradeBody: string;
+    upgradeCta: string;
     nothingHeading: string;
     nothingBody: string;
     entriesFound: (count: number) => string;
@@ -72,6 +76,11 @@ const EN: ImportCopy = {
       'Nothing has been saved yet. A PDF does not record which line is a job title, so the sections below are our best reading of yours — look them over before you continue.',
     foundHeading: 'Read successfully',
     partialHeading: 'Found, but empty',
+    keptHeading: 'Also kept',
+    upgradeTitle: 'Read with the basic reader',
+    upgradeBody:
+      'A Pro or Lifetime account reads a CV with our AI reader, which follows unusual layouts, keeps sections we have no field for, and gets dates right more often. You can still correct anything on the next screen.',
+    upgradeCta: 'See plans',
     nothingHeading: 'We could not read much',
     nothingBody:
       'The file opened, but almost none of it matched the shape of a CV. You can still create the document and fill it in, or go back and try a different file.',
@@ -130,6 +139,11 @@ const FR: ImportCopy = {
       'Rien n’est encore enregistré. Un PDF n’indique pas quelle ligne est un intitulé de poste : ce qui suit est notre meilleure lecture du vôtre. Relisez avant de continuer.',
     foundHeading: 'Lu correctement',
     partialHeading: 'Rubrique trouvée, mais vide',
+    keptHeading: 'Également conservé',
+    upgradeTitle: 'Lu avec le lecteur simple',
+    upgradeBody:
+      'Un compte Pro ou À vie lit votre CV avec notre lecteur IA : il suit les mises en page inhabituelles, conserve les rubriques sans champ dédié et se trompe moins sur les dates. Vous pourrez de toute façon tout corriger à l’écran suivant.',
+    upgradeCta: 'Voir les offres',
     nothingHeading: 'Nous n’avons pas pu lire grand-chose',
     nothingBody:
       'Le fichier s’est ouvert, mais presque rien n’y ressemblait à un CV. Vous pouvez créer le document et le remplir vous-même, ou revenir en arrière et essayer un autre fichier.',
@@ -167,11 +181,9 @@ const FR: ImportCopy = {
           'Importez un PDF, un fichier Word .docx ou un export JSON CreateCVOnline.',
         empty: 'Aucun texte n’a pu être lu. Il s’agit probablement d’un scan ou d’une image.',
         unreadable: 'Ce fichier n’a pas pu être lu. Il est peut-être endommagé.',
-        encrypted:
-          'Ce PDF est protégé par un mot de passe. Retirez-le et réessayez.',
+        encrypted: 'Ce PDF est protégé par un mot de passe. Retirez-le et réessayez.',
         'invalid-json': 'Ce JSON n’est pas un export CreateCVOnline.',
-        'rate-limited':
-          'Trop d’imports en peu de temps. Attendez quelques minutes et réessayez.',
+        'rate-limited': 'Trop d’imports en peu de temps. Attendez quelques minutes et réessayez.',
       })[code] ?? 'Ce fichier n’a pas pu être importé.',
     genericError: 'Ce fichier n’a pas pu être importé. Essayez-en un autre.',
   },
@@ -191,6 +203,11 @@ const DE: ImportCopy = {
       'Es ist noch nichts gespeichert. Ein PDF hält nicht fest, welche Zeile eine Positionsbezeichnung ist — das Folgende ist unsere beste Lesart Ihres Lebenslaufs. Sehen Sie es durch, bevor Sie fortfahren.',
     foundHeading: 'Erfolgreich gelesen',
     partialHeading: 'Abschnitt gefunden, aber leer',
+    keptHeading: 'Ebenfalls übernommen',
+    upgradeTitle: 'Mit dem einfachen Leseverfahren gelesen',
+    upgradeBody:
+      'Mit Pro oder Lifetime liest unser KI-Verfahren den Lebenslauf: Es kommt mit ungewöhnlichen Layouts zurecht, behält Abschnitte ohne eigenes Feld und liest Daten zuverlässiger. Korrigieren können Sie im nächsten Schritt ohnehin alles.',
+    upgradeCta: 'Tarife ansehen',
     nothingHeading: 'Wir konnten wenig lesen',
     nothingBody:
       'Die Datei ließ sich öffnen, aber fast nichts darin sah nach einem Lebenslauf aus. Sie können das Dokument trotzdem anlegen und selbst ausfüllen oder zurückgehen und eine andere Datei versuchen.',
@@ -228,7 +245,8 @@ const DE: ImportCopy = {
           'Laden Sie ein PDF, eine Word-.docx oder einen CreateCVOnline-JSON-Export hoch.',
         empty: 'Aus dieser Datei ließ sich kein Text lesen. Vermutlich ein Scan oder ein Bild.',
         unreadable: 'Diese Datei konnte nicht gelesen werden. Möglicherweise ist sie beschädigt.',
-        encrypted: 'Dieses PDF ist passwortgeschützt. Entfernen Sie das Passwort und versuchen Sie es erneut.',
+        encrypted:
+          'Dieses PDF ist passwortgeschützt. Entfernen Sie das Passwort und versuchen Sie es erneut.',
         'invalid-json': 'Dieses JSON ist kein CreateCVOnline-Export.',
         'rate-limited':
           'Zu viele Importe in kurzer Zeit. Warten Sie ein paar Minuten und versuchen Sie es erneut.',
@@ -251,6 +269,11 @@ const NL: ImportCopy = {
       'Er is nog niets opgeslagen. Een pdf legt niet vast welke regel een functietitel is, dus hieronder staat onze beste lezing van jouw cv. Loop het na voordat je verdergaat.',
     foundHeading: 'Goed gelezen',
     partialHeading: 'Sectie gevonden, maar leeg',
+    keptHeading: 'Ook bewaard',
+    upgradeTitle: 'Gelezen met de eenvoudige lezer',
+    upgradeBody:
+      'Met Pro of Lifetime leest onze AI-lezer je cv: die volgt ongebruikelijke opmaak, behoudt onderdelen waarvoor we geen veld hebben en leest datums vaker goed. Aanpassen kan sowieso in het volgende scherm.',
+    upgradeCta: 'Bekijk de pakketten',
     nothingHeading: 'We konden weinig lezen',
     nothingBody:
       'Het bestand ging open, maar bijna niets erin leek op een cv. Je kunt het document alsnog aanmaken en zelf invullen, of teruggaan en een ander bestand proberen.',
@@ -284,11 +307,12 @@ const NL: ImportCopy = {
     error: (code) =>
       ({
         'too-large': 'Dit bestand is groter dan 8 MB.',
-        'unsupported-type':
-          'Upload een pdf, een Word-.docx of een CreateCVOnline JSON-export.',
-        empty: 'Uit dit bestand kon geen tekst worden gelezen. Waarschijnlijk een scan of een afbeelding.',
+        'unsupported-type': 'Upload een pdf, een Word-.docx of een CreateCVOnline JSON-export.',
+        empty:
+          'Uit dit bestand kon geen tekst worden gelezen. Waarschijnlijk een scan of een afbeelding.',
         unreadable: 'Dit bestand kon niet worden gelezen. Mogelijk is het beschadigd.',
-        encrypted: 'Deze pdf is met een wachtwoord beveiligd. Haal het wachtwoord eraf en probeer opnieuw.',
+        encrypted:
+          'Deze pdf is met een wachtwoord beveiligd. Haal het wachtwoord eraf en probeer opnieuw.',
         'invalid-json': 'Deze JSON is geen CreateCVOnline-export.',
         'rate-limited':
           'Te veel imports in korte tijd. Wacht een paar minuten en probeer het opnieuw.',

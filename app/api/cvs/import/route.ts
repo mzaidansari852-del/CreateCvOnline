@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 
 import { authedRoute, apiError } from '@/lib/api/handler';
+import { aiExtractionAvailable, extractWithModel } from '@/lib/cv/import/ai';
 import { completeCv } from '@/lib/cv/import/complete';
+import { cvFromModel } from '@/lib/cv/import/from-model';
 import { ImportError, MAX_IMPORT_BYTES, extractDocument } from '@/lib/cv/import/extract';
-import { parseCvText, type ParseReport } from '@/lib/cv/import/parse';
+import { parseCvText, type ParseReport, type ParsedCv } from '@/lib/cv/import/parse';
 import type { Locale } from '@/lib/i18n/locales';
 import { cvDataSchema, type CVData } from '@/types/cv';
 
@@ -34,7 +36,7 @@ export const dynamic = 'force-dynamic';
  */
 export const POST = authedRoute(
   { scope: 'cvs-import', rateLimit: { max: 8, windowSeconds: 300 } },
-  async ({ request, profile }) => {
+  async ({ request, profile, plan }) => {
     let form: FormData;
     try {
       form = await request.formData();
@@ -51,6 +53,7 @@ export const POST = authedRoute(
     }
 
     const bytes = new Uint8Array(await file.arrayBuffer());
+    const locale = profile.locale;
 
     try {
       const document = await extractDocument(bytes, file.type, file.name);
@@ -82,12 +85,30 @@ export const POST = authedRoute(
             contact: [],
             likelyMultiColumn: false,
           } satisfies ParseReport,
+          engine: 'rules',
+          upgradeAvailable: false,
         });
       }
 
-      const { data, report } = parseCvText(document.text, {
-        likelyMultiColumn: document.likelyMultiColumn,
-      });
+      /*
+       * Two readers, and which one runs is an entitlement question.
+       *
+       * The model reads a CV substantially better than the rules do — published benchmarks
+       * on this task put layout-aware model extraction at 0.959 F1 against 0.817 for a
+       * commercial rule-based parser — and it costs a fraction of a cent per import, so it
+       * is a paid feature rather than a free one.
+       *
+       * The fallback is not a lesser tier so much as the floor under both. A free account
+       * gets the parser; a paid one gets the parser when the key is missing, the vendor is
+       * down, the request times out or the reply is malformed. An import that fails outright
+       * because a third party is having an afternoon would be worse than one that reads a
+       * CV imperfectly, and the review screen makes the difference visible either way.
+       */
+      const useModel = plan.id !== 'free' && aiExtractionAvailable();
+      const fromModel = useModel ? await readWithModel(document, locale) : null;
+      const read =
+        fromModel ?? parseCvText(document.text, { likelyMultiColumn: document.likelyMultiColumn });
+      const { data, report } = read;
 
       /*
        * Validated on the way out, not just on the way back in.
@@ -107,11 +128,22 @@ export const POST = authedRoute(
         );
       }
 
-      const complete = completeCv(parsed.data, profile.locale);
+      const complete = completeCv(parsed.data, locale);
       return NextResponse.json({
         source: document.kind,
         drafts: [{ title: titleFrom(complete, file.name), data: complete }],
         report,
+        /*
+         * Which reader ran, and whether a better one exists for this account.
+         *
+         * The review screen uses the pair to decide whether to mention the upgrade — and to
+         * decide when *not* to. A paid account whose import fell back to the rules because
+         * the vendor was down must not be shown an advertisement for what it already pays
+         * for, and a free account is only offered the upgrade when the model path is
+         * actually configured and would therefore actually do something.
+         */
+        engine: fromModel ? 'model' : 'rules',
+        upgradeAvailable: plan.id === 'free' && aiExtractionAvailable(),
       });
     } catch (error) {
       if (error instanceof ImportError) {
@@ -168,4 +200,28 @@ function draftsFromExport(
     drafts.push({ title: title || titleFrom(data, 'Imported CV'), data });
   }
   return drafts.slice(0, 25);
+}
+
+/**
+ * Reads the document with the model, or returns null so the caller falls back.
+ *
+ * Every failure is a null, including a reply that parsed but contained nothing — a model that
+ * answers `{}` has not read the CV, and passing that on would show the user an empty review
+ * screen while the rules-based parser sitting next to it would have found five jobs.
+ */
+async function readWithModel(
+  document: { text: string; likelyMultiColumn: boolean },
+  locale: Locale,
+): Promise<ParsedCv | null> {
+  try {
+    const model = await extractWithModel(document.text, locale);
+    const read = cvFromModel(model, { likelyMultiColumn: document.likelyMultiColumn });
+    if (read.report.found.length === 0) return null;
+    return read;
+  } catch (error) {
+    // Logged, never surfaced: the user gets a working import either way, and the message
+    // can name the vendor's internals.
+    console.error('[cv-import] model extraction failed, falling back', error);
+    return null;
+  }
 }

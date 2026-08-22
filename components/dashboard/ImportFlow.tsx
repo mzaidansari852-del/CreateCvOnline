@@ -44,9 +44,15 @@ interface ImportResponse {
   report: {
     found: BuiltInSectionId[];
     partial: BuiltInSectionId[];
+    /** Titles of sections kept verbatim because no field matched them. */
+    custom: string[];
     contact: string[];
     likelyMultiColumn: boolean;
   };
+  /** Which reader produced this draft. */
+  engine: 'model' | 'rules';
+  /** True only when a better reader exists *and* this account does not have it. */
+  upgradeAvailable: boolean;
 }
 
 const ACCEPT = '.pdf,.docx,.json,application/pdf,application/json';
@@ -275,6 +281,28 @@ export function ImportFlow() {
         </Alert>
       ) : null}
 
+      {/*
+        Shown only to an account that could actually get something better.
+
+        A paid import that fell back to the rules — because the vendor was down — must not
+        advertise the feature that account already pays for, and a free account is only told
+        about it where it is configured and would really run.
+      */}
+      {result.upgradeAvailable ? (
+        <Alert
+          tone="info"
+          title={copy.upgradeTitle}
+          className="mb-6"
+          action={
+            <ButtonLink href="/pricing" size="sm">
+              {copy.upgradeCta}
+            </ButtonLink>
+          }
+        >
+          {copy.upgradeBody}
+        </Alert>
+      ) : null}
+
       {report.likelyMultiColumn ? (
         <Alert tone="warning" title={copy.multiColumnTitle} className="mb-6">
           {copy.multiColumnBody}
@@ -309,6 +337,24 @@ export function ImportFlow() {
               </li>
             ))}
           </ul>
+
+          {report.custom.length > 0 ? (
+            <>
+              <h3 className="mt-6 text-sm font-bold tracking-wide text-ink-950 uppercase">
+                {copy.keptHeading}
+              </h3>
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {report.custom.map((title) => (
+                  <li
+                    key={title}
+                    className="rounded-full border border-ink-200 bg-ink-50 px-3 py-1 text-[13px] text-ink-700"
+                  >
+                    {title}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
 
           {report.partial.length > 0 ? (
             <>

@@ -147,7 +147,7 @@ const faqs: FaqEntry[] = [
   {
     question: 'Can I upload my old CV and have the fields filled in automatically?',
     answer:
-      'No. Text extracted from a PDF — especially a two-column one — comes back in scrambled reading order, and fixing that takes longer than retyping. Copying section by section takes about ten minutes and forces you to delete the lines you have been carrying since 2016.',
+      'Yes. Import reads a PDF or Word file and fills the editor — it works from the page layout rather than the raw text order, which is what stops a two-column CV coming back scrambled. You are shown what it read before anything is saved, because reading somebody else’s document is inference and inference is sometimes wrong. A scanned or photographed CV cannot be read by anyone, us included: there is no text in the file.',
   },
   {
     question: 'How many bullet points should each job have?',
@@ -266,7 +266,10 @@ export default function CvMakerPage() {
         />
         <div className="mt-10 space-y-6">
           {rewrites.map((item) => (
-            <article key={item.before} className="rounded-xl border border-ink-200 bg-white p-5 sm:p-6">
+            <article
+              key={item.before}
+              className="rounded-xl border border-ink-200 bg-white p-5 sm:p-6"
+            >
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-lg border border-danger-500/25 bg-danger-50 p-4">
                   <p className="text-2xs font-bold tracking-[0.14em] text-danger-700 uppercase">
@@ -345,7 +348,10 @@ export default function CvMakerPage() {
         </div>
         <p className="mt-8 text-sm text-ink-600">
           Working to a US convention instead?{' '}
-          <Link href="/resume-maker" className="font-medium text-brand-700 underline underline-offset-2">
+          <Link
+            href="/resume-maker"
+            className="font-medium text-brand-700 underline underline-offset-2"
+          >
             The résumé guide by career stage
           </Link>{' '}
           covers the same ground with different length rules.

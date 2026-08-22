@@ -146,9 +146,9 @@ const buildSteps = [
 
 const deliberateOmissions = [
   {
-    title: 'It will not write your CV for you',
+    title: 'It will not invent achievements',
     description:
-      'There is no button that invents achievements. The bullets have to come from your own work — the editor makes them fast to write and easy to reorder, and that is the honest limit of what a layout tool can do.',
+      'The AI writer turns answers you gave into CV language — it rephrases, it does not embellish. If you do not give it a number, your CV does not get one, and any line that comes back carrying a figure you never mentioned is removed before you see it. An unremarkable true bullet is worth more than an impressive false one.',
   },
   {
     title: 'There is no .docx export',
@@ -156,9 +156,9 @@ const deliberateOmissions = [
       'Only PDF. A Word file re-flows on a machine with different fonts, which defeats the point of designing the page in the first place. If an employer insists on Word, use their own form or template.',
   },
   {
-    title: 'There is no import from an old PDF',
+    title: 'It cannot read a scanned CV',
     description:
-      'Extracting text from a two-column PDF reliably scrambles the reading order. Copying and pasting section by section takes about ten minutes and gives you a chance to cut the dead weight.',
+      'Import handles PDFs and Word files that contain real text. A CV that was scanned, photographed or exported as an image has no text layer to read — and it is invisible to every applicant tracking system for exactly the same reason, which is worth knowing before you send it anywhere.',
   },
   {
     title: 'We do not score your writing',

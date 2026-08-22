@@ -6,7 +6,7 @@ import { adminDb, COLLECTIONS, cvCollection, toIso } from '@/lib/firebase/admin'
 import { adjustCvCount } from './users';
 import { createDefaultCustomization, createEmptyCV } from '@/lib/cv/defaults';
 import type { Locale } from '@/lib/i18n/locales';
-import { completenessScore } from '@/lib/cv/sections';
+import { completenessScore, defaultSectionConfigs } from '@/lib/cv/sections';
 import { DEFAULT_TEMPLATE_ID, findTemplate } from '@/lib/cv/template-registry';
 import { shareId as makeShareId } from '@/lib/utils/id';
 import {
@@ -35,6 +35,26 @@ export class CVNotFoundError extends Error {
   }
 }
 
+/**
+ * A document with no section list cannot be edited back to health.
+ *
+ * `sections` is the render order *and* the editor's sidebar, and the schema defaults it to
+ * `[]` — so a CV that reached storage without one opens as a blank page offering nothing to
+ * switch on. There is no control anywhere in the UI that adds a built-in section back, which
+ * makes the state permanent: the owner's history is intact in the database and unreachable
+ * from the only screen that can edit it. The importer created exactly this, for real people,
+ * before it was fixed.
+ *
+ * Repairing on read rather than on write is deliberate. A migration would have to find the
+ * affected documents; this heals each one the moment its owner opens it, and costs an array
+ * comparison for every CV that was never broken. It is also a net the next writer of a
+ * creation path falls into instead of shipping the same blank page again.
+ */
+function withSections(data: CVData): CVData {
+  if (data.sections.length > 0) return data;
+  return { ...data, sections: defaultSectionConfigs(data.language) };
+}
+
 function hydrate(id: string, ownerId: string, raw: Record<string, unknown>): CVDocument {
   const data = cvDataSchema.safeParse(raw.data);
   const customization = cvCustomizationSchema.safeParse(raw.customization);
@@ -43,7 +63,7 @@ function hydrate(id: string, ownerId: string, raw: Record<string, unknown>): CVD
     id,
     ownerId,
     title: typeof raw.title === 'string' && raw.title.trim() ? raw.title : 'Untitled CV',
-    data: data.success ? data.data : createEmptyCV(),
+    data: data.success ? withSections(data.data) : createEmptyCV(),
     customization: customization.success ? customization.data : createDefaultCustomization(),
     createdAt: toIso(raw.createdAt),
     updatedAt: toIso(raw.updatedAt),
@@ -226,7 +246,10 @@ export async function deleteCV(uid: string, cvId: string): Promise<void> {
 export async function renameCV(uid: string, cvId: string, title: string): Promise<void> {
   await cvCollection(uid)
     .doc(cvId)
-    .update({ title: title.trim().slice(0, 120) || 'Untitled CV', updatedAt: new Date().toISOString() });
+    .update({
+      title: title.trim().slice(0, 120) || 'Untitled CV',
+      updatedAt: new Date().toISOString(),
+    });
 }
 
 /** Enables or disables the public share link. Returns the share id when enabled. */
@@ -291,7 +314,8 @@ export async function templateUsageCounts(): Promise<Record<string, number>> {
   const counts: Record<string, number> = {};
   for (const doc of snapshot.docs) {
     const raw = doc.data() as { customization?: { templateId?: unknown } };
-    const id = typeof raw.customization?.templateId === 'string' ? raw.customization.templateId : null;
+    const id =
+      typeof raw.customization?.templateId === 'string' ? raw.customization.templateId : null;
     if (!id) continue;
     counts[id] = (counts[id] ?? 0) + 1;
   }

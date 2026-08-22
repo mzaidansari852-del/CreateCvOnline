@@ -40,6 +40,131 @@ const CORE_LINKS = [
 ];
 
 export const FR_LANDING: Record<string, Landing> = {
+  'cv-avec-ia': {
+    path: '/fr/cv-avec-ia',
+    breadcrumb: 'CV avec l’IA',
+    metaTitle: 'CV avec l’IA — dix questions, et rien d’inventé',
+    metaDescription:
+      'Une IA qui rédige votre CV sans inventer vos résultats. Répondez à une dizaine de questions : elle écrit l’accroche, les puces et les dates, puis retire tout chiffre que vous ne lui avez pas donné.',
+    keywords: [
+      'cv avec ia',
+      'créer un cv avec l’ia',
+      'générateur de cv ia',
+      'rédiger un cv avec l’ia',
+      'cv intelligence artificielle',
+    ],
+    heading: 'Un CV rédigé par l’IA, sans rien inventer',
+    lede: 'Répondez à une dizaine de questions avec vos propres mots. L’IA rédige l’accroche, transforme ce que vous avez dit en puces de réalisations et déduit les dates — puis supprime tout chiffre que vous ne lui avez pas donné, et vous dit combien elle en a retiré.',
+    badges: ['Une dizaine de questions', 'Aucun chiffre inventé', 'Tout reste modifiable'],
+    steps: {
+      title: 'De la page blanche au premier jet',
+      items: [
+        {
+          title: 'Une dizaine de questions',
+          body: 'Votre nom, le poste visé, puis un emploi à la fois : lequel, où, quand, et ce que vous y faisiez — dans les mots que vous emploieriez à l’oral. Chaque question donne un exemple de réponse en dessous.',
+        },
+        {
+          title: 'Les chiffres que vous avez',
+          body: 'Une question demande explicitement les chiffres : taille d’équipe, budget, nombre de sites, de clients. C’est le seul endroit d’où un chiffre peut venir. Laissez vide, et votre CV n’en contiendra aucun.',
+        },
+        {
+          title: 'L’IA rédige le document',
+          body: 'Elle écrit l’accroche de zéro, transforme chaque réponse en puces commençant par un verbe, déduit les dates de la façon dont vous les avez écrites, et range le tout par rubrique. Quelques secondes.',
+        },
+        {
+          title: 'Vous lisez avant que ça existe',
+          body: 'Rien n’est enregistré tant que vous n’avez pas vu le résultat. Vous gardez, ou vous revenez modifier vos réponses. Ensuite le CV s’ouvre dans l’éditeur comme n’importe quel autre.',
+        },
+      ],
+    },
+    howTo: true,
+    features: {
+      title: 'Ce que l’IA ne fera pas',
+      description:
+        'Tous les outils promettent la précision. Voici le mécanisme derrière la promesse, pour que vous puissiez le juger plutôt que le croire.',
+      columns: 2,
+      items: [
+        {
+          title: 'Elle ne peut pas utiliser un chiffre que vous n’avez pas donné',
+          body: 'Après la rédaction, chaque puce est comparée à ce que vous avez saisi. Toute ligne portant un chiffre absent de vos réponses est supprimée, et on vous dit combien. Ce n’est pas une consigne polie dans une invite : c’est une vérification qui s’exécute après.',
+        },
+        {
+          title: 'Elle reformule, elle n’enjolive pas',
+          body: '« Je gérais l’équipe de maintenance et je faisais les rapports mensuels » devient deux puces nettes. Pas « Pilotage d’une équipe de 12 personnes, avec 30 % de délais en moins » — vous n’avez dit ni douze, ni trente pour cent.',
+        },
+        {
+          title: 'Elle écrit dans votre langue',
+          body: 'Vous répondez en français, votre CV est en français. Aucune étape de traduction ne transforme discrètement vos mots en ceux de quelqu’un d’autre.',
+        },
+        {
+          title: 'Tout reste modifiable ensuite',
+          body: 'Le résultat est un CV ordinaire dans l’éditeur ordinaire. Réécrivez une puce, supprimez un poste, changez de modèle : rien n’est verrouillé parce qu’une machine a produit le premier jet.',
+        },
+      ],
+    },
+    prose: [
+      {
+        heading: 'Le vrai problème d’une IA qui vous flatte',
+        paragraphs: [
+          'Un CV qui annonce « 30 % d’amélioration » appelle une question en entretien : comment l’avez-vous mesuré ? Un candidat incapable de répondre ne perd pas seulement un point — il rend suspect tout le reste de la page.',
+          'Les chiffres sont précisément ce qui fait sonner un CV comme celui d’un profil senior, et c’est pour cela qu’un modèle de langage y court. Demandez à une IA généraliste d’écrire une puce de CV et comptez les pourcentages qui reviennent sans que vous les ayez jamais mentionnés.',
+          'Le pire, c’est que vous ne le remarquerez pas. Personne ne relit une phrase qui le flatte : une réalisation inventée se lit comme un bon souvenir à moitié oublié. C’est pour cela que la vérification a lieu avant que vous voyiez le brouillon, et non après.',
+        ],
+      },
+      {
+        heading: 'Vous avez déjà un CV ?',
+        paragraphs: [
+          'Alors ne répondez pas à des questions : importez-le. L’import lit un PDF ou un fichier Word et remplit l’éditeur — postes, employeurs, dates, puces, formation, compétences et langues.',
+          'Il travaille à partir de la mise en page plutôt que de l’ordre brut du texte, ce qui évite qu’un CV sur deux colonnes revienne mélangé. Et il vous montre ce qu’il a lu avant d’enregistrer quoi que ce soit.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'L’IA rédige-t-elle vraiment, ou est-ce un simple formulaire ?',
+        answer:
+          'Elle rédige. L’accroche n’existe nulle part dans vos réponses : c’est l’IA qui la compose. Vos phrases simples deviennent des puces structurées, et « de janvier 2021 à aujourd’hui » devient une date de début avec le poste marqué comme en cours. Les questions existent parce qu’une IA ne peut pas écrire sur quelqu’un dont elle ne sait rien.',
+      },
+      {
+        question: 'En quoi est-ce différent de demander à ChatGPT ?',
+        answer:
+          'Deux choses. Elle vous pose d’abord les bonnes questions, donc elle travaille sur de la matière réelle au lieu de deviner un CV générique pour votre intitulé de poste. Et elle ne conservera pas un chiffre que vous ne lui avez pas donné — un agent conversationnel généraliste vous rendra volontiers un pourcentage inventé, impossible à distinguer d’un vrai.',
+      },
+      {
+        question: 'Et si je n’ai pas de chiffres impressionnants ?',
+        answer:
+          'Alors votre CV n’en aura pas, et c’est très bien. La plupart des gens n’ont pas de métrique propre pour l’essentiel de ce qu’ils ont fait. Une puce vraie et précise — « suivi du reporting mensuel pour quatre agences régionales » — vaut mieux qu’un pourcentage inventé, parce que vous pouvez en parler dix minutes sans broncher.',
+      },
+      {
+        question: 'Combien de temps cela prend-il ?',
+        answer:
+          'Les questions prennent cinq à dix minutes si vous avez vos dates en tête. La rédaction prend quelques secondes. Le reste du temps se passe dans l’éditeur, à couper et affûter — et c’est la partie qui mérite du temps.',
+      },
+      {
+        question: 'Est-ce gratuit ?',
+        answer:
+          'Répondre aux questions est gratuit, et les questions sont utiles en elles-mêmes : plusieurs personnes les parcourent puis rédigent leur CV elles-mêmes dans l’éditeur, ce qui ne coûte rien et ne coûtera jamais rien. L’étape de rédaction par l’IA fait partie de Pro et de l’accès à vie.',
+      },
+      {
+        question: 'Dans quelles langues cela fonctionne-t-il ?',
+        answer:
+          'Français, anglais, allemand et néerlandais. Les questions et leurs exemples sont écrits dans chaque langue plutôt que traduits automatiquement, et le CV revient dans la langue de vos réponses.',
+      },
+    ],
+    related: [
+      {
+        label: 'Créer un CV en ligne',
+        href: '/fr/creer-un-cv',
+        description: 'L’éditeur, écran par écran.',
+      },
+      {
+        label: 'Faire un CV, étape par étape',
+        href: '/fr/faire-un-cv',
+        description: 'De la page blanche au document fini, dans l’ordre.',
+      },
+      ...CORE_LINKS,
+    ],
+  },
   'creer-un-cv': {
     path: '/fr/creer-un-cv',
     breadcrumb: 'Créer un CV',

@@ -35,13 +35,144 @@ const CORE_LINKS = [
 ];
 
 export const NL_LANDING: Record<string, Landing> = {
+  'cv-met-ai': {
+    path: '/nl/cv-met-ai',
+    breadcrumb: 'Cv met AI',
+    metaTitle: 'Cv met AI — tien vragen, niets verzonnen',
+    metaDescription:
+      'Een AI die je cv schrijft zonder je resultaten te verzinnen. Beantwoord ongeveer tien vragen: hij schrijft het profiel, de bullets en de datums, en haalt elk getal weg dat je niet hebt gegeven.',
+    keywords: [
+      'cv met ai',
+      'cv maken met ai',
+      'ai cv generator',
+      'cv laten schrijven ai',
+      'kunstmatige intelligentie cv',
+    ],
+    heading: 'Een cv geschreven door AI, zonder verzinsels',
+    lede: 'Beantwoord ongeveer tien vragen in je eigen woorden. De AI schrijft het profiel, maakt van wat je zei nette bullets en leidt de datums af — en haalt daarna elk getal weg dat je niet hebt gegeven. En vertelt je hoeveel.',
+    badges: ['Ongeveer tien vragen', 'Geen verzonnen getallen', 'Alles blijft aanpasbaar'],
+    steps: {
+      title: 'Van blanco pagina naar eerste versie',
+      items: [
+        {
+          title: 'Ongeveer tien vragen',
+          body: 'Je naam, de functie waarop je solliciteert, en dan één baan tegelijk: welke, waar, wanneer, en wat je er deed — in de woorden die je hardop zou gebruiken. Onder elke vraag staat een voorbeeldantwoord.',
+        },
+        {
+          title: 'De getallen die je hebt',
+          body: 'Eén vraag vraagt expliciet om getallen: teamgrootte, budget, aantal locaties of klanten. Alleen daar mogen getallen vandaan komen. Laat je het leeg, dan staan er geen in je cv.',
+        },
+        {
+          title: 'De AI schrijft het document',
+          body: 'Hij schrijft het profiel vanaf nul, maakt van elk antwoord losse bullets die met een werkwoord beginnen, leidt datums af uit hoe je ze opschreef, en sorteert alles per onderdeel. Een paar seconden.',
+        },
+        {
+          title: 'Je leest het voordat het bestaat',
+          body: 'Er wordt niets bewaard voordat je het hebt gezien. Je houdt het, of je gaat terug en past je antwoorden aan. Daarna opent het in de editor als elk ander cv.',
+        },
+      ],
+    },
+    howTo: true,
+    features: {
+      title: 'Wat de AI niet doet',
+      description:
+        'Elke tool belooft nauwkeurigheid. Dit is het mechanisme achter die belofte, zodat je het kunt beoordelen in plaats van geloven.',
+      columns: 2,
+      items: [
+        {
+          title: 'Hij kan geen getal gebruiken dat je niet gaf',
+          body: 'Na het schrijven wordt elke bullet vergeleken met wat je hebt getypt. Elke regel met een getal dat niet in je antwoorden voorkwam, wordt verwijderd — en je krijgt te horen hoeveel. Geen beleefde instructie in een prompt, maar een controle die erna draait.',
+        },
+        {
+          title: 'Hij herformuleert, hij verfraait niet',
+          body: '„Ik stuurde het onderhoudsteam aan en maakte de maandrapportages” wordt twee nette bullets. Niet „Leidde een team van 12 en verkortte de responstijd met 30%” — je zei geen twaalf en geen dertig procent.',
+        },
+        {
+          title: 'Hij schrijft in jouw taal',
+          body: 'Antwoord je in het Nederlands, dan is je cv Nederlands. Er is geen vertaalstap die je woorden stilletjes verandert in die van iemand anders.',
+        },
+        {
+          title: 'Achteraf is elk woord aanpasbaar',
+          body: 'Het resultaat is een gewoon cv in de gewone editor. Herschrijf een bullet, verwijder een functie, wissel van sjabloon — niets zit vast omdat een machine de eerste versie maakte.',
+        },
+      ],
+    },
+    prose: [
+      {
+        heading: 'Het echte probleem met een AI die je vleit',
+        paragraphs: [
+          'Een cv dat „30% verbetering” claimt, roept in een gesprek precies één vraag op: hoe heb je dat gemeten? Wie daar geen antwoord op heeft, verliest niet alleen een punt — de rest van de pagina wordt ook verdacht.',
+          'Getallen zijn juist wat een cv senior laat klinken, en daarom grijpt een taalmodel ernaar. Vraag een algemene AI om een cv-bullet en tel de percentages die terugkomen die je nooit hebt genoemd.',
+          'Het ergste is dat je het niet zult merken. Niemand leest een zin na die hem vleit: een verzonnen prestatie leest als een goede dag die je half was vergeten. Daarom draait de controle voordat je de concepttekst ziet.',
+        ],
+      },
+      {
+        heading: 'Heb je al een cv?',
+        paragraphs: [
+          'Beantwoord dan geen vragen, maar upload het. De import leest een pdf of Word-bestand en vult de editor: functies, werkgevers, datums, bullets, opleiding, vaardigheden en talen.',
+          'Hij werkt vanuit de pagina-indeling in plaats van de ruwe tekstvolgorde, waardoor een cv met twee kolommen niet door elkaar terugkomt. En hij laat zien wat hij heeft gelezen voordat er iets wordt bewaard.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'Schrijft de AI het echt, of is het een formulier?',
+        answer:
+          'Hij schrijft het. Het profiel staat helemaal niet in je antwoorden — de AI stelt het op. Je gewone zinnen worden gestructureerde bullets, en „januari 2021 tot nu” wordt een startdatum met de functie als lopend gemarkeerd. De vragen bestaan omdat een AI niet kan schrijven over iemand die hij niet kent.',
+      },
+      {
+        question: 'Hoe verschilt dit van ChatGPT om een cv vragen?',
+        answer:
+          'Op twee punten. Hij stelt eerst de juiste vragen, dus hij werkt met echt materiaal in plaats van te gokken naar een generiek cv voor jouw functietitel. En hij houdt geen getal dat je niet gaf — een algemene chatbot geeft je met plezier een verzonnen percentage, niet te onderscheiden van een echt.',
+      },
+      {
+        question: 'En als ik geen indrukwekkende getallen heb?',
+        answer:
+          'Dan staan er geen in je cv, en dat is prima. De meeste mensen hebben voor het meeste wat ze deden geen nette meetwaarde. Een concrete ware bullet — „verzorgde de maandelijkse rapportage voor vier regiokantoren” — is meer waard dan een verzonnen percentage, omdat je er tien minuten over kunt praten.',
+      },
+      {
+        question: 'Hoe lang duurt het?',
+        answer:
+          'De vragen kosten vijf tot tien minuten als je je datums weet. Het schrijven duurt seconden. De rest van de tijd gaat naar de editor, waar je schrapt en aanscherpt — en dat is het deel dat tijd verdient.',
+      },
+      {
+        question: 'Is het gratis?',
+        answer:
+          'De vragen beantwoorden is gratis, en de vragen zijn op zichzelf nuttig: sommige mensen lopen ze door en schrijven het cv daarna zelf in de editor, wat niets kost en dat ook nooit zal doen. De AI-stap hoort bij Pro en Lifetime.',
+      },
+      {
+        question: 'In welke talen werkt het?',
+        answer:
+          'Nederlands, Engels, Frans en Duits. De vragen en hun voorbeelden zijn in elke taal geschreven in plaats van machinaal vertaald, en het cv komt terug in de taal waarin je hebt geantwoord.',
+      },
+    ],
+    related: [
+      {
+        label: 'Cv maken',
+        href: '/nl/cv-maken',
+        description: 'De editor, scherm voor scherm.',
+      },
+      {
+        label: 'Cv schrijven',
+        href: '/nl/cv-schrijven',
+        description: 'Van blanco pagina tot afgerond document, op volgorde.',
+      },
+      ...CORE_LINKS,
+    ],
+  },
   'cv-maken': {
     path: '/nl/cv-maken',
     breadcrumb: 'Cv maken',
     metaTitle: 'Cv maken — online en gratis',
     metaDescription:
       'Maak je cv in een editor die de echte pagina toont terwijl je typt. Gratis sjablonen, meteen een pdf, niets te installeren.',
-    keywords: ['cv maken', 'cv maken online', 'cv maken gratis', 'cv opstellen', 'curriculum vitae maken'],
+    keywords: [
+      'cv maken',
+      'cv maken online',
+      'cv maken gratis',
+      'cv opstellen',
+      'curriculum vitae maken',
+    ],
     heading: 'Cv maken',
     lede: 'Een editor die de pagina laat zien zoals die eruit komt. Links vul je velden in, rechts bouwt de A4-pagina zich op, en de pdf die je downloadt is precies wat je ziet — geen benadering die bij het afdrukken op een tweede pagina belandt.',
     badges: ['Niets te installeren', 'Live voorbeeld', 'Selecteerbare pdf-tekst'],
@@ -68,7 +199,8 @@ export const NL_LANDING: Record<string, Landing> = {
     },
     features: {
       title: 'De instellingen die ertoe doen',
-      description: 'Genoeg vrijheid om het document van jou te maken, niet genoeg om het te slopen.',
+      description:
+        'Genoeg vrijheid om het document van jou te maken, niet genoeg om het te slopen.',
       items: [
         {
           title: 'Typografie',
@@ -274,7 +406,13 @@ export const NL_LANDING: Record<string, Landing> = {
     metaTitle: 'Cv online maken, opmaken en downloaden',
     metaDescription:
       'Schrijf je cv online en download het als pdf vanuit je browser. Niets te installeren, en je document blijft bereikbaar en aanpasbaar vanaf elk apparaat.',
-    keywords: ['cv online', 'cv online maken gratis', 'cv in de browser', 'online cv maken', 'cv pdf online'],
+    keywords: [
+      'cv online',
+      'cv online maken gratis',
+      'cv in de browser',
+      'online cv maken',
+      'cv pdf online',
+    ],
     heading: 'Je cv, online',
     lede: 'Een cv online is geen op het web gepubliceerd cv — het is een cv dat je niet hoeft terug te vinden. Het staat in je account, opent op elk apparaat en levert een pdf wanneer je er een nodig hebt.',
     badges: ['Overal bereikbaar', 'Niets te installeren', 'Met Pro onbeperkt exporteren'],
@@ -359,7 +497,13 @@ export const NL_LANDING: Record<string, Landing> = {
     metaTitle: 'Cv-voorbeelden om over te nemen',
     metaDescription:
       'Ingevulde cv-voorbeelden om de vorm te zien voordat je schrijft: wat er in elke sectie staat, in welke volgorde en op welke lengte.',
-    keywords: ['cv voorbeeld', 'cv voorbeelden', 'voorbeeld cv gratis', 'ingevuld cv', 'cv voorbeeld pdf'],
+    keywords: [
+      'cv voorbeeld',
+      'cv voorbeelden',
+      'voorbeeld cv gratis',
+      'ingevuld cv',
+      'cv voorbeeld pdf',
+    ],
     heading: 'Cv-voorbeelden',
     lede: 'Een leeg sjabloon zegt niet hoe lang een functie mag zijn, of hoeveel vaardigheden de moeite waard zijn om te noemen. Een ingevuld cv wel. Elk sjabloon in de galerij wordt getoond met een volledig voorbeeld dat je regel voor regel kunt vervangen.',
     badges: ['Volledige voorbeelden', 'Direct over te nemen', 'Alle beroepen'],
@@ -440,13 +584,20 @@ export const NL_LANDING: Record<string, Landing> = {
     metaTitle: 'ATS-vriendelijk cv',
     metaDescription:
       'Een cv dat recruitmentsoftware foutloos uitleest: één kolom, geen graphics, kopjes voluit. Sjablonen met een 5/5, gratis.',
-    keywords: ['ats cv', 'ats vriendelijk cv', 'cv recruitmentsoftware', 'cv scanbaar', 'ats sjabloon'],
+    keywords: [
+      'ats cv',
+      'ats vriendelijk cv',
+      'cv recruitmentsoftware',
+      'cv scanbaar',
+      'ats sjabloon',
+    ],
     heading: 'ATS-vriendelijk cv',
     lede: 'Voordat een mens je sollicitatie opent, haalt software de tekst eruit. Gaat dat mis, dan val je af zonder dat iemand daarover heeft besloten. Deze sjablonen zijn gemaakt zodat dat uitlezen goed gaat.',
     badges: ['Eén kolom', 'Zonder graphics', 'Uitleesbare tekst'],
     features: {
       title: 'Wat het uitlezen stukmaakt',
-      description: 'De zes oorzaken die steeds terugkomen, en wat de 5/5-sjablonen in plaats daarvan doen.',
+      description:
+        'De zes oorzaken die steeds terugkomen, en wat de 5/5-sjablonen in plaats daarvan doen.',
       items: [
         {
           title: 'Twee kolommen',
@@ -535,7 +686,13 @@ export const NL_LANDING: Record<string, Landing> = {
     metaTitle: 'Gratis cv maken — wat er echt bij zit',
     metaDescription:
       'Een cv maken, opmaken en als pdf downloaden zonder te betalen en zonder creditcard. Precies wat het gratis abonnement bevat — en wat niet.',
-    keywords: ['gratis cv', 'gratis cv maken', 'cv gratis downloaden', 'gratis cv sjabloon', 'cv maken zonder betalen'],
+    keywords: [
+      'gratis cv',
+      'gratis cv maken',
+      'cv gratis downloaden',
+      'gratis cv sjabloon',
+      'cv maken zonder betalen',
+    ],
     heading: 'Gratis cv, zonder addertje',
     lede: 'Veel tools noemen het “gratis” om een cv op te maken, en vragen dan geld op het moment van downloaden. Zo werkt het hier niet, en deze pagina zegt precies waar de grens ligt.',
     badges: ['Geen creditcard', 'Pdf te downloaden', 'Geen proefperiode'],

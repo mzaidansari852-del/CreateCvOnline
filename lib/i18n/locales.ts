@@ -139,13 +139,57 @@ export const TRANSLATED_PATHS: Record<string, PathGroup> = {
    * `PathGroup` still allows a missing language, and it should stay that way. The next page
    * written in one language before the others needs somewhere to say so.
    */
-  '/cv-builder': { en: '/cv-builder', fr: '/fr/creer-un-cv', de: '/de/lebenslauf-erstellen', nl: '/nl/cv-maken' },
-  '/cv-maker': { en: '/cv-maker', fr: '/fr/faire-un-cv', de: '/de/lebenslauf-schreiben', nl: '/nl/cv-schrijven' },
-  '/create-cv-online': { en: '/create-cv-online', fr: '/fr/cv-en-ligne', de: '/de/lebenslauf-online', nl: '/nl/cv-online' },
-  '/cv-templates': { en: '/cv-templates', fr: '/fr/exemples-de-cv', de: '/de/lebenslauf-muster', nl: '/nl/cv-voorbeelden' },
+  '/cv-builder': {
+    en: '/cv-builder',
+    fr: '/fr/creer-un-cv',
+    de: '/de/lebenslauf-erstellen',
+    nl: '/nl/cv-maken',
+  },
+  '/cv-maker': {
+    en: '/cv-maker',
+    fr: '/fr/faire-un-cv',
+    de: '/de/lebenslauf-schreiben',
+    nl: '/nl/cv-schrijven',
+  },
+  '/create-cv-online': {
+    en: '/create-cv-online',
+    fr: '/fr/cv-en-ligne',
+    de: '/de/lebenslauf-online',
+    nl: '/nl/cv-online',
+  },
+  '/cv-templates': {
+    en: '/cv-templates',
+    fr: '/fr/exemples-de-cv',
+    de: '/de/lebenslauf-muster',
+    nl: '/nl/cv-voorbeelden',
+  },
   '/ats-cv': { en: '/ats-cv', fr: '/fr/cv-ats', de: '/de/ats-lebenslauf', nl: '/nl/ats-cv' },
-  '/free-cv-builder': { en: '/free-cv-builder', fr: '/fr/cv-gratuit', de: '/de/lebenslauf-kostenlos', nl: '/nl/gratis-cv' },
-  '/features': { en: '/features', fr: '/fr/fonctionnalites', de: '/de/funktionen', nl: '/nl/functies' },
+  '/free-cv-builder': {
+    en: '/free-cv-builder',
+    fr: '/fr/cv-gratuit',
+    de: '/de/lebenslauf-kostenlos',
+    nl: '/nl/gratis-cv',
+  },
+  '/features': {
+    en: '/features',
+    fr: '/fr/fonctionnalites',
+    de: '/de/funktionen',
+    nl: '/nl/functies',
+  },
+  /*
+   * The AI writer, in four languages.
+   *
+   * The slugs are the search term in each language rather than a translation of the English
+   * one: somebody in Lyon types `cv avec IA`, not `constructeur de CV IA`. That is the whole
+   * reason these paths are a table instead of a prefix — a URL that reads as a translation is
+   * a URL nobody searched for.
+   */
+  '/ai-cv-builder': {
+    en: '/ai-cv-builder',
+    fr: '/fr/cv-avec-ia',
+    de: '/de/lebenslauf-mit-ki',
+    nl: '/nl/cv-met-ai',
+  },
   '/faq': { en: '/faq', fr: '/fr/faq', de: '/de/faq', nl: '/nl/veelgestelde-vragen' },
   '/about': { en: '/about', fr: '/fr/a-propos', de: '/de/ueber-uns', nl: '/nl/over-ons' },
   '/contact': { en: '/contact', fr: '/fr/contact', de: '/de/kontakt', nl: '/nl/contact' },
@@ -307,5 +351,3 @@ const RESERVED_SLUGS = new Set([
   'creatief',
   'klassiek',
 ]);
-
-

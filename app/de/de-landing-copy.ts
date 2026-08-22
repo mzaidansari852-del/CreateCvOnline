@@ -44,6 +44,131 @@ const CORE_LINKS = [
 ];
 
 export const DE_LANDING: Record<string, Landing> = {
+  'lebenslauf-mit-ki': {
+    path: '/de/lebenslauf-mit-ki',
+    breadcrumb: 'Lebenslauf mit KI',
+    metaTitle: 'Lebenslauf mit KI — zehn Fragen, nichts erfunden',
+    metaDescription:
+      'Eine KI, die Ihren Lebenslauf schreibt, ohne Ihre Erfolge zu erfinden. Beantworten Sie rund zehn Fragen: Sie schreibt Kurzprofil, Stichpunkte und Daten und entfernt jede Zahl, die Sie nicht genannt haben.',
+    keywords: [
+      'lebenslauf mit ki',
+      'ki lebenslauf erstellen',
+      'lebenslauf generator ki',
+      'lebenslauf schreiben lassen ki',
+      'künstliche intelligenz lebenslauf',
+    ],
+    heading: 'Ein Lebenslauf von der KI — ohne Erfindungen',
+    lede: 'Beantworten Sie rund zehn Fragen in eigenen Worten. Die KI schreibt das Kurzprofil, macht aus Ihren Sätzen saubere Stichpunkte und leitet die Daten ab — und entfernt anschließend jede Zahl, die Sie ihr nicht gegeben haben. Und sagt Ihnen, wie viele.',
+    badges: ['Rund zehn Fragen', 'Keine erfundenen Zahlen', 'Alles bleibt änderbar'],
+    steps: {
+      title: 'Vom leeren Blatt zum ersten Entwurf',
+      items: [
+        {
+          title: 'Rund zehn Fragen',
+          body: 'Ihr Name, die angestrebte Stelle, dann eine Station nach der anderen: welche, wo, wann, und was Sie dort getan haben — in den Worten, die Sie auch mündlich benutzen würden. Unter jeder Frage steht ein Beispiel.',
+        },
+        {
+          title: 'Die Zahlen, die Sie haben',
+          body: 'Eine Frage fragt ausdrücklich nach Zahlen: Teamgröße, Budget, Anzahl Standorte oder Kunden. Nur von dort dürfen Zahlen kommen. Lassen Sie das Feld leer, enthält Ihr Lebenslauf keine.',
+        },
+        {
+          title: 'Die KI schreibt das Dokument',
+          body: 'Sie schreibt das Kurzprofil von Grund auf, macht aus jeder Antwort einzelne Stichpunkte mit einem Verb am Anfang, leitet die Daten aus Ihrer Schreibweise ab und sortiert alles in Abschnitte. Wenige Sekunden.',
+        },
+        {
+          title: 'Sie lesen, bevor es existiert',
+          body: 'Nichts wird gespeichert, bevor Sie es gesehen haben. Sie behalten den Entwurf oder gehen zurück und ändern Ihre Antworten. Danach öffnet er sich im Editor wie jeder andere Lebenslauf.',
+        },
+      ],
+    },
+    howTo: true,
+    features: {
+      title: 'Was die KI nicht tut',
+      description:
+        'Genauigkeit versprechen alle. Hier steht der Mechanismus hinter dem Versprechen, damit Sie ihn beurteilen können, statt ihn zu glauben.',
+      columns: 2,
+      items: [
+        {
+          title: 'Sie kann keine Zahl verwenden, die Sie nicht genannt haben',
+          body: 'Nach dem Schreiben wird jeder Stichpunkt mit Ihren Eingaben abgeglichen. Jede Zeile mit einer Zahl, die in Ihren Antworten nicht vorkam, wird entfernt — und Ihnen wird gesagt, wie viele. Keine höfliche Anweisung im Prompt, sondern eine Prüfung, die danach läuft.',
+        },
+        {
+          title: 'Sie formuliert um, sie schmückt nicht aus',
+          body: '„Ich habe das Wartungsteam geführt und die Monatsberichte gemacht“ wird zu zwei sauberen Stichpunkten. Nicht zu „Führung eines 12-köpfigen Teams mit 30 % kürzeren Reaktionszeiten“ — Sie haben weder zwölf noch dreißig Prozent gesagt.',
+        },
+        {
+          title: 'Sie schreibt in Ihrer Sprache',
+          body: 'Antworten Sie auf Deutsch, ist Ihr Lebenslauf auf Deutsch. Es gibt keinen Übersetzungsschritt, der Ihre Worte still in die eines anderen verwandelt.',
+        },
+        {
+          title: 'Danach lässt sich jedes Wort ändern',
+          body: 'Das Ergebnis ist ein ganz normaler Lebenslauf im normalen Editor. Stichpunkt umschreiben, Station löschen, Vorlage wechseln — nichts ist gesperrt, weil eine Maschine den ersten Entwurf geliefert hat.',
+        },
+      ],
+    },
+    prose: [
+      {
+        heading: 'Das eigentliche Problem mit einer KI, die schmeichelt',
+        paragraphs: [
+          'Ein Lebenslauf, der „30 % Verbesserung“ behauptet, provoziert im Gespräch genau eine Frage: Wie haben Sie das gemessen? Wer darauf nicht antworten kann, verliert nicht nur einen Punkt — der Rest der Seite wird ebenfalls fragwürdig.',
+          'Zahlen sind das, was einen Lebenslauf nach Seniorität klingen lässt, und genau deshalb greift ein Sprachmodell nach ihnen. Lassen Sie eine allgemeine KI einen Stichpunkt schreiben und zählen Sie die Prozentangaben, die zurückkommen, ohne dass Sie sie je erwähnt hätten.',
+          'Das Schlimmste: Sie werden es nicht bemerken. Niemand liest einen Satz gegen, der ihm schmeichelt — ein erfundener Erfolg liest sich wie ein guter Tag, den man halb vergessen hatte. Deshalb läuft die Prüfung, bevor Sie den Entwurf sehen.',
+        ],
+      },
+      {
+        heading: 'Sie haben schon einen Lebenslauf?',
+        paragraphs: [
+          'Dann beantworten Sie keine Fragen, sondern laden ihn hoch. Der Import liest eine PDF- oder Word-Datei und füllt den Editor: Stationen, Arbeitgeber, Daten, Stichpunkte, Ausbildung, Kenntnisse und Sprachen.',
+          'Er arbeitet mit dem Seitenlayout statt mit der rohen Textreihenfolge — deshalb kommt ein zweispaltiger Lebenslauf nicht durcheinander zurück. Und er zeigt Ihnen, was er gelesen hat, bevor etwas gespeichert wird.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'Schreibt die KI wirklich, oder ist das nur ein Formular?',
+        answer:
+          'Sie schreibt. Das Kurzprofil kommt in Ihren Antworten überhaupt nicht vor — die KI verfasst es. Aus Ihren einfachen Sätzen werden strukturierte Stichpunkte, und aus „Januar 2021 bis heute“ wird ein Startdatum mit laufender Position. Die Fragen gibt es, weil eine KI nicht über jemanden schreiben kann, von dem sie nichts weiß.',
+      },
+      {
+        question: 'Wie unterscheidet sich das davon, ChatGPT zu fragen?',
+        answer:
+          'In zwei Punkten. Sie stellt zuerst die richtigen Fragen und arbeitet damit an echtem Material, statt einen generischen Lebenslauf für Ihre Berufsbezeichnung zu raten. Und sie behält keine Zahl, die Sie nicht genannt haben — ein allgemeiner Chatbot liefert bereitwillig eine erfundene Prozentzahl, die von einer echten nicht zu unterscheiden ist.',
+      },
+      {
+        question: 'Und wenn ich keine beeindruckenden Zahlen habe?',
+        answer:
+          'Dann enthält Ihr Lebenslauf keine, und das ist in Ordnung. Für das meiste, was sie getan haben, haben die wenigsten Menschen eine saubere Kennzahl. Ein konkreter wahrer Stichpunkt — „monatlicher Berichtszyklus für vier Regionalbüros“ — ist mehr wert als eine erfundene Prozentangabe, weil Sie zehn Minuten darüber sprechen können.',
+      },
+      {
+        question: 'Wie lange dauert das?',
+        answer:
+          'Die Fragen dauern fünf bis zehn Minuten, wenn Sie Ihre Daten kennen. Das Schreiben dauert Sekunden. Die restliche Zeit verbringen Sie im Editor mit Kürzen und Schärfen — und das ist der Teil, der Zeit verdient.',
+      },
+      {
+        question: 'Ist das kostenlos?',
+        answer:
+          'Die Fragen zu beantworten ist kostenlos, und die Fragen sind für sich genommen nützlich: Manche gehen sie durch und schreiben den Lebenslauf danach selbst im Editor, was nichts kostet und nie etwas kosten wird. Der KI-Schritt gehört zu Pro und Lifetime.',
+      },
+      {
+        question: 'In welchen Sprachen funktioniert das?',
+        answer:
+          'Deutsch, Englisch, Französisch und Niederländisch. Die Fragen und ihre Beispiele sind in jeder Sprache geschrieben statt maschinell übersetzt, und der Lebenslauf kommt in der Sprache Ihrer Antworten zurück.',
+      },
+    ],
+    related: [
+      {
+        label: 'Lebenslauf erstellen',
+        href: '/de/lebenslauf-erstellen',
+        description: 'Der Editor, Bildschirm für Bildschirm.',
+      },
+      {
+        label: 'Lebenslauf schreiben',
+        href: '/de/lebenslauf-schreiben',
+        description: 'Vom leeren Blatt zum fertigen Dokument, der Reihe nach.',
+      },
+      ...CORE_LINKS,
+    ],
+  },
   'lebenslauf-erstellen': {
     path: '/de/lebenslauf-erstellen',
     breadcrumb: 'Lebenslauf erstellen',

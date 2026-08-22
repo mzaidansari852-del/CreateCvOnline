@@ -70,7 +70,9 @@ function fullImage(slug: string): string | null {
 }
 
 function imagesFor(templates: { slug: string }[]): string[] {
-  return templates.map((template) => cardImage(template.slug)).filter((url): url is string => url !== null);
+  return templates
+    .map((template) => cardImage(template.slug))
+    .filter((url): url is string => url !== null);
 }
 
 interface Entry {
@@ -96,6 +98,13 @@ const STATIC_ROUTES: Entry[] = [
   { path: '/free-cv-builder', priority: 0.85, changeFrequency: 'monthly' },
   { path: '/cv-examples', priority: 0.85, changeFrequency: 'monthly' },
   { path: '/cv-for', priority: 0.85, changeFrequency: 'monthly' },
+  /*
+   * Search Console shows this site at position 27 and 30 for "how to write a good cv with no
+   * work experience" and "cv for no work experience template" — without a page for either.
+   * That intent was buried inside a blog post and a profession guide; the priority reflects
+   * demand that is already measured rather than demand that is hoped for.
+   */
+  { path: '/cv-no-experience', priority: 0.85, changeFrequency: 'monthly' },
   { path: '/resume-examples', priority: 0.8, changeFrequency: 'monthly' },
 
   // Product and company.

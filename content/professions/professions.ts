@@ -17,6 +17,7 @@
 export { default as accountant } from './accountant';
 export { default as dataAnalyst } from './data-analyst';
 export { default as graphicDesigner } from './graphic-designer';
+export { default as humanResources } from './human-resources';
 export { default as marketingManager } from './marketing-manager';
 export { default as nurse } from './nurse';
 export { default as projectManager } from './project-manager';

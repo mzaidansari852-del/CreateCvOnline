@@ -3,7 +3,14 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { getAllPosts, getAllSlugs, getPost, getPostWordCount, getRelatedPosts, getTableOfContents } from '@/lib/blog';
+import {
+  getAllPosts,
+  getAllSlugs,
+  getPost,
+  getPostWordCount,
+  getRelatedPosts,
+  getTableOfContents,
+} from '@/lib/blog';
 import {
   getAllExampleSlugs,
   getAllExamples,
@@ -129,7 +136,9 @@ describe('blog content', () => {
     const slugs = new Set(getAllSlugs());
     for (const post of posts) {
       for (const related of post.related) {
-        expect(slugs.has(related), `${post.slug} links to a missing article: ${related}`).toBe(true);
+        expect(slugs.has(related), `${post.slug} links to a missing article: ${related}`).toBe(
+          true,
+        );
       }
       expect(post.related, `${post.slug} links to itself`).not.toContain(post.slug);
     }
@@ -160,8 +169,8 @@ describe('blog content', () => {
 describe('profession guides', () => {
   const professions = getAllProfessions();
 
-  it('ships a guide for all ten professions', () => {
-    expect(professions).toHaveLength(10);
+  it('ships a guide for every registered profession', () => {
+    expect(professions).toHaveLength(11);
     expect(new Set(getAllProfessionSlugs()).size).toBe(professions.length);
   });
 
@@ -487,7 +496,11 @@ describe('private path policy', () => {
 
 describe('metadata builder', () => {
   it('produces an absolute canonical URL', () => {
-    const meta = pageMetadata({ title: 'CV builder', description: 'x'.repeat(150), path: '/cv-builder' });
+    const meta = pageMetadata({
+      title: 'CV builder',
+      description: 'x'.repeat(150),
+      path: '/cv-builder',
+    });
     expect(meta.alternates?.canonical).toBe(`${site.url}/cv-builder`);
   });
 

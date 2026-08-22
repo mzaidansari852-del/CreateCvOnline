@@ -42,7 +42,15 @@ const API_KEY = process.env.GEMINI_API_KEY?.trim() ?? '';
  * model beating a frontier model on it. Paying for intelligence that the work does not need
  * buys latency the user waits through.
  */
-const MODEL = process.env.GEMINI_MODEL?.trim() || '';
+/*
+ * A leading `models/` is stripped, because that is how the API lists its own names.
+ *
+ * `ListModels` answers `models/gemini-2.5-flash-lite`, and copying that verbatim into the
+ * variable builds `/v1beta/models/models/gemini-2.5-flash-lite:generateContent` — a 404 that
+ * looks exactly like a model the project cannot use, sending you to check entitlements for a
+ * model you are entitled to.
+ */
+const MODEL = (process.env.GEMINI_MODEL?.trim() ?? '').replace(/^models\//, '');
 
 /**
  * Model names to try, in order, and why there is more than one.

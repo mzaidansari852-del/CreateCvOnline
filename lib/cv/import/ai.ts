@@ -42,7 +42,26 @@ const API_KEY = process.env.GEMINI_API_KEY?.trim() ?? '';
  * model beating a frontier model on it. Paying for intelligence that the work does not need
  * buys latency the user waits through.
  */
-const MODEL = process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash-lite';
+const MODEL = process.env.GEMINI_MODEL?.trim() || '';
+
+/**
+ * Model names to try, in order, and why there is more than one.
+ *
+ * A model id is not a stable fact about the API: names are deprecated, and a given project
+ * may not be entitled to a given model at all — Google returns 404 for both, with the same
+ * message telling you to call `ListModels`. So a hard-coded name is a feature that works
+ * until the day it silently stops, and the failure looks exactly like the vendor being down.
+ *
+ * The configured name is tried first when one is set. The rest are fallbacks, cheapest and
+ * most widely available first, so a 404 costs one extra request rather than the feature.
+ */
+const MODEL_CANDIDATES = [
+  MODEL,
+  'gemini-2.5-flash-lite',
+  'gemini-flash-lite-latest',
+  'gemini-2.5-flash',
+  'gemini-flash-latest',
+].filter((name, index, all) => name && all.indexOf(name) === index);
 
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
@@ -223,7 +242,10 @@ function prompt(text: string, locale: Locale): string {
   ].join('\n');
 }
 
-export class AiExtractionError extends Error {}
+export class AiExtractionError extends Error {
+  /** True when a different model name might succeed — a 404, and nothing else. */
+  retryWithAnotherModel = false;
+}
 
 /**
  * Sends the marked-up text to the model and returns whatever it read.
@@ -235,11 +257,32 @@ export class AiExtractionError extends Error {}
 export async function extractWithModel(text: string, locale: Locale): Promise<AiCv> {
   if (!API_KEY) throw new AiExtractionError('No model API key is configured.');
 
+  /*
+   * A 404 is worth retrying with a different model; nothing else is.
+   *
+   * 404 means "this project cannot use that name" — a different name may work. A 429 or a
+   * 500 means the same request would fail again, and hammering four models in a row on a
+   * rate limit would make the rate limit worse.
+   */
+  let lastError: AiExtractionError | null = null;
+  for (const model of MODEL_CANDIDATES) {
+    try {
+      return await callModel(model, text, locale);
+    } catch (error) {
+      if (!(error instanceof AiExtractionError)) throw error;
+      lastError = error;
+      if (!error.retryWithAnotherModel) break;
+    }
+  }
+  throw lastError ?? new AiExtractionError('The model could not be reached.');
+}
+
+async function callModel(model: string, text: string, locale: Locale): Promise<AiCv> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${ENDPOINT}/${MODEL}:generateContent`, {
+    const response = await fetch(`${ENDPOINT}/${model}:generateContent`, {
       method: 'POST',
       signal: controller.signal,
       headers: { 'content-type': 'application/json', 'x-goog-api-key': API_KEY },
@@ -256,8 +299,20 @@ export async function extractWithModel(text: string, locale: Locale): Promise<Ai
     });
 
     if (!response.ok) {
-      // The body can carry the key back in an error echo, so only the status is kept.
-      throw new AiExtractionError(`Model request failed with status ${response.status}.`);
+      /*
+       * The body is kept, and it is safe to keep.
+       *
+       * The key travels in a header, never in the URL or the payload, so Google's error text
+       * cannot echo it — and that text is the only thing that says *why*. A log line reading
+       * "failed with status 404" sent me looking for an outage; the body says "models/x is
+       * not found for API version v1beta", which names the actual problem in one line.
+       */
+      const detail = (await response.text().catch(() => '')).slice(0, 300);
+      const error = new AiExtractionError(
+        `Model ${model} failed with status ${response.status}. ${detail}`,
+      );
+      error.retryWithAnotherModel = response.status === 404;
+      throw error;
     }
 
     const payload = (await response.json()) as {

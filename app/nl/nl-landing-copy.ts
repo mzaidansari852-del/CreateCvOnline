@@ -604,6 +604,22 @@ export const NL_LANDING: Record<string, Landing> = {
           'De tekst in de pdf is altijd echte tekst. Je kunt hem selecteren, kopiëren en uitlezen — precies wat een Applicant Tracking System doet voordat een mens het bestand opent. Een als afbeelding geëxporteerd cv is voor die software leeg, en dat is een geruisloze manier om te verdwijnen.',
         ],
       },
+      {
+        heading: 'De browser, eerlijk vergeleken met Word',
+        paragraphs: [
+          'Met Word kun je prima een goed cv maken — zolang je niet met de opmaak hoeft te vechten. Het klassieke probleem is niet het gereedschap, maar het moment waarop één extra bullet alles een halve centimeter opschuift en je laatste regel op een tweede pagina valt, in een document waarvan de opmaak met de hand is gebouwd.',
+          'Het tweede probleem zijn de lettertypen. Een .docx wordt bij de ontvanger weergegeven met de lettertypen op diens computer, niet die van jou. Een document met een lettertype dat daar ontbreekt, wordt bij openen volledig opnieuw afgebroken: regelovergangen verschuiven, uitlijning loopt scheef — en jij hoort het nooit.',
+          'Een online editor lost het schrijven niet op; dat blijft het moeilijke deel. Hij lost de opmaak op: het sjabloon bewaakt de typografie, de voorbeeldweergave ís het document, en de pdf wordt geëxporteerd met ingesloten lettertypen zodat het bestand overal hetzelfde oogt.',
+        ],
+      },
+      {
+        heading: 'Google Docs, Canva of een ontwerper?',
+        paragraphs: [
+          'Google Docs lost delen en automatisch opslaan op, maar brengt dezelfde opmaakproblemen als Word mee — plus een pdf-export waarvan de witruimte soms afwijkt van het scherm.',
+          'Canva maakt mooie pagina’s en heel slechte bestanden voor een sollicitatiesysteem: tekstblokken, kolommen en grafische elementen komen er bij het uitlezen in willekeurige volgorde uit. Voor een open sollicitatie aan een mens kan het; voor een vacature via een portaal is het een reële gok.',
+          'Een ontwerper levert het beste resultaat en de duurste wijzigingen: elke functiewissel gaat opnieuw langs hem. Een cv is een levend document waaraan je tijdens een actieve zoektocht vijf keer per maand iets verandert.',
+        ],
+      },
     ],
     showTemplates: true,
     faq: [
@@ -694,6 +710,22 @@ export const NL_LANDING: Record<string, Landing> = {
         paragraphs: [
           'Een voorbeeld toont de vorm, het levert niet de zinnen. Neem de structuur over — het aantal regels, hoe een resultaat is geformuleerd, de volgorde van de secties — en vervang de tekst volledig door die van jou. Een standaardformulering herkent een recruiter meteen, en standaardformuleringen staan in honderden cv’s.',
           'De juiste manier: open het voorbeeld, lees één regel werkervaring, vraag je af wat bij jou het equivalent zou zijn, schrijf het op, ga naar de volgende. Dat is trager dan kopiëren en het enige dat een cv oplevert dat op jou lijkt.',
+        ],
+      },
+      {
+        heading: 'Een sjabloon kiezen op basis van je sector',
+        paragraphs: [
+          'Hoe behoudender de sector, hoe rustiger de opmaak. Banken, advocatuur, overheid, zorg: één kolom, een ingetogen accentkleur, een lettertype zonder franje. Het document hoort niets aan te kondigen voordat de eerste regel is gelezen.',
+          'Design, communicatie, product: een uitgesprokener opmaak wordt verwacht en meestal goed ontvangen — zolang die leesbaar blijft als de sollicitatie via een portaal loopt. Een creatief cv rechtstreeks naar een mens is risicoloos; hetzelfde bestand in een portaal niet.',
+          'Techniek en engineering: dichtheid wint van elegantie. Deze lezers zoeken naar concrete technologieën en scannen; een sjabloon met ruimte voor een nette vaardighedenlijst is meer waard dan een mooi sjabloon dat die samenperst.',
+        ],
+      },
+      {
+        heading: 'Kiezen op basis van de lengte van je loopbaan',
+        paragraphs: [
+          'Starter of overstapper: een sjabloon waarin opleiding en vaardigheden boven werkervaring mogen staan. Je hebt geen vijftien jaar te tonen, en een lang, half leeg ervaringsblok valt meer op dan het geruststelt.',
+          'Vijf tot vijftien jaar: sjablonen met een compacte kop werken het best, omdat de ruimte die je bovenaan wint naar je twee recentste functies gaat — de enige waarover echt wordt doorgevraagd.',
+          'Meer dan vijftien jaar: kies een sjabloon dat op twee pagina’s ademt in plaats van een dat je dwingt alles samen te persen. Je kunt van gedachten veranderen zonder iets over te typen: inhoud en vormgeving zijn losse objecten.',
         ],
       },
     ],

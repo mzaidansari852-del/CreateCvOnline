@@ -620,6 +620,22 @@ export const DE_LANDING: Record<string, Landing> = {
           'Der Text im PDF ist immer echter Text. Man kann ihn markieren, kopieren und auslesen — genau das tut ein Bewerbermanagementsystem, bevor ein Mensch die Datei öffnet. Ein als Bild exportierter Lebenslauf gilt diesen Systemen als leer, und das ist eine lautlose Art zu verschwinden.',
         ],
       },
+      {
+        heading: 'Der Browser, ehrlich mit Word verglichen',
+        paragraphs: [
+          'Mit Word lässt sich ein guter Lebenslauf schreiben — vorausgesetzt, Sie kämpfen nicht mit dem Layout. Das klassische Problem ist nicht das Werkzeug, sondern der Moment, in dem ein zusätzlicher Stichpunkt alles um einen halben Zentimeter verschiebt und Ihre letzte Zeile auf eine zweite Seite kippt — in einem Dokument, dessen Formatierung von Hand gebaut wurde.',
+          'Das zweite Problem sind die Schriften. Eine .docx wird beim Empfänger mit dessen installierten Schriften angezeigt, nicht mit Ihren. Ein Dokument, das eine Schrift verwendet, die dort fehlt, wird beim Öffnen komplett neu umbrochen: Zeilenumbrüche wandern, Ausrichtungen verrutschen — und Sie erfahren nie davon.',
+          'Ein Online-Editor löst nicht das Schreiben, was der schwierige Teil bleibt. Er löst das Layout: Die Vorlage hält die Typografie, die Vorschau ist das Dokument, und die PDF wird mit eingebetteten Schriften exportiert, damit die Datei überall gleich aussieht.',
+        ],
+      },
+      {
+        heading: 'Google Docs, Canva oder eine Agentur?',
+        paragraphs: [
+          'Google Docs löst Teilen und automatisches Speichern, bringt aber dieselben Layoutprobleme wie Word mit — und dazu einen PDF-Export, dessen Abstände gelegentlich von der Bildschirmansicht abweichen.',
+          'Canva erzeugt schöne Seiten und sehr schlechte Dateien für ein Bewerbermanagementsystem: Textblöcke, Spalten und Grafikelemente kommen beim Auslesen in willkürlicher Reihenfolge heraus. Für eine Initiativbewerbung an einen Menschen geht das; für eine Stelle, die über ein Portal läuft, ist es ein echtes Risiko.',
+          'Eine Agentur liefert das beste Aussehen und die schlechtesten Änderungskosten: Jeder Stellenwechsel geht wieder über sie. Ein Lebenslauf ist ein lebendes Dokument, an dem man während einer aktiven Suche fünfmal im Monat etwas ändert.',
+        ],
+      },
     ],
     showTemplates: true,
     faq: [
@@ -710,6 +726,22 @@ export const DE_LANDING: Record<string, Landing> = {
         paragraphs: [
           'Ein Muster zeigt die Form, es liefert nicht die Sätze. Übernehmen Sie die Struktur — die Zeilenzahl, die Art, wie ein Erfolg formuliert ist, die Reihenfolge der Abschnitte — und ersetzen Sie den Text vollständig durch Ihren eigenen. Eine Formulierung von der Stange erkennt man sofort, und Formulierungen von der Stange stehen in hunderten Lebensläufen.',
           'Der sinnvolle Weg: Muster öffnen, eine Zeile Berufserfahrung lesen, sich fragen, was bei Ihnen die Entsprechung wäre, sie aufschreiben, zur nächsten. Das ist langsamer als Kopieren und das einzige Verfahren, das einen Lebenslauf ergibt, der nach Ihnen aussieht.',
+        ],
+      },
+      {
+        heading: 'Eine Vorlage nach Branche wählen',
+        paragraphs: [
+          'Je konservativer die Branche, desto ruhiger das Layout. Banken, Kanzleien, öffentlicher Dienst, Gesundheitswesen: eine Spalte, eine zurückhaltende Akzentfarbe, eine schmucklose Schrift. Das Dokument soll nichts ankündigen, bevor die erste Zeile gelesen ist.',
+          'Design, Kommunikation, Produkt: Ein deutlicheres Layout wird erwartet und meist gut aufgenommen — solange es lesbar bleibt, falls die Bewerbung über ein Portal läuft. Ein kreativer Lebenslauf direkt an einen Menschen ist risikofrei; dieselbe Datei in einem Portal ist es nicht.',
+          'Technik und Ingenieurwesen: Dichte schlägt Eleganz. Diese Lesenden suchen nach konkreten Technologien und überfliegen; eine Vorlage mit Platz für eine geordnete Kenntnisliste ist mehr wert als eine schöne, die sie zusammenquetscht.',
+        ],
+      },
+      {
+        heading: 'Nach Länge des Werdegangs wählen',
+        paragraphs: [
+          'Berufseinstieg oder Wechsel: eine Vorlage, in der Ausbildung und Kenntnisse über die Berufserfahrung rücken dürfen. Sie haben keine fünfzehn Jahre zu zeigen, und ein langer, halb leerer Erfahrungsblock fällt stärker auf, als er beruhigt.',
+          'Fünf bis fünfzehn Jahre: Vorlagen mit kompaktem Kopfbereich passen am besten, weil der oben gewonnene Platz in die beiden jüngsten Stationen fließt — die einzigen, nach denen wirklich gefragt wird.',
+          'Über fünfzehn Jahre: Nehmen Sie eine Vorlage, die auf zwei Seiten atmet, statt einer, die Sie zum Zusammenquetschen zwingt. Umentscheiden kostet nichts: Inhalt und Gestaltung sind getrennte Objekte, ein Wechsel tippt keine Zeile neu.',
         ],
       },
     ],

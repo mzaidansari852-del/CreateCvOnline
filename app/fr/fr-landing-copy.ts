@@ -615,6 +615,22 @@ export const FR_LANDING: Record<string, Landing> = {
           'Le texte du PDF est du vrai texte, toujours. On peut le sélectionner, le copier et l’extraire — ce que fait précisément un logiciel de suivi des candidatures avant qu’un humain n’ouvre le fichier. Un CV exporté en image passe pour vide aux yeux de ces logiciels, et c’est une façon silencieuse de disparaître d’un processus.',
         ],
       },
+      {
+        heading: 'Le navigateur comparé honnêtement à Word',
+        paragraphs: [
+          'Word reste parfaitement capable de produire un bon CV, à une condition : que vous ne vous battiez pas avec la mise en page. Le problème classique n’est pas l’outil, c’est le moment où une puce supplémentaire pousse tout d’un demi-centimètre et fait basculer votre dernière ligne sur une deuxième page — dans un document dont la mise en forme a été faite à la main.',
+          'Le second problème est la police. Un .docx envoyé à un employeur s’affiche avec les polices installées sur sa machine, pas la vôtre. Un document composé avec une police que le destinataire n’a pas se recompose entièrement à l’ouverture : les sauts de ligne changent, l’alignement se décale, et vous ne le saurez jamais.',
+          'Un éditeur en ligne ne résout pas « l’écriture », qui reste la partie difficile. Il résout la mise en page : le modèle tient la typographie, l’aperçu est le document, et le PDF exporte les polices intégrées pour que le fichier s’affiche pareil partout.',
+        ],
+      },
+      {
+        heading: 'Google Docs, Canva, ou un graphiste ?',
+        paragraphs: [
+          'Google Docs règle le partage et l’enregistrement automatique, mais pose les mêmes problèmes de mise en page que Word, avec en prime un export PDF dont l’espacement diffère parfois de l’écran.',
+          'Canva produit de belles pages et de très mauvais fichiers pour un ATS : les blocs de texte, les colonnes et les éléments graphiques ressortent dans le désordre à l’extraction. Pour une candidature spontanée envoyée à un humain, cela passe ; pour une offre passée par un portail, c’est un risque réel.',
+          'Un graphiste donne le meilleur résultat visuel et le pire coût de modification : chaque changement de poste repasse par lui. Un CV est un document vivant qu’on retouche cinq fois par mois pendant une recherche active.',
+        ],
+      },
     ],
     showTemplates: true,
     faq: [
@@ -705,6 +721,22 @@ export const FR_LANDING: Record<string, Landing> = {
         paragraphs: [
           'Un exemple sert à voir la forme, pas à fournir les phrases. Reprenez la structure — le nombre de lignes, la façon dont une réalisation est tournée, l’ordre des rubriques — et remplacez intégralement le texte par le vôtre. Un recruteur reconnaît immédiatement une formule générique, et les formules génériques se retrouvent dans des centaines de CV.',
           'La bonne façon de s’en servir : ouvrez l’exemple, lisez une ligne d’expérience, demandez-vous ce que serait l’équivalent chez vous, écrivez-le, passez à la suivante. C’est plus lent que de copier et c’est le seul procédé qui produit un CV qui vous ressemble.',
+        ],
+      },
+      {
+        heading: 'Choisir un modèle selon votre secteur',
+        paragraphs: [
+          'Plus le secteur est conservateur, plus la mise en page doit être sobre. Banque, droit, fonction publique, santé : une colonne, une couleur d’accentuation discrète, une police sans fioriture. Le document ne doit rien annoncer avant que le recruteur ait lu la première ligne.',
+          'Design, communication, produit : une mise en page plus affirmée est attendue et souvent bien reçue, à condition qu’elle reste lisible par un ATS si la candidature passe par un portail. Un CV créatif envoyé directement à une personne ne court aucun risque ; le même fichier déposé sur un portail en court un réel.',
+          'Technique et ingénierie : privilégiez la densité. Ces recruteurs cherchent des technologies précises et lisent en diagonale ; un modèle qui laisse de la place à une liste de compétences bien rangée vaut mieux qu’un modèle élégant qui la comprime.',
+        ],
+      },
+      {
+        heading: 'Choisir selon la longueur de votre parcours',
+        paragraphs: [
+          'Débutant ou reconversion : un modèle qui laisse la formation et les compétences remonter au-dessus de l’expérience. Vous n’avez pas quinze ans à présenter, et une longue rubrique expérience à moitié vide se remarque plus qu’elle ne rassure.',
+          'Cinq à quinze ans : les modèles à en-tête compact conviennent le mieux, parce que la place gagnée en haut sert à détailler les deux postes les plus récents — les seuls sur lesquels on vous interrogera vraiment.',
+          'Au-delà de quinze ans : choisissez un modèle confortable sur deux pages plutôt qu’un modèle qui vous force à tout comprimer. Vous pouvez changer d’avis sans rien retaper : le contenu et le style sont deux objets distincts.',
         ],
       },
     ],

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { FilePlus2, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { FilePlus2, Sparkles, Upload } from 'lucide-react';
 
 import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Button, ButtonLink } from '@/components/ui/button';
@@ -142,6 +143,29 @@ export function NewCVFlow({
           })}
         </div>
       </section>
+
+      {/*
+        Import sits below the starters rather than beside them.
+
+        It looks like a third way to begin, and semantically it is — but the two above are
+        values of one radio group that this form submits, and importing leaves the form
+        entirely for a flow with its own upload, review and create steps. Making it a third
+        radio would have meant a control that silently means "navigate away" while its
+        neighbours mean "choose an option", which is the kind of inconsistency that reads
+        fine in code and confuses the hand on the mouse.
+      */}
+      <Link
+        href="/dashboard/cvs/import"
+        className="flex items-center gap-3 rounded-xl border border-ink-200 bg-white p-4 transition-colors hover:border-brand-300 hover:bg-ink-50"
+      >
+        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600">
+          <Upload className="size-5" aria-hidden />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-sm font-semibold text-ink-950">{copy.importCv.title}</span>
+          <span className="block text-[13px] leading-snug text-ink-600">{copy.importCv.lede}</span>
+        </span>
+      </Link>
 
       <section aria-labelledby="template-heading">
         <h2 id="template-heading" className="text-base font-semibold text-ink-950">

@@ -2,6 +2,7 @@ import { AUTH_COPY, type AuthCopy } from './copy/auth';
 import { CHROME_COPY, type ChromeCopy } from './copy/chrome';
 import { DASHBOARD_COPY, type DashboardCopy } from './copy/dashboard';
 import { EDITOR_COPY, type EditorCopy } from './copy/editor';
+import { IMPORT_COPY, type ImportCopy } from './copy/import';
 import { LOCALES, type Locale } from './locales';
 
 /**
@@ -24,7 +25,7 @@ import { LOCALES, type Locale } from './locales';
  * because one branch asked `locale === 'fr'`. Nothing caught it for weeks.
  */
 
-export type AppCopy = ChromeCopy & DashboardCopy & AuthCopy & EditorCopy;
+export type AppCopy = ChromeCopy & DashboardCopy & AuthCopy & EditorCopy & ImportCopy;
 
 export const APP_COPY: Record<Locale, AppCopy> = Object.fromEntries(
   LOCALES.map((locale) => [
@@ -34,6 +35,7 @@ export const APP_COPY: Record<Locale, AppCopy> = Object.fromEntries(
       ...DASHBOARD_COPY[locale],
       ...AUTH_COPY[locale],
       ...EDITOR_COPY[locale],
+      ...IMPORT_COPY[locale],
     },
   ]),
 ) as Record<Locale, AppCopy>;

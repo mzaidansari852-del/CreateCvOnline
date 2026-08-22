@@ -1108,6 +1108,33 @@ export function parseCvText(
   const header = (blocks.find((block) => block.id === 'header')?.lines ?? []).map(bare);
   const { personal, filled } = parseHeader(header);
 
+  /*
+   * Contact details are looked for across the whole document, not only above the first
+   * heading.
+   *
+   * On a sidebar template the name is in the main column and the email and telephone are in
+   * the sidebar, under its own heading — so the header block held the name and nothing else,
+   * and a CV that plainly showed an address imported without one. An email address is
+   * unambiguous wherever it appears: nothing else on a CV looks like one, so there is no
+   * reason to insist on where it was printed.
+   *
+   * Only the fields that are still empty are filled, so a contact block that was found where
+   * it was expected still wins over a stray address in a reference or a portfolio link.
+   */
+  const everything = blocks.flatMap((block) => block.lines).map(bare);
+  for (const [field, pattern] of [
+    ['email', EMAIL],
+    ['phone', PHONE],
+    ['linkedin', LINKEDIN],
+  ] as const) {
+    if (personal[field]) continue;
+    const hit = everything.map((line) => line.match(pattern)?.[0]).find(Boolean);
+    if (hit) {
+      personal[field] = hit.trim();
+      filled.push(field);
+    }
+  }
+
   const data: Partial<CVData> = { personal };
   const found: BuiltInSectionId[] = [];
   const partial: BuiltInSectionId[] = [];

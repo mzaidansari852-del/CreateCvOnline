@@ -6,6 +6,7 @@ import './globals.css';
 import { Analytics } from '@/components/analytics/Analytics';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { HtmlLang } from '@/components/layout/HtmlLang';
 import { SkipLink } from '@/components/layout/SkipLink';
 import { ToastProvider } from '@/components/ui/toast';
 import { CV_DOCUMENT_CSS } from '@/lib/cv/document-css';
@@ -68,6 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-dvh bg-white antialiased">
+        <HtmlLang />
         <SkipLink />
 
         <AuthProvider>

@@ -731,9 +731,21 @@ function stripBullet(line: string): string {
  * heading lines immediately above it, and the prose below it up to the next entry's heading.
  * Both layouts collapse to the same shape, because in both the date is the anchor.
  */
-function splitEntries(
-  lines: string[],
-): { head: string[]; body: string[]; range: ReturnType<typeof parseRange> }[] {
+interface Entry {
+  head: string[];
+  body: string[];
+  /**
+   * Annotations found inside the entry — the place it happened, most often.
+   *
+   * Kept apart from `body` because they are not description. Joined into it, a job's
+   * summary reads "Casablanca, Maroc Gestion et animation des techniciens…", with a city
+   * welded onto the front of a sentence, and that is what the user sees in the editor.
+   */
+  notes: string[];
+  range: ReturnType<typeof parseRange>;
+}
+
+function splitEntries(lines: string[]): Entry[] {
   const anchors: number[] = [];
   for (let i = 0; i < lines.length; i++) {
     if (parseRange(bare(lines[i]!))) anchors.push(i);
@@ -756,7 +768,17 @@ function splitEntries(
     while (head.length < 2 && head.length < lines.length && isEntryHeadingLine(lines[head.length]!))
       head.push(lines[head.length]!);
     return head.length
-      ? [{ head: head.map(bare), body: lines.slice(head.length).map(bare), range: null }]
+      ? [
+          {
+            head: head.map(bare),
+            body: lines
+              .slice(head.length)
+              .filter((line) => !isAnnotation(line))
+              .map(bare),
+            notes: lines.slice(head.length).filter(isAnnotation).map(bare).filter(Boolean),
+            range: null,
+          },
+        ]
       : [];
   }
 
@@ -768,7 +790,8 @@ function splitEntries(
    * run into the job below it, so the first entry's description contained the second
    * entry's title.
    */
-  const heads: { at: number; lines: string[]; from: number }[] = [];
+  const heads: { at: number; lines: string[]; from: number; bodyFrom: number; place: string }[] =
+    [];
   for (let a = 0; a < anchors.length; a++) {
     const at = anchors[a]!;
     const previousAnchor = a === 0 ? -1 : anchors[a - 1]!;
@@ -872,29 +895,63 @@ function splitEntries(
      * The short forward scan steps over a date annotation and stops at a bullet, because a
      * bullet is the description beginning and there was no employer line to find.
      */
+    /*
+     * The employer, and then the place, are often on the lines *below* the date.
+     *
+     *     ## Chef de projet transverse            Licence Génie Logiciel Web et Mobiles,  2018-2020
+     *         Nov 2024 - Present                  École nationale des sciences appliquées Meknès.
+     *         CIRCET MOROCCO
+     *         CASABLANCA
+     *
+     * Two templates, same shape. The upward scan cannot reach them, so they are claimed
+     * here — and the body starts *after* whatever was claimed, because a line used as the
+     * employer must not also appear at the head of the job description. Leaving it in
+     * produced summaries reading "ORBINET MAROC Rabat Assurer la maintenance…".
+     *
+     * Only where the title carried no employer of its own: `Marketing Manager - Fieldwire
+     * Systems` already has both halves, and taking the line below would overwrite the
+     * employer with a sentence.
+     */
+    let bodyFrom = at + 1;
+    let place = '';
     if (head.length === 1 && !hasEmployerSeparator(head[0]!)) {
-      for (let i = at + 1; i < Math.min(at + 3, lines.length); i++) {
+      for (let i = at + 1; i < Math.min(at + 4, lines.length); i++) {
         const line = lines[i]!;
         if (isBullet(line) || isEntryTitle(line)) break;
         const value = bare(line);
-        if (!value || parseRange(value)) continue;
+        // A second date line is part of the entry's dating, not its description.
+        if (!value || parseRange(value)) {
+          bodyFrom = i + 1;
+          continue;
+        }
         if (!isEntryHeadingLine(value)) break;
-        head.push(value);
+        if (head.length === 1) {
+          head.push(value);
+          bodyFrom = i + 1;
+          continue;
+        }
+        // A place, not prose: short, and only ever claimed once.
+        if (value.length <= 40) {
+          place = value;
+          bodyFrom = i + 1;
+        }
         break;
       }
     }
 
-    heads.push({ at, lines: head, from });
+    heads.push({ at, lines: head, from, bodyFrom, place });
   }
 
   // Pass two: bodies, each ending where the next entry's heading begins.
-  const entries: { head: string[]; body: string[]; range: ReturnType<typeof parseRange> }[] = [];
+  const entries: Entry[] = [];
   for (let a = 0; a < heads.length; a++) {
     const { at, lines: head } = heads[a]!;
     const bodyEnd = heads[a + 1]?.from ?? lines.length;
+    const span = lines.slice(heads[a]!.bodyFrom, Math.max(heads[a]!.bodyFrom, bodyEnd));
     entries.push({
       head,
-      body: lines.slice(at + 1, Math.max(at + 1, bodyEnd)).map(bare),
+      body: span.filter((line) => !isAnnotation(line)).map(bare),
+      notes: [heads[a]!.place, ...span.filter(isAnnotation).map(bare)].filter(Boolean),
       range: parseRange(bare(lines[at]!)),
     });
   }
@@ -968,7 +1025,7 @@ function parseExperience(lines: string[]): CVData['experience'] {
       id: uid(),
       role,
       company,
-      location,
+      location: location || placeFrom(entry),
       startDate: entry.range?.start ?? '',
       endDate: entry.range?.end ?? '',
       current: entry.range?.current ?? false,
@@ -987,7 +1044,7 @@ function parseEducation(lines: string[]): CVData['education'] {
       degree: role,
       field: '',
       institution: company,
-      location,
+      location: location || placeFrom(entry),
       startDate: entry.range?.start ?? '',
       endDate: entry.range?.end ?? '',
       current: entry.range?.current ?? false,
@@ -1244,6 +1301,16 @@ export function parseCvText(
 /** The author-facing name of a built-in section, in the document's language. */
 function labelFor(id: BuiltInSectionId, locale: Locale | undefined): string {
   return defaultSectionLabels(locale ?? LOCALES[0]!)[id];
+}
+
+/**
+ * Where an entry happened, taken from the annotations printed beside it.
+ *
+ * The first note that is not the employer already claimed as the company. Length-capped
+ * because a note is a place, and something long is a sentence that wandered into the margin.
+ */
+function placeFrom(entry: Entry): string {
+  return entry.notes.find((note) => note.length <= 60) ?? '';
 }
 
 /**

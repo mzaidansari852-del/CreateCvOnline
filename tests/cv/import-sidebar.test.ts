@@ -78,6 +78,27 @@ describe('a sidebar template', () => {
     expect(data.experience?.[1]?.company).toBe('TALVENT MAROC');
   });
 
+  it('keeps each bullet as its own achievement, word for word', async () => {
+    /*
+     * The whole point of importing. A job whose five bullets arrive as one run-on paragraph
+     * has been *rewritten*, not read — and the person then has to unpick a paragraph the
+     * importer built out of their own sentences.
+     */
+    const { data } = parseCvText((await marked()).text, { locale: 'en' });
+    expect(data.experience?.[0]?.achievements).toEqual([
+      'Assurer la maintenance curative du parc réseau mobile régional.',
+    ]);
+    expect(data.experience?.[0]?.description).toBe('');
+  });
+
+  it('puts the place in the location field, not in the description', async () => {
+    // `Casablanca, Maroc Gestion et animation des techniciens…` is what happens otherwise:
+    // a city welded onto the front of a sentence, in the field the user reads first.
+    const { data } = parseCvText((await marked()).text, { locale: 'en' });
+    expect(data.experience?.[0]?.location).toBe('Rabat');
+    expect(data.experience?.[0]?.description).not.toContain('Rabat');
+  });
+
   it('leaves no structural marks in the content it stores', async () => {
     // `##` is how the layout says "entry title". A name that reads `## Nadia Belhaj` is
     // that structure leaking into the document the user is about to send to an employer.

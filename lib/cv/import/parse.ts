@@ -358,7 +358,7 @@ export function isKnownSectionHeading(line: string): boolean {
 
 function headingFor(line: string): BuiltInSectionId | null {
   const cleaned = line
-    .replace(/^[•·▪◦\-–—*]\s*/, '')
+    .replace(/^[•·▪◦\-–—*-]\s*/, '')
     .replace(/[:：]\s*$/, '')
     .trim();
   if (!cleaned || cleaned.length > 40) return null;
@@ -679,7 +679,7 @@ function hasEmployerSeparator(line: string): boolean {
  * bullet is how entries stop being found at all.
  */
 function isBullet(line: string): boolean {
-  return /^[•·▪◦‣⁃]\s*\S/.test(line) || /^[-–—*]\s/.test(line);
+  return /^[•·▪◦‣⁃-]\s*\S/.test(line) || /^[-–—*]\s/.test(line);
 }
 
 /**
@@ -702,7 +702,7 @@ function isEntryHeadingLine(line: string): boolean {
 
 function stripBullet(line: string): string {
   return line
-    .replace(/^[•·▪◦‣⁃]\s*/, '')
+    .replace(/^[•·▪◦‣⁃-]\s*/, '')
     .replace(/^[-–—*]\s+/, '')
     .trim();
 }
@@ -745,7 +745,183 @@ interface Entry {
   range: ReturnType<typeof parseRange>;
 }
 
+/**
+ * A lone date: `Sept 2024`, `2021`. Not a range, and not nothing.
+ *
+ * Whole templates date an entry with one date — the month you started, the year you
+ * graduated. Anchoring only on ranges skipped every such entry, which on one CV lost a job
+ * and two of three degrees while leaving their bullet points attached to whatever entry came
+ * next. Deliberately not used by the range scan: a bare year appears in prose constantly, and
+ * treating those as entry boundaries would cut jobs in half. It is only consulted where the
+ * *layout* has already said an entry begins here.
+ */
+const SINGLE_DATE = new RegExp(String.raw`(${MONTH_WORD}${DATE})`, 'iu');
+
+function parseSingleDate(line: string): ReturnType<typeof parseRange> {
+  const match = line.match(SINGLE_DATE);
+  if (!match) return null;
+  const start = normaliseDate(match[1] ?? '');
+  return start ? { start, end: '', current: false } : null;
+}
+
+/**
+ * Splits a section using the entry titles the layout marked, rather than its dates.
+ *
+ * ## Why this is better evidence than a date
+ *
+ * A date is where an entry *is dated*, which is usually but not always where it begins, and
+ * plenty of CVs give only one date per entry — or none. The title is where it actually
+ * begins, and on any template that sets titles apart typographically the layout reader has
+ * already found them. Splitting on those needs no rule about what a job title looks like.
+ *
+ * Returns null where the document does not distinguish titles, or marks only one: the date
+ * scan is better than a single boundary, and both are better than guessing.
+ *
+ * ## Consecutive marks are one heading, not several
+ *
+ * Templates set the employer at title size too, and wrap a long title across two lines. So a
+ * *run* of marked lines is one heading — and a run whose later lines begin in lower case is
+ * a wrapped sentence, joined back together rather than read as an employer called
+ * "et Préparation".
+ */
+function splitByEntryMarks(lines: string[]): Entry[] | null {
+  const runs: { start: number; end: number }[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (!isEntryTitle(lines[i]!)) continue;
+
+    /*
+     * A title never begins in lower case.
+     *
+     * Long body sentences wrap, and a template that sets the wrapped remainder at title size
+     * marks it like a title. `respectant des mesures précises.` — the tail of a bullet about
+     * crimping wire — became a job. Case is what separates the two, and it is the same rule a
+     * reader applies without thinking.
+     */
+    if (/^\p{Ll}/u.test(bare(lines[i]!))) continue;
+
+    const start = i;
+    while (i + 1 < lines.length && isEntryTitle(lines[i + 1]!)) {
+      /*
+       * A date completes an entry.
+       *
+       * Templates that set the school at title size produce one unbroken run of marked
+       * lines for a whole section — degree, school and year, three times over — which read
+       * as a single run is one qualification instead of three. The year is where each one
+       * ends, and it is the only thing in the run that says so.
+       */
+      if (parseRange(bare(lines[i]!)) || parseSingleDate(bare(lines[i]!))) break;
+      i++;
+    }
+    runs.push({ start, end: i });
+  }
+  if (runs.length < 2) return null;
+
+  const entries: Entry[] = [];
+  for (const [index, run] of runs.entries()) {
+    const head: string[] = [];
+    for (const line of lines.slice(run.start, run.end + 1).map(bare)) {
+      // A continuation of the line above, not a new field.
+      if (head.length > 0 && /^\p{Ll}/u.test(line)) head[head.length - 1] += ` ${line}`;
+      else head.push(line);
+    }
+
+    /*
+     * The date is often inside the heading itself — `Faculté … Kenitra | 2021` — and it has
+     * to come out, or the school is stored as "Faculté d'Economie et de Gestion, Kenitra |
+     * 2021" and the qualification has no year at all.
+     *
+     * Ranges first, because a range is unambiguous; a lone date only where no range was
+     * found, and only here, where the layout has already said this line is a heading.
+     */
+    let range: ReturnType<typeof parseRange> = null;
+    const takeDate = (pattern: RegExp, read: (line: string) => ReturnType<typeof parseRange>) => {
+      if (range) return;
+      for (const [i, line] of head.entries()) {
+        const found = read(line);
+        if (!found) continue;
+        range = found;
+        head[i] = line
+          .replace(pattern, '')
+          .replace(/[|,–—-]\s*$/, '')
+          .trim();
+        return;
+      }
+    };
+    takeDate(RANGE, parseRange);
+    takeDate(SINGLE_DATE, parseSingleDate);
+
+    const spanEnd = runs[index + 1]?.start ?? lines.length;
+    const span = lines.slice(run.end + 1, spanEnd);
+    const notes: string[] = [];
+    let consumed = 0;
+
+    /*
+     * Whatever the template printed beside the title comes first: the dates, then the place.
+     *
+     * These arrive as annotations, and reading them as description put `Nov 2024 – Present`
+     * at the head of a job summary and left the entry undated.
+     */
+    while (consumed < span.length && isAnnotation(span[consumed]!)) {
+      const value = bare(span[consumed]!);
+      const found = parseRange(value) ?? parseSingleDate(value);
+      if (found && !range) range = found;
+      else if (value) notes.push(value);
+      consumed += 1;
+    }
+
+    /*
+     * The line under the title, when it is not a bullet, is the employer — and often carries
+     * the date as well: `Ministère de l'éducation nationale … | Sept 2024`. Taken as
+     * description it put the employer at the front of the job summary and left the entry
+     * undated.
+     */
+    const first = span[consumed];
+    if (first && !isBullet(first) && !isAnnotation(first) && head.length < 3) {
+      const value = bare(first);
+      const found = parseRange(value) ?? parseSingleDate(value);
+      const label = found
+        ? value
+            .replace(RANGE, '')
+            .replace(SINGLE_DATE, '')
+            .replace(/[|,–—-]\s*$/, '')
+            .trim()
+        : value;
+      if (found && !range) range = found;
+      if (label && label.length <= 90 && (found || isEntryHeadingLine(label))) {
+        head.push(label);
+        consumed += 1;
+      }
+    }
+
+    /*
+     * And then, sometimes, the place on its own line. Short, because a place is short and a
+     * description is not — this is the line that would otherwise open the job summary with
+     * the name of a city.
+     */
+    const place = span[consumed];
+    if (place && !isBullet(place) && !isAnnotation(place) && head.length >= 2) {
+      const value = bare(place);
+      if (value && value.length <= 40 && isEntryHeadingLine(value)) {
+        notes.push(value);
+        consumed += 1;
+      }
+    }
+
+    const rest = span.slice(consumed);
+    entries.push({
+      head: head.filter(Boolean).slice(0, 3),
+      body: rest.filter((line) => !isAnnotation(line)).map(bare),
+      notes: [...notes, ...rest.filter(isAnnotation).map(bare)].filter(Boolean),
+      range,
+    });
+  }
+  return entries;
+}
+
 function splitEntries(lines: string[]): Entry[] {
+  const byMarks = splitByEntryMarks(lines);
+  if (byMarks) return byMarks;
+
   const anchors: number[] = [];
   for (let i = 0; i < lines.length; i++) {
     if (parseRange(bare(lines[i]!))) anchors.push(i);

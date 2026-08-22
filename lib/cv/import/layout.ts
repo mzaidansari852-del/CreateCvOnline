@@ -56,6 +56,15 @@ export interface LayoutDocument {
   multiColumn: boolean;
   /** The body text size, used by callers to judge what counts as "larger than normal". */
   bodySize: number;
+  /**
+   * Body size for each column separately.
+   *
+   * One figure for the page is wrong on a layout whose columns are set differently — a
+   * narrow sidebar at 9pt beside a main column at 10.1pt. Judged against the page, every
+   * paragraph in the wider column looks larger than the body, and each one was marked as an
+   * entry title: a profile paragraph came back as eight separate jobs.
+   */
+  bodySizes: Map<number, number>;
 }
 
 /** Two text runs belong to the same line when their baselines are within this many units. */
@@ -185,7 +194,30 @@ export async function readLayout(pdf: PDFDocumentProxy): Promise<LayoutDocument>
     }
   }
 
-  return { lines, pages: pdf.numPages, multiColumn, bodySize: modeSize(sizeCounts) };
+  /*
+   * Weighted by characters, not by lines.
+   *
+   * A sidebar of twenty short entries would otherwise outvote a main column of five long
+   * paragraphs, and the body size of the document would be the size of its captions.
+   */
+  const bodySizes = new Map<number, number>();
+  for (const column of new Set(lines.map((line) => line.column))) {
+    const counts = new Map<number, number>();
+    for (const line of lines) {
+      if (line.column !== column) continue;
+      const size = sizeKey(line.size);
+      counts.set(size, (counts.get(size) ?? 0) + line.text.length);
+    }
+    bodySizes.set(column, modeSize(counts));
+  }
+
+  return {
+    lines,
+    pages: pdf.numPages,
+    multiColumn,
+    bodySize: modeSize(sizeCounts),
+    bodySizes,
+  };
 }
 
 /**
@@ -379,7 +411,8 @@ export function toMarkedText(
        * titles at body size and lean on weight instead — those produce no marks here, and
        * the parser falls back to the rules it used before any of this existed.
        */
-      if (line.size > document.bodySize + 0.15 && line.text.length <= 120) {
+      const columnBody = document.bodySizes.get(line.column) ?? document.bodySize;
+      if (line.size > columnBody + 0.15 && line.text.length <= 120) {
         return `${ENTRY_MARK}${line.text}`;
       }
 

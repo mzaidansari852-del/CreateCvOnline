@@ -133,6 +133,31 @@ describe('CV import parser', () => {
     });
   });
 
+  describe('bullets other tools write', () => {
+    it('recognises the private-use glyph Word uses for a bullet', () => {
+      /*
+       * Word writes its bullets as U+F0B7, a private-use character with no meaning outside
+       * the font that draws it. Matching only the typographic glyphs meant no line in the
+       * document was a bullet, every line was prose, and six achievements arrived as one
+       * paragraph with a row of little boxes through it.
+       */
+      const { data } = parseCvText(
+        [
+          'Work Experience',
+          'Gestionnaire des services',
+          'Ministère | Sept 2024',
+          '\uF0B7 Préparer et suivre le budget annuel.',
+          '\uF0B7 Superviser la gestion des dépenses.',
+        ].join('\n'),
+      );
+      expect(data.experience?.[0]?.achievements).toEqual([
+        'Préparer et suivre le budget annuel.',
+        'Superviser la gestion des dépenses.',
+      ]);
+      expect(data.experience?.[0]?.description).toBe('');
+    });
+  });
+
   describe('when there is nothing to read', () => {
     it('returns empty rather than inventing structure', () => {
       const { data, report } = parseCvText('   \n  \n ');

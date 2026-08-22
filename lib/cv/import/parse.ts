@@ -463,9 +463,21 @@ function isAllCapsHeading(line: string, previous: string | undefined): boolean {
  * satisfies neither, so it stays where it is.
  */
 function continuesPrevious(previous: string | undefined, line: string): boolean {
-  if (!previous || !isBullet(previous) || isBullet(line)) return false;
-  if (/[.!?]$/.test(previous)) return false;
-  return /^\p{Ll}/u.test(line) || /,$/.test(previous);
+  /*
+   * Compared bare, because a wrapped tail is sometimes *marked*.
+   *
+   * A template that sets a heading size can catch the last line of a long bullet as it wraps,
+   * and mark it as an entry title. Testing the raw string then found `## respectant des
+   * mesures précises.` — which starts with a `#`, not a lower-case letter — so the join was
+   * refused, the achievement was stored ending "…et terminaux, en", and its final clause
+   * turned up underneath as a description nobody wrote.
+   */
+  if (!previous) return false;
+  const before = bare(previous);
+  const after = bare(line);
+  if (!isBullet(before) || isBullet(after)) return false;
+  if (/[.!?]$/.test(before)) return false;
+  return /^\p{Ll}/u.test(after) || /,$/.test(before);
 }
 
 /**
@@ -534,7 +546,8 @@ function splitIntoBlocks(text: string): Block[] {
 
     const current = blocks[blocks.length - 1]!.lines;
     if (continuesPrevious(current[current.length - 1], line)) {
-      current[current.length - 1] = `${current[current.length - 1]} ${line}`;
+      // The tail joins as plain text: its mark described where it was printed, not what it is.
+      current[current.length - 1] = `${current[current.length - 1]} ${bare(line)}`;
       continue;
     }
     current.push(line);

@@ -167,6 +167,31 @@ export const TRANSLATED_PATHS: Record<string, PathGroup> = {
     de: '/de/cookies',
     nl: '/nl/cookies',
   },
+  /*
+   * ── Deliberately absent ──────────────────────────────────────────────────────
+   *
+   * `/resume-builder`, `/resume-maker`, `/resume-templates`, `/resume-examples` and
+   * `/ats-resume` are English-only and should stay that way. They are not pages we have not
+   * got round to: they are about the *US resume*, and they say so — Letter paper, one page,
+   * no photograph, no date of birth, and an explicit section on how a resume differs from a
+   * CV.
+   *
+   * Translating them would be actively wrong in three ways. It would explain American
+   * conventions to someone applying in France or Germany; it would duplicate
+   * `/fr/creer-un-cv`, `/de/lebenslauf-erstellen` and `/nl/cv-maken`, which already cover
+   * the document those readers are actually writing; and the two sets would then compete for
+   * the same queries, because `resume` is not a word French, German or Dutch speakers search
+   * for — they search for `CV`, `Lebenslauf` and `cv`.
+   *
+   * This is recorded here rather than left implicit because the absence looks exactly like
+   * an oversight from the outside: nine English-only routes in a table where everything else
+   * has four languages. Five of them are a decision.
+   *
+   * The other four — `/professional-cv`, `/cv-examples`, `/cv-for` and `/blog`, plus their
+   * twenty-five dynamic children — are an open question rather than a decision. They are the
+   * long-form editorial content, they are read-and-leave traffic, and their commercial
+   * ground is already covered in all four languages by the pages above.
+   */
   '/refund-policy': {
     en: '/refund-policy',
     fr: '/fr/remboursement',

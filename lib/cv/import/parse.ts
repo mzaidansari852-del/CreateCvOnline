@@ -440,7 +440,7 @@ function isAllCapsHeading(line: string, previous: string | undefined): boolean {
    * Two words minimum.
    *
    * Single-word all-caps lines are overwhelmingly places and employers — `CASABLANCA`,
-   * `BTSCOM` — while the single-word headings that matter (`EDUCATION`, `FORMATION`,
+   * `NORELIS` — while the single-word headings that matter (`EDUCATION`, `FORMATION`,
    * `PROFILE`) are in the heading table already and never reach here. Missing an unknown
    * one-word heading costs a section absorbed into its neighbour, visible on the review
    * screen; guessing wrong costs the user their history, silently. The costs are not
@@ -619,7 +619,7 @@ function parseHeader(lines: string[]): { personal: CVData['personal']; filled: s
    * The place, which is whatever is left on the contact line once the contact details are
    * taken out of it.
    *
-   * `saadtriss@outlook.com 0655934432 Casablanca Maroc` is one line on a real CV, and after
+   * `nadia@example.com 0612345678 Casablanca Maroc` is one line on a real CV, and after
    * removing the address, the number and any link, `Casablanca Maroc` is what remains — a
    * city and a country, which is precisely the field. Every CV audited had its location
    * printed plainly and every one imported without it, because nothing looked here.
@@ -698,7 +698,7 @@ function parseHeader(lines: string[]): { personal: CVData['personal']; filled: s
 /**
  * The place, taken from whatever is left on a contact line once the contact details are out.
  *
- * `saadtriss@outlook.com 0655934432 Casablanca Maroc` is one line on a real CV, and after
+ * `nadia@example.com 0612345678 Casablanca Maroc` is one line on a real CV, and after
  * removing the address, the number and any link, `Casablanca Maroc` is what remains — a city
  * and a country, which is exactly the field. Every CV audited printed its location plainly
  * and every one imported without it, because nothing looked here.
@@ -748,7 +748,7 @@ function isEntryTitle(line: string): boolean {
  */
 function hasEmployerSeparator(line: string): boolean {
   const tidy = line.replace(/[,;]+$/, '');
-  // Brackets count. `Chef de projet transverse (CIRCET MOROCCO)` names its employer as
+  // Brackets count. `Chef de projet transverse (ORBINET MAROC)` names its employer as
   // surely as a dash does, and a head that already has one must not adopt the line below —
   // which on that CV was the city.
   if (/\(([^()]{2,60})\)$/.test(tidy)) return true;
@@ -1150,7 +1150,7 @@ function splitEntries(lines: string[]): Entry[] {
      *
      *     ## Chef de projet transverse            Licence Génie Logiciel Web et Mobiles,  2018-2020
      *         Nov 2024 - Present                  École nationale des sciences appliquées Meknès.
-     *         CIRCET MOROCCO
+     *         ORBINET MAROC
      *
      * Two templates, same shape: a title, its dates, then the organisation. The upward scan
      * cannot reach it, so it is claimed here — but only when the title carried no employer
@@ -1165,7 +1165,7 @@ function splitEntries(lines: string[]): Entry[] {
      *
      *     ## Chef de projet transverse            Licence Génie Logiciel Web et Mobiles,  2018-2020
      *         Nov 2024 - Present                  École nationale des sciences appliquées Meknès.
-     *         CIRCET MOROCCO
+     *         ORBINET MAROC
      *         CASABLANCA
      *
      * Two templates, same shape. The upward scan cannot reach them, so they are claimed
@@ -1240,7 +1240,7 @@ function splitRoleAndCompany(head: string[]): { role: string; company: string; l
   const second = tidy(head[1] ?? '');
 
   /*
-   * `Chef de projet transverse (CIRCET MOROCCO)` — the employer in brackets.
+   * `Chef de projet transverse (ORBINET MAROC)` — the employer in brackets.
    *
    * Checked before the separators below because the brackets are unambiguous: nothing else
    * puts a parenthesised phrase at the end of a title line. Without this the whole string
@@ -1469,7 +1469,7 @@ export function parseCvText(
   options: { likelyMultiColumn?: boolean; locale?: Locale } = {},
 ): ParsedCv {
   const blocks = splitIntoBlocks(text);
-  // Bared: the marks are structure, and a name that reads `## Saad TRISS` is the structure
+  // Bared: the marks are structure, and a name that reads `## Nadia Belhaj` is the structure
   // leaking into the document. `splitEntries` gets the marked lines; nothing else needs them.
   const header = blocks
     .filter((block) => block.id === 'header')

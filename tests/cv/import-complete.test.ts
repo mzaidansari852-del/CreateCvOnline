@@ -14,9 +14,9 @@ import { cvDataSchema } from '@/types/cv';
  */
 
 const FRENCH_CV = [
-  'Saad Example',
+  'Nadia Example',
   'Coordinateur de projet',
-  'saad@example.com | 0655934432',
+  'nadia@example.com | 0612345678',
   'Profil',
   'Coordinateur de projet, huit ans dans la transformation industrielle.',
   'Expérience professionnelle',
@@ -51,7 +51,7 @@ describe('completeCv', () => {
     const cv = completeCv(cvDataSchema.parse(parseCvText(FRENCH_CV).data), 'fr');
     expect(cv.experience).toHaveLength(1);
     expect(cv.education).toHaveLength(1);
-    expect(cv.personal.email).toBe('saad@example.com');
+    expect(cv.personal.email).toBe('nadia@example.com');
   });
 
   it('labels the sections in the account language', () => {

@@ -70,7 +70,7 @@ describe('layout extraction', () => {
 
   it('keeps words apart and does not glue them together', async () => {
     // pdf.js emits the spaces between words as separate runs; dropping them produced
-    // `Chefdeprojettransverse(CIRCETMOROCCO)`.
+    // `Chefdeprojettransverse(ORBINETMAROC)`.
     const marked = toMarkedText(await layout(), isKnownSectionHeading);
     expect(marked).toContain('Cheffe de projet transverse');
   });

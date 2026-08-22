@@ -14,13 +14,13 @@ import { parseCvText } from '@/lib/cv/import/parse';
 
 const REAL_SHAPE = [
   'EXPERIENCE PROFESIONNELLE',
-  'Chef de projet transverse (CIRCET MOROCCO)',
+  'Chef de projet transverse (ORBINET MAROC)',
   '·Assurer la maintenance curative du parc réseau mobile Orange (2100 sites).',
   '·Suivi de la maintenance préventive et respect du planning établi.',
   '11/2024 – present',
   'CASABLANCA',
   '·Gestion et élaboration des tableaux de bord et rapports des KPI.',
-  'Coordinateur Du Projet Corrective & Préventive, SAMSIC MAROC',
+  'Coordinateur Du Projet Corrective & Préventive, TALVENT MAROC',
   '•Assurer la maintenance curative du parc réseau mobile INWI (800 sites).',
   '•Gestion et animation des techniciens de maintenance selon les régions.',
   '07/2024 – 10/2024',
@@ -51,7 +51,7 @@ describe('a real two-column French CV', () => {
     // date were read as job titles, and roles came back named after their own first bullet.
     const { data } = parseCvText(REAL_SHAPE);
     expect(data.experience?.[1]?.role).toBe('Coordinateur Du Projet Corrective & Préventive');
-    expect(data.experience?.[1]?.company).toBe('SAMSIC MAROC');
+    expect(data.experience?.[1]?.company).toBe('TALVENT MAROC');
   });
 
   it('finds the heading even when the CV spells it wrong', () => {
@@ -63,7 +63,7 @@ describe('a real two-column French CV', () => {
   it('takes the employer out of the brackets', () => {
     const { data } = parseCvText(REAL_SHAPE);
     expect(data.experience?.[0]?.role).toBe('Chef de projet transverse');
-    expect(data.experience?.[0]?.company).toBe('CIRCET MOROCCO');
+    expect(data.experience?.[0]?.company).toBe('ORBINET MAROC');
   });
 
   it('does not swallow the word before a date as if it were a month', () => {
@@ -104,7 +104,7 @@ describe('a real two-column French CV', () => {
     const { data } = parseCvText(
       [
         'Work Experience',
-        'Coordinateur Hotline, BTSCOM',
+        'Coordinateur Hotline, NORELIS',
         '•Suivie des incidents pendant les week-ends',
         '02/2021 – 12/2021',
       ].join('\n'),

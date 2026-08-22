@@ -23,7 +23,7 @@
  * annotations entirely, which is the failure mode that looks like it is working.
  */
 
-export const LOCALES = ['en', 'fr', 'de'] as const;
+export const LOCALES = ['en', 'fr', 'de', 'nl'] as const;
 export type Locale = (typeof LOCALES)[number];
 
 export const DEFAULT_LOCALE: Locale = 'en';
@@ -44,7 +44,30 @@ export const LOCALE_META: Record<
   en: { tag: 'en', ogLocale: 'en_US', label: 'English', prefix: '' },
   fr: { tag: 'fr', ogLocale: 'fr_FR', label: 'Français', prefix: '/fr' },
   de: { tag: 'de', ogLocale: 'de_DE', label: 'Deutsch', prefix: '/de' },
+  nl: { tag: 'nl', ogLocale: 'nl_NL', label: 'Nederlands', prefix: '/nl' },
 };
+
+/**
+ * The set of addresses one page has, keyed by language.
+ *
+ * English is mandatory and every other language is optional, which is the shape the site
+ * actually has rather than the shape it would have if translation finished all at once.
+ * The previous type was `Record<Locale, string>` — every language, always — and it forced
+ * a choice between two bad options for a page translated into some languages but not all:
+ * leave it out of the map entirely and lose the `hreflang` pairing it *had* earned, or
+ * invent a path for the missing language and emit an annotation pointing at a 404.
+ *
+ * Google's handling of the second one is the reason this matters. A cluster containing a
+ * broken or non-reciprocal annotation is discarded *as a cluster* — the working pairs in
+ * it stop counting too. So one placeholder Dutch URL on the CV-builder page would take
+ * the genuine English/French pairing down with it.
+ */
+export type PathGroup = Partial<Record<Locale, string>> & { en: string };
+
+/** The languages a group actually publishes, in `LOCALES` order. */
+export function localesIn(group: PathGroup): Locale[] {
+  return LOCALES.filter((locale) => typeof group[locale] === 'string');
+}
 
 /**
  * Pages that exist in both languages, keyed by the English path.
@@ -54,46 +77,82 @@ export const LOCALE_META: Record<
  * annotation at all — so this map grows one line at a time as pages are written, and the
  * test suite checks every path in it actually resolves.
  */
-export const TRANSLATED_PATHS: Record<string, Record<Locale, string>> = {
-  '/': { en: '/', fr: '/fr', de: '/de' },
-  '/templates': { en: '/templates', fr: '/fr/modeles-de-cv', de: '/de/lebenslauf-vorlagen' },
-  '/pricing': { en: '/pricing', fr: '/fr/tarifs', de: '/de/preise' },
+export const TRANSLATED_PATHS: Record<string, PathGroup> = {
+  '/': { en: '/', fr: '/fr', de: '/de', nl: '/nl' },
+  '/templates': {
+    en: '/templates',
+    fr: '/fr/modeles-de-cv',
+    de: '/de/lebenslauf-vorlagen',
+    nl: '/nl/cv-sjablonen',
+  },
+  '/pricing': { en: '/pricing', fr: '/fr/tarifs', de: '/de/preise', nl: '/nl/prijzen' },
   '/templates/modern': {
     en: '/templates/modern',
     fr: '/fr/modeles-de-cv/moderne',
     de: '/de/lebenslauf-vorlagen/modern',
+    nl: '/nl/cv-sjablonen/modern',
   },
   '/templates/corporate': {
     en: '/templates/corporate',
     fr: '/fr/modeles-de-cv/entreprise',
     de: '/de/lebenslauf-vorlagen/business',
+    nl: '/nl/cv-sjablonen/zakelijk',
   },
   '/templates/creative': {
     en: '/templates/creative',
     fr: '/fr/modeles-de-cv/creatif',
     de: '/de/lebenslauf-vorlagen/kreativ',
+    nl: '/nl/cv-sjablonen/creatief',
   },
   '/templates/technology': {
     en: '/templates/technology',
     fr: '/fr/modeles-de-cv/informatique',
     de: '/de/lebenslauf-vorlagen/it',
+    nl: '/nl/cv-sjablonen/it',
   },
   '/templates/classic': {
     en: '/templates/classic',
     fr: '/fr/modeles-de-cv/classique',
     de: '/de/lebenslauf-vorlagen/klassisch',
+    nl: '/nl/cv-sjablonen/klassiek',
   },
   '/templates/ats': {
     en: '/templates/ats',
     fr: '/fr/modeles-de-cv/ats',
     de: '/de/lebenslauf-vorlagen/ats',
+    nl: '/nl/cv-sjablonen/ats',
   },
+
+  /*
+   * The commercial landing pages, English and French only.
+   *
+   * These are the pages that carry buying intent — `créer un CV en ligne`, `CV gratuit`,
+   * `CV ATS` — and they are the reason `PathGroup` allows a missing language. There is no
+   * German or Dutch version yet, and the map says so rather than pretending: each of these
+   * emits a two-language `hreflang` cluster that is complete and reciprocal on its own
+   * terms, which is what Google requires. When the German and Dutch versions are written,
+   * they are one key each, and the annotations widen without anything else changing.
+   */
+  '/cv-builder': { en: '/cv-builder', fr: '/fr/creer-un-cv' },
+  '/cv-maker': { en: '/cv-maker', fr: '/fr/faire-un-cv' },
+  '/create-cv-online': { en: '/create-cv-online', fr: '/fr/cv-en-ligne' },
+  '/cv-templates': { en: '/cv-templates', fr: '/fr/exemples-de-cv' },
+  '/ats-cv': { en: '/ats-cv', fr: '/fr/cv-ats' },
+  '/free-cv-builder': { en: '/free-cv-builder', fr: '/fr/cv-gratuit' },
+  '/features': { en: '/features', fr: '/fr/fonctionnalites' },
+  '/faq': { en: '/faq', fr: '/fr/faq' },
+  '/about': { en: '/about', fr: '/fr/a-propos' },
+  '/contact': { en: '/contact', fr: '/fr/contact' },
+  '/privacy': { en: '/privacy', fr: '/fr/confidentialite' },
+  '/terms': { en: '/terms', fr: '/fr/conditions-generales' },
+  '/cookies': { en: '/cookies', fr: '/fr/cookies' },
+  '/refund-policy': { en: '/refund-policy', fr: '/fr/remboursement' },
 };
 
 /** Every path in the map, from either side, so a lookup works in both directions. */
-const BY_PATH = new Map<string, Record<Locale, string>>();
+const BY_PATH = new Map<string, PathGroup>();
 for (const group of Object.values(TRANSLATED_PATHS)) {
-  for (const path of Object.values(group)) BY_PATH.set(normalisePath(path), group);
+  for (const locale of localesIn(group)) BY_PATH.set(normalisePath(group[locale]!), group);
 }
 
 /**
@@ -106,9 +165,7 @@ for (const group of Object.values(TRANSLATED_PATHS)) {
  * `modèle de CV`.
  */
 export function templatePath(slug: string, locale: Locale): string {
-  if (locale === 'fr') return `/fr/modeles-de-cv/${slug}`;
-  if (locale === 'de') return `/de/lebenslauf-vorlagen/${slug}`;
-  return `/templates/${slug}`;
+  return `${TEMPLATE_ROOT[locale]}/${slug}`;
 }
 
 /** The segment each language puts its templates under. */
@@ -116,6 +173,7 @@ export const TEMPLATE_ROOT: Record<Locale, string> = {
   en: '/templates',
   fr: '/fr/modeles-de-cv',
   de: '/de/lebenslauf-vorlagen',
+  nl: '/nl/cv-sjablonen',
 };
 
 /** Trailing slashes and casing are not meaningful here; `/fr/` and `/fr` are one page. */
@@ -142,7 +200,7 @@ export function localeOf(path: string): Locale {
  * cheap to express: an untranslated page should carry no `hreflang` at all rather than one
  * that claims a French version exists.
  */
-export function alternatesFor(path: string): Record<Locale, string> | null {
+export function alternatesFor(path: string): PathGroup | null {
   const normalised = normalisePath(path);
   const listed = BY_PATH.get(normalised);
   if (listed) return listed;
@@ -166,6 +224,7 @@ export function alternatesFor(path: string): Record<Locale, string> | null {
       en: templatePath(match, 'en'),
       fr: templatePath(match, 'fr'),
       de: templatePath(match, 'de'),
+      nl: templatePath(match, 'nl'),
     };
   }
   return null;
@@ -193,6 +252,9 @@ const RESERVED_SLUGS = new Set([
   'kreativ',
   'it',
   'klassisch',
+  'zakelijk',
+  'creatief',
+  'klassiek',
 ]);
 
 

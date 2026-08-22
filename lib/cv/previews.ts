@@ -65,3 +65,10 @@ export const PREVIEW_SLUGS: readonly string[] = [
   'ui-ux-designer-cv',
   'visual-resume',
 ];
+
+/** Languages with a complete localised image set. English is always present. */
+export const PREVIEW_LOCALES: readonly string[] = [
+  'fr',
+  'de',
+  'nl',
+];

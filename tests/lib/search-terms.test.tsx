@@ -63,6 +63,20 @@ const FACETS: Record<
       ats: 'ATS-tauglich',
     },
   },
+  nl: {
+    one: 'één kolom',
+    two: 'twee kolommen',
+    free: 'Gratis',
+    pro: 'Pro',
+    category: {
+      modern: 'modern',
+      corporate: 'zakelijk',
+      creative: 'creatief',
+      technology: 'IT',
+      classic: 'klassiek',
+      ats: 'ATS-vriendelijk',
+    },
+  },
 };
 
 function haystack(template: (typeof TEMPLATES)[number], locale: Locale): string {
@@ -133,6 +147,7 @@ describe('gallery search', () => {
       en: ['banking', 'student', 'minimal', 'two column'],
       fr: ['banque', 'étudiant', 'minimaliste'],
       de: ['bank', 'studium', 'minimalistisch'],
+      nl: ['bank', 'student', 'minimalistisch'],
     };
     for (const [locale, terms] of Object.entries(advertised) as [Locale, string[]][]) {
       for (const term of terms) {

@@ -3,13 +3,14 @@ import type { MetadataRoute } from 'next';
 import { getAllCategories, getAllPosts } from '@/lib/blog';
 import { getAllExampleSlugs } from '@/lib/cv-examples';
 import { getAllProfessionSlugs } from '@/lib/professions';
-import { PREVIEW_SLUGS } from '@/lib/cv/previews';
+import { PREVIEW_LOCALES, PREVIEW_SLUGS } from '@/lib/cv/previews';
 import { TEMPLATES, TEMPLATE_CATEGORIES, templatesByCategory } from '@/lib/cv/template-registry';
 import {
   DEFAULT_LOCALE,
   LOCALES,
   LOCALE_META,
   TRANSLATED_PATHS,
+  localesIn,
   templatePath,
 } from '@/lib/i18n/locales';
 import { absoluteUrl, isPrivatePath } from '@/lib/site';
@@ -164,15 +165,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
    * with its English counterpart rather than reading the two as duplicates.
    */
   for (const [path, group] of Object.entries(TRANSLATED_PATHS)) {
-    for (const locale of LOCALES) {
+    const published = localesIn(group);
+    for (const locale of published) {
       if (locale === DEFAULT_LOCALE) continue;
       entries.push({
-        url: absoluteUrl(group[locale]),
+        url: absoluteUrl(group[locale]!),
         changeFrequency: 'weekly',
         priority: path === '/' ? 0.9 : 0.75,
         alternates: {
           languages: Object.fromEntries(
-            LOCALES.map((code) => [LOCALE_META[code].tag, absoluteUrl(group[code])]),
+            published.map((code) => [LOCALE_META[code].tag, absoluteUrl(group[code]!)]),
           ),
         },
       });
@@ -197,7 +199,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
         priority: template.premium ? 0.55 : 0.65,
         // The localised image, not the English one: Google Images is a separate surface,
         // and the picture on a German page really is a different picture.
-        ...(PREVIEW_SLUGS.includes(template.slug)
+        // Only where that language's image set has actually been generated — an image
+        // sitemap listing files that 404 is worse than one that lists fewer.
+        ...(PREVIEW_SLUGS.includes(template.slug) && PREVIEW_LOCALES.includes(locale)
           ? { images: [absoluteUrl(`/previews/${locale}/${template.slug}.webp`)] }
           : {}),
         alternates: {

@@ -139,6 +139,7 @@ export default function FrenchPricingPage() {
 
       <Section tone="muted" size="sm">
         <CtaBanner
+          primaryLabel={FR.cta.primary}
           title={FR.cta.title}
           description={FR.cta.description}
           secondaryHref="/fr/modeles-de-cv"

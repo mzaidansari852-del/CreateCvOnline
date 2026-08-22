@@ -180,6 +180,7 @@ export function FrenchTemplatePage({ template }: { template: TemplateDefinition 
 
       <Section tone="muted" size="sm">
         <CtaBanner
+          primaryLabel={FR.cta.primary}
           title={FR.cta.title}
           description={FR.cta.description}
           secondaryHref="/fr/tarifs"

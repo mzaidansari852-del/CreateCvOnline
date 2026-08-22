@@ -41,8 +41,16 @@ const SERVE = process.argv.includes('--serve');
 let BASE = process.env.PREVIEW_BASE_URL ?? 'http://localhost:3000';
 const OUT = join(process.cwd(), 'public', 'previews');
 
-/** Languages that get their own image set, beyond the default English one. */
-const LOCALES = ['fr', 'de'];
+/**
+ * Languages that get their own image set, beyond the default English one.
+ *
+ * Must stay in step with `LOCALES_WITH_PREVIEWS` in `lib/cv/previews-locales.ts`, which is
+ * what the app reads to decide whether to point at a localised asset or fall back to the
+ * English one. This script cannot import that file — it is a plain `.mjs` run outside the
+ * TypeScript build — so the pairing is asserted by `tests/lib/preview-locales.test.ts`
+ * instead, which parses both and fails if they diverge.
+ */
+const LOCALES = ['fr', 'de', 'nl'];
 
 /**
  * Chromium rasterises a CSS-transformed element at the device pixel ratio, so a preview
@@ -58,13 +66,36 @@ const SIZES = {
 };
 const OG = { width: 1200, height: 630, background: '#0a0e18' };
 
+/**
+ * Where to look for a browser to drive.
+ *
+ * The list was Linux and macOS only, so this script could not run on Windows at all — it
+ * threw `No Chromium found` before taking a single screenshot. That is a odd gap for a
+ * tool whose output is committed to the repository: whoever holds the Windows machine
+ * simply could not regenerate the previews.
+ *
+ * Edge is included as a fallback after Chrome. It is Chromium underneath and drives
+ * identically through the DevTools protocol, and it is present on every Windows install,
+ * so a contributor without Chrome can still run this. `PREVIEW_CHROMIUM_PATH` still wins
+ * over everything for anyone with a browser somewhere unusual.
+ */
 const CHROMIUM_CANDIDATES = [
   process.env.PREVIEW_CHROMIUM_PATH,
+  // Linux
   '/opt/pw-browsers/chromium',
   '/usr/bin/chromium',
   '/usr/bin/chromium-browser',
   '/usr/bin/google-chrome-stable',
+  // macOS
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  // Windows
+  'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+  'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+  process.env.LOCALAPPDATA
+    ? join(process.env.LOCALAPPDATA, 'Google', 'Chrome', 'Application', 'chrome.exe')
+    : null,
+  'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
 ].filter(Boolean);
 
 function chromiumPath() {
@@ -308,6 +339,20 @@ async function main() {
    * in the browser bundle. A literal also turns a forgotten regeneration into a failing
    * test rather than a 404 in production.
    */
+  /*
+   * The locales whose image set came out complete.
+   *
+   * Adding a language to `LOCALES` above does not conjure 122 screenshots — they exist
+   * once this script has run against a build that serves that language. Until then the app
+   * must point at the English asset rather than a localised path that 404s, and the
+   * sitemap must not advertise an image that is not there. Recording the answer here, from
+   * what actually got written, is what makes that automatic: no constant to remember to
+   * flip, and a language that half-failed does not claim to be done.
+   */
+  const localesDone = LOCALES.filter(
+    (locale) => !failures.some((failure) => failure.slug.startsWith(`${locale}/`)),
+  );
+
   const slugModule = [
     '/**',
     ' * AUTO-GENERATED — do not edit.',
@@ -315,6 +360,11 @@ async function main() {
     ' */',
     'export const PREVIEW_SLUGS: readonly string[] = [',
     ...manifest.slugs.map((slug) => `  '${slug}',`),
+    '];',
+    '',
+    '/** Languages with a complete localised image set. English is always present. */',
+    'export const PREVIEW_LOCALES: readonly string[] = [',
+    ...localesDone.map((locale) => `  '${locale}',`),
     '];',
     '',
   ].join('\n');

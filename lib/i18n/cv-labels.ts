@@ -87,10 +87,35 @@ const EN_LABELS: Record<BuiltInSectionId, string> = {
   references: 'References',
 };
 
+/**
+ * Dutch headings, in the words a Dutch cv uses.
+ *
+ * `Werkervaring` and `Opleiding` are the standard pair — not `Werkzaamheden` or
+ * `Onderwijs`, which are the literal translations and read as a document run through a
+ * dictionary. `Vaardigheden` for skills rather than the English loanword `Skills`, which
+ * some Dutch job boards use but which looks careless on the document itself.
+ */
+const NL_LABELS: Record<BuiltInSectionId, string> = {
+  summary: 'Profiel',
+  competencies: 'Kerncompetenties',
+  experience: 'Werkervaring',
+  education: 'Opleiding',
+  skills: 'Vaardigheden',
+  languages: 'Talen',
+  projects: 'Projecten',
+  certifications: 'Certificaten',
+  awards: 'Onderscheidingen',
+  volunteer: 'Vrijwilligerswerk',
+  publications: 'Publicaties',
+  interests: 'Interesses',
+  references: 'Referenties',
+};
+
 const LABELS: Record<Locale, Record<BuiltInSectionId, string>> = {
   en: EN_LABELS,
   fr: FR_LABELS,
   de: DE_LABELS,
+  nl: NL_LABELS,
 };
 
 /** Every heading this section is known to print, in any language. */

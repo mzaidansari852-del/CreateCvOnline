@@ -1,6 +1,6 @@
 import Image from 'next/image';
 
-import { PREVIEW_SLUGS } from '@/lib/cv/previews';
+import { PREVIEW_LOCALES, PREVIEW_SLUGS } from '@/lib/cv/previews';
 import { cn } from '@/lib/utils/cn';
 import type { Locale } from '@/lib/i18n/locales';
 import type { TemplateMeta } from '@/types/cv';
@@ -48,7 +48,16 @@ export function previewSrc(
   locale: Locale = 'en',
 ): string {
   const suffix = variant === 'card' ? '-card' : '';
-  return locale === 'en'
+  /*
+   * A language with no generated image set shows the English screenshots.
+   *
+   * Adding a locale is one line in `locales.ts`; producing its 122 preview images is a
+   * separate build step (`npm run previews`) against a deployment that already serves the
+   * language. Between those two moments the gallery would have pointed at
+   * `/previews/nl/…webp` and rendered 122 broken images — the Dutch pages' entire visual
+   * content — so the fallback is what makes the two steps independently shippable.
+   */
+  return locale === 'en' || !PREVIEW_LOCALES.includes(locale)
     ? `/previews/${slug}${suffix}.webp`
     : `/previews/${locale}/${slug}${suffix}.webp`;
 }
@@ -58,6 +67,7 @@ const ALT: Record<Locale, (name: string, category: string) => string> = {
   en: (name, category) => `${name} CV template preview — a ${category} résumé layout`,
   fr: (name, category) => `Aperçu du modèle de CV ${name} — une mise en page ${category}`,
   de: (name, category) => `Vorschau der Lebenslauf-Vorlage ${name} — ein ${category}-Layout`,
+  nl: (name, category) => `Voorbeeld van cv-sjabloon ${name} — een ${category} cv-opmaak`,
 };
 
 export function TemplateImage({

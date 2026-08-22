@@ -280,6 +280,7 @@ const PAGE_LABEL: Record<Locale, { lead: string; between: string }> = {
   en: { lead: 'Page ', between: ' of ' },
   fr: { lead: 'Page ', between: ' sur ' },
   de: { lead: 'Seite ', between: ' von ' },
+  nl: { lead: 'Pagina ', between: ' van ' },
 };
 
 function footerTemplate(name: string, locale: Locale): string {

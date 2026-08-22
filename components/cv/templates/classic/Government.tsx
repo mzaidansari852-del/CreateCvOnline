@@ -82,6 +82,15 @@ const FIELD_LABELS: Record<Locale, Record<ContactIconKey, string>> = {
     github: 'GitHub',
     link: 'Profil',
   },
+  nl: {
+    mail: 'E-mail',
+    phone: 'Telefoon',
+    pin: 'Adres',
+    globe: 'Website',
+    linkedin: 'LinkedIn',
+    github: 'GitHub',
+    link: 'Profiel',
+  },
 };
 
 /**

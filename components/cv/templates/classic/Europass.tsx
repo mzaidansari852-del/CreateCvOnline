@@ -71,6 +71,14 @@ const CONTACT_LABEL: Record<Locale, Record<string, string>> = {
     linkedin: 'LinkedIn',
     github: 'GitHub',
   },
+  nl: {
+    email: 'E-mail',
+    phone: 'Telefoon',
+    location: 'Adres',
+    website: 'Website',
+    linkedin: 'LinkedIn',
+    github: 'GitHub',
+  },
 };
 
 /** The words the form itself supplies, in the language the document is written in. */
@@ -78,6 +86,7 @@ const FORM_COPY: Record<Locale, { link: string; motherTongue: string; personal: 
   en: { link: 'Link', motherTongue: 'Mother tongue: ', personal: 'Personal information' },
   fr: { link: 'Lien', motherTongue: 'Langue maternelle : ', personal: 'Informations personnelles' },
   de: { link: 'Link', motherTongue: 'Muttersprache: ', personal: 'Angaben zur Person' },
+  nl: { link: 'Link', motherTongue: 'Moedertaal: ', personal: 'Persoonlijke gegevens' },
 };
 
 /**
@@ -98,6 +107,7 @@ const COMPETENCES: Record<Locale, readonly [string, string, string]> = {
   en: ['Understanding', 'Speaking', 'Writing'],
   fr: ['Comprendre', 'Parler', 'Écrire'],
   de: ['Verstehen', 'Sprechen', 'Schreiben'],
+  nl: ['Begrijpen', 'Spreken', 'Schrijven'],
 };
 
 function motherTongues(cv: CVData) {

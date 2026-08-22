@@ -50,6 +50,14 @@ const LETTER_COPY: Record<Locale, {
     placeholder:
       'Hier steht Ihr Anschreiben. Drei oder vier kurze Absätze: warum diese Stelle, was Sie mitbringen, und ein Beleg, der nicht im Lebenslauf steht.',
   },
+  // Dutch names the role after the noun as well — "Sollicitatie naar de functie van …" is
+  // the phrasing on a Dutch motivatiebrief, not a rendering of the English shape.
+  nl: {
+    application: (vacancy) => `Sollicitatie naar de functie van ${vacancy}`,
+    reference: (ref) => `Ref. ${ref}`,
+    placeholder:
+      'Hier komt je brief. Drie of vier korte alinea’s: waarom deze functie, wat je meebrengt, en één voorbeeld dat niet op je cv staat.',
+  },
 };
 
 /**

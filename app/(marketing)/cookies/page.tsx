@@ -273,6 +273,19 @@ const SECTIONS: LegalSection[] = [
               duration: 'SESSION_COOKIE_DAYS, default 5 days (14-day maximum). Deleted on sign-out.',
             },
             {
+              /*
+               * This row was missing, and the omission was not cosmetic: `proxy.ts` has been
+               * setting this cookie on every navigation to a translated page, and a cookie
+               * policy that claims to be "the complete list" while omitting one is a worse
+               * document than one that never made the claim. Found while adding Dutch.
+               */
+              name: 'cvo_locale',
+              purpose:
+                'Remembers which language you were reading the site in, so that signing up from a French or Dutch page does not land you in an English dashboard. Written only when you navigate to a translated page and only when the value changes. Holds a language code and nothing else.',
+              type: 'First-party cookie · functional · readable by page script',
+              duration: '1 year',
+            },
+            {
               name: '_ga',
               purpose:
                 'Google Analytics: distinguishes one browser from another. Only present if the operator has configured a measurement id.',

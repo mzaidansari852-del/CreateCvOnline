@@ -745,4 +745,198 @@ const DE: AuthCopy = {
   },
 };
 
-export const AUTH_COPY: Record<Locale, AuthCopy> = { en: EN, fr: FR, de: DE };
+/**
+ * Dutch.
+ *
+ * Written in the `je` register throughout. Dutch consumer software addresses the reader
+ * informally almost without exception, and `u` on a sign-up form reads like a letter from a
+ * bank — the German block opposite uses `Sie` for the mirror-image reason, so the two are
+ * not inconsistent with each other, they are each consistent with their own market.
+ *
+ * Two places follow a Dutch convention rather than the English wording. `Volledige naam`
+ * rather than a literal "full name", and the terms checkbox splits as `met de` + link +
+ * `en het` + link, because `voorwaarden` takes `de` and `privacybeleid` takes `het`. A
+ * single conjunction fragment would have been ungrammatical on one side or the other.
+ */
+const NL: AuthCopy = {
+  auth: {
+    signIn: 'Inloggen',
+    signInSubtitle: 'Log in en ga verder waar je gebleven was.',
+    signUp: 'Maak je account aan',
+    signUpSubtitle:
+      "Twee opgeslagen cv's en vijf pdf-downloads per maand, altijd gratis. Geen creditcard nodig.",
+    emailLabel: 'E-mailadres',
+    emailPlaceholder: 'jij@voorbeeld.nl',
+    passwordLabel: 'Wachtwoord',
+    confirmPasswordLabel: 'Wachtwoord bevestigen',
+    nameLabel: 'Volledige naam',
+    forgotPassword: 'Wachtwoord vergeten?',
+    forgotPasswordTitle: 'Wachtwoord opnieuw instellen',
+    forgotPasswordSubtitle:
+      "Geef het adres van je account op, dan mailen we je een link om een nieuw wachtwoord te kiezen. Je cv's blijven ongewijzigd.",
+    sendResetLink: 'Stuur de link',
+    resetLinkSent: 'Als er een account bij dat adres hoort, is er een link onderweg.',
+    noAccount: 'Nieuw hier?',
+    haveAccount: 'Heb je al een account?',
+    continueWithGoogle: 'Doorgaan met Google',
+    or: 'of',
+    verifyTitle: 'Bevestig je e-mailadres',
+    verifyBody: (email) =>
+      `We hebben een bevestigingslink naar ${email} gestuurd. Open die om het instellen af te ronden.`,
+    resendVerification: 'Bevestigingsmail opnieuw versturen',
+    verificationSent: 'Verstuurd — kijk in je inbox.',
+    passwordStrengthWeak: 'Zwak',
+    passwordStrengthFair: 'Redelijk',
+    passwordStrengthStrong: 'Sterk',
+    termsNotice: 'Door een account aan te maken ga je akkoord met onze voorwaarden en ons privacybeleid.',
+
+    signInHeading: 'Welkom terug',
+    signUpHeading: 'Maak je gratis account aan',
+    verifySubtitle:
+      'We hebben je een eenmalige link gestuurd. Door die te openen bewijs je dat het adres van jou is en beveilig je je account.',
+
+    signInMetaDescription: (brand) =>
+      `Log in op je ${brand}-account om je cv's te bewerken en als pdf te downloaden.`,
+    signUpMetaDescription: (brand) =>
+      `Maak een gratis ${brand}-account aan en stel in een paar minuten een professioneel cv samen.`,
+    forgotPasswordMetaDescription: (brand) =>
+      `Vraag een link aan om het wachtwoord van je ${brand}-account opnieuw in te stellen.`,
+    verifyMetaTitle: 'Bevestig je e-mailadres',
+    verifyMetaDescription: (brand) => `Bevestig het e-mailadres van je ${brand}-account.`,
+
+    browseTemplates: 'Sjablonen bekijken',
+    footerPrivacy: 'Privacy',
+    footerTerms: 'Voorwaarden',
+    footerContact: 'Contact',
+    livePreview: 'Live voorbeeld',
+    livePreviewNote:
+      'Elk sjabloon wordt weergegeven door dezelfde engine die je pdf maakt — dit is een echt document, geen mock-up.',
+    panelHeading: 'Een cv dat een recruiter in zes seconden leest.',
+    pointTemplatesTitle: (count) => `${count} sjablonen, allemaal recruiterproof`,
+    pointTemplatesBody:
+      'Moderne, klassieke, creatieve en ATS-veilige opmaak. Wissel wanneer je wilt, zonder ook maar één regel opnieuw te typen.',
+    pointPrintTitle: 'Wat je ziet, is wat je print',
+    pointPrintBody:
+      'Het voorbeeld staat op ware paginagrootte, dus de pdf die je downloadt komt exact overeen met het scherm — geen onverwachte tweede pagina.',
+    pointFreeTitle: 'Gratis beginnen, van jou om te houden',
+    pointFreeBody:
+      'Maak en download een volledig cv met het gratis abonnement. Geen creditcard, geen proefperiode die afloopt, en je wist alles met één klik.',
+    panelSecurityNote: (brand) =>
+      `Inloggen verloopt via Google Firebase Authentication — ${brand} ziet je Google-wachtwoord nooit, en je cv's blijven privé tot je ze zelf deelt.`,
+
+    startingWith: 'Je begint met',
+    changeTemplateAnytime: 'Je kunt altijd van sjabloon wisselen.',
+
+    signInWithGoogle: 'Inloggen met Google',
+    signUpWithGoogle: 'Registreren met Google',
+    orContinueWithEmail: 'of ga verder met e-mail',
+    orSignUpWithEmail: 'of registreer met e-mail',
+
+    notConfiguredTitle: 'Inloggen is niet geconfigureerd op deze omgeving',
+    notConfiguredIntro:
+      'Er zijn geen Firebase-gegevens gevonden, dus accounts kunnen nog niet worden aangemaakt of gebruikt. Kopieer',
+    notConfiguredTo: 'naar',
+    notConfiguredFill: ', vul de',
+    notConfiguredRestart: 'waarden in en start de server opnieuw.',
+    notConfiguredStillWorks: 'Alles waarvoor geen account nodig is, werkt gewoon —',
+    notConfiguredBrowseLink: 'bekijk de sjablonen',
+
+    showPassword: 'Wachtwoord tonen',
+    hidePassword: 'Wachtwoord verbergen',
+
+    passwordStrengthTooShort: 'Te kort',
+    passwordStrengthGood: 'Goed',
+    checkLength: 'Minstens 8 tekens',
+    checkLengthMissing: '8 tekens',
+    checkCase: 'Hoofd- en kleine letters',
+    checkCaseMissing: 'een hoofdletter en een kleine letter',
+    checkDigit: 'Een cijfer',
+    checkDigitMissing: 'een cijfer',
+    checkSymbol: 'Een symbool (!, ?, €…)',
+    checkSymbolMissing: 'een symbool',
+    checkMet: '— voldaan',
+    checkNotMet: '— nog niet voldaan',
+    listAnd: 'en',
+    passwordStrengthEmpty: 'Wachtwoordsterkte: er is nog niets getypt.',
+    passwordStrengthSummary: (level) => `Wachtwoordsterkte: ${level}.`,
+    passwordStrengthMissing: (list) => `Er ontbreekt nog ${list}.`,
+    passwordStrengthAllMet: 'Aan alle vier de eisen voldaan.',
+
+    thingsToFix: (count) =>
+      count === 1 ? 'Er is hieronder 1 ding dat aandacht nodig heeft.' : `Er zijn hieronder ${count} dingen die aandacht nodig hebben.`,
+    emailRequired: 'Vul het e-mailadres in waarmee je je hebt geregistreerd.',
+    emailInvalid: 'Dit lijkt geen geldig e-mailadres.',
+    passwordRequired: 'Vul je wachtwoord in.',
+    nameRequired: 'Vul de naam in die op je cv moet komen.',
+    emailRequiredSignUp: 'Een e-mailadres is verplicht — daarmee log je in.',
+    passwordTooShort: (min) => `Gebruik minstens ${min} tekens.`,
+    confirmRequired: 'Typ het wachtwoord nog een keer.',
+    confirmMismatch: 'De twee wachtwoorden komen niet overeen.',
+    acceptRequired: 'Ga akkoord met de voorwaarden en het privacybeleid om verder te gaan.',
+
+    signInFailedTitle: 'Inloggen is niet gelukt',
+    createFreeAccount: 'Maak een gratis account',
+
+    signUpFailedTitle: 'Je account kon niet worden aangemaakt',
+    acceptIntro: 'Ik ga akkoord met de',
+    acceptAnd: 'en het',
+    termsOfService: 'Algemene voorwaarden',
+    privacyPolicy: 'Privacybeleid',
+    marketingLabel: 'Stuur me cv-tips en productnieuws',
+    marketingHint: 'Hoogstens één keer per maand. Je zet dit altijd uit bij Instellingen.',
+    createMyFreeAccount: 'Maak mijn gratis account',
+
+    resetFailedTitle: 'De link kon niet worden verstuurd',
+    checkInbox: 'Kijk in je inbox',
+    resetSentTo: 'We hebben de link gestuurd naar',
+    resetSentValidity: '. De link is één uur geldig en kan maar één keer worden gebruikt.',
+    resetSentSpam:
+      'Na een paar minuten nog niets? Kijk in je map spam of reclame — automatische mail belandt daar vaak — en controleer het adres hierboven op een typefout.',
+    useDifferentAddress: 'Een ander adres gebruiken',
+    backToSignIn: 'Terug naar inloggen',
+    rememberedIt: 'Weet je het weer?',
+    emailAccountHint: (brand) => `Het adres van je ${brand}-account.`,
+
+    notSignedInTitle: 'Je bent niet ingelogd',
+    notSignedInBody:
+      'Een bevestigingslink hoort bij een account, dus log eerst in — daarna gaan we verder waar je gebleven was.',
+    createAnAccount: 'Een account aanmaken',
+    verifiedTitle: 'Je e-mailadres is bevestigd',
+    verifiedSuffix: 'is bevestigd — hier hoef je verder niets te doen.',
+    goToDashboard: 'Naar mijn omgeving',
+    resendFailedTitle: 'Dat is niet gelukt',
+    resendSentTo: (email) => `Er is een nieuwe link onderweg naar ${email}.`,
+    yourInbox: 'je inbox',
+    waitingForConfirmation: 'Wachten op bevestiging',
+    verifyOpenLink:
+      'Open de link in dat bericht om te bevestigen dat het adres van jou is. Het kan een minuut duren voordat de mail aankomt, en hij wordt vaak als spam of reclame aangemerkt.',
+    whatThisChanges: 'Wat dit verandert',
+    verifyPointEditor:
+      "In de editor is niets vergrendeld: je kunt cv's blijven maken, aanpassen en downloaden zolang het adres nog niet bevestigd is.",
+    verifyPointReset:
+      'Een bevestigd adres is de enige weg terug als je je wachtwoord vergeet — een herstellink naar een verkeerd getypt adres belandt in de inbox van een vreemde.',
+    verifyPointContact: (brand) =>
+      `Het is ook hoe ${brand} je bereikt over een factuur of een aanmelding vanaf een nieuw apparaat.`,
+    verifiedContinue: 'Ik heb bevestigd — doorgaan',
+    resendIn: (seconds) => `Opnieuw versturen over ${seconds}s`,
+    resendAvailable: 'Je kunt nu een nieuwe bevestigingsmail aanvragen.',
+    wrongAddress: 'Verkeerd adres, of niet jouw account?',
+
+    errorUserDisabled:
+      'Dit account is geblokkeerd. Neem contact op met support als je denkt dat dat een vergissing is.',
+    errorBadCredentials: 'Deze combinatie van e-mailadres en wachtwoord hoort bij geen enkel account.',
+    errorEmailInUse: 'Er bestaat al een account met dat e-mailadres. Probeer in te loggen.',
+    errorWeakPassword: 'Kies een wachtwoord van minstens 8 tekens.',
+    errorTooManyRequests:
+      'Te veel pogingen. Wacht een paar minuten en probeer het opnieuw, of stel je wachtwoord opnieuw in.',
+    errorPopupClosed: 'Het inlogvenster van Google is gesloten voordat het klaar was.',
+    errorPopupBlocked:
+      'Je browser heeft het inlogvenster van Google geblokkeerd. Sta pop-ups toe voor deze site en probeer het opnieuw.',
+    errorOperationNotAllowed: 'Deze inlogmethode is nog niet ingeschakeld voor dit project.',
+    errorNetwork: 'Netwerkprobleem — controleer je verbinding en probeer het opnieuw.',
+    errorSessionFailed: 'Je sessie kon niet worden gestart. Probeer het opnieuw.',
+    errorResendSignedOut: 'Log opnieuw in om de bevestigingsmail nogmaals te versturen.',
+  },
+};
+
+export const AUTH_COPY: Record<Locale, AuthCopy> = { en: EN, fr: FR, de: DE, nl: NL };

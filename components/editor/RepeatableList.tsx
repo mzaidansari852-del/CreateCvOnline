@@ -398,7 +398,7 @@ export function StringList({
               onChange={(event) => setAt(index, event.target.value)}
               placeholder={placeholder}
               rows={2}
-              className="min-h-10 w-full resize-y rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm leading-relaxed text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/12 focus:outline-none"
+              className="min-h-10 w-full resize-y rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm leading-relaxed text-ink-900 placeholder:text-ink-400 pointer-coarse:text-base focus:border-brand-500 focus:ring-4 focus:ring-brand-500/12 focus:outline-none"
               aria-label={copy.editor.list.itemNumber(label, index + 1)}
             />
             <div className="flex shrink-0 flex-col">

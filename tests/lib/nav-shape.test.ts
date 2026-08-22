@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { navFor } from '@/lib/i18n/nav';
-import { LOCALES } from '@/lib/i18n/locales';
+import { NAV_CATEGORIES, navFor } from '@/lib/i18n/nav';
+import { LOCALES, TEMPLATE_ROOT } from '@/lib/i18n/locales';
 import { navGroupIsMenu, primaryNav, type NavGroup } from '@/lib/site';
 
 /**
@@ -45,11 +45,11 @@ describe('nav group shape', () => {
     }
   });
 
-  it('the pricing group is a plain link in all three languages', () => {
+  it('the pricing group is a plain link in every language', () => {
     // The specific regression: English had it right, French and German did not.
     const pricing = ALL.map(([name, groups]) => {
       const group = groups.find((candidate) =>
-        /pricing|tarifs|preise/i.test(candidate.label),
+        /pricing|tarifs|preise|prijzen/i.test(candidate.label),
       ) as NavGroup;
       return [name, group] as const;
     });
@@ -60,12 +60,12 @@ describe('nav group shape', () => {
     }
   });
 
-  it('the template gallery IS a menu in all three languages', () => {
+  it('the template gallery IS a menu in every language', () => {
     // The counterweight: if the predicate were simply `false`, the test above would pass and
     // the header would lose every dropdown it should have.
     for (const [name, groups] of ALL) {
       const gallery = groups.find((candidate) =>
-        /templates|modèles|vorlagen/i.test(candidate.label),
+        /templates|modèles|vorlagen|sjablonen/i.test(candidate.label),
       );
       expect(gallery, `${name} has no template group`).toBeDefined();
       expect(navGroupIsMenu(gallery as NavGroup), `${name}: gallery must be a dropdown`).toBe(true);
@@ -83,14 +83,32 @@ describe('nav group shape', () => {
     }
   });
 
-  it('the French and German galleries offer all six style categories', () => {
-    // These two are generated from the category tables, so a dropped category means the
-    // table drifted from the registry — which `i18n.test.ts` checks from the other side.
-    for (const locale of ['fr', 'de'] as const) {
-      const gallery = navFor(locale).find((group) => /modèles|vorlagen/i.test(group.label));
+  it('the translated galleries offer all six style categories', () => {
+    /*
+     * These are generated from the category tables, so a dropped category means the table
+     * drifted from the registry — which `i18n.test.ts` checks from the other side.
+     *
+     * Asserted by naming the destinations rather than counting them. The count was `7` —
+     * the gallery plus six categories — and it broke the moment the French dropdown gained
+     * the examples and ATS pages, which is a change to the menu and not a regression in
+     * category coverage. A count cannot tell those apart; this can.
+     */
+    for (const locale of ['fr', 'de', 'nl'] as const) {
+      const gallery = navFor(locale).find((group) =>
+        /modèles|vorlagen|sjablonen/i.test(group.label),
+      );
       const destinations = new Set((gallery as NavGroup).links.map((link) => link.href));
-      // The gallery itself, plus one page per category.
-      expect(destinations.size, `${locale} gallery`).toBe(7);
+      const root = TEMPLATE_ROOT[locale];
+      const categories = NAV_CATEGORIES[locale];
+
+      expect(categories, `${locale} has no category table`).toBeDefined();
+      expect(categories!.length, `${locale} category count`).toBe(6);
+      expect(destinations.has(root), `${locale}: gallery root missing`).toBe(true);
+      for (const category of categories!) {
+        expect(destinations.has(`${root}/${category.slug}`), `${locale}: ${category.slug}`).toBe(
+          true,
+        );
+      }
     }
   });
 

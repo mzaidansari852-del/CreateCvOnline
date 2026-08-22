@@ -24,6 +24,7 @@ const PATHS: Record<string, string> = {
   en: '/templates',
   fr: '/fr/modeles-de-cv',
   de: '/de/lebenslauf-vorlagen',
+  nl: '/nl/cv-sjablonen',
 };
 
 const pathname = vi.hoisted(() => ({ current: '/' }));
@@ -67,7 +68,7 @@ describe('site footer', () => {
      * footer sends a German visitor to an English page and dilutes the hreflang cluster.
      */
     const englishOnly = ['Free CV builder', 'CV advice by profession', 'Resume examples'];
-    for (const locale of ['fr', 'de'] as const) {
+    for (const locale of ['fr', 'de', 'nl'] as const) {
       const { container } = renderAt(locale);
       for (const label of englishOnly) {
         expect(container.textContent ?? '', `${locale}: ${label}`).not.toContain(label);
@@ -80,11 +81,15 @@ describe('site footer', () => {
     for (const [locale, root] of [
       ['fr', '/fr/modeles-de-cv/'],
       ['de', '/de/lebenslauf-vorlagen/'],
+      ['nl', '/nl/cv-sjablonen/'],
     ] as const) {
       const { container } = renderAt(locale);
       const hrefs = [...container.querySelectorAll('a')].map((a) => a.getAttribute('href') ?? '');
       const categoryLinks = hrefs.filter(
-        (h) => h.includes('modeles-de-cv/') || h.includes('lebenslauf-vorlagen/'),
+        (h) =>
+          h.includes('modeles-de-cv/') ||
+          h.includes('lebenslauf-vorlagen/') ||
+          h.includes('cv-sjablonen/'),
       );
       expect(categoryLinks.length, `${locale}: category links`).toBeGreaterThan(0);
       for (const href of categoryLinks) {

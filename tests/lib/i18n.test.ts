@@ -11,6 +11,7 @@ import {
   TRANSLATED_PATHS,
   alternatesFor,
   localeOf,
+  localesIn,
   normalisePath,
   templatePath,
 } from '@/lib/i18n/locales';
@@ -57,18 +58,28 @@ describe('locale model', () => {
 
   it('resolves alternates from either side', () => {
     for (const group of Object.values(TRANSLATED_PATHS)) {
-      for (const locale of LOCALES) {
-        expect(alternatesFor(group[locale]), group[locale]).toEqual(group);
+      for (const locale of localesIn(group)) {
+        expect(alternatesFor(group[locale]!), group[locale]).toEqual(group);
       }
     }
   });
 
   it('returns nothing for a page with no translation', () => {
-    // Deliberately not `/pricing`: that one is translated now. The point of the assertion
-    // is that an untranslated page stays untranslated, so it has to name pages that are.
+    // These have to be pages that really are English-only, and the list needs revisiting
+    // whenever one of them gets translated — `/about` was here until it was written in
+    // French. An assertion naming a translated page passes for the wrong reason and stops
+    // testing anything.
     expect(alternatesFor('/blog')).toBeNull();
-    expect(alternatesFor('/about')).toBeNull();
+    expect(alternatesFor('/resume-examples')).toBeNull();
     expect(alternatesFor('/cv-for/nurse')).toBeNull();
+  });
+
+  it('lists only the languages a page is actually published in', () => {
+    // The commercial landing pages are English and French; the gallery is all four. A
+    // group must never claim a language it has no path for, because that is what turns
+    // into an `hreflang` pointing at a 404.
+    expect(localesIn(TRANSLATED_PATHS['/cv-builder']!)).toEqual(['en', 'fr']);
+    expect(localesIn(TRANSLATED_PATHS['/templates']!)).toEqual(['en', 'fr', 'de', 'nl']);
   });
 });
 
@@ -77,26 +88,34 @@ describe('hreflang', () => {
     // Google discards a cluster whose annotations disagree, which is indistinguishable
     // from having none — except that it looks like the work was done.
     for (const group of Object.values(TRANSLATED_PATHS)) {
-      for (const locale of LOCALES) {
+      const published = localesIn(group);
+      for (const locale of published) {
         const meta = pageMetadata({
           title: 'x',
           description: 'y',
-          path: group[locale],
+          path: group[locale]!,
           locale,
         });
         const languages = meta.alternates?.languages as Record<string, string> | undefined;
         expect(languages, `${group[locale]} has no hreflang`).toBeTruthy();
 
-        for (const other of LOCALES) {
-          expect(languages![LOCALE_META[other].tag]).toBe(absoluteUrl(group[other]));
+        for (const other of published) {
+          expect(languages![LOCALE_META[other].tag]).toBe(absoluteUrl(group[other]!));
         }
+        /*
+         * And nothing beyond them. A cluster that names a language the page is not
+         * published in is the failure this whole `PathGroup` change exists to prevent, so
+         * it is asserted directly rather than implied by the loop above.
+         */
+        const claimed = Object.keys(languages!).filter((tag) => tag !== 'x-default');
+        expect(claimed.sort()).toEqual(published.map((code) => LOCALE_META[code].tag).sort());
         expect(languages!['x-default']).toBe(absoluteUrl(group[DEFAULT_LOCALE]));
       }
     }
   });
 
   it('is absent on pages that are only in English', () => {
-    const meta = pageMetadata({ title: 'x', description: 'y', path: '/about' });
+    const meta = pageMetadata({ title: 'x', description: 'y', path: '/resume-examples' });
     expect(meta.alternates?.languages).toBeUndefined();
   });
 
@@ -145,8 +164,8 @@ describe('translated paths resolve to real pages', () => {
   it('has a route file behind every entry', () => {
     const missing: string[] = [];
     for (const group of Object.values(TRANSLATED_PATHS)) {
-      for (const locale of LOCALES) {
-        if (!routeExists(group[locale])) missing.push(group[locale]);
+      for (const locale of localesIn(group)) {
+        if (!routeExists(group[locale]!)) missing.push(group[locale]!);
       }
     }
     // An hreflang pointing at a 404 is worse than no annotation at all.
@@ -293,12 +312,24 @@ describe('sitemap', () => {
 
   it('lists every translated landing page, with its alternates', () => {
     for (const group of Object.values(TRANSLATED_PATHS)) {
-      for (const locale of LOCALES) {
+      /*
+       * The languages this page is published in, not every language the site has. The
+       * commercial landing pages are English and French only, so iterating `LOCALES` here
+       * asked the sitemap for a German URL that deliberately does not exist — and would
+       * have kept passing only for as long as every page was translated into everything.
+       */
+      const published = localesIn(group);
+      for (const locale of published) {
         if (locale === DEFAULT_LOCALE) continue;
-        const entry = byUrl.get(absoluteUrl(group[locale]));
+        const entry = byUrl.get(absoluteUrl(group[locale]!));
         expect(entry, group[locale]).toBeTruthy();
         const languages = entry!.alternates?.languages as Record<string, string> | undefined;
-        for (const code of LOCALES) expect(languages?.[code]).toBe(absoluteUrl(group[code]));
+        for (const code of published) {
+          expect(languages?.[code]).toBe(absoluteUrl(group[code]!));
+        }
+        // And nothing beyond them: a sitemap alternate pointing at a 404 is the same
+        // defect as an `hreflang` pointing at one.
+        expect(Object.keys(languages ?? {}).sort()).toEqual([...published].sort());
       }
     }
   });

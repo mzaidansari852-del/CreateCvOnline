@@ -109,6 +109,26 @@ const COPY = {
       'Wenn Sie einen Filter lockern — meist den ATS-Score oder die Spaltenzahl — erscheinen wieder Ergebnisse.',
     showAll: (total: number) => `Alle ${total} Vorlagen anzeigen`,
   },
+  nl: {
+    searchLabel: 'Zoek een sjabloon op naam, stijl of beroep',
+    searchPlaceholder: 'Zoek een sjabloon — ‘bank’, ‘student’, ‘minimalistisch’…',
+    plan: 'Abonnement',
+    free: 'Gratis',
+    pro: 'Pro',
+    layout: 'Opmaak',
+    oneColumn: 'Één kolom',
+    twoColumns: 'Twee kolommen',
+    ats: 'ATS-score',
+    atsFive: 'Alleen 5/5',
+    atsFour: '4 en hoger',
+    showing: (shown: number, total: number) => `${shown} van ${total} sjablonen`,
+    freeSuffix: (n: number) => `waarvan ${n} gratis`,
+    clear: 'Alle filters wissen',
+    emptyTitle: 'Geen sjabloon voldoet aan deze filters',
+    emptyBody:
+      'Eén filter versoepelen — meestal de ATS-score of het aantal kolommen — levert weer resultaten op.',
+    showAll: (total: number) => `Alle ${total} sjablonen tonen`,
+  },
 } satisfies Record<Locale, unknown>;
 
 export function TemplateFilterBar({
@@ -235,7 +255,7 @@ export function TemplateFilterBar({
             onChange={(event) => setQuery(event.target.value)}
             maxLength={60}
             placeholder={copy.searchPlaceholder}
-            className="h-10 min-w-0 flex-1 rounded-lg border border-ink-200 bg-white px-3 text-sm text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/12 focus:outline-none"
+            className="h-10 min-w-0 flex-1 rounded-lg border border-ink-200 bg-white px-3 text-sm text-ink-900 placeholder:text-ink-400 pointer-coarse:text-base focus:border-brand-500 focus:ring-4 focus:ring-brand-500/12 focus:outline-none"
           />
         </div>
 

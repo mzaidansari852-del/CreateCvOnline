@@ -290,6 +290,13 @@ export const DE = {
     title: 'Bereit für Ihren Lebenslauf?',
     description:
       'Vorlage wählen, Werdegang eintragen, so oft umentscheiden, wie Sie möchten. Ein Vorlagenwechsel fasst Ihre Inhalte nie an.',
+    /*
+     * The primary button had no German words at all, because `CtaBanner` defaults its
+     * label to "Create your CV — free" and no translated page overrode it. Every German
+     * and French page therefore ended on an English button — the most prominent control
+     * on the page, and the one the whole page exists to get pressed.
+     */
+    primary: 'Kostenlos starten',
     secondary: 'Preise ansehen',
   },
 } as const;

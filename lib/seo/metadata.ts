@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 import { TEMPLATE_COUNT } from '@/lib/cv/template-registry';
-import { DEFAULT_LOCALE, LOCALES, LOCALE_META, alternatesFor } from '@/lib/i18n/locales';
+import { DEFAULT_LOCALE, LOCALE_META, alternatesFor, localesIn } from '@/lib/i18n/locales';
 import type { Locale } from '@/lib/i18n/locales';
 import { absoluteUrl, site } from '@/lib/site';
 import { publicEnv } from '@/lib/env';
@@ -71,7 +71,7 @@ export function pageMetadata(input: PageMetaInput): Metadata {
   const languages = group
     ? {
         ...Object.fromEntries(
-          LOCALES.map((code) => [LOCALE_META[code].tag, absoluteUrl(group[code])]),
+          localesIn(group).map((code) => [LOCALE_META[code].tag, absoluteUrl(group[code]!)]),
         ),
         'x-default': absoluteUrl(group[DEFAULT_LOCALE]),
       }

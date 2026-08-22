@@ -12,8 +12,25 @@ import type {
 import { useCopy } from '@/components/i18n/LocaleProvider';
 import { cn } from '@/lib/utils/cn';
 
+/**
+ * `text-sm pointer-coarse:text-base` — 14px normally, 16px on a touch device.
+ *
+ * Not a typographic preference. Focusing an input whose computed font-size is below 16px
+ * makes iOS Safari zoom the page in: the layout jumps, the field the user just tapped
+ * slides out from under their thumb, and they have to pinch back out. On every field, on
+ * every form.
+ *
+ * It was 14px flat, so it happened on the contact form, sign-in, registration and every
+ * field in the CV editor — where a user spends nearly all of their time. It reproduces only
+ * on real iOS, not in a resized desktop window, which is why it survived this long.
+ *
+ * `pointer-coarse` rather than a width breakpoint, because the trigger is the *device*, not
+ * the viewport. A 768px iPad zooms just as an iPhone does, and `sm:text-sm` would have
+ * quietly reintroduced the bug there while looking like a fix. 16px is the exact threshold
+ * Safari tests, so this is the minimum that works rather than a round number.
+ */
 const controlBase =
-  'block w-full rounded-lg border bg-white text-sm text-ink-900 placeholder:text-ink-400 ' +
+  'block w-full rounded-lg border bg-white text-sm text-ink-900 placeholder:text-ink-400 pointer-coarse:text-base ' +
   'transition-[border-color,box-shadow] duration-150 ' +
   'focus:border-brand-500 focus:ring-4 focus:ring-brand-500/12 focus:outline-none ' +
   'disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-500';

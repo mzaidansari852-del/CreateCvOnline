@@ -149,6 +149,7 @@ export default function FrenchTemplatesPage() {
 
       <Section size="sm">
         <CtaBanner
+          primaryLabel={FR.cta.primary}
           title={FR.cta.title}
           description={FR.cta.description}
           secondaryHref="/fr/tarifs"

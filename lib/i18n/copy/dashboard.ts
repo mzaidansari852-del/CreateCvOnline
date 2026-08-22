@@ -604,6 +604,17 @@ export interface DashboardCopy {
     accessDaysNote: (days: number) => string;
     refundLead: string;
     refundTail: string;
+    /*
+     * The cancel screen.
+     *
+     * `create-transaction` has always told Paddle to send a cancelling customer to
+     * `/payment/cancel`, and that route did not exist — so backing out of the overlay
+     * answered 404. The person most likely to see it is one who hesitated over a payment,
+     * which is the worst possible audience for a page-not-found.
+     */
+    cancelledTitle: string;
+    cancelledBody: string;
+    cancelledResume: string;
   };
 }
 
@@ -1162,6 +1173,10 @@ const EN: DashboardCopy = {
       `This payment covers ${days} days of access and does not renew by itself — you will never be charged automatically.`,
     refundLead: 'Changed your mind? Our',
     refundTail: 'gives you 14 days.',
+    cancelledTitle: 'Payment cancelled',
+    cancelledBody:
+      'You closed the payment window before it finished, so nothing has been charged and your plan has not changed. Your CVs are exactly where you left them.',
+    cancelledResume: 'Pick a plan again',
   },
 };
 
@@ -1758,6 +1773,10 @@ const FR: DashboardCopy = {
       `Ce paiement couvre ${days} jours d’accès et ne se renouvelle pas tout seul — vous ne serez jamais débité automatiquement.`,
     refundLead: 'Vous avez changé d’avis ? Notre',
     refundTail: 'vous laisse 14 jours.',
+    cancelledTitle: 'Paiement annulé',
+    cancelledBody:
+      'Vous avez fermé la fenêtre de paiement avant la fin : rien n’a été débité et votre offre est inchangée. Vos CV sont exactement là où vous les aviez laissés.',
+    cancelledResume: 'Choisir une offre',
   },
 };
 
@@ -2345,7 +2364,610 @@ const DE: DashboardCopy = {
       `Diese Zahlung deckt ${days} Tage Zugang ab und verlängert sich nicht von selbst — automatisch abgebucht wird nie etwas.`,
     refundLead: 'Doch anders entschieden? Unsere',
     refundTail: 'gibt Ihnen 14 Tage Zeit.',
+    cancelledTitle: 'Zahlung abgebrochen',
+    cancelledBody:
+      'Sie haben das Zahlungsfenster vorzeitig geschlossen — es wurde nichts abgebucht und Ihr Tarif ist unverändert. Ihre Lebensläufe sind genau dort, wo Sie sie verlassen haben.',
+    cancelledResume: 'Erneut einen Tarif wählen',
   },
 };
 
-export const DASHBOARD_COPY: Record<Locale, DashboardCopy> = { en: EN, fr: FR, de: DE };
+/**
+ * Dutch.
+ *
+ * `je` throughout, matching the auth and chrome blocks — see the note there for why the
+ * Dutch product is informal where the German one is not.
+ *
+ * Two conventions worth naming. Dutch writes the currency symbol before the amount with a
+ * space (`$ 29`), which is why these read `$ ${price}` rather than the English `$${price}`.
+ * And the plural of `cv` is `cv's` with an apostrophe — a rule that looks like a typo to an
+ * English eye and is wrong without it, so the strings that count documents are written out
+ * rather than assembled from a stem.
+ */
+const NL: DashboardCopy = {
+  dashboard: {
+    title: 'Mijn omgeving',
+    adminConsole: 'Beheerconsole',
+    tabBarAria: 'Tabbladen',
+    greeting: (name) => (name ? `Welkom terug, ${name}` : 'Welkom terug'),
+    greetingNew: (name) => (name ? `Welkom, ${name}` : 'Welkom'),
+    subtitle: "Je cv's, downloads en account in één oogopslag.",
+    cvCount: (n) => (n === 1 ? '1 cv' : `${n} cv's`),
+    downloadsLeft: (n) =>
+      n === 1 ? 'nog 1 download deze maand' : `nog ${n} downloads deze maand`,
+    unlimited: 'Onbeperkt',
+    onFreePlan: 'Je gebruikt Gratis',
+    freePlanLimits: (cvs, downloads) =>
+      `${cvs ?? 'Onbeperkt'} cv's en ${downloads ?? 'onbeperkt'} downloads per maand.`,
+    comparePlans: 'Abonnementen vergelijken',
+    completeness: 'Volledigheid',
+    emptyTitle: 'Je hebt nog geen cv gemaakt',
+    emptyBody: 'Kies een sjabloon, vul het in en download de pdf. Dat kost ongeveer tien minuten.',
+    createFirst: 'Maak je eerste cv',
+    recentCvs: "Recente cv's",
+    viewAll: 'Alles bekijken',
+    lastEdited: (when) => `Bewerkt ${when}`,
+    untitled: 'Naamloos cv',
+    overviewLedeEmpty:
+      'Nog niets opgeslagen. Kies hieronder een startpunt en je hebt in één zitting een afgerond cv.',
+    overviewLede: (n) =>
+      n === 1 ? 'Je hebt 1 cv in je account.' : `Je hebt ${n} cv's in je account.`,
+    viewAllCvs: "Alle cv's bekijken",
+    planUsage: 'Verbruik',
+    statCvsSaved: "Opgeslagen cv's",
+    statDownloads: 'Downloads',
+    statPlan: 'Abonnement',
+    statCompleteness: 'Gem. volledigheid',
+    unlimitedOnPlan: 'Onbeperkt bij jouw abonnement.',
+    atCvLimitHint: 'Limiet bereikt — verwijder er een of upgrade om er meer toe te voegen.',
+    cvsLeftOnPlan: (n, plan) => `nog ${n} bij ${plan}.`,
+    unlimitedExports: 'Onbeperkt pdf-exports.',
+    resetsOn: (date) => `Wordt gereset op ${date}.`,
+    renewsOn: (date) => `Wordt verlengd op ${date}.`,
+    permanentAccess: 'Permanente toegang — geen verlenging.',
+    freeForever: 'Altijd gratis, met limieten.',
+    completenessNoData: 'Maak een cv om dit te volgen.',
+    completenessAcrossCvs: 'Over alle cv’s in je account.',
+    downloadLimitTitle: 'Je hebt alle downloads van deze maand gebruikt',
+    downloadLimitBody: (date) =>
+      `De teller wordt op ${date} gereset. Met Pro vervalt de limiet helemaal.`,
+    seePlans: 'Abonnementen bekijken',
+    finishHeading: (title) => `Maak “${title}” af`,
+    finishLede: (percent) => `Dit cv is voor ${percent}% klaar. Dit zijn de grootste gaten:`,
+    continueEditing: 'Verder bewerken',
+    recentlyEdited: 'Onlangs bewerkt',
+    allCvsCount: (n) => `Alle ${n} cv's`,
+    noCvsYet: "Nog geen cv's",
+    noCvsBody:
+      'Begin met een leeg document, met een uitgewerkt voorbeeld, of bekijk eerst de sjablonen — wat je maar aan het schrijven zet.',
+    browseTemplates: 'Sjablonen bekijken',
+    startNewCv: 'Nieuw cv beginnen',
+    cvLimitTitle: (limit, plan) =>
+      `Je gebruikt alle ${limit} cv's die het abonnement ${plan} toestaat`,
+    cvLimitBodyLead: 'Verwijder er een bij',
+    cvLimitBodyTail: " om ruimte te maken, of upgrade naar Pro voor onbeperkt cv's.",
+    errorTitle: 'Die pagina is niet geladen',
+    errorBody: "Er is iets misgegaan aan onze kant. Je cv's zijn veilig — er is niets gewijzigd.",
+    errorBodyWithRef: (reference) =>
+      `Er is iets misgegaan aan onze kant. Noem referentie ${reference} als je contact opneemt met support.`,
+    backToDashboard: 'Terug naar mijn omgeving',
+    errorSupport: (email) => `Blijft het gebeuren? Mail dan ${email}.`,
+    upgradeHeading: (plan, price, interval) => `Upgrade naar ${plan} — $ ${price}/${interval}`,
+    billingInterval: {
+      forever: 'altijd',
+      month: 'maand',
+      year: 'jaar',
+      'one-time': 'eenmalig',
+    },
+    getPlan: (plan) => `${plan} nemen`,
+    gainUnlimitedCvs: (freeLimit) => `Onbeperkt cv's in plaats van ${freeLimit}`,
+    gainUnlimitedDownloads: (freeLimit) =>
+      `Onbeperkt pdf-downloads in plaats van ${freeLimit} per maand`,
+    gainAllTemplates: (total, free) => `Alle ${total} sjablonen in plaats van ${free}`,
+    gainCustomisation: 'Lettertypen, regelafstand, eigen secties en een openbare deellink',
+    upgradeAltLead: 'Of',
+    upgradeLifetime: (plan, price) => `${plan.toLowerCase()}-toegang eenmalig voor $ ${price}`,
+    upgradeAltJoin: ', of',
+    comparePlansLink: 'vergelijk de abonnementen',
+    planLimitTitle: 'Je hebt een limiet van je abonnement bereikt',
+    planLimitBody: 'Je huidige abonnement staat dat niet toe. Met een upgrade vervalt de limiet.',
+    networkError: 'Netwerkprobleem — controleer je verbinding en probeer het opnieuw.',
+    requestRefused: (status) => `De server heeft dat verzoek geweigerd (${status}).`,
+    pleaseTryAgain: 'Probeer het opnieuw.',
+  },
+  cvs: {
+    title: "Mijn cv's",
+    subtitle: 'Alles wat je hebt geschreven, klaar om aan te passen voor de volgende sollicitatie.',
+    newCv: 'Nieuw cv',
+    startBlank: 'Leeg beginnen',
+    startBlankHint: 'Een leeg document met de gebruikelijke secties klaar om in te vullen.',
+    startExample: 'Beginnen met een voorbeeld',
+    startExampleHint:
+      'Een volledig uitgewerkt cv dat je kunt uitkleden — handig om de vorm te zien.',
+    chooseTemplate: 'Kies een sjabloon',
+    deleteTitle: 'Dit cv verwijderen?',
+    deleteBody: (title) => `“${title}” wordt definitief verwijderd. Dit kan niet ongedaan worden gemaakt.`,
+    deleteConfirm: 'Definitief verwijderen',
+    duplicated: 'Kopie gemaakt',
+    shareTitle: 'Deel een alleen-lezen link',
+    shareBody:
+      'Iedereen met de link kan dit cv bekijken. Het verschijnt niet in zoekresultaten.',
+    shareCopy: 'Link kopiëren',
+    shareCopied: 'Link gekopieerd',
+    shareStop: 'Delen stoppen',
+    downloads: (n) => (n === 1 ? '1 download' : `${n} downloads`),
+    documentLanguage: 'Taal van het document',
+    documentLanguageHint:
+      'Bepaalt de kopjes en de datumnotatie op dit cv. Het verandert niets aan de taal van de app en herschrijft nooit wat je zelf hebt getypt.',
+    savedSummary: (saved, limit, plan) =>
+      limit === null
+        ? `${saved} opgeslagen.`
+        : `${saved} opgeslagen van ${limit} bij het abonnement ${plan}.`,
+    nothingSavedYet: 'Hier staat nog niets.',
+    sortName: 'Naam',
+    sortAria: "Cv's sorteren",
+    layoutAria: 'Weergave',
+    gridView: 'Raster',
+    listView: 'Lijst',
+    gridViewAria: 'Rasterweergave',
+    listViewAria: 'Lijstweergave',
+    slotsFullTitle: (limit, plan) =>
+      `Alle ${limit} cv-plekken van het abonnement ${plan} zijn bezet`,
+    slotsFullBody:
+      "Verwijder of hernoem een bestaand cv om een plek vrij te maken, of upgrade naar Pro voor onbeperkt cv's.",
+    noneTitle: "Geen cv's in je account",
+    noneBody:
+      'Maak er een vanaf een lege pagina, vanuit een uitgewerkt voorbeeld, of meteen vanuit een sjabloon dat je mooi vindt.',
+    createOne: 'Maak een cv',
+    createTitle: 'Nieuw cv maken',
+    createLede:
+      'Kies hoe je wilt beginnen en welk ontwerp je gebruikt. Er wordt niets opgeslagen tot je op Maken drukt.',
+    createdTitle: 'Cv gemaakt',
+    createdExampleBody:
+      'We hebben het gevuld met een uitgewerkt voorbeeld — vervang het door je eigen gegevens.',
+    createdBlankBody: 'De editor wordt geopend…',
+    createFailed: 'Het cv kon niet worden gemaakt',
+    backToMyCvs: "Terug naar mijn cv's",
+    premiumTemplateTitle: (name) => `“${name}” is een Pro-sjabloon`,
+    premiumTemplateBody: (count) =>
+      `We hebben in plaats daarvan een gratis sjabloon gekozen. Upgrade om alle ${count} ontwerpen te ontgrendelen, of kies hieronder een van de gratis sjablonen.`,
+    unknownTemplateTitle: 'Dat sjabloon bestaat niet',
+    unknownTemplateBody:
+      'De link die je volgde wijst naar een sjabloon dat we niet meer publiceren. Kies hieronder een ander.',
+    detailLede: (template, percent, when) =>
+      `${template} · ${percent}% klaar · bewerkt ${when}`,
+    previewAria: 'Voorbeeld van het cv',
+    detailsHeading: 'Gegevens',
+    factTemplate: 'Sjabloon',
+    factCreated: 'Gemaakt',
+    factLastEdited: 'Laatst bewerkt',
+    factDownloads: 'Pdf-downloads',
+    factVisibility: 'Zichtbaarheid',
+    neverDownloaded: 'Nooit gedownload',
+    downloadsWithLast: (n, when) => `${n} · laatste ${when}`,
+    unknownTime: 'onbekend',
+    publicLinkOn: 'Openbare link aan',
+    privateLabel: 'Privé',
+    publicLinkHeading: 'Openbare link',
+    publicLinkHint: 'Gebruik Delen om de link te kopiëren of uit te zetten.',
+    overall: 'Totaal',
+    checkTodo: {
+      name: 'Vul je voor- en achternaam in',
+      headline: 'Voeg een functietitel toe, bijvoorbeeld “Senior productontwerper”',
+      email: 'Voeg een e-mailadres toe waarop recruiters kunnen antwoorden',
+      phone: 'Voeg een telefoonnummer toe',
+      location: 'Vul je woonplaats en land in',
+      summary: 'Schrijf een profieltekst van minstens drie regels',
+      experience: 'Voeg minstens één functie toe aan Werkervaring',
+      achievements:
+        'Beschrijf wat je in een functie hebt bereikt, niet alleen waar je verantwoordelijk voor was',
+      education: 'Voeg een opleiding toe',
+      skills: 'Voeg minstens vijf vaardigheden toe',
+      languages: 'Voeg minstens één taal en je niveau daarin toe',
+      extras: 'Voeg een project, certificaat, onderscheiding of publicatie toe',
+    },
+    checkDone: {
+      name: 'Naam',
+      headline: 'Functietitel',
+      email: 'E-mailadres',
+      phone: 'Telefoonnummer',
+      location: 'Woonplaats',
+      summary: 'Profieltekst',
+      experience: 'Werkervaring',
+      achievements: 'Resultaten bij een functie',
+      education: 'Opleiding',
+      skills: 'Vaardigheden',
+      languages: 'Talen',
+      extras: 'Projecten, certificaten of onderscheidingen',
+    },
+    skillsShortTodo: (missing) =>
+      `Voeg nog ${missing} vaardighe${missing === 1 ? 'id' : 'den'} toe (vijf is het minimum dat doordacht overkomt)`,
+    srDone: ' — gedaan',
+    srMissing: ' — ontbreekt',
+    fixInEditor: 'Los dit op in de editor',
+    notFoundTitle: 'Dat cv staat hier niet',
+    notFoundBody:
+      'Het is mogelijk verwijderd, of de link wijst naar een cv in een ander account.',
+    openAria: (title) => `${title} openen`,
+    publicBadge: 'Openbaar',
+    actionsAria: (title) => `Acties voor ${title}`,
+    downloadPdf: 'Pdf downloaden',
+    preparingPdf: 'Pdf wordt voorbereid…',
+    renameAction: 'Hernoemen…',
+    shareAction: 'Delen…',
+    sharingAction: 'Bezig met delen…',
+    deleteAction: 'Verwijderen…',
+    shareShort: 'Delen',
+    pdfReadyTitle: 'Pdf klaar',
+    pdfReadyBody: 'Je download zou automatisch moeten starten.',
+    pdfFailed: 'De pdf kon niet worden gemaakt',
+    pdfUnavailableBody:
+      'We kunnen je pdf op dit moment niet genereren. Probeer het zo meteen opnieuw.',
+    duplicatedBody: (title) => `“${title}” staat in je lijst.`,
+    duplicateFailed: 'Dat cv kon niet worden gedupliceerd',
+    nameLabel: 'Naam van het cv',
+    nameRequired: 'Geef het cv een naam, zodat je het later terugvindt.',
+    nameTooLong: (max) => `Houd de naam op ${max} tekens of minder.`,
+    renameTitle: 'Cv hernoemen',
+    renameLede: 'Alleen jij ziet deze naam — hij staat niet op het document.',
+    renameSave: 'Naam opslaan',
+    renamedTitle: 'Hernoemd',
+    renamedBody: (title) => `Heet nu “${title}”.`,
+    renameFailed: 'Dat cv kon niet worden hernoemd',
+    deletedTitle: 'Cv verwijderd',
+    deletedBody: (title) => `“${title}” is verwijderd.`,
+    deleteFailed: 'Dat cv kon niet worden verwijderd',
+    shareModalLede:
+      'Publiceren maakt een alleen-lezen pagina op een niet te raden adres. Je zet het wanneer je wilt weer uit.',
+    shareProTitle: 'Openbare links zijn een Pro-functie',
+    shareProBody:
+      'Upgrade om je cv te publiceren op een link die je in een e-mail of sollicitatie kunt zetten.',
+    sharePublicLabel: 'Iedereen met de link kan dit cv bekijken',
+    shareLiveHint: 'De pagina staat nu online.',
+    shareOffHint: 'Er wordt niets gepubliceerd tot je dit aanzet.',
+    shareUpdating: 'De link wordt bijgewerkt…',
+    shareOnTitle: 'Deellink aan',
+    shareOnBody: 'Iedereen met de link kan dit cv nu bekijken.',
+    shareOffTitle: 'Deellink uit',
+    shareOffBody: 'De link werkt niet meer.',
+    shareFailed: 'Delen kon niet worden gewijzigd',
+    copyFailedTitle: 'Kopiëren is niet gelukt',
+    copyFailedBody: 'Selecteer de link en kopieer hem handmatig.',
+    limitTitle: (limit) => `Je gebruikt alle ${limit} cv's die je abonnement toestaat`,
+    limitBody: "Verwijder een cv om ruimte te maken, of upgrade naar Pro voor onbeperkt cv's.",
+    usedOfLimit: (used, limit) => `${used} van ${limit} cv's gebruikt bij jouw abonnement`,
+    proRemovesLimit: 'Met Pro vervalt de limiet en krijg je elk sjabloon.',
+    stepStart: '1. Kies een startpunt',
+    stepTemplate: '2. Kies een sjabloon',
+    stepTemplateHint: 'Je kunt later wisselen zonder iets van je tekst te verliezen.',
+    stepName: '3. Geef het een naam en maak het aan',
+    nameHint: (untitled) => `Alleen jij ziet dit. Laat het leeg om het “${untitled}” te noemen.`,
+    namePlaceholder: 'bijv. Productontwerper — Atlas Cloud',
+    summaryTemplate: 'Sjabloon:',
+    summaryPaper: 'Papier:',
+    summaryContent: 'Inhoud:',
+    noneSelected: 'Niets gekozen',
+    contentExample: 'Uitgewerkt voorbeeld',
+    contentEmpty: 'Leeg',
+    chooseTemplateHint:
+      'Bekijk alle ontwerpen, filter op stijl en begin met het sjabloon dat je aanspreekt.',
+  },
+  templates: {
+    allAvailable: (count) =>
+      `Alle ${count} ontwerpen zijn beschikbaar bij jouw abonnement. Een cv beginnen vanuit een ontwerp kost één klik.`,
+    freeSubset: (free, total) =>
+      `${free} van de ${total} ontwerpen zitten in het gratis abonnement. De rest is gemarkeerd als Pro.`,
+    filterAria: 'Sjablonen filteren op categorie',
+    allFilter: 'Alle',
+    showing: (shown, total) => `${shown} van ${total} sjablonen`,
+    categoryLabel: {
+      modern: 'Modern',
+      corporate: 'Zakelijk',
+      creative: 'Creatief',
+      technology: 'IT',
+      classic: 'Klassiek',
+      ats: 'ATS-vriendelijk',
+    },
+    oneColumn: 'één kolom',
+    twoColumns: 'twee kolommen',
+    details: 'Details',
+    searchPlaceholder: 'Zoek sjablonen — ‘ats’, ‘directie’, ‘ontwerper’…',
+    searchAria: 'Sjablonen zoeken',
+    planFilterAria: 'Filteren op abonnement',
+    blockedTitle: 'Dat is een Pro-sjabloon',
+    blockedBody:
+      'Upgrade om elk ontwerp te ontgrendelen, of ga verder met een van de gratis sjablonen — daar zit elke ATS-veilige opmaak bij.',
+    emptyTitle: 'Geen sjabloon komt daarmee overeen',
+    emptyBody: 'Probeer een kortere zoekterm, of wis de filters voor categorie en abonnement.',
+    badgeFree: 'GRATIS',
+    badgePro: 'PRO',
+    useTemplate: 'Sjabloon gebruiken',
+    unlockWithPro: 'Ontgrendelen met Pro',
+    lockedAria: (name) => `${name} is een Pro-sjabloon — bekijk de abonnementen`,
+  },
+  account: {
+    unfinishedHeading: 'Niet-afgeronde betalingen · er is niets afgeschreven',
+    unfinishedBody: (count) =>
+      `${count === 1 ? 'Deze betaling is' : 'Deze betalingen zijn'} gestart maar nooit afgerond — het betaalvenster is geopend en verlaten voordat er betaald werd. Er is geen geld van je rekening gegaan en er is geen abonnement toegekend. We bewaren de referentie zodat support het kan nazoeken als jij denkt van wel.`,
+    lede: 'Met welk account je bent ingelogd, wat je abonnement toestaat en waarvoor je hebt betaald.',
+    unverifiedTitle: 'Je e-mailadres is niet bevestigd',
+    unverifiedBody:
+      'Bevestigen beschermt je account en maakt het mogelijk je wachtwoord te herstellen.',
+    verifyNow: 'Nu bevestigen',
+    profileHint: 'Deze gegevens komen uit het account waarmee je inlogt.',
+    displayName: 'Weergavenaam',
+    notSet: 'Niet ingesteld',
+    email: 'E-mail',
+    verified: 'Bevestigd',
+    unverified: 'Niet bevestigd',
+    memberSince: 'Lid sinds',
+    lastSignIn: 'Laatste keer ingelogd',
+    profileLockedLead: (siteName) =>
+      `Voorlopig alleen-lezen. Je weergavenaam en e-mailadres komen van je inlogprovider en worden bij elke aanmelding opnieuw opgehaald — ${siteName} heeft nog geen endpoint om profielen te bewerken, dus wijzigingen hier zouden niet bewaard blijven. Wijzig ze bij je provider, of`,
+    askSupport: 'vraag support',
+    profileLockedTail: ' om het voor je te doen.',
+    planHint: 'Wat je account op dit moment kan.',
+    statusLabel: 'Status',
+    subscriptionStatus: {
+      none: 'Geen abonnement',
+      active: 'Actief',
+      expired: 'Verlopen',
+      cancelled: 'Opgezegd',
+      pending: 'In behandeling',
+    },
+    expires: 'Verloopt',
+    renews: 'Wordt verlengd',
+    neverPermanent: 'Nooit — permanente toegang',
+    notApplicableFree: 'Niet van toepassing bij Gratis',
+    cvsAndDownloads: "Cv's / downloads",
+    cvAllowance: (n) => (n === null ? 'Onbeperkt' : `${n} cv's`),
+    downloadAllowance: (n) =>
+      n === null ? 'onbeperkt downloads' : `${n} downloads per maand`,
+    billingHeading: 'Betaalgeschiedenis',
+    billingHint: 'Betalingen die daadwerkelijk van dit account zijn afgeschreven.',
+    noPaymentsTitle: 'Nog geen betalingen',
+    noPaymentsPremium:
+      'Je toegang is toegekend zonder geregistreerde betaling. Neem contact op met support als dat niet klopt.',
+    noPaymentsAbandoned:
+      'Je bent wel een betaling begonnen maar hebt er nooit een afgerond, dus er is niets afgeschreven.',
+    noPaymentsFree: 'Je gebruikt het gratis abonnement, dus er valt niets te factureren.',
+    colDate: 'Datum',
+    colPlan: 'Abonnement',
+    colAmount: 'Bedrag',
+    colStatus: 'Status',
+    colOrder: 'Bestelling',
+    paymentStatus: {
+      created: 'Aangemaakt',
+      approved: 'Goedgekeurd',
+      completed: 'Voltooid',
+      failed: 'Mislukt',
+      cancelled: 'Geannuleerd',
+      refunded: 'Terugbetaald',
+    },
+    invoiceLead: 'Een factuur, een terugbetaling of een nieuw bonnetje nodig?',
+    contactUs: 'Neem contact op',
+    invoiceTail: ' met het bestelnummer erbij.',
+  },
+  settings: {
+    title: 'Instellingen',
+    subtitle: "Je profiel, je abonnement en de standaardinstellingen voor nieuwe cv's.",
+    profileHeading: 'Profiel',
+    displayName: 'Naam',
+    email: 'E-mail',
+    emailImmutable:
+      'Je e-mailadres is het adres waarmee je bent ingelogd en kan hier niet worden gewijzigd.',
+    languageHeading: 'Taal',
+    languageHint:
+      'De taal van deze omgeving en de editor. Elk cv heeft zijn eigen taal, die je op het cv zelf instelt.',
+    preferencesHeading: "Standaard voor nieuwe cv's",
+    paperSize: 'Papierformaat',
+    defaultTemplate: 'Standaardsjabloon',
+    appDefault: 'Standaard van de app',
+    marketingOptIn: 'Producte-mails',
+    marketingOptInHint:
+      'Af en toe een e-mail over nieuwe sjablonen en functies. Hoogstens één per maand.',
+    dangerHeading: 'Account verwijderen',
+    deleteAccount: 'Mijn account verwijderen',
+    deleteAccountHint:
+      'Verwijdert je account en elk cv erin. Dit kan niet ongedaan worden gemaakt.',
+    planHeading: 'Abonnement',
+    currentPlan: 'Huidig abonnement',
+    manageBilling: 'Facturatie beheren',
+    pageLede:
+      'Alleen de dingen die echt iets doen zijn hier instelbaar. Bij de rest staat dat erbij.',
+    preferencesHint: 'Wordt toegepast de volgende keer dat je vanuit deze browser een cv maakt.',
+    emailHeading: 'E-mailvoorkeuren',
+    emailHint: 'Wat we je mogen sturen.',
+    readOnly: 'Alleen-lezen',
+    marketingEmail: 'Product- en marketingmail',
+    optedIn: 'Aangemeld',
+    optedOut: 'Afgemeld',
+    accountEmail: 'Account-e-mail',
+    accountEmailAlways:
+      'Wordt altijd verstuurd — bonnetjes, bevestigingen en beveiligingsmeldingen',
+    emailLockedLead: (siteName) =>
+      `${siteName} heeft hier nog geen endpoint voor, dus er staat geen schakelaar die zou doen alsof hij werkt. Elke marketingmail bevat een afmeldlink met één klik, of`,
+    askUs: 'vraag het ons',
+    emailLockedTail: ' om het te wijzigen.',
+    dataHeading: 'Jouw gegevens',
+    dataHint: 'Neem wanneer je wilt een kopie mee van alles wat je hier hebt geschreven.',
+    exportNote:
+      'Het bestand bevat elk cv in zijn geheel — persoonsgegevens, secties en de ontwerpinstellingen per cv — als JSON. Het wordt in je browser opgebouwd uit je eigen account, dus er wordt niets opgeslagen of ergens anders naartoe gestuurd.',
+    dangerZone: 'Gevarenzone',
+    dangerZoneHint: 'Onomkeerbare handelingen.',
+    defaultsSaved: 'Standaardinstellingen opgeslagen',
+    defaultsSaveFailedTitle: 'Kon niet worden opgeslagen op dit apparaat',
+    defaultsSaveFailedBody:
+      'Je browser blokkeert lokale opslag — bij privénavigatie is dat meestal het geval.',
+    readingDefaults: 'Je opgeslagen standaardinstellingen worden gelezen…',
+    paperSizeHint:
+      'Wordt toegepast wanneer een cv wordt aangemaakt. Je kunt het per cv nog in de editor wijzigen.',
+    paperA4Hint: '210 × 297 mm — standaard buiten Noord-Amerika',
+    paperLetterHint: '8,5 × 11 inch — standaard in de VS en Canada',
+    defaultTemplateHint: 'Staat voorgeselecteerd bij het maken van een nieuw cv.',
+    defaultTemplateFreeHint:
+      'Alleen gratis sjablonen kunnen standaard zijn zolang je het gratis abonnement gebruikt.',
+    useAppDefault: (templateName) => `De standaard van de app gebruiken (${templateName})`,
+    saveDefaults: 'Standaardinstellingen opslaan',
+    savedLocallyNote: (siteName) =>
+      `Alleen in deze browser opgeslagen — ${siteName} heeft nog geen endpoint om voorkeuren tussen apparaten te synchroniseren.`,
+    exportButton: "Al mijn cv's downloaden als JSON",
+    exportListing: "Je cv's worden opgehaald…",
+    exportProgress: (done, total) => `${done} van ${total} geëxporteerd…`,
+    exportNothingTitle: 'Niets om te exporteren',
+    exportNothingBody: 'Je hebt nog geen cv opgeslagen.',
+    exportPartialTitle: (done, total) => `${done} van ${total} geëxporteerd`,
+    exportPartialBody: (titles) =>
+      `Kon niet worden gelezen: ${titles}. Probeer het over een minuut opnieuw.`,
+    exportReadyTitle: 'Export klaar',
+    exportReadyBody: (n) =>
+      n === 1 ? '1 cv opgeslagen als JSON.' : `${n} cv's opgeslagen als JSON.`,
+    exportFailed: "Je cv's konden niet worden geëxporteerd",
+    deleteAccountBody:
+      'Verwijdert je profiel, elk opgeslagen cv en je betaalgeschiedenis. Verwijderen kan nog niet vanzelf, dus dit opent een vooraf ingevuld verzoek aan ons supportteam — wij handelen het met de hand af en bevestigen per e-mail.',
+    deleteAccountAction: 'Account verwijderen…',
+    deleteModalTitle: 'Je account verwijderen',
+    deleteModalLede:
+      'Dit kan niet ongedaan worden gemaakt. Typ je e-mailadres om te bevestigen dat je het meent.',
+    deleteContinue: 'Doorgaan naar het verzoek',
+    deleteNothingTitle: 'Op dit scherm wordt niets verwijderd',
+    deleteNothingBody: (siteName) =>
+      `${siteName} heeft geen geautomatiseerd endpoint om te verwijderen. Bevestigen brengt je naar een vooraf ingevuld supportverzoek; je gegevens worden verwijderd zodra ons team dat verwerkt.`,
+    typeEmailToConfirm: (email) => `Typ ${email} om te bevestigen`,
+    emailMismatch: 'Dat komt niet overeen met je e-mailadres.',
+    deleteRequestSubject: 'Verzoek tot verwijdering van account',
+    deleteRequestBody: (siteName, email) =>
+      `Verwijder mijn ${siteName}-account (${email}) en alles wat eronder is opgeslagen: mijn opgeslagen cv's, mijn betaalgeschiedenis en mijn profiel.`,
+  },
+  checkout: {
+    noTransactionTitle: 'Bij deze link ontbreekt de betaalreferentie',
+    noTransactionBody:
+      'Betaallinks verlopen en kunnen maar één keer worden geopend. Begin opnieuw vanaf de prijzenpagina, of antwoord op de e-mail die je hebt gekregen, dan sturen we een nieuwe.',
+    unconfiguredTitle: 'Betalen met kaart kan op dit moment niet',
+    unconfiguredBody:
+      'Dit is een probleem aan onze kant, niet met je betaling — er is niets afgeschreven. Probeer het zo meteen opnieuw, of neem contact op, dan sturen we je een werkende link.',
+    openFailedTitle: 'We konden het betaalvenster niet openen',
+    openFailedBody:
+      'Er is niets afgeschreven. Ververs de pagina om het opnieuw te proberen — blijft het misgaan, neem dan contact op en noem de link die je hebt gevolgd.',
+    openingCheckout: 'Het betaalvenster wordt geopend…',
+    completing: 'Betaling ontvangen — we bevestigen hem nu…',
+    reopen: 'Het betaalvenster opnieuw openen',
+    payNow: (priceLabel) => `${priceLabel} betalen`,
+    opening: 'Het betaalvenster wordt geopend…',
+    confirming: 'Je betaling wordt bevestigd…',
+    paddleNote: (planName) =>
+      `Paddle handelt de betaling af — wij zien je kaartgegevens nooit. ${planName} wordt vrijgegeven zodra de betaling bevestigd is.`,
+    startFailedTitle: 'Het afrekenen kon niet worden gestart',
+    startFailedBody:
+      'We konden de betaling niet starten. Er is niets afgeschreven — probeer het zo meteen opnieuw.',
+    serverError: (code) =>
+      ({
+        unauthenticated: 'Je sessie is beëindigd. Log opnieuw in, dan gaat de betaling verder.',
+        forbidden: 'Dit account mag die aankoop niet doen.',
+        'email-unverified':
+          'Bevestig eerst je e-mailadres — we hebben je een link gestuurd. Er is niets afgeschreven.',
+        'rate-limited':
+          'Dat is een paar keer achter elkaar geprobeerd. Wacht een minuut en probeer het opnieuw — er is niets afgeschreven.',
+        'invalid-plan': 'Dat abonnement kan niet worden gekocht.',
+        'invalid-request':
+          'Er klopte iets niet aan dat verzoek. Er is niets afgeschreven.',
+        'not-found': 'We konden die betaling niet vinden.',
+        'unknown-order':
+          'We hebben geen registratie van die betaling op dit account. Als er geld van je rekening is gegaan, is het niet verdwenen — neem contact met ons op en noem de transactiereferentie hieronder.',
+        'payments-unavailable':
+          'Betalen met kaart kan op dit moment niet. Er is niets afgeschreven — probeer het zo meteen opnieuw.',
+        'not-configured':
+          'Betalen met kaart kan op dit moment niet. Er is niets afgeschreven — probeer het zo meteen opnieuw.',
+        'payment-provider-error':
+          'Onze betaalprovider gaf geen antwoord. Er is niets afgeschreven — probeer het zo meteen opnieuw.',
+        'payment-not-completed':
+          'Deze betaling is nog niet doorgekomen. Als je net hebt betaald, geef het dan een paar seconden.',
+        'amount-mismatch':
+          'Het betaalde bedrag hoort niet bij dit abonnement, dus we hebben het niet vrijgegeven. Er is verder niets afgeschreven — neem contact met ons op, dan lossen we het op.',
+        'server-error': 'Er is iets misgegaan aan onze kant. Er is niets afgeschreven.',
+        'request-failed': 'Er is iets misgegaan aan onze kant. Er is niets afgeschreven.',
+      })[code ?? ''] ?? null,
+    scriptFailed:
+      'Het betaalvenster kon niet laden. Controleer of een adblocker of privacy-extensie Paddle niet blokkeert en probeer het opnieuw — er is niets afgeschreven.',
+    offline:
+      'We konden de server niet bereiken. Controleer je verbinding en probeer het opnieuw — er is niets afgeschreven.',
+    confirmTitle: 'Je betaling wordt bevestigd…',
+    confirmBody:
+      'Paddle heeft de betaling ontvangen en wij controleren die bij hen voordat er iets wordt vrijgegeven. Je mag dit tabblad sluiten als dat nodig is — je abonnement wordt hoe dan ook toegekend.',
+    stillConfirmingBody:
+      'Paddle heeft de betaling nog niet bevestigd. We vragen het nog steeds — dat kan een paar seconden duren terwijl je bank hem verwerkt. Wachten kost je niets.',
+    confirmFailedTitle: 'We konden die betaling niet bevestigen',
+    nextSignIn:
+      'Log in met het account waarmee je hebt betaald en open deze pagina opnieuw. Je betaling is veilig — het abonnement wordt toegekend zodra we het aan je account kunnen koppelen.',
+    nextSupport: (email) =>
+      `Als er geld van je rekening is gegaan, mail dan ${email} met je Paddle-transactie-id, dan zetten we het recht of betalen we het terug.`,
+    nextWait:
+      'Als je de betaling hebt afgerond, wordt het abonnement binnen een minuut vanzelf toegekend. Druk op “Opnieuw proberen”, of open zo je accountpagina — je hoeft niet twee keer te betalen.',
+    receiptNote:
+      'Paddle heeft je een bonnetje en een factuur gemaild die je als onkosten kunt indienen.',
+    transactionRef: 'Transactie',
+    unavailableTitle: 'Betalen is op dit moment niet mogelijk',
+    unavailableBody: (email) =>
+      `Er is op deze omgeving geen betaalprovider geconfigureerd, dus er is hier niets om mee te betalen en er is niets afgeschreven. Mail ${email}, dan zetten we je abonnement met de hand klaar.`,
+    backToDomain: (domain) => `Terug naar ${domain}`,
+    footerPricing: 'Prijzen',
+    footerRefund: 'Terugbetalingsbeleid',
+    footerTerms: 'Voorwaarden',
+    footerPrivacy: 'Privacy',
+    footerContact: 'Contact',
+    interval: {
+      forever: 'altijd',
+      month: 'per maand',
+      year: 'per jaar',
+      'one-time': 'eenmalige betaling',
+    },
+    stepReview: 'Stap 1 van 3 · Controleren',
+    confirmPlanTitle: (planName) => `Bevestig je abonnement ${planName}`,
+    whatsIncluded: 'Wat zit erbij?',
+    rowPlan: 'Abonnement',
+    rowBilling: 'Facturatie',
+    billingOneOff: 'Eén betaling, geen verlenging',
+    billingRecurring: (days) => `Elke ${days} dagen, altijd opzegbaar`,
+    totalToday: 'Totaal vandaag',
+    ownsLifetimeTitle: (lifetimeName) => `Je hebt ${lifetimeName} al`,
+    ownsLifetimeBody: (lifetimeName, planName) =>
+      `${lifetimeName}-toegang verloopt nooit en bevat alles wat in ${planName} zit, dus hier valt voor jou niets te betalen. Dat zeggen we liever dan het geld aan te nemen.`,
+    viewAccount: 'Mijn account bekijken',
+    repeatTitle: (planName) => `Je gebruikt ${planName} al`,
+    repeatBody: (days, from, siteName, lifetimeName, lifetimePrice) =>
+      `Nog een keer betalen verlengt je toegang met ${days} dagen ${from}. Als je ${siteName} blijft gebruiken, is ${lifetimeName} voor ${lifetimePrice} na acht maanden voordeliger —`,
+    extendsFromDate: (date) => `vanaf ${date}`,
+    extendsFromToday: 'vanaf vandaag',
+    repeatSwitch: (lifetimeName) => `stap over op ${lifetimeName}`,
+    termsIntro: 'Door verder te gaan ga je akkoord met onze',
+    termsLink: 'voorwaarden',
+    termsAnd: 'en ons',
+    refundLink: 'terugbetalingsbeleid',
+    cardDetailsNote:
+      'Wij zien of bewaren je kaartgegevens nooit — de betaalprovider handelt dat volledig af.',
+    stepConfirmation: 'Stap 3 van 3 · Bevestiging',
+    confirmationTitle: 'Betalingsbevestiging',
+    confirmationLede:
+      'Het betaalvenster is gesloten. Voordat er iets wordt vrijgegeven, leest onze server de transactie opnieuw uit bij Paddle — wat je hieronder ziet is dus de echte uitkomst, geen bericht dat verschijnt omdat je op deze pagina bent beland.',
+    missingReference: 'Bij deze bevestigingslink ontbreekt de betaalreferentie.',
+    missingReferenceNext:
+      'Open het bonnetje dat je betaalprovider je heeft gemaild en volg de link daarin, of kijk op je accountpagina — een afgeronde betaling geeft het abonnement vanzelf vrij.',
+    emailSupport: (email) => `Mail ${email}`,
+    quoteReference: 'Noem deze referentie als je contact met ons opneemt:',
+    backToPricing: 'Terug naar de prijzen',
+    planActive: (planName) => `Je gebruikt ${planName}`,
+    planAlreadyActive: (planName) => `${planName} is al actief`,
+    alreadyConfirmedBody:
+      'Deze bestelling was al bevestigd, dus we hebben niets twee keer afgeschreven of toegekend. Alles hieronder is nu beschikbaar op je account.',
+    noRenewalNote: 'Dit abonnement verloopt niet en er valt niets te verlengen of op te zeggen.',
+    accessDaysNote: (days) =>
+      `Deze betaling dekt ${days} dagen toegang en wordt niet automatisch verlengd — er wordt nooit vanzelf iets afgeschreven.`,
+    refundLead: 'Van gedachten veranderd? Ons',
+    refundTail: 'geeft je 14 dagen.',
+    cancelledTitle: 'Betaling geannuleerd',
+    cancelledBody:
+      'Je hebt het betaalvenster gesloten voordat het klaar was, dus er is niets afgeschreven en je abonnement is ongewijzigd. Je cv’s staan precies waar je ze had achtergelaten.',
+    cancelledResume: 'Opnieuw een abonnement kiezen',
+  },
+};
+
+export const DASHBOARD_COPY: Record<Locale, DashboardCopy> = { en: EN, fr: FR, de: DE, nl: NL };

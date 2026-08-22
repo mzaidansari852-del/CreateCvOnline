@@ -589,7 +589,7 @@ export function CVEditor({
                       id={id}
                       value={activeSectionId}
                       onChange={(event) => setActiveSectionId(event.target.value)}
-                      className="h-11 w-full cursor-pointer rounded-lg border border-ink-200 bg-white px-3 text-sm font-medium text-ink-900 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/12 focus:outline-none"
+                      className="h-11 w-full cursor-pointer rounded-lg border border-ink-200 bg-white px-3 text-sm font-medium text-ink-900 pointer-coarse:text-base focus:border-brand-500 focus:ring-4 focus:ring-brand-500/12 focus:outline-none"
                     >
                       <option value="personal">{copy.editor.personalDetails}</option>
                       <option value="cover-letter">{copy.editor.letterTab}</option>

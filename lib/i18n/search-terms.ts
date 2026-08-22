@@ -287,9 +287,138 @@ const DE_TERMS: Record<string, string[]> = {
   personalwesen: ['human resources'],
 };
 
+/**
+ * Dutch.
+ *
+ * The registry's keywords are English, so without this a Dutch visitor typing `boekhouder`
+ * or `verpleegkundige` into the gallery search gets nothing at all — the cards carry Dutch
+ * facet words but English role names. Each entry maps a word a Dutch speaker would type
+ * onto the English tokens the corpus actually contains.
+ *
+ * Both spellings are listed where Dutch admits two (`zakelijk`/`zakelijke`), and the
+ * inflected adjective forms are included because Dutch inflects attributively — someone
+ * searching for a modern CV is at least as likely to type `moderne` as `modern`.
+ */
+const NL_TERMS: Record<string, string[]> = {
+  // Style and layout
+  modern: ['modern'],
+  moderne: ['modern'],
+  klassiek: ['classic', 'traditional'],
+  klassieke: ['classic', 'traditional'],
+  creatief: ['creative'],
+  creatieve: ['creative'],
+  zakelijk: ['corporate', 'business'],
+  zakelijke: ['corporate', 'business'],
+  professioneel: ['professional'],
+  professionele: ['professional'],
+  eenvoudig: ['simple', 'plain'],
+  eenvoudige: ['simple', 'plain'],
+  simpel: ['simple', 'plain'],
+  strak: ['clean', 'minimal'],
+  strakke: ['clean', 'minimal'],
+  minimalistisch: ['minimalist', 'minimal'],
+  minimalistische: ['minimalist', 'minimal'],
+  minimaal: ['minimal'],
+  elegant: ['elegant'],
+  elegante: ['elegant'],
+  formeel: ['formal'],
+  formele: ['formal'],
+  traditioneel: ['traditional'],
+  traditionele: ['traditional'],
+  compact: ['compact'],
+  compacte: ['compact'],
+  kolom: ['column'],
+  kolommen: ['column'],
+  een: ['one'],
+  één: ['one'],
+  twee: ['two'],
+  pagina: ['page'],
+  foto: ['photo'],
+  pasfoto: ['photo'],
+  zijbalk: ['sidebar'],
+  zijkolom: ['sidebar'],
+  kleur: ['coloured'],
+  gekleurd: ['coloured'],
+  gekleurde: ['coloured'],
+  redactioneel: ['editorial'],
+  tijdschrift: ['magazine'],
+  portfolio: ['portfolio'],
+  visueel: ['visual'],
+  visuele: ['visual'],
+  functioneel: ['functional'],
+  functionele: ['functional'],
+  europass: ['europass'],
+  academisch: ['academic'],
+  academische: ['academic'],
+  wetenschappelijk: ['academic'],
+
+  // Roles and sectors
+  bank: ['banking', 'finance'],
+  bankwezen: ['banking', 'finance'],
+  financieel: ['finance', 'banking'],
+  financiën: ['finance', 'banking'],
+  financien: ['finance', 'banking'],
+  boekhouder: ['accountant'],
+  boekhouding: ['accountant'],
+  accountant: ['accountant'],
+  ingenieur: ['engineer'],
+  ontwikkelaar: ['developer'],
+  programmeur: ['programmer', 'developer'],
+  softwareontwikkelaar: ['developer', 'software'],
+  software: ['software'],
+  techniek: ['tech', 'technology'],
+  technisch: ['tech', 'technology'],
+  technologie: ['technology'],
+  ict: ['technology', 'software', 'tech'],
+  gegevens: ['data'],
+  data: ['data'],
+  ontwerper: ['designer'],
+  ontwerp: ['design'],
+  vormgever: ['designer'],
+  grafisch: ['graphic'],
+  grafische: ['graphic'],
+  marketing: ['marketing'],
+  verkoop: ['sales'],
+  sales: ['sales'],
+  manager: ['manager'],
+  leidinggevende: ['manager', 'executive'],
+  directie: ['executive'],
+  directeur: ['executive', 'manager'],
+  bestuurder: ['executive'],
+  consultant: ['consultant'],
+  adviseur: ['consultant'],
+  arts: ['medical', 'doctor'],
+  medisch: ['medical'],
+  medische: ['medical'],
+  verpleegkundige: ['nurse'],
+  verpleger: ['nurse'],
+  zorg: ['medical', 'nurse'],
+  docent: ['teacher'],
+  leraar: ['teacher'],
+  onderwijs: ['teacher', 'academic'],
+  juridisch: ['legal'],
+  juridische: ['legal'],
+  jurist: ['legal'],
+  advocaat: ['legal'],
+  overheid: ['government'],
+  ambtenaar: ['government'],
+  student: ['student', 'entry'],
+  studente: ['student', 'entry'],
+  studie: ['student', 'entry'],
+  starter: ['entry', 'student'],
+  schoolverlater: ['entry', 'student'],
+  stage: ['entry', 'student'],
+  afgestudeerde: ['entry', 'student'],
+  vaardigheden: ['skills'],
+  ervaring: ['experience'],
+  personeelszaken: ['human resources'],
+  hr: ['human resources'],
+};
+
 const TERMS: Partial<Record<Locale, Record<string, string[]>>> = {
   fr: FR_TERMS,
   de: DE_TERMS,
+  nl: NL_TERMS,
 };
 
 /**
@@ -332,6 +461,14 @@ const PHRASES: Partial<Record<Locale, Record<string, string[]>>> = {
     'einer spalte': ['one column', 'einspaltig'],
     'zwei spalten': ['two columns', 'zweispaltig'],
     'zwei spaltig': ['two columns', 'zweispaltig'],
+  },
+  nl: {
+    // The Dutch card says "één kolom" / "twee kolommen", so both that wording and the
+    // English keyword form are listed — same reasoning as the German entry above.
+    'een kolom': ['one column', 'één kolom'],
+    'één kolom': ['one column', 'één kolom'],
+    'twee kolommen': ['two columns', 'twee kolommen'],
+    'personeelszaken': ['human resources'],
   },
 };
 

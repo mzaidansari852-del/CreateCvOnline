@@ -79,6 +79,22 @@ const CARD_COPY = {
       ats: 'compatible ATS',
     },
   },
+  nl: {
+    view: 'Sjabloon bekijken',
+    free: 'Gratis',
+    pro: 'Pro',
+    oneColumn: 'één kolom',
+    twoColumns: 'twee kolommen',
+    ats: 'ATS-vriendelijk',
+    category: {
+      modern: 'modern',
+      corporate: 'zakelijk',
+      creative: 'creatief',
+      technology: 'IT',
+      classic: 'klassiek',
+      ats: 'ATS-vriendelijk',
+    },
+  },
 } satisfies Record<Locale, unknown>;
 
 export function TemplateCard({

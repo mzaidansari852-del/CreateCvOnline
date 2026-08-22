@@ -268,4 +268,67 @@ const DE: ChromeCopy = {
   },
 };
 
-export const CHROME_COPY: Record<Locale, ChromeCopy> = { en: EN, fr: FR, de: DE };
+const NL: ChromeCopy = {
+  common: {
+    notifications: 'Meldingen',
+    dismissNotification: 'Melding sluiten',
+    save: 'Opslaan',
+    saving: 'Bezig met opslaan…',
+    saved: 'Opgeslagen',
+    cancel: 'Annuleren',
+    delete: 'Verwijderen',
+    duplicate: 'Dupliceren',
+    rename: 'Naam wijzigen',
+    edit: 'Bewerken',
+    preview: 'Voorbeeld',
+    download: 'Downloaden',
+    close: 'Sluiten',
+    back: 'Terug',
+    next: 'Volgende',
+    loading: 'Bezig met laden…',
+    retry: 'Opnieuw proberen',
+    confirm: 'Bevestigen',
+    yes: 'Ja',
+    no: 'Nee',
+    free: 'Gratis',
+    pro: 'Pro',
+    upgrade: 'Upgraden naar Pro',
+    somethingWentWrong: 'Er is iets misgegaan. Probeer het opnieuw.',
+    unsavedChanges: 'Je hebt niet-opgeslagen wijzigingen.',
+    language: 'Taal',
+    closeDialog: 'Dialoogvenster sluiten',
+    progress: 'Voortgang',
+  },
+  field: {
+    colourPicker: (label) => `Kleurkiezer: ${label}`,
+    hexValue: (label) => `Hexwaarde: ${label}`,
+    usePreset: (preset) => `${preset} gebruiken`,
+  },
+  photo: {
+    error: ({ code, bytes }) =>
+      code === 'tooLarge'
+        ? `Deze afbeelding is ${megabytes(bytes, ',')} MB. Kies er een van minder dan 8 MB.`
+        : {
+            unsupportedType:
+              'Dit bestand is geen bruikbare afbeelding. Kies een JPEG, PNG, WebP of AVIF.',
+            unreadable:
+              'Deze afbeelding kon niet worden gelezen. Mogelijk is het bestand beschadigd — probeer een andere.',
+            processingFailed: 'Je browser kon de afbeelding niet verwerken.',
+            tooLargeAfterResize:
+              'Deze afbeelding is zelfs na verkleinen te groot om op te slaan.',
+          }[code],
+  },
+  nav: {
+    dashboard: 'Mijn omgeving',
+    myCvs: "Mijn cv's",
+    templates: 'Sjablonen',
+    settings: 'Instellingen',
+    account: 'Account',
+    signOut: 'Uitloggen',
+    newCv: 'Nieuw cv',
+    newCvShort: 'Nieuw',
+    backToSite: 'Terug naar de site',
+  },
+};
+
+export const CHROME_COPY: Record<Locale, ChromeCopy> = { en: EN, fr: FR, de: DE, nl: NL };

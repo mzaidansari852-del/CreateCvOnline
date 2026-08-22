@@ -14,7 +14,8 @@ import {
 } from '@/components/marketing/primitives';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { TemplateGrid } from '@/components/marketing/TemplateStrip';
-import { hasPreview } from '@/components/cv/TemplateImage';
+import { hasPreview, previewSrc } from '@/components/cv/TemplateImage';
+import { templatePath } from '@/lib/i18n/locales';
 import { FrenchTemplatePage } from './FrenchTemplatePage';
 import { frenchTemplateCopy } from '../../fr-template-copy';
 import {
@@ -176,6 +177,7 @@ export default async function FrenchTemplatesSlugPage(props: {
 
       <Section tone="muted" size="sm">
         <CtaBanner
+          primaryLabel={FR.cta.primary}
           title={FR.cta.title}
           description={FR.cta.description}
           secondaryHref="/fr/tarifs"
@@ -209,13 +211,22 @@ export default async function FrenchTemplatesSlugPage(props: {
               ? absoluteUrl(`/previews/${templates[0]!.slug}-card.webp`)
               : undefined,
           }),
+          /*
+           * The members are the French pages, not the English ones.
+           *
+           * This listed `/templates/{slug}` — the same defect the gallery page's own
+           * comment describes and fixed there, left behind on the category pages. A French
+           * `CollectionPage` whose every member is an English URL contradicts the hreflang
+           * cluster it sits inside, and invites Google to read the French page as a thin
+           * wrapper around English content.
+           */
           itemListSchema(
             templates.map((template) => ({
               name: template.name,
-              path: `/templates/${template.slug}`,
+              path: templatePath(template.slug, 'fr'),
               description: template.tagline,
               image: hasPreview(template.slug)
-                ? absoluteUrl(`/previews/${template.slug}-card.webp`)
+                ? absoluteUrl(previewSrc(template.slug, 'card', 'fr'))
                 : undefined,
             })),
             copy.heading,

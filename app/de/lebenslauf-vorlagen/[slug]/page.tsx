@@ -14,7 +14,8 @@ import {
 } from '@/components/marketing/primitives';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { TemplateGrid } from '@/components/marketing/TemplateStrip';
-import { hasPreview } from '@/components/cv/TemplateImage';
+import { hasPreview, previewSrc } from '@/components/cv/TemplateImage';
+import { templatePath } from '@/lib/i18n/locales';
 import { GermanTemplatePage } from './GermanTemplatePage';
 import { germanTemplateCopy } from '../../de-template-copy';
 import {
@@ -176,6 +177,7 @@ export default async function GermanTemplatesSlugPage(props: {
 
       <Section tone="muted" size="sm">
         <CtaBanner
+          primaryLabel={DE.cta.primary}
           title={DE.cta.title}
           description={DE.cta.description}
           secondaryHref="/de/preise"
@@ -210,12 +212,16 @@ export default async function GermanTemplatesSlugPage(props: {
               : undefined,
           }),
           itemListSchema(
+            /*
+             * The members are the German pages, not the English ones — see the note on the
+             * French category page, which had the identical defect.
+             */
             templates.map((template) => ({
               name: template.name,
-              path: `/templates/${template.slug}`,
+              path: templatePath(template.slug, 'de'),
               description: template.tagline,
               image: hasPreview(template.slug)
-                ? absoluteUrl(`/previews/${template.slug}-card.webp`)
+                ? absoluteUrl(previewSrc(template.slug, 'card', 'de'))
                 : undefined,
             })),
             copy.heading,

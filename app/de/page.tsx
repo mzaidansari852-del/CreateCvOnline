@@ -134,6 +134,7 @@ export default function GermanHomePage() {
 
       <Section size="sm">
         <CtaBanner
+          primaryLabel={DE.cta.primary}
           title={DE.cta.title}
           description={DE.cta.description}
           secondaryHref="/de/preise"

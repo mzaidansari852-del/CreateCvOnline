@@ -266,6 +266,7 @@ const MONTHS_SHORT: Record<Locale, string[]> = {
   en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
   fr: ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'],
   de: ['Jan.', 'Feb.', 'März', 'Apr.', 'Mai', 'Juni', 'Juli', 'Aug.', 'Sep.', 'Okt.', 'Nov.', 'Dez.'],
+  nl: ['jan.', 'feb.', 'mrt.', 'apr.', 'mei', 'jun.', 'jul.', 'aug.', 'sep.', 'okt.', 'nov.', 'dec.'],
 };
 
 const MONTHS_LONG: Record<Locale, string[]> = {
@@ -311,6 +312,21 @@ const MONTHS_LONG: Record<Locale, string[]> = {
     'November',
     'Dezember',
   ],
+  // Dutch lower-cases its months too, for the same reason French does.
+  nl: [
+    'januari',
+    'februari',
+    'maart',
+    'april',
+    'mei',
+    'juni',
+    'juli',
+    'augustus',
+    'september',
+    'oktober',
+    'november',
+    'december',
+  ],
 };
 
 /**
@@ -323,6 +339,7 @@ const PRESENT_LABEL: Record<Locale, string> = {
   en: 'Present',
   fr: 'aujourd’hui',
   de: 'heute',
+  nl: 'heden',
 };
 
 /**
@@ -336,6 +353,7 @@ const PLACEHOLDER_NAME: Record<Locale, string> = {
   en: 'Your Name',
   fr: 'Votre nom',
   de: 'Ihr Name',
+  nl: 'Jouw naam',
 };
 
 /** The name to print: the applicant's, or the placeholder in the document's language. */

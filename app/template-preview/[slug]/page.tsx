@@ -7,7 +7,8 @@ import { getTemplateBySlug, templateDefaults, TEMPLATES } from '@/lib/cv/templat
 import { createDefaultCustomization } from '@/lib/cv/defaults';
 import { sampleCvFor } from '@/lib/cv/samples';
 import { localiseCv } from '@/lib/i18n/cv-labels';
-import type { Locale } from '@/lib/i18n/locales';
+import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/locales';
+import { parseLocale } from '@/lib/i18n/resolve';
 import { privateMetadata } from '@/lib/seo/metadata';
 
 /**
@@ -55,8 +56,16 @@ export default async function TemplatePreviewPage(props: {
    * shows. Without this the French pages display sixty-one pictures of a CV headed
    * `WORK EXPERIENCE` — the copy around them can be as French as you like and the product
    * still looks English, because the picture is the product.
+   *
+   * Validated against `LOCALES` rather than a hardcoded pair. It read
+   * `lang === 'fr' || lang === 'de'`, so adding Dutch did not extend it — `?lang=nl` fell
+   * through to English and the generator would have written 122 files under
+   * `public/previews/nl/` containing English documents. Nothing would have failed: the
+   * script would report success, the Dutch gallery would fill with correct-looking
+   * screenshots, and the headings inside them would be wrong. A list that must be edited in
+   * two places to add a language is a list that will be edited in one.
    */
-  const locale: Locale = lang === 'fr' || lang === 'de' ? lang : 'en';
+  const locale: Locale = parseLocale(lang) ?? DEFAULT_LOCALE;
   const cv = localiseCv(sampleCvFor(template.id), locale);
   const customization = createDefaultCustomization({
     ...templateDefaults(template),

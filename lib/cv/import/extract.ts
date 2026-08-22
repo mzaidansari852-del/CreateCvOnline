@@ -1,7 +1,9 @@
 import 'server-only';
 
 import mammoth from 'mammoth';
-import { extractText, getDocumentProxy } from 'unpdf';
+import { getDocumentProxy } from 'unpdf';
+
+import { readLayout, toMarkedText } from './layout';
 
 /**
  * Turning an uploaded file into something we can read.
@@ -58,12 +60,7 @@ export interface ExtractedDocument {
 export class ImportError extends Error {
   constructor(
     readonly code:
-      | 'too-large'
-      | 'unsupported-type'
-      | 'empty'
-      | 'unreadable'
-      | 'encrypted'
-      | 'invalid-json',
+      'too-large' | 'unsupported-type' | 'empty' | 'unreadable' | 'encrypted' | 'invalid-json',
     message: string,
   ) {
     super(message);
@@ -114,11 +111,23 @@ function detectMultiColumn(text: string): boolean {
 async function readPdf(bytes: Uint8Array): Promise<ExtractedDocument> {
   let pages = 0;
   let text = '';
+  let multiColumn = false;
   try {
     const pdf = await getDocumentProxy(bytes);
     pages = pdf.numPages;
-    const result = await extractText(pdf, { mergePages: true });
-    text = typeof result.text === 'string' ? result.text : String(result.text ?? '');
+
+    /*
+     * Read from coordinates, not from the file's own ordering.
+     *
+     * `extractText` returns glyph runs in the order the PDF stores them, which is not reading
+     * order — so a sidebar interleaves with the body, a right-aligned date lands inside a
+     * sentence, and every heading looks like an ordinary line. `readLayout` rebuilds lines
+     * from position and marks headings by font size, which turns most of what the parser used
+     * to guess into something it can simply read. See `layout.ts`.
+     */
+    const layout = await readLayout(pdf);
+    text = toMarkedText(layout);
+    multiColumn = layout.multiColumn;
   } catch (error) {
     const message = error instanceof Error ? error.message : '';
     if (/password|encrypt/i.test(message)) {
@@ -144,7 +153,20 @@ async function readPdf(bytes: Uint8Array): Promise<ExtractedDocument> {
     );
   }
 
-  return { kind: 'pdf', text, json: null, pages, likelyMultiColumn: detectMultiColumn(text) };
+  /*
+   * Two sources for the same warning, and both are worth keeping.
+   *
+   * `readLayout` reports a gutter it actually found, which is the reliable signal. The
+   * older text-shape heuristic still catches documents whose columns overlap enough that no
+   * clean gutter exists — where the order is scrambled but the geometry does not say so.
+   */
+  return {
+    kind: 'pdf',
+    text,
+    json: null,
+    pages,
+    likelyMultiColumn: multiColumn || detectMultiColumn(text),
+  };
 }
 
 async function readDocx(bytes: Uint8Array): Promise<ExtractedDocument> {

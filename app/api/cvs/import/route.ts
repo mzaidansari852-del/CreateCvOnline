@@ -78,6 +78,7 @@ export const POST = authedRoute(
           report: {
             found: [],
             partial: [],
+            custom: [],
             contact: [],
             likelyMultiColumn: false,
           } satisfies ParseReport,

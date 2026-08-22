@@ -1,4 +1,5 @@
 import { LOCALES, type Locale } from '@/lib/i18n/locales';
+import { ANNOTATION_MARK } from './layout';
 import { defaultSectionLabels } from '@/lib/i18n/cv-labels';
 import {
   BUILT_IN_SECTION_IDS,
@@ -38,6 +39,8 @@ export interface ParseReport {
   found: BuiltInSectionId[];
   /** Sections whose heading we saw but could not read anything useful out of. */
   partial: BuiltInSectionId[];
+  /** Titles of headings kept as custom sections, because we have no field for them. */
+  custom: string[];
   /** Personal fields we filled. */
   contact: string[];
   /** True when the text order looked scrambled — see `extract.ts`. */
@@ -364,9 +367,35 @@ function headingFor(line: string): BuiltInSectionId | null {
 }
 
 interface Block {
-  /** `null` is a heading we recognise as one but do not model — its content is discarded. */
-  id: BuiltInSectionId | 'header' | null;
+  /**
+   * A built-in section, the pre-heading header block, or a heading the extractor identified
+   * but this parser has no field for — kept as `{ custom: label }` and rendered as a custom
+   * section rather than discarded.
+   */
+  id: BuiltInSectionId | 'header' | { custom: string };
   lines: string[];
+}
+
+/**
+ * The prefix `layout.ts` puts on a line it measured as a heading.
+ *
+ * Chosen because it is what a heading looks like in Markdown, so if this text is ever handed
+ * to a model — which it is, on the Pro path — the marker reads as a heading there too rather
+ * than as a stray token to be explained in a prompt.
+ */
+export const HEADING_MARK = '# ';
+
+/**
+ * Did the extractor mark any headings at all?
+ *
+ * DOCX and plain text arrive with no font information, so nothing is marked and the older
+ * guesswork is still the best available. A PDF read through `layout.ts` marks its headings,
+ * and once even one is marked the guesses must stop: a document where headings are known is
+ * one where an unmarked line is known *not* to be a heading, and applying the all-caps rule
+ * anyway would re-introduce the bug that ate a city called CASABLANCA.
+ */
+function hasMarkedHeadings(lines: string[]): boolean {
+  return lines.some((line) => line.startsWith(HEADING_MARK));
 }
 
 /**
@@ -447,18 +476,42 @@ function continuesPrevious(previous: string | undefined, line: string): boolean 
 function splitIntoBlocks(text: string): Block[] {
   const lines = text
     .split(/\r?\n/)
-    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .map((line) => {
+      // The leading tab is meaning, not whitespace — collapsing it erases the one signal
+      // that separates a right-aligned city from the entry line it sits beside.
+      const annotated = line.startsWith(ANNOTATION_MARK);
+      const body = line.replace(/\s+/g, ' ').trim();
+      return body && annotated ? `${ANNOTATION_MARK}${body}` : body;
+    })
     .filter((line) => line.length > 0);
 
   const blocks: Block[] = [{ id: 'header', lines: [] }];
   for (const [index, line] of lines.entries()) {
+    /*
+     * A `#` marker is the extractor telling us it measured this line as a heading — it was
+     * set larger than the body text. That is a fact about the document, not a guess about
+     * its wording, and it settles the question outright.
+     *
+     * It also means an *unrecognised* heading is safe to keep. Guessing at headings, the
+     * only options were to absorb an unknown section into its neighbour or throw it away,
+     * and both lost content. Measured, a heading we have no field for becomes a custom
+     * section with its own title, which is where `Centre d'Intérêt` and `Certifications`
+     * belong anyway.
+     */
+    if (line.startsWith(HEADING_MARK)) {
+      const label = line.slice(HEADING_MARK.length).trim();
+      const known = headingFor(label);
+      blocks.push({ id: known ?? { custom: label }, lines: [] });
+      continue;
+    }
+
     const heading = headingFor(line);
     if (heading) {
       blocks.push({ id: heading, lines: [] });
       continue;
     }
-    if (isAllCapsHeading(line, lines[index - 1])) {
-      blocks.push({ id: null, lines: [] });
+    if (!hasMarkedHeadings(lines) && isAllCapsHeading(line, lines[index - 1])) {
+      blocks.push({ id: { custom: line }, lines: [] });
       continue;
     }
 
@@ -564,6 +617,31 @@ function parseHeader(lines: string[]): { personal: CVData['personal']; filled: s
   };
 }
 
+/** A right-aligned date or place, marked by `layout.ts` as belonging to the line above. */
+function isAnnotation(line: string): boolean {
+  return line.startsWith(ANNOTATION_MARK);
+}
+
+/** The line without its annotation mark. Safe on unmarked lines. */
+function bare(line: string): string {
+  return isAnnotation(line) ? line.slice(ANNOTATION_MARK.length) : line;
+}
+
+/**
+ * Does this head line already name an employer or school?
+ *
+ * `Marketing Manager — Fieldwire Systems` does; `Licence Génie Logiciel Web et Mobiles` does
+ * not. Only the second kind may adopt the line below it as its second half.
+ */
+function hasEmployerSeparator(line: string): boolean {
+  const tidy = line.replace(/[,;]+$/, '');
+  // Brackets count. `Chef de projet transverse (CIRCET MOROCCO)` names its employer as
+  // surely as a dash does, and a head that already has one must not adopt the line below —
+  // which on that CV was the city.
+  if (/\(([^()]{2,60})\)$/.test(tidy)) return true;
+  return /\s+[|–—]\s+|\s+-\s+|\s+(?:at|chez|bei|bij)\s+|,\s+/i.test(tidy);
+}
+
 /**
  * A bullet, in any of the glyphs word processors emit — with or without a space after it.
  *
@@ -634,7 +712,7 @@ function splitEntries(
 ): { head: string[]; body: string[]; range: ReturnType<typeof parseRange> }[] {
   const anchors: number[] = [];
   for (let i = 0; i < lines.length; i++) {
-    if (parseRange(lines[i]!)) anchors.push(i);
+    if (parseRange(bare(lines[i]!))) anchors.push(i);
   }
 
   /*
@@ -649,7 +727,9 @@ function splitEntries(
   if (anchors.length === 0) {
     if (lines.length === 0) return [];
     const head: string[] = [];
-    while (head.length < 2 && isEntryHeadingLine(lines[head.length]!))
+    // `head.length < lines.length` is load-bearing: without it a one-line block reads
+    // `lines[1]`, and the non-null assertion turns that into a crash rather than a miss.
+    while (head.length < 2 && head.length < lines.length && isEntryHeadingLine(lines[head.length]!))
       head.push(lines[head.length]!);
     return head.length ? [{ head, body: lines.slice(head.length), range: null }] : [];
   }
@@ -676,14 +756,10 @@ function splitEntries(
      * by "Baccalauréat Sciences Physiques". The two layouts are mutually exclusive, so
      * treating them as such removes the failure rather than ordering around it.
      */
-    const onAnchor = lines[at]!.replace(RANGE, '')
+    const onAnchor = bare(lines[at]!)
+      .replace(RANGE, '')
       .replace(/[|,•·]\s*$/, '')
       .trim();
-    if (onAnchor) {
-      heads.push({ at, lines: [onAnchor], from: at });
-      continue;
-    }
-
     /*
      * Otherwise the heading is above the date — but not always *directly* above it.
      *
@@ -696,8 +772,23 @@ function splitEntries(
      */
     const head: string[] = [];
     let from = at;
-    for (let i = at - 1; i > previousAnchor && head.length < 2; i--) {
+    // The date line carrying its own heading is the other layout, and settles the head
+    // outright — nothing above it is looked at, because the line above belongs to the entry
+    // before. The rule below still applies: a heading with no employer may adopt the line
+    // beneath it, which is where a school lands when the date is set beside the degree.
+    if (onAnchor) head.push(onAnchor);
+
+    for (let i = at - 1; !onAnchor && i > previousAnchor && head.length < 2; i--) {
       const line = lines[i]!;
+      /*
+       * An annotation is where the entry above ended.
+       *
+       * It is the previous entry's city, right-aligned under its date. Collected as a heading
+       * it becomes this entry's title — a qualification called `Casablanca`, awarded by
+       * `Licence Génie Logiciel Web et Mobiles`. Nothing in the wording says otherwise; the
+       * layout does, which is the reason the mark exists.
+       */
+      if (isAnnotation(line)) break;
       if (isBullet(line)) {
         if (head.length > 0) break;
         continue;
@@ -706,6 +797,26 @@ function splitEntries(
       head.unshift(line);
       from = i;
     }
+
+    /*
+     * A CV that right-aligns the date beside the *first* line of an entry puts the second
+     * line — the employer, the school — below it:
+     *
+     *     Licence Génie Logiciel Web et Mobiles,        2020 - 2021
+     *     École nationale des sciences appliquées Khouribga.
+     *
+     * The upward scan cannot reach that, so the institution came back empty. It is taken from
+     * below instead, but only when the line above carried no employer of its own: a head like
+     * `Marketing Manager - Fieldwire Systems` already has both halves, and appending the next
+     * line would overwrite the employer with a sentence.
+     */
+    if (head.length === 1 && !hasEmployerSeparator(head[0]!)) {
+      const below = lines[at + 1];
+      if (below && !isAnnotation(below) && !isBullet(below) && isEntryHeadingLine(below)) {
+        head.push(below);
+      }
+    }
+
     heads.push({ at, lines: head, from });
   }
 
@@ -717,7 +828,7 @@ function splitEntries(
     entries.push({
       head,
       body: lines.slice(at + 1, Math.max(at + 1, bodyEnd)),
-      range: parseRange(lines[at]!),
+      range: parseRange(bare(lines[at]!)),
     });
   }
 
@@ -931,6 +1042,8 @@ export function parseCvText(
   const data: Partial<CVData> = { personal };
   const found: BuiltInSectionId[] = [];
   const partial: BuiltInSectionId[] = [];
+  /** Titles of sections kept as custom ones, so the review screen can name them. */
+  const custom: string[] = [];
 
   const linesFor = (id: BuiltInSectionId) =>
     blocks.filter((block) => block.id === id).flatMap((block) => block.lines);
@@ -974,6 +1087,50 @@ export function parseCvText(
     (languages.length ? found : partial).push('languages');
   }
 
+  /*
+   * Everything else the document had a heading for.
+   *
+   * `Centre d'Intérêt`, `Certifications`, `Réalisations`, `Publications` — sections this
+   * parser has no field for, which previously had two possible fates and both lost the
+   * content: absorbed into whichever section came before, or discarded. Kept as custom
+   * sections they arrive intact, under the author's own title, and the editor treats them
+   * like any other section from that point on.
+   *
+   * The schema allows six. Sections with more lines come first, because when a CV has more
+   * extra sections than that, the substantial ones are the ones worth keeping.
+   */
+  /*
+   * Built-in sections this parser has no reader for count as unrecognised too.
+   *
+   * `Centre d'Intérêt` maps cleanly onto the `interests` id — and then vanished, because
+   * nothing below reads `interests` into anything. Recognising a heading and dropping what
+   * follows it is a worse failure than not recognising it at all: the section was identified
+   * correctly and the content thrown away regardless. So the test is not "did we name this
+   * section" but "did we read it", and whatever we did not read is kept verbatim.
+   */
+  const HANDLED: BuiltInSectionId[] = ['summary', 'experience', 'education', 'skills', 'languages'];
+  const customBlocks = blocks
+    .map((block) => {
+      if (typeof block.id === 'object' && block.id !== null && 'custom' in block.id) {
+        return { title: block.id.custom, lines: block.lines };
+      }
+      if (block.id === 'header' || HANDLED.includes(block.id as BuiltInSectionId)) return null;
+      return { title: labelFor(block.id as BuiltInSectionId, options.locale), lines: block.lines };
+    })
+    .filter((block): block is { title: string; lines: string[] } => block !== null)
+    .filter((block) => block.lines.length > 0)
+    .sort((a, b) => b.lines.length - a.lines.length)
+    .slice(0, 6);
+
+  if (customBlocks.length > 0) {
+    data.customSections = customBlocks.map((block) => ({
+      id: uid(),
+      title: block.title.slice(0, 80),
+      items: entriesForCustom(block.lines),
+    }));
+    custom.push(...customBlocks.map((block) => block.title));
+  }
+
   if (options.locale) data.language = options.locale;
 
   return {
@@ -981,8 +1138,49 @@ export function parseCvText(
     report: {
       found,
       partial,
+      custom,
       contact: filled,
       likelyMultiColumn: options.likelyMultiColumn ?? false,
     },
   };
+}
+
+/** The author-facing name of a built-in section, in the document's language. */
+function labelFor(id: BuiltInSectionId, locale: Locale | undefined): string {
+  return defaultSectionLabels(locale ?? LOCALES[0]!)[id];
+}
+
+/**
+ * Turns the lines under an unrecognised heading into custom-section items.
+ *
+ * Dated entries are split the same way experience and education are, because a section this
+ * parser does not model is usually still shaped like the ones it does — `Certifications` is
+ * a list of name, issuer and year. Where there are no dates the whole block becomes one item
+ * rather than nothing, since losing the content is the failure this exists to prevent.
+ */
+function entriesForCustom(lines: string[]): NonNullable<CVData['customSections']>[number]['items'] {
+  const entries = splitEntries(lines);
+  if (entries.length > 0) {
+    return entries.slice(0, 30).map((entry) => ({
+      id: uid(),
+      heading: (entry.head[0] ?? '').slice(0, 160),
+      subheading: (entry.head[1] ?? '').slice(0, 160),
+      date: entry.range
+        ? [entry.range.start, entry.range.current ? 'present' : entry.range.end]
+            .filter(Boolean)
+            .join(' – ')
+            .slice(0, 60)
+        : '',
+      description: entry.body.map(stripBullet).join(' ').trim().slice(0, 2000),
+    }));
+  }
+  return [
+    {
+      id: uid(),
+      heading: '',
+      subheading: '',
+      date: '',
+      description: lines.map(stripBullet).join(' ').trim().slice(0, 2000),
+    },
+  ];
 }

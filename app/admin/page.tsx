@@ -20,11 +20,12 @@ import {
 } from '@/components/admin/primitives';
 import { loadAdmin, paymentsPerDay, planSplit } from '@/components/admin/data';
 import { Panel } from '@/components/ui/card';
-import { countAllCVs } from '@/lib/db/cvs';
+import { countAllCVs, downloadStats } from '@/lib/db/cvs';
 import { listAllPayments, revenueSummary } from '@/lib/db/payments';
-import { countUsers, listUsers } from '@/lib/db/users';
+import { countUsers, listUsers, usersAtDownloadLimit } from '@/lib/db/users';
 import { formatDateTime, formatRelativeTime } from '@/lib/cv/format';
 import { getPlan, PLAN_ORDER } from '@/lib/plans';
+import { findTemplate } from '@/lib/cv/template-registry';
 import { privateMetadata } from '@/lib/seo/metadata';
 import { site } from '@/lib/site';
 
@@ -34,6 +35,14 @@ export const metadata: Metadata = privateMetadata(
 );
 
 /** Validated categorical steps — see the plan legend below; text never wears these. */
+/** Endonyms, so the table reads the way the documents themselves do. */
+const LANGUAGE_LABELS: Record<string, string> = {
+  en: 'English',
+  fr: 'Français',
+  de: 'Deutsch',
+  nl: 'Nederlands',
+};
+
 const PLAN_COLORS: Record<string, string> = {
   free: 'var(--color-brand-400)',
   pro: 'var(--color-brand-600)',
@@ -50,11 +59,24 @@ export default async function AdminOverviewPage() {
     return { users, cvs, revenue, split: await planSplit(users) };
   });
 
-  const activity = await loadAdmin(async () => {
-    const [signups, payments] = await Promise.all([
-      listUsers({ limit: 10 }),
-      listAllPayments(200),
+  /*
+   * Exports and blocked accounts, loaded separately from the counts above.
+   *
+   * `loadAdmin` isolates a failure to its own panel: an aggregate that throws — a missing
+   * index, a permissions change — leaves the rest of the page readable instead of blanking
+   * the whole overview. These two scan the CV collection group and the newest accounts, so
+   * they are the likeliest to be slow, and the least worth taking everything else down.
+   */
+  const exports = await loadAdmin(async () => {
+    const [stats, blocked] = await Promise.all([
+      downloadStats(),
+      usersAtDownloadLimit({ limit: 8 }),
     ]);
+    return { stats, blocked };
+  });
+
+  const activity = await loadAdmin(async () => {
+    const [signups, payments] = await Promise.all([listUsers({ limit: 10 }), listAllPayments(200)]);
     return { signups: signups.users, payments };
   });
 
@@ -185,6 +207,150 @@ export default async function AdminOverviewPage() {
             )}
           </Panel>
 
+          {exports.data ? (
+            <>
+              <StatTileGrid>
+                <StatTile
+                  label="PDF exports"
+                  value={formatCount(exports.data.stats.totalDownloads)}
+                  hint="Every export ever, summed across all CVs."
+                />
+                <StatTile
+                  label="CVs exported"
+                  value={formatCount(exports.data.stats.documentsExported)}
+                  hint="Documents downloaded at least once."
+                />
+                <StatTile
+                  label="Never exported"
+                  value={formatCount(
+                    Math.max(
+                      0,
+                      exports.data.stats.documentsCreated - exports.data.stats.documentsExported,
+                    ),
+                  )}
+                  hint="Started and not finished — the clearest drop-off signal there is."
+                />
+                <StatTile
+                  label="Exports per CV"
+                  value={exports.data.stats.averagePerExportedDocument.toFixed(1)}
+                  hint="How often a finished CV is downloaded again. Counts exported CVs only."
+                />
+              </StatTileGrid>
+
+              <div className="grid gap-6 xl:grid-cols-2">
+                <Panel
+                  title="Most exported templates"
+                  description="Which designs people actually finish with, rather than which they preview."
+                >
+                  {exports.data.stats.byTemplate.length === 0 ? (
+                    <p className="text-sm text-ink-600">Nothing has been exported yet.</p>
+                  ) : (
+                    <ul className="divide-y divide-ink-100">
+                      {exports.data.stats.byTemplate.slice(0, 6).map((row) => (
+                        <li
+                          key={row.templateId}
+                          className="flex items-baseline justify-between gap-4 py-2.5"
+                        >
+                          <span className="min-w-0 truncate text-sm text-ink-700">
+                            {findTemplate(row.templateId)?.name ?? row.templateId}
+                          </span>
+                          <span className="shrink-0 text-sm font-semibold tabular-nums text-ink-950">
+                            {formatCount(row.downloads)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Panel>
+
+                <Panel
+                  title="Exports by document language"
+                  description="The language each CV is written in — not the language the site was read in."
+                >
+                  {exports.data.stats.byLanguage.length === 0 ? (
+                    <p className="text-sm text-ink-600">Nothing has been exported yet.</p>
+                  ) : (
+                    <ul className="divide-y divide-ink-100">
+                      {exports.data.stats.byLanguage.map((row) => (
+                        <li
+                          key={row.language}
+                          className="flex items-baseline justify-between gap-4 py-2.5"
+                        >
+                          <span className="text-sm text-ink-700">
+                            {LANGUAGE_LABELS[row.language] ?? row.language}
+                          </span>
+                          <span className="text-sm font-semibold tabular-nums text-ink-950">
+                            {formatCount(row.downloads)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Panel>
+              </div>
+
+              <Panel
+                title="At their download limit"
+                description="Free accounts that have used this month's exports, or are one away. They have written a CV and been stopped mid-task — the warmest upgrade list on this page."
+                bodyClassName="p-0"
+                action={
+                  <Link
+                    href="/admin/users"
+                    className="text-sm font-semibold text-brand-700 hover:text-brand-800"
+                  >
+                    All users
+                  </Link>
+                }
+              >
+                <AdminTable minWidth={520}>
+                  <thead>
+                    <tr>
+                      <Th sticky>E-mail</Th>
+                      <Th align="right">Used</Th>
+                      <Th align="right">Limit</Th>
+                      <Th align="right">Signed up</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {exports.data.blocked.length === 0 ? (
+                      <TableEmptyRow colSpan={4}>
+                        Nobody is at their limit this month.
+                      </TableEmptyRow>
+                    ) : (
+                      exports.data.blocked.map((user) => (
+                        <tr key={user.uid}>
+                          <Td sticky>
+                            <Link
+                              href={`/admin/users/${user.uid}`}
+                              className="font-medium text-brand-700 hover:text-brand-800"
+                            >
+                              {user.email || shortId(user.uid)}
+                            </Link>
+                          </Td>
+                          <Td align="right" className="font-semibold text-ink-950">
+                            {user.used}
+                          </Td>
+                          <Td align="right" className="text-ink-600">
+                            {user.limit}
+                          </Td>
+                          <Td align="right" className="whitespace-nowrap text-ink-600">
+                            {formatRelativeTime(user.createdAt)}
+                          </Td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </AdminTable>
+              </Panel>
+            </>
+          ) : (
+            <AdminDataAlert
+              configured={exports.configured}
+              error={exports.error}
+              what="Export figures"
+            />
+          )}
+
           <div className="grid gap-6 xl:grid-cols-2">
             <Panel
               title="Newest accounts"
@@ -210,9 +376,7 @@ export default async function AdminOverviewPage() {
                 </thead>
                 <tbody>
                   {recent.signups.length === 0 ? (
-                    <TableEmptyRow colSpan={4}>
-                      No accounts have been created yet.
-                    </TableEmptyRow>
+                    <TableEmptyRow colSpan={4}>No accounts have been created yet.</TableEmptyRow>
                   ) : (
                     recent.signups.map((user) => (
                       <tr key={user.uid}>
@@ -267,8 +431,8 @@ export default async function AdminOverviewPage() {
                 <tbody>
                   {recent.payments.length === 0 ? (
                     <TableEmptyRow colSpan={5}>
-                      No orders have been created yet. They appear here as soon as a
-                      checkout starts.
+                      No orders have been created yet. They appear here as soon as a checkout
+                      starts.
                     </TableEmptyRow>
                   ) : (
                     recent.payments.slice(0, 10).map((payment) => (

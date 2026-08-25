@@ -308,6 +308,91 @@ export async function countAllCVs(): Promise<number> {
   return snapshot.data().count;
 }
 
+/**
+ * PDF exports across every account.
+ *
+ * Read from `downloadCount` on the CV documents themselves, which `recordCVDownload` has
+ * been incrementing since the feature shipped — so this is history, not a counter that
+ * starts today. The per-user `downloadsThisMonth` is a different number and answers a
+ * different question: it is a quota meter that resets on the 1st, so it cannot be summed
+ * for a lifetime total.
+ *
+ * `documentsExported` is the number worth reading first. Signups and CVs created both
+ * measure intent; a downloaded PDF is the only event in the product that means someone got
+ * what they came for. A large gap between `documentsCreated` and `documentsExported` is the
+ * clearest signal available that people are starting and not finishing.
+ *
+ * One `select()` over the collection group, pulling three fields rather than whole
+ * documents — a CV document carries the entire résumé, and this runs on every admin page
+ * load.
+ */
+export interface DownloadStats {
+  /** Every export ever, summed across all CVs. */
+  totalDownloads: number;
+  /** CVs that have been exported at least once. */
+  documentsExported: number;
+  documentsCreated: number;
+  /** Exports per exported document — how often a finished CV gets re-used. */
+  averagePerExportedDocument: number;
+  /** Most-exported templates, busiest first. Keyed by template id. */
+  byTemplate: { templateId: string; downloads: number }[];
+  /** Exports by the language the document is written in. */
+  byLanguage: { language: string; downloads: number }[];
+}
+
+export async function downloadStats(): Promise<DownloadStats> {
+  const snapshot = await adminDb()
+    .collectionGroup(COLLECTIONS.cvs)
+    .select('downloadCount', 'customization', 'language')
+    .get();
+
+  let totalDownloads = 0;
+  let documentsExported = 0;
+  const templates = new Map<string, number>();
+  const languages = new Map<string, number>();
+
+  for (const doc of snapshot.docs) {
+    const raw = doc.data() as {
+      downloadCount?: unknown;
+      customization?: { templateId?: unknown };
+      language?: unknown;
+    };
+
+    const count = Number(raw.downloadCount ?? 0);
+    // A corrupt or absent counter reads as zero rather than poisoning the sum with NaN.
+    if (!Number.isFinite(count) || count <= 0) continue;
+
+    totalDownloads += count;
+    documentsExported += 1;
+
+    const templateId =
+      typeof raw.customization?.templateId === 'string' ? raw.customization.templateId : null;
+    if (templateId) templates.set(templateId, (templates.get(templateId) ?? 0) + count);
+
+    const language = typeof raw.language === 'string' ? raw.language : 'en';
+    languages.set(language, (languages.get(language) ?? 0) + count);
+  }
+
+  const rank = <K extends string>(map: Map<string, number>, key: K) =>
+    [...map.entries()]
+      .map(
+        ([value, downloads]) =>
+          ({ [key]: value, downloads }) as Record<K, string> & {
+            downloads: number;
+          },
+      )
+      .sort((a, b) => b.downloads - a.downloads);
+
+  return {
+    totalDownloads,
+    documentsExported,
+    documentsCreated: snapshot.size,
+    averagePerExportedDocument: documentsExported === 0 ? 0 : totalDownloads / documentsExported,
+    byTemplate: rank(templates, 'templateId'),
+    byLanguage: rank(languages, 'language'),
+  };
+}
+
 /** Template usage across all accounts, for the admin templates page. */
 export async function templateUsageCounts(): Promise<Record<string, number>> {
   const snapshot = await adminDb().collectionGroup(COLLECTIONS.cvs).select('customization').get();

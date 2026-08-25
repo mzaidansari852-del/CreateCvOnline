@@ -4,7 +4,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 import { adminAuth, adminDb, COLLECTIONS, toIso, userDoc } from '@/lib/firebase/admin';
 import { serverEnv } from '@/lib/env';
-import { defaultEntitlement, downloadPeriodKey } from '@/lib/plans';
+import { defaultEntitlement, downloadPeriodKey, limitsFor } from '@/lib/plans';
 import {
   userProfileSchema,
   type SessionUser,
@@ -245,6 +245,78 @@ export async function listUsers(options: {
 export async function countUsers(): Promise<number> {
   const snapshot = await adminDb().collection(COLLECTIONS.users).count().get();
   return snapshot.data().count;
+}
+
+/**
+ * Free-plan accounts that have used up, or nearly used up, this month's PDF exports.
+ *
+ * The most commercially interesting list the admin area can show. Everyone on it has
+ * written a CV, exported it as many times as the free plan allows, and then been stopped —
+ * they are not browsing, they are mid-task and blocked, which is the one moment an upgrade
+ * is obviously worth something to them rather than to us.
+ *
+ * Only the current period counts. `downloadsThisMonth` is a meter that resets on the 1st,
+ * and a stale `downloadsPeriod` means the stored figure belongs to a month that has already
+ * ended — reading it as current would fill this list every month with people who are not
+ * blocked at all. `downloadsUsed()` already encodes that rule, so the filter runs in memory
+ * after the query rather than as a `where` clause that cannot express it.
+ *
+ * Sorted by how far over the line they are, so the account that hit the wall hardest is
+ * first.
+ */
+export interface BlockedByDownloadLimit {
+  uid: string;
+  email: string;
+  displayName: string | null;
+  used: number;
+  limit: number;
+  createdAt: string;
+}
+
+export async function usersAtDownloadLimit(
+  options: {
+    limit: number;
+    /** Include accounts within this many exports of the cap. 0 = only those fully blocked. */
+    within?: number;
+    scan?: number;
+  } = { limit: 10 },
+): Promise<BlockedByDownloadLimit[]> {
+  const within = options.within ?? 1;
+
+  /*
+   * Firestore cannot answer "used >= their plan's limit" — the limit lives in `lib/plans.ts`,
+   * not in the document — so the most recent accounts are scanned and filtered here. A cap
+   * keeps this bounded on an admin page that also runs several other aggregates; it is a
+   * prompt list, not a report, and the users page is where an exhaustive answer belongs.
+   */
+  const snapshot = await adminDb()
+    .collection(COLLECTIONS.users)
+    .orderBy('createdAt', 'desc')
+    .limit(Math.min(options.scan ?? 500, 1000))
+    .get();
+
+  const rows: BlockedByDownloadLimit[] = [];
+
+  for (const doc of snapshot.docs) {
+    const profile = normalise(doc.id, doc.data());
+    const limit = limitsFor(profile.entitlement).maxDownloadsPerMonth;
+    // `null` is unlimited — a paying customer can never be blocked, so never listed.
+    if (limit === null) continue;
+
+    const used = downloadsUsed(profile);
+    if (used < limit - within) continue;
+
+    rows.push({
+      uid: profile.uid,
+      email: profile.email,
+      displayName: profile.displayName || null,
+      used,
+      limit,
+      createdAt: profile.createdAt,
+    });
+  }
+
+  return rows.sort((a, b) => b.used - a.used || b.limit - a.limit).slice(0, options.limit);
 }
 
 /** Grants or revokes administrator access. Custom claims are the authoritative source. */

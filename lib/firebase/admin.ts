@@ -91,6 +91,9 @@ export const COLLECTIONS = {
   blogPosts: 'blogPosts',
   settings: 'settings',
   templates: 'templates',
+  promoCodes: 'promoCodes',
+  /** Subcollection of `promoCodes`, one document per redeeming user, keyed by uid. */
+  promoRedemptions: 'redemptions',
 } as const;
 
 export function userDoc(uid: string) {

@@ -10,6 +10,7 @@ import {
   NewCVDefaultsForm,
   type TemplateChoice,
 } from '@/components/dashboard/SettingsPanels';
+import { PromoCodeBox } from '@/components/dashboard/PromoCodeBox';
 import { LanguagePanel } from '@/components/i18n/LanguagePanel';
 import { Panel } from '@/components/ui/card';
 import { Badge } from '@/components/ui/feedback';
@@ -96,6 +97,15 @@ export default async function SettingsPage() {
               {copy.settings.emailLockedTail}
             </p>
           </div>
+        </Panel>
+
+        {/*
+          Above the data panel rather than beside the plan, because redeeming is something a
+          user comes here to *do* — usually with a code already in their clipboard from a post
+          or a message — while the plan section is something they read.
+        */}
+        <Panel title={copy.settings.promoHeading}>
+          <PromoCodeBox />
         </Panel>
 
         <Panel title={copy.settings.dataHeading} description={copy.settings.dataHint}>

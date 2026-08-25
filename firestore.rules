@@ -159,6 +159,31 @@ service cloud.firestore {
     }
 
     /* ------------------------------------------------------------------ */
+    /* Promo codes                                                        */
+    /* ------------------------------------------------------------------ */
+
+    /*
+     * No client access at all — not even to a signed-in user redeeming one.
+     *
+     * The catch-all below already denies this, so the rule is redundant today and is here
+     * anyway, for the same reason `contactMessages` states its own: a redundant deny is a
+     * comment the database enforces. The danger is not the rule that exists now but the
+     * broad one someone adds above the catch-all later.
+     *
+     * A readable `promoCodes` collection would be worse than it sounds. The whole security
+     * of a short code is that it is unguessable, and a client that can list the collection
+     * does not have to guess — it reads every live code, including ones scheduled for a
+     * campaign that has not launched. Redemption goes through `/api/promo/redeem`, which
+     * uses the Admin SDK and bypasses rules entirely, so nothing legitimate needs this.
+     */
+    match /promoCodes/{code} {
+      allow read, write: if false;
+      match /redemptions/{uid} {
+        allow read, write: if false;
+      }
+    }
+
+    /* ------------------------------------------------------------------ */
     /* Everything else                                                    */
     /* ------------------------------------------------------------------ */
 

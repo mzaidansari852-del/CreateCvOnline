@@ -406,6 +406,17 @@ export interface DashboardCopy {
     planHeading: string;
     currentPlan: string;
     manageBilling: string;
+    /* The promo-code box. Grants a plan outright — no checkout, no card. */
+    promoHeading: string;
+    promoHint: string;
+    promoLabel: string;
+    promoPlaceholder: string;
+    promoSubmit: string;
+    promoSubmitting: string;
+    promoEmpty: string;
+    promoSuccessTitle: string;
+    promoSuccessBody: (planName: string) => string;
+    promoFailedTitle: string;
     pageLede: string;
     preferencesHint: string;
     emailHeading: string;
@@ -990,6 +1001,17 @@ const EN: DashboardCopy = {
     planHeading: 'Plan',
     currentPlan: 'Current plan',
     manageBilling: 'Manage billing',
+    promoHeading: 'Have a code?',
+    promoHint:
+      'A code from us unlocks a plan straight away — there is no checkout and no card to enter.',
+    promoLabel: 'Promo code',
+    promoPlaceholder: 'LINKEDIN-2026',
+    promoSubmit: 'Apply code',
+    promoSubmitting: 'Checking…',
+    promoEmpty: 'Enter a code first.',
+    promoSuccessTitle: 'Code applied',
+    promoSuccessBody: (planName) => `${planName} is active on your account.`,
+    promoFailedTitle: 'That code did not work',
     pageLede:
       'Only the things that genuinely do something are switchable here. Everything else says so.',
     preferencesHint: 'Applied the next time you create a CV from this browser.',
@@ -1583,6 +1605,17 @@ const FR: DashboardCopy = {
     planHeading: 'Formule',
     currentPlan: 'Formule actuelle',
     manageBilling: 'Gérer la facturation',
+    promoHeading: 'Vous avez un code ?',
+    promoHint:
+      'Un code de notre part débloque une offre immédiatement — sans passage en caisse et sans carte bancaire.',
+    promoLabel: 'Code promo',
+    promoPlaceholder: 'LINKEDIN-2026',
+    promoSubmit: 'Appliquer le code',
+    promoSubmitting: 'Vérification…',
+    promoEmpty: 'Saisissez d’abord un code.',
+    promoSuccessTitle: 'Code appliqué',
+    promoSuccessBody: (planName) => `L’offre ${planName} est active sur votre compte.`,
+    promoFailedTitle: 'Ce code n’a pas fonctionné',
     pageLede:
       'Seuls les réglages qui font vraiment quelque chose sont modifiables ici. Les autres le disent clairement.',
     preferencesHint: 'Appliqué au prochain CV que vous créerez depuis ce navigateur.',
@@ -2174,6 +2207,17 @@ const DE: DashboardCopy = {
     planHeading: 'Tarif',
     currentPlan: 'Aktueller Tarif',
     manageBilling: 'Zahlungen verwalten',
+    promoHeading: 'Sie haben einen Code?',
+    promoHint:
+      'Ein Code von uns schaltet einen Tarif sofort frei — ohne Kasse und ohne Kreditkarte.',
+    promoLabel: 'Promo-Code',
+    promoPlaceholder: 'LINKEDIN-2026',
+    promoSubmit: 'Code einlösen',
+    promoSubmitting: 'Wird geprüft…',
+    promoEmpty: 'Geben Sie zuerst einen Code ein.',
+    promoSuccessTitle: 'Code eingelöst',
+    promoSuccessBody: (planName) => `${planName} ist auf Ihrem Konto aktiv.`,
+    promoFailedTitle: 'Dieser Code hat nicht funktioniert',
     pageLede:
       'Umschaltbar ist hier nur, was tatsächlich etwas bewirkt. Bei allem anderen steht es dabei.',
     preferencesHint: 'Gilt für den nächsten Lebenslauf, den Sie in diesem Browser erstellen.',
@@ -2772,6 +2816,17 @@ const NL: DashboardCopy = {
     planHeading: 'Abonnement',
     currentPlan: 'Huidig abonnement',
     manageBilling: 'Facturatie beheren',
+    promoHeading: 'Heb je een code?',
+    promoHint:
+      'Een code van ons schakelt een abonnement meteen vrij — zonder afrekenen en zonder creditcard.',
+    promoLabel: 'Promocode',
+    promoPlaceholder: 'LINKEDIN-2026',
+    promoSubmit: 'Code toepassen',
+    promoSubmitting: 'Bezig met controleren…',
+    promoEmpty: 'Vul eerst een code in.',
+    promoSuccessTitle: 'Code toegepast',
+    promoSuccessBody: (planName) => `${planName} is actief op je account.`,
+    promoFailedTitle: 'Deze code werkte niet',
     pageLede:
       'Alleen de dingen die echt iets doen zijn hier instelbaar. Bij de rest staat dat erbij.',
     preferencesHint: 'Wordt toegepast de volgende keer dat je vanuit deze browser een cv maakt.',

@@ -247,6 +247,89 @@ function readOpaqueToken(raw: string | undefined): string | undefined {
   return compact.length > 0 ? compact : undefined;
 }
 
+/**
+ * Whether the four Paddle switches contradict each other.
+ *
+ * ## Why this is a hard failure rather than a warning
+ *
+ * Paddle is configured by four independent values that all have to say the same thing:
+ * the API key's own prefix (`pdl_sdbx_` / `pdl_live_`), `PADDLE_ENVIRONMENT`, the client
+ * token's prefix (`test_` / `live_`), and `NEXT_PUBLIC_PADDLE_ENVIRONMENT`. `.env.example`
+ * says they must agree. Nothing checked that they did, and the two ways they come apart are
+ * both silent:
+ *
+ *  - **Half-switched.** The API key is swapped to live and `PADDLE_ENVIRONMENT` is not, or
+ *    the reverse. `create-transaction` then creates the transaction in one environment and
+ *    the browser opens the overlay in the other, so Paddle cannot find it. Every customer
+ *    gets "we could not open the payment window" and it reads as a broken site rather than
+ *    a missing environment variable.
+ *
+ *  - **Left in sandbox.** Everything agrees, on sandbox, in production. No real card can be
+ *    charged — but the grant path does not care which environment a transaction came from.
+ *    It checks that the transaction is `completed` and that the amount equals the plan
+ *    price, then writes a real entitlement. In sandbox both are satisfiable by anyone, with
+ *    Paddle's published test card, for free. The client token is baked into the browser
+ *    bundle, so "this site is in sandbox" is not a secret either.
+ *
+ * A contradiction therefore makes the gateway *absent*, exactly as a malformed key already
+ * does: the checkout says payments are unavailable — which is true — instead of offering a
+ * button that cannot work, or one that works far too well.
+ *
+ * ## What it deliberately does not do
+ *
+ * It does not fire when the environment cannot be established. A legacy pre-2025 API key is
+ * a 50-character random string with no prefix, so `describePaddleApiKey` reports
+ * `environment: null`; those keys work, and refusing to start a checkout because a working
+ * credential predates a format change would be this function causing the outage it exists
+ * to prevent. Same for an unset client token, which `checkoutWillOfferPaddle` already
+ * covers.
+ */
+export function paddleEnvironmentProblem(input: {
+  /** From the API key's prefix. `null` for a legacy key — not checkable, so not checked. */
+  keyEnvironment: 'sandbox' | 'production' | null;
+  serverEnvironment: 'sandbox' | 'production';
+  /** Raw `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`. Empty when unset. */
+  clientToken: string;
+  publicEnvironment: 'sandbox' | 'production';
+}): string | null {
+  const { keyEnvironment, serverEnvironment, clientToken, publicEnvironment } = input;
+
+  if (keyEnvironment && keyEnvironment !== serverEnvironment) {
+    return (
+      `PADDLE_API_KEY is a ${keyEnvironment} key but PADDLE_ENVIRONMENT is ` +
+      `"${serverEnvironment}". Paddle would be called in the wrong environment and would ` +
+      'reject the key. Set both to the same environment.'
+    );
+  }
+
+  if (serverEnvironment !== publicEnvironment) {
+    return (
+      `PADDLE_ENVIRONMENT is "${serverEnvironment}" but NEXT_PUBLIC_PADDLE_ENVIRONMENT is ` +
+      `"${publicEnvironment}". The transaction would be created in one environment and the ` +
+      'checkout opened in the other, so Paddle could not find it.'
+    );
+  }
+
+  // `test_` / `live_` are the documented client-token prefixes. Anything else is either the
+  // API key in the wrong slot — which `describePaddleApiKey` reports separately — or a value
+  // whose environment cannot be read, and an unreadable token is not a contradiction.
+  const tokenEnvironment = clientToken.startsWith('live_')
+    ? 'production'
+    : clientToken.startsWith('test_')
+      ? 'sandbox'
+      : null;
+
+  if (tokenEnvironment && tokenEnvironment !== publicEnvironment) {
+    return (
+      `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN is a ${tokenEnvironment} token but ` +
+      `NEXT_PUBLIC_PADDLE_ENVIRONMENT is "${publicEnvironment}". Paddle.js would load one ` +
+      'environment and authenticate against the other.'
+    );
+  }
+
+  return null;
+}
+
 export interface ServerEnv {
   firebaseAdmin: { projectId: string; clientEmail: string; privateKey: string } | null;
   storageBucket: string | undefined;
@@ -296,6 +379,64 @@ export function serverEnv(): ServerEnv {
   const paddleEnvironment = (
     readOpaqueToken(process.env.PADDLE_ENVIRONMENT) || 'sandbox'
   ).toLowerCase();
+  const resolvedPaddleEnvironment = paddleEnvironment === 'production' ? 'production' : 'sandbox';
+
+  /*
+   * The four switches have to agree. See `paddleEnvironmentProblem` for the two ways they
+   * come apart and why a contradiction is treated as an absent gateway rather than a
+   * warning nobody reads.
+   */
+  /*
+   * The two public values are read from `process.env` here rather than from `publicEnv`.
+   *
+   * `publicEnv` is a module-level const, frozen the first time this file is imported. That
+   * is right for it — the browser bundle carries one fixed value — but it means the
+   * comparison could never be exercised: a test can move `PADDLE_ENVIRONMENT` and reset the
+   * `serverEnv()` cache, and the other half of the comparison would stay at whatever it was
+   * at import. An unexercised guard on a payment path is not a guard.
+   *
+   * Reading them lazily is equivalent in production, where both resolve to the same
+   * build-time value, and it keeps every input to `serverEnv()` sourced the same way.
+   */
+  const paddleMismatch = paddleEnvironmentProblem({
+    keyEnvironment: paddleKeyReport.environment,
+    serverEnvironment: resolvedPaddleEnvironment,
+    clientToken: (process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN ?? '').trim(),
+    publicEnvironment:
+      (process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT ?? '').trim().toLowerCase() === 'production'
+        ? 'production'
+        : 'sandbox',
+  });
+  if (paddleApiKey && paddleMismatch) {
+    console.error('[paddle]', paddleMismatch);
+  }
+
+  /*
+   * Sandbox credentials on the production deployment: refuse to build.
+   *
+   * This is the case that cannot be left to a log line. Everything agrees, so the checkout
+   * works — it just works in an environment where the plan price can be paid by anyone with
+   * Paddle's published test card, and the entitlement it grants is a real one.
+   *
+   * Gated on `VERCEL_ENV === 'production'` rather than `NODE_ENV`, because preview
+   * deployments are also `NODE_ENV=production` and running them against sandbox is the
+   * correct thing to do. Failing those would make this check something people work around.
+   * On hosts that do not set `VERCEL_ENV` it degrades to a loud warning rather than guessing.
+   */
+  if (paddleApiKey && resolvedPaddleEnvironment === 'sandbox') {
+    const message =
+      'PADDLE_ENVIRONMENT is "sandbox" on a production deployment. Sandbox transactions ' +
+      'take no real money, but they still satisfy the checks that grant a plan — anyone ' +
+      'could pay with Paddle\'s test card and be granted Pro for free. Switch the API key, ' +
+      'the price ids, the webhook secret, the client token and both environment variables ' +
+      'to live together.';
+    if (process.env.VERCEL_ENV === 'production') {
+      throw new Error(`[env] ${message}`);
+    }
+    if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+      console.warn(`\n[paddle] Warning: ${message}\n`);
+    }
+  }
 
   /*
    * One price id per paid plan. These are not secrets — they appear in the checkout the
@@ -325,11 +466,15 @@ export function serverEnv(): ServerEnv {
      * whereas one that cannot take a payment at all is not.
      */
     paddle:
-      paddleApiKey && paddleKeyReport.usable && paddlePrices.pro && paddlePrices.lifetime
+      paddleApiKey &&
+      paddleKeyReport.usable &&
+      !paddleMismatch &&
+      paddlePrices.pro &&
+      paddlePrices.lifetime
         ? {
             apiKey: paddleApiKey,
             webhookSecret: paddleWebhookSecret,
-            environment: paddleEnvironment === 'production' ? 'production' : 'sandbox',
+            environment: resolvedPaddleEnvironment,
             prices: { pro: paddlePrices.pro, lifetime: paddlePrices.lifetime },
           }
         : null,

@@ -7,7 +7,7 @@ import {
   describePaddleApiKey,
   explainPaddleKeyProblem,
 } from '@/lib/payments/paddle-key';
-import { isPaddleConfigured, publicEnv, serverEnv } from '@/lib/env';
+import { isPaddleConfigured, paddleEnvironmentProblem, publicEnv, serverEnv } from '@/lib/env';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -69,6 +69,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       clientTokenInBuild,
       environment: paddle?.environment ?? null,
       publicEnvironment: publicEnv.paddleEnvironment,
+      /*
+       * Why the gateway is off when the key itself is fine.
+       *
+       * Recomputed from `process.env` rather than read off `serverEnv().paddle`, for the
+       * same reason `apiKeyShape` is: a mismatch leaves `paddle` null, and this field
+       * exists to explain that null. Naming which two switches disagree is the whole
+       * value — the symptom is identical for all three pairs.
+       */
+      environmentMismatch: paddleEnvironmentProblem({
+        keyEnvironment: keyReport.environment,
+        serverEnvironment:
+          (process.env.PADDLE_ENVIRONMENT ?? '').trim().toLowerCase() === 'production'
+            ? 'production'
+            : 'sandbox',
+        clientToken: publicEnv.paddleClientToken,
+        publicEnvironment: publicEnv.paddleEnvironment,
+      }),
     },
     checkoutWillOfferPaddle: isPaddleConfigured() && clientTokenInBuild,
   };

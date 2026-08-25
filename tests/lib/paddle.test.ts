@@ -68,6 +68,8 @@ const ORIGINAL = { ...process.env };
  */
 const API_KEY_PREFIX = ['pdl', 'sdbx', 'apikey', ''].join('_');
 const API_KEY = `${API_KEY_PREFIX}01j0000000000000000000test_ThisIsNotARealKeyAtAll_AQO`;
+/** The same shape with the live prefix, for the cases that assert production behaviour. */
+const LIVE_API_KEY = `${['pdl', 'live', 'apikey', ''].join('_')}01j0000000000000000000test_ThisIsNotARealKeyAtAll_AQO`;
 const PRICE_PRO = 'pri_01j00000000000000000000pro';
 const PRICE_LIFETIME = 'pri_01j0000000000000000life';
 const WEBHOOK_SECRET = 'pdl_ntfset_01j0000000000000000000test_ThisIsNotARealSecret';
@@ -770,6 +772,39 @@ describe('isPaddleConfigured', () => {
     expect(paymentsAvailable()).toBe(false);
   });
 
+  it('goes off entirely when the server is switched to live and the browser is not', () => {
+    /*
+     * The half-finished migration, which is the way this actually goes wrong.
+     *
+     * Both halves are internally consistent — a live key with `PADDLE_ENVIRONMENT=production`
+     * on the server, a sandbox token with a sandbox public environment in the bundle — so
+     * neither the key check nor the token check sees anything amiss. Only the comparison
+     * between the two halves does.
+     *
+     * Left alone, `create-transaction` creates the transaction in production and the overlay
+     * opens against sandbox, so Paddle answers "not found" and every customer gets "we could
+     * not open the payment window". Turning the gateway off instead makes the checkout say
+     * payments are unavailable, which is true, and puts the reason in `/status`.
+     */
+    setEnv({
+      PADDLE_API_KEY: LIVE_API_KEY,
+      PADDLE_ENVIRONMENT: 'production',
+      NEXT_PUBLIC_PADDLE_ENVIRONMENT: 'sandbox',
+      NEXT_PUBLIC_PADDLE_CLIENT_TOKEN: 'test_notarealclienttoken',
+    });
+    expect(serverEnv().paddle).toBeNull();
+    expect(isPaddleConfigured()).toBe(false);
+    expect(paymentsAvailable()).toBe(false);
+
+    // Finishing the switch brings it back — the guard is about agreement, not about live.
+    setEnv({
+      NEXT_PUBLIC_PADDLE_ENVIRONMENT: 'production',
+      NEXT_PUBLIC_PADDLE_CLIENT_TOKEN: 'live_notarealclienttoken',
+    });
+    expect(serverEnv().paddle?.environment).toBe('production');
+    expect(isPaddleConfigured()).toBe(true);
+  });
+
   it('still accepts a legacy key, which predates the format it cannot be checked against', () => {
     // Refusing a *working* credential because it was issued before 6 May 2025 would make
     // the validation cause the outage it was added to prevent.
@@ -808,11 +843,34 @@ describe('isPaddleConfigured', () => {
     setEnv({ PADDLE_ENVIRONMENT: undefined });
     expect(serverEnv().paddle?.environment).toBe('sandbox');
 
-    setEnv({ PADDLE_ENVIRONMENT: ' "Production" ' });
+    /*
+     * The live key comes along with the word.
+     *
+     * `API_KEY` is a sandbox fixture, and `PADDLE_ENVIRONMENT=production` beside it is now
+     * a configuration error rather than a parsing question — `paddleEnvironmentProblem`
+     * disables the gateway, so `paddle` is null and this assertion read `undefined`. That
+     * is the guard working, not a regression: what this test is about is which spellings
+     * flip the switch, so the switch has to be flipped in a way that is otherwise valid.
+     */
+    setEnv({
+      PADDLE_ENVIRONMENT: ' "Production" ',
+      PADDLE_API_KEY: LIVE_API_KEY,
+      NEXT_PUBLIC_PADDLE_ENVIRONMENT: 'production',
+      NEXT_PUBLIC_PADDLE_CLIENT_TOKEN: 'live_notarealclienttoken',
+    });
     expect(serverEnv().paddle?.environment).toBe('production');
 
-    // PayPal spells this "live". Paddle does not, and the mismatch fails safe.
+    // PayPal spells this "live". Paddle does not, so it falls back to sandbox — which now
+    // contradicts the live key beside it, and the gateway goes off rather than guessing.
     setEnv({ PADDLE_ENVIRONMENT: 'live' });
+    expect(serverEnv().paddle).toBeNull();
+
+    // ...and with everything back on sandbox, "live" is simply not the word "production".
+    setEnv({
+      PADDLE_API_KEY: API_KEY,
+      NEXT_PUBLIC_PADDLE_ENVIRONMENT: undefined,
+      NEXT_PUBLIC_PADDLE_CLIENT_TOKEN: undefined,
+    });
     expect(serverEnv().paddle?.environment).toBe('sandbox');
   });
 });

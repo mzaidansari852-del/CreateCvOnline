@@ -57,6 +57,8 @@ function setEnv(overrides: Record<string, string | undefined> = {}): void {
     POLAR_ACCESS_TOKEN: undefined,
     POLAR_PRODUCT_PRO: undefined,
     POLAR_PRODUCT_LIFETIME: undefined,
+    // Not set by the test runner; individual cases opt in to a deployment context.
+    VERCEL_ENV: undefined,
   };
 
   for (const [key, value] of Object.entries({ ...base, ...overrides })) {
@@ -113,6 +115,50 @@ describe('isPayPalConfigured', () => {
     setEnv({ PAYPAL_WEBHOOK_ID: undefined });
     expect(isPayPalConfigured()).toBe(true);
     expect(serverEnv().paypal?.webhookId).toBeUndefined();
+  });
+
+  /*
+   * The regression this file exists for most.
+   *
+   * Sandbox credentials on a production deployment used to `throw` from `serverEnv()`.
+   * That did not fail the build — `serverEnv()` is lazy — it threw on every request
+   * instead, so sign-in, the admin console and every API route went down with the
+   * checkout. Following the setup instructions in the obvious order (set the credentials,
+   * leave PAYPAL_ENVIRONMENT at its sandbox default) took a live site off the air.
+   *
+   * The requirement is that this configuration disables the *gateway* and nothing else.
+   */
+  it('disables the gateway on production sandbox credentials, without throwing', () => {
+    setEnv({ PAYPAL_ENVIRONMENT: 'sandbox', VERCEL_ENV: 'production' });
+
+    expect(() => serverEnv()).not.toThrow();
+    expect(serverEnv().paypal).toBeNull();
+    expect(isPayPalConfigured()).toBe(false);
+    expect(availableGateways()).toEqual([]);
+    expect(paymentsAvailable()).toBe(false);
+    // Everything else `serverEnv()` carries must survive it.
+    expect(serverEnv().rateLimit.max).toBeGreaterThan(0);
+  });
+
+  /* An unset environment defaults to sandbox, so it must reach the same conclusion. */
+  it('treats an unset environment on production the same way', () => {
+    setEnv({ PAYPAL_ENVIRONMENT: undefined, VERCEL_ENV: 'production' });
+    expect(() => serverEnv()).not.toThrow();
+    expect(isPayPalConfigured()).toBe(false);
+  });
+
+  /* Preview deployments are where sandbox testing belongs, so they keep the gateway. */
+  it('leaves sandbox credentials working on a preview deployment', () => {
+    setEnv({ PAYPAL_ENVIRONMENT: 'sandbox', VERCEL_ENV: 'preview' });
+    expect(isPayPalConfigured()).toBe(true);
+    expect(availableGateways()).toEqual(['paypal']);
+  });
+
+  it('keeps live credentials on production', () => {
+    setEnv({ PAYPAL_ENVIRONMENT: 'live', VERCEL_ENV: 'production' });
+    expect(isPayPalConfigured()).toBe(true);
+    expect(serverEnv().paypal?.environment).toBe('live');
+    expect(availableGateways()).toEqual(['paypal']);
   });
 
   it('treats anything but the exact word "live" as sandbox', () => {

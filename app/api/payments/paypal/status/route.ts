@@ -76,6 +76,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       webhookId: Boolean(paypal?.webhookId),
       environment: paypal?.environment ?? null,
       /*
+       * The one way `configured` can be false while every credential above is present.
+       * Sandbox credentials on a production deployment disable the gateway on purpose —
+       * a sandbox order captures as COMPLETED for the plan price — and without this field
+       * that reads as "my variables vanished". Note that an unset PAYPAL_ENVIRONMENT
+       * counts, because it defaults to sandbox.
+       */
+      sandboxOnProduction:
+        Boolean(rawClientId) &&
+        (process.env.PAYPAL_ENVIRONMENT ?? '').trim().toLowerCase() !== 'live' &&
+        process.env.VERCEL_ENV === 'production',
+      /*
        * Stated rather than verified. See the note above: a client id looks the same in both
        * environments. Named explicitly so nobody reads a green field here as proof of a
        * correct go-live.

@@ -451,17 +451,38 @@ export function serverEnv(): ServerEnv {
   }
 
   /*
-   * Sandbox credentials on the production deployment: refuse to build.
+   * Sandbox credentials on the production deployment: treat the gateway as absent.
    *
-   * This is the case that cannot be left to a log line. Everything agrees, so the checkout
-   * works — it just works in an environment where the plan price can be paid by anyone with
-   * Paddle's published test card, and the entitlement it grants is a real one.
+   * This is the case that cannot be left to a warning nobody reads. Everything agrees, so
+   * the checkout works — it just works in an environment where the plan price can be paid by
+   * anyone with Paddle's published test card, and the entitlement it grants is a real one.
+   *
+   * ## Why absent rather than fatal
+   *
+   * This threw once, and the shape of that mistake is worth keeping written down. `throw`
+   * here does not fail the build, whatever the comment used to claim: `serverEnv()` is lazy
+   * on purpose, so nothing calls it until a request arrives. What it actually did was throw
+   * on *every* request — taking sign-in, the admin console and every API route down along
+   * with the checkout, because they all read this function. A guard about payments is not
+   * entitled to that blast radius.
+   *
+   * Absent is both safer and narrower, and it is the answer this file already gives to a
+   * credential that cannot be used: no gateway resolves, `paymentsAvailable()` is false, the
+   * checkout says payments are unavailable, and nothing can be granted — which was the whole
+   * objective. The reason is logged once and reported by `/admin/settings` and the status
+   * endpoints, so it stays diagnosable rather than silent.
    *
    * Gated on `VERCEL_ENV === 'production'` rather than `NODE_ENV`, because preview
    * deployments are also `NODE_ENV=production` and running them against sandbox is the
-   * correct thing to do. Failing those would make this check something people work around.
-   * On hosts that do not set `VERCEL_ENV` it degrades to a loud warning rather than guessing.
+   * correct thing to do — it is where sandbox testing belongs. Failing those would make this
+   * check something people work around. On hosts that do not set `VERCEL_ENV` it degrades to
+   * a warning rather than guessing.
    */
+  const paddleSandboxOnProduction =
+    Boolean(paddleApiKey) &&
+    resolvedPaddleEnvironment === 'sandbox' &&
+    process.env.VERCEL_ENV === 'production';
+
   if (paddleApiKey && resolvedPaddleEnvironment === 'sandbox') {
     const message =
       'PADDLE_ENVIRONMENT is "sandbox" on a production deployment. Sandbox transactions ' +
@@ -469,10 +490,9 @@ export function serverEnv(): ServerEnv {
       'could pay with Paddle\'s test card and be granted Pro for free. Switch the API key, ' +
       'the price ids, the webhook secret, the client token and both environment variables ' +
       'to live together.';
-    if (process.env.VERCEL_ENV === 'production') {
-      throw new Error(`[env] ${message}`);
-    }
-    if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+    if (paddleSandboxOnProduction) {
+      console.error(`[paddle] ${message} The gateway is disabled until they agree.`);
+    } else if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
       console.warn(`\n[paddle] Warning: ${message}\n`);
     }
   }
@@ -529,18 +549,21 @@ export function serverEnv(): ServerEnv {
   for (const problem of polarProductProblems) console.error('[polar]', problem);
 
   /*
-   * Sandbox credentials on the production deployment: refuse to build.
+   * Sandbox credentials on the production deployment: treat the gateway as absent.
    *
    * Under Paddle this was one guard among several, because a Paddle key announces its own
    * environment in its prefix and a mismatch could be caught three other ways. Polar's
    * tokens carry no such marker — `polar_oat_…` is the prefix in both environments — so
-   * this is now the *only* thing standing between a mis-set variable and a deployment
-   * where anyone can pay with a test card and be granted a real Pro account.
+   * this is the *only* thing standing between a mis-set variable and a deployment where
+   * anyone can pay with a test card and be granted a real Pro account.
    *
-   * Gated on `VERCEL_ENV` rather than `NODE_ENV`, because preview deployments are also
-   * `NODE_ENV=production` and running those against sandbox is correct. Failing them would
-   * make this check something people work around.
+   * See the Paddle block above for why this disables the gateway rather than throwing.
    */
+  const polarSandboxOnProduction =
+    Boolean(polarAccessToken) &&
+    resolvedPolarEnvironment === 'sandbox' &&
+    process.env.VERCEL_ENV === 'production';
+
   if (polarAccessToken && resolvedPolarEnvironment === 'sandbox') {
     const message =
       'POLAR_ENVIRONMENT is "sandbox" on a production deployment. Sandbox payments take no ' +
@@ -548,10 +571,9 @@ export function serverEnv(): ServerEnv {
       'with a test card and be granted Pro for free. Switch POLAR_ACCESS_TOKEN, both ' +
       'POLAR_PRODUCT_ ids, POLAR_WEBHOOK_SECRET and POLAR_ENVIRONMENT to production ' +
       'together.';
-    if (process.env.VERCEL_ENV === 'production') {
-      throw new Error(`[env] ${message}`);
-    }
-    if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+    if (polarSandboxOnProduction) {
+      console.error(`[polar] ${message} The gateway is disabled until they agree.`);
+    } else if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
       console.warn(`
 [polar] Warning: ${message}
 `);
@@ -570,7 +592,7 @@ export function serverEnv(): ServerEnv {
   const resolvedPayPalEnvironment = paypalEnvironment === 'live' ? 'live' : 'sandbox';
 
   /*
-   * Sandbox credentials on the production deployment: refuse to build.
+   * Sandbox credentials on the production deployment: treat the gateway as absent.
    *
    * The same guard the Polar block carries, for the same reason and with the same force.
    * A PayPal client id announces nothing about its environment — sandbox and live ids are
@@ -580,20 +602,27 @@ export function serverEnv(): ServerEnv {
    * payment, so anyone who found the checkout would be granted a genuine Pro entitlement
    * for nothing.
    *
-   * Gated on `VERCEL_ENV` rather than `NODE_ENV`, because preview deployments are also
-   * `NODE_ENV=production` and running those against sandbox is correct.
+   * An *unset* `PAYPAL_ENVIRONMENT` lands here too, because it defaults to sandbox — and
+   * setting the credentials while forgetting the environment is by far the likeliest way
+   * to arrive here. That is precisely the case that made throwing intolerable: following
+   * the setup instructions in the obvious order took the whole site down rather than
+   * leaving one gateway switched off. See the Paddle block above.
    */
+  const paypalSandboxOnProduction =
+    Boolean(paypalClientId) &&
+    resolvedPayPalEnvironment === 'sandbox' &&
+    process.env.VERCEL_ENV === 'production';
+
   if (paypalClientId && resolvedPayPalEnvironment === 'sandbox') {
     const message =
       'PAYPAL_ENVIRONMENT is "sandbox" on a production deployment. Sandbox orders take no ' +
       'real money, but they still capture as COMPLETED for the plan price — anyone could ' +
       'pay with a PayPal test account and be granted Pro for free. Switch ' +
       'PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_WEBHOOK_ID and PAYPAL_ENVIRONMENT ' +
-      'to live together.';
-    if (process.env.VERCEL_ENV === 'production') {
-      throw new Error(`[env] ${message}`);
-    }
-    if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+      'to live together, or test on a preview deployment instead.';
+    if (paypalSandboxOnProduction) {
+      console.error(`[paypal] ${message} The gateway is disabled until they agree.`);
+    } else if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
       console.warn(`
 [paypal] Warning: ${message}
 `);
@@ -620,6 +649,7 @@ export function serverEnv(): ServerEnv {
       paddleApiKey &&
       paddleKeyReport.usable &&
       !paddleMismatch &&
+      !paddleSandboxOnProduction &&
       paddlePrices.pro &&
       paddlePrices.lifetime
         ? {
@@ -644,6 +674,7 @@ export function serverEnv(): ServerEnv {
     polar:
       polarAccessToken &&
       polarTokenReport.usable &&
+      !polarSandboxOnProduction &&
       polarProductProblems.length === 0 &&
       polarProducts.pro &&
       polarProducts.lifetime
@@ -668,7 +699,7 @@ export function serverEnv(): ServerEnv {
      * recoverable, and one that cannot take a payment at all is not.
      */
     paypal:
-      paypalClientId && paypalClientSecret
+      paypalClientId && paypalClientSecret && !paypalSandboxOnProduction
         ? {
             clientId: paypalClientId,
             clientSecret: paypalClientSecret,

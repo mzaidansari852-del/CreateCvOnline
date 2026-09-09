@@ -167,7 +167,7 @@
   </div>
 
   <nav class="toc">
-    <a href="#prep">Before you start <i>5</i></a><a href="#marketing-en">Marketing pages — English <i>18</i></a><a href="#fr">French — /fr <i>10</i></a><a href="#de">German — /de <i>8</i></a><a href="#locale">Language switching and the locale cookie <i>6</i></a><a href="#auth">Authentication <i>10</i></a><a href="#dashboard">Dashboard and CV management <i>10</i></a><a href="#editor">The editor <i>13</i></a><a href="#templates">Templates — 61 of them <i>6</i></a><a href="#pdf">PDF export <i>7</i></a><a href="#share">Sharing and the public CV page <i>6</i></a><a href="#payment">Payment — PayPal <i>16</i></a><a href="#admin">Admin <i>9</i></a><a href="#seo">SEO and crawlability <i>9</i></a><a href="#security">Security spot checks <i>8</i></a><a href="#mobile">Mobile and performance <i>6</i></a><a href="#smoke">Five-minute smoke test <i>7</i></a>
+    <a href="#prep">Before you start <i>5</i></a><a href="#marketing-en">Marketing pages — English <i>18</i></a><a href="#fr">French — /fr <i>10</i></a><a href="#de">German — /de <i>8</i></a><a href="#locale">Language switching and the locale cookie <i>6</i></a><a href="#auth">Authentication <i>10</i></a><a href="#dashboard">Dashboard and CV management <i>10</i></a><a href="#editor">The editor <i>13</i></a><a href="#templates">Templates — 61 of them <i>6</i></a><a href="#pdf">PDF export <i>7</i></a><a href="#share">Sharing and the public CV page <i>6</i></a><a href="#payment">Payment — Polar <i>16</i></a><a href="#admin">Admin <i>9</i></a><a href="#seo">SEO and crawlability <i>9</i></a><a href="#security">Security spot checks <i>8</i></a><a href="#mobile">Mobile and performance <i>6</i></a><a href="#smoke">Five-minute smoke test <i>7</i></a>
   </nav>
 
   
@@ -1273,10 +1273,10 @@
       </section>
       <section class="sec" id="payment" data-sec="payment">
         <header class="sec-head">
-          <h2>Payment — PayPal</h2>
+          <h2>Payment — Polar</h2>
           <p class="sec-count"><span class="sc-done">0</span>/<span class="sc-total">16</span></p>
         </header>
-        <p class="sec-note">The only path where a bug costs money or a customer. PayPal is the sole gateway; Paddle has been removed.</p>
+        <p class="sec-note">The only path where a bug costs money or a customer. Polar is the sole gateway and the merchant of record; PayPal and Paddle are both retired. Checkout is a redirect to polar.sh, and card is the only payment method.</p>
         <ul class="items">
           
             <li class="item" data-state="todo" data-id="payment-0">
@@ -1430,12 +1430,12 @@
               <span class="state-label">not tested</span>
             </li>
             <li class="item" data-state="todo" data-id="payment-15">
-              <button class="mark" type="button" aria-label="Mark: No PADDLE_ variables remain in Vercel">
+              <button class="mark" type="button" aria-label="Mark: No PADDLE_ or PAYPAL_ variables remain in Vercel">
                 <span class="glyph" aria-hidden="true"></span>
               </button>
               <div class="body">
-                <p class="t">No PADDLE_ variables remain in Vercel</p>
-                <p class="d">Nothing reads them now. A live API key sitting in a dashboard that no code uses is a credential nobody is watching.</p>
+                <p class="t">No PADDLE_ or PAYPAL_ variables remain in Vercel</p>
+                <p class="d">Nothing selects either gateway now. A live API key sitting in a dashboard that no code uses is a credential nobody is watching.</p>
               </div>
               <span class="state-label">not tested</span>
             </li>
@@ -1535,7 +1535,7 @@
               </button>
               <div class="body">
                 <p class="t">/admin/settings — configuration readiness</p>
-                <p class="d">Should now report PayPal configured, Firebase configured, and no Paddle anywhere.</p>
+                <p class="d">Should report Polar configured and Firebase configured. Note the warning that a green Polar badge does not prove the environment: Polar tokens look identical in sandbox and production.</p>
               </div>
               <span class="state-label">not tested</span>
             </li>

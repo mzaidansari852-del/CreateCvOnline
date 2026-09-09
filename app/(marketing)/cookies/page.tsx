@@ -7,7 +7,7 @@ import { site } from '@/lib/site';
 
 export const metadata: Metadata = pageMetadata({
   title: 'Cookie Policy',
-  description: `Every cookie ${site.name} sets, what each is for and how long it lasts: one necessary session cookie, optional analytics and Paddle's own once you open the checkout.`,
+  description: `Every cookie ${site.name} sets, what each is for and how long it lasts: one necessary session cookie and optional analytics. Payment happens on Polar's own site, so no payment cookie is set here.`,
   path: '/cookies',
 });
 
@@ -15,13 +15,19 @@ export const metadata: Metadata = pageMetadata({
  * The cookie policy.
  *
  * Deliberately short, because the honest list is short: one strictly necessary session
- * cookie, analytics that is off unless the operator switches it on, and whatever Paddle
- * sets once the checkout is open. Anything longer than that would be padding.
+ * cookie and analytics that is off unless the operator switches it on. Anything longer than
+ * that would be padding.
  *
- * The Paddle section is the one that needs care. Under the old gateway the whole of
- * checkout happened on somebody else's domain, so the honest answer was "nothing of theirs
- * runs here". Paddle's overlay runs a script on our pages and embeds an iframe from theirs,
- * which is a different disclosure and has to read like one.
+ * The payment section is the one that needs care, and it has now been rewritten twice.
+ * Paddle's overlay ran a script on our pages and embedded an iframe from theirs, so a
+ * third-party cookie could genuinely appear under our own domain and the disclosure had to
+ * say so. Polar hosts its checkout on its own site and the customer is redirected there, so
+ * the honest answer is back to "nothing of theirs runs here": no script, no iframe, and no
+ * payment cookie on this domain at all.
+ *
+ * The temptation when swapping gateways is to change the name and leave the sentences. That
+ * would have left this page claiming a third-party script runs on pages that no longer load
+ * one, which is a false disclosure in a document whose only job is to be accurate.
  */
 
 /** Rendered inside `Prose`, so the plain table below picks up its own styling. */
@@ -186,42 +192,39 @@ const SECTIONS: LegalSection[] = [
     ),
   },
   {
-    id: 'paddle',
-    title: 'Paddle cookies during checkout',
+    id: 'payment',
+    title: 'Payment: no cookie is set here',
     body: (
       <>
         <p>
-          Buying a plan does not send you anywhere. Paddle&apos;s checkout opens as an overlay
-          on the page you are already on, which means two third-party things happen inside
-          your browser on {site.domain}: our page loads Paddle&apos;s script from{' '}
-          <code>https://cdn.paddle.com/paddle/v2/paddle.js</code>, and that script embeds the
-          payment form as an iframe served from Paddle&apos;s own domain,{' '}
-          <code>buy.paddle.com</code>. Both happen only when you press a buy button — no page
-          of this site loads Paddle before that.
+          Buying a plan takes you to a different website. Pressing a buy button sends you to
+          our payment provider, Polar, and the whole checkout — the card form, the payment,
+          the receipt — happens there on <code>polar.sh</code> rather than on {site.domain}.
         </p>
         <p>
-          <strong>Paddle sets cookies of its own.</strong> They are for its own purposes:
-          carrying your progress through the checkout, and the fraud and risk checks that come
-          with taking a payment. Because Paddle&apos;s script runs on our pages as well as
-          inside its iframe, one of its cookies can appear listed under {site.domain} in your
-          browser&apos;s developer tools rather than only under a Paddle domain. Either way it
-          is Paddle&apos;s: we do not read it, we do not set it and we cannot tell it what to
-          contain. It is governed by{' '}
-          <a
-            href="https://www.paddle.com/legal/cookies"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Paddle&apos;s own cookie policy
+          <strong>Nothing of Polar&apos;s runs on this site.</strong> No page here loads a
+          Polar script, embeds a Polar frame, or sets a Polar cookie. That is worth stating
+          plainly because it used to be otherwise: our previous provider ran its checkout as
+          an overlay on our own pages, and one of its cookies could appear under{' '}
+          {site.domain} in a browser&apos;s developer tools. Under the current arrangement it
+          cannot, because there is nothing of theirs here to set one.
+        </p>
+        <p>
+          Polar does set cookies on its own site while you are paying — carrying your progress
+          through the checkout and running the fraud and risk checks that come with taking a
+          payment. Those are Polar&apos;s, set on Polar&apos;s domain during your visit to it,
+          and governed by{' '}
+          <a href="https://polar.sh/legal/privacy" target="_blank" rel="noopener noreferrer">
+            Polar&apos;s own privacy and cookie policy
           </a>
-          , not by this one.
+          , not by this one. We do not read them, set them, or control what they contain.
         </p>
         <p>
-          What does not change is where your card details go. You type them into Paddle&apos;s
-          iframe, which is Paddle&apos;s page inside a frame on ours — the keystrokes are not
-          readable by our code and the number never reaches our servers. When the payment
-          completes, what comes back to us is a transaction reference, and our server confirms
-          that transaction with Paddle directly before any plan is unlocked.
+          Your card details are typed on Polar&apos;s site and never reach our servers. When
+          the payment completes, Polar sends you back here with a checkout reference — an
+          identifier and nothing more — and our server confirms that payment with Polar
+          directly before any plan is unlocked. We are never told your card number, and we do
+          not take your word for it that the payment succeeded.
         </p>
       </>
     ),
@@ -300,11 +303,11 @@ const SECTIONS: LegalSection[] = [
               duration: 'Google default, approximately 2 years',
             },
             {
-              name: 'Paddle cookies',
+              name: 'No payment cookie',
               purpose:
-                'Set by Paddle once you open the checkout: checkout progress, fraud and risk checks. Paddle’s script runs on our pages and its payment form is an iframe on Paddle’s domain, so these can appear under either domain. We cannot read or control them.',
-              type: 'Third-party cookies, set by Paddle · only after you open the checkout',
-              duration: 'Determined by Paddle',
+                'Checkout happens on polar.sh, not here. Polar sets its own cookies on its own domain while you pay — checkout progress, fraud and risk checks — governed by Polar’s policy. Nothing of Polar’s is loaded by this site, so no payment cookie is set on this domain.',
+              type: 'Not set by this site · not set on this domain',
+              duration: 'Not applicable',
             },
             {
               name: 'createcvonline:preferences',
@@ -350,10 +353,11 @@ const SECTIONS: LegalSection[] = [
             been configured there is nothing to block in the first place.
           </li>
           <li>
-            <strong>Blocking Paddle</strong> — through a content blocker, a strict
-            tracking-protection mode, or a rule against <code>cdn.paddle.com</code> — stops the
-            checkout overlay from opening at all, because the form is Paddle&apos;s. Everything
-            except buying a plan carries on working.
+            <strong>Blocking the payment provider</strong> is not something this site can be
+            configured around: the checkout is a separate website. A content blocker that
+            prevents <code>polar.sh</code> from loading will stop you completing a purchase
+            once you arrive there, but it cannot break anything on {site.domain}, because
+            nothing here depends on it. Everything except buying a plan carries on working.
           </li>
           <li>
             <strong>Signing out</strong> is the cleanest way to remove the session cookie: it
@@ -410,9 +414,9 @@ export default function CookiePolicyPage() {
           installation loads no analytics script and sets no analytics cookie.
         </>,
         <>
-          <strong>Paddle sets its own cookies once you open the checkout.</strong> Its script
-          loads on our pages and its payment form is an iframe on Paddle&apos;s domain, so a
-          Paddle cookie can appear under either.
+          <strong>No payment cookie is set on this site.</strong> Checkout happens on
+          Polar&apos;s own website, so any cookie it sets belongs to <code>polar.sh</code> and
+          is covered by Polar&apos;s policy, not this one.
         </>,
         <>
           <strong>Your dashboard preferences use localStorage, which is not a cookie</strong>{' '}

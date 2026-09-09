@@ -2,10 +2,10 @@
 
 **Create your professional CV online.** A production-oriented CV and résumé builder SaaS:
 56 genuinely different templates, a real-time editor, server-enforced plan limits,
-Paddle checkout and true-to-preview PDF export.
+hosted checkout and true-to-preview PDF export.
 
 Built with Next.js 16 (App Router), TypeScript in strict mode, Tailwind CSS v4, Firebase
-and Paddle.
+and Polar.
 
 ```bash
 cp .env.example .env.local     # then fill in the values — see "Configuration" below
@@ -14,8 +14,8 @@ npm run dev                    # http://localhost:3000
 ```
 
 The app boots without any credentials. Pages render, all 56 templates preview, and every
-feature that needs Firebase or Paddle shows an explicit "not configured" state naming the
-variables to set — rather than a stack trace.
+feature that needs Firebase or a payment gateway shows an explicit "not configured" state
+naming the variables to set — rather than a stack trace.
 
 ---
 
@@ -25,7 +25,7 @@ variables to set — rather than a stack trace.
 2. [Architecture](#architecture)
 3. [Configuration](#configuration)
 4. [Firebase setup](#firebase-setup)
-5. [Paddle setup](#paddle-setup)
+5. [Payments](#payments)
 6. [PDF export](#pdf-export)
 7. [Adding a template](#adding-a-template)
 8. [Adding a blog article](#adding-a-blog-article)
@@ -47,7 +47,7 @@ variables to set — rather than a stack trace.
 | **Editor** | Split-pane desktop workspace, three-tab mobile workspace, live page preview with real page-break guides, autosave, undo/redo, drag-and-drop section reordering, template switching that preserves every byte of content. |
 | **PDF** | Server-side headless Chromium. Rendered from the same React tree as the preview, so the export matches the screen. Handles 1, 2 and 3+ page documents. |
 | **Auth** | Firebase Authentication — email/password and Google — exchanged for an httpOnly session cookie. Verification, password reset, protected routes. |
-| **Payments** | Paddle Billing, the only gateway and the merchant of record. Server-side amount and currency verification, signed webhooks, idempotent fulfilment. Card, PayPal, Apple Pay and Google Pay are methods inside Paddle's overlay, not separate integrations. |
+| **Payments** | Two gateways behind one interface: **Polar** (merchant of record, card only, the intended long-term choice) and **PayPal** (interim, while Polar's account is not live). Hosted checkout by redirect either way, server-side verification of what was actually charged, signed webhooks, idempotent fulfilment, refund revocation. |
 | **Plans** | Free / Pro / Lifetime. Every limit enforced on the server before the mutation runs, never by hiding a button. |
 | **Dashboard** | CV CRUD, duplication, renaming, sharing, downloads, quota meters, completeness scoring. |
 | **Admin** | Users, entitlements, payments, template usage, blog inventory, configuration readiness. Authorised by Firebase custom claims. |
@@ -109,9 +109,10 @@ The essentials:
 | `NEXT_PUBLIC_SITE_URL` | Everything SEO | Absolute, no trailing slash. `https://createcvonline.com` in production. |
 | `NEXT_PUBLIC_FIREBASE_*` | Sign-in | Public by design; access is controlled by Security Rules. |
 | `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` | All server data | Service-account key. **Never** prefix with `NEXT_PUBLIC_`. |
-| `PADDLE_API_KEY` / `PADDLE_PRICE_PRO` / `PADDLE_PRICE_LIFETIME` | Payments | All three or the gateway stays off, and no checkout is offered at all. Secret key, `pdl_…`. |
-| `PADDLE_WEBHOOK_SECRET` / `PADDLE_ENVIRONMENT` | Paddle webhooks | `sandbox` or **`production`** — not `live`. |
-| `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` / `NEXT_PUBLIC_PADDLE_ENVIRONMENT` | Paddle overlay | Public token (`test_`/`live_`). **Never** the `pdl_…` API key. |
+| `POLAR_ACCESS_TOKEN` / `POLAR_PRODUCT_PRO` / `POLAR_PRODUCT_LIFETIME` | Payments | All three or the gateway stays off, and no checkout is offered at all. Secret token, `polar_oat_…`; the products are UUIDs. |
+| `POLAR_WEBHOOK_SECRET` / `POLAR_ENVIRONMENT` | Polar webhooks | `whsec_…`, and `sandbox` or **`production`**. No public counterpart — the checkout is hosted, so the browser needs nothing. |
+| `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` | Payments (interim) | Either gateway is enough to sell. Both values are needed or PayPal stays off. |
+| `PAYPAL_WEBHOOK_ID` / `PAYPAL_ENVIRONMENT` | PayPal webhooks | `sandbox` or **`live`** — PayPal's word, not `production`. Without the webhook id that route acts on nothing. |
 | `NEXT_PUBLIC_STORE_CURRENCY` | Pricing | Currency `lib/plans.ts` is priced in. Falls back to the retired `NEXT_PUBLIC_PAYPAL_CURRENCY`, so a deployment that predates the rename needs no new entry. |
 | `PDF_RENDER_SECRET` | PDF/print | `openssl rand -hex 32`. |
 | `ADMIN_EMAILS` | Admin bootstrap | Comma-separated. |
@@ -220,94 +221,153 @@ npm run seed -- --demo-user demo@example.com --demo-password 'choose-something-s
 
 ---
 
-## Paddle setup
+## Payments
 
-Paddle Billing is the only payment gateway, and it is a merchant of record: it is the
-seller on the customer's statement, and it collects and remits VAT and sales tax in every
-country it sells into. That is the whole reason it was chosen — the alternative is a small
-business tracking its own registration thresholds across several dozen tax regimes.
+Two gateways can be live at once, behind one interface. Configure either and the site can
+sell; configure both and the checkout shows a picker.
 
-A separate PayPal integration ran beside it until it was removed. Nothing a customer can
-see went with it: Paddle's overlay offers card, PayPal, Apple Pay and Google Pay itself,
-so PayPal is still a way to pay here — a method inside the checkout rather than a checkout
-of its own. What went was a second set of credentials, a second webhook to verify
-and a second failure mode. The gateway interface in `lib/payments/index.ts` stayed, because
-it is what let the removal happen without a single call site changing.
+| | Polar | PayPal |
+| --- | --- | --- |
+| Role | The intended long-term gateway | Interim, until Polar is live |
+| Merchant of record | **Yes** — Polar owes the VAT | **No** — *we* owe the VAT |
+| Methods | Card only | PayPal balance, bank, card |
+| Checkout | Redirect to `polar.sh` | Redirect to `paypal.com` |
+| Grant path | Signed webhook is authoritative; the browser's verify is the shortcut | Browser capture is the main path; the webhook is the backstop |
+| Setup | [`docs/POLAR_SETUP.md`](docs/POLAR_SETUP.md) | [`docs/PAYPAL_SETUP.md`](docs/PAYPAL_SETUP.md) |
 
-**The full sandbox walkthrough is [`docs/PADDLE_SETUP.md`](docs/PADDLE_SETUP.md)** — account,
-products and prices, every variable, the webhook, the Content Security Policy allowances,
-tunnelling for local testing, the current sandbox test cards, and how to confirm a purchase
-actually granted a plan.
+### Why a merchant of record, and what PayPal costs
+
+Polar is a merchant of record: **Polar Software, Inc.** is the seller on the customer's
+statement, and it collects and remits VAT and sales tax in every country it sells into. That
+is the whole reason a merchant of record was chosen — the alternative is a small business
+tracking its own registration thresholds across several dozen tax regimes, and this site
+sells to Germany, France and the Netherlands. It is also why Stripe direct was rejected:
+going direct would mean registering for EU VAT OSS and filing it ourselves.
+
+**PayPal is a plain processor and does not do this.** While PayPal is the gateway, this
+business is the seller of record and owes the VAT on every EU sale itself. Nothing in the
+codebase computes, collects or reports it — the plan price is charged flat, with no tax
+component — so it has to be accounted for outside the application. That is the price of
+having a working checkout before Polar's account is approved, and it is why PayPal is
+described everywhere here as interim rather than as a second option. Turning it off is
+unsetting two variables; see [`docs/PAYPAL_SETUP.md` §8](docs/PAYPAL_SETUP.md#8-turning-it-off).
+
+### Why not Paddle any more
+
+Paddle held this role first and **declined the seller account during review**, which ends
+an integration before it takes a single payment. Polar replaced it.
+
+The gateway interface in `lib/payments/index.ts` is what made that a contained change
+rather than a rewrite — it has now survived PayPal out, Paddle in, Paddle out, Polar in and
+PayPal back, without a route or a component changing to suit any of them.
+
+Two things did change for customers, and neither is cosmetic:
+
+- **The checkout is a redirect, not an overlay.** Paddle rendered a card form inside our own
+  pages. Polar hosts its checkout on `polar.sh`, so nothing of the provider's runs here: no
+  script, no iframe, no third-party cookie on our domain, and no Content Security Policy
+  entry. `next.config.ts` grants no payment origin at all, which is a stronger position than
+  the wildcard it used to carry.
+- **Card payments only, through Polar.** Paddle's overlay offered PayPal, Apple Pay and
+  Google Pay alongside cards. Polar processes through Stripe and its own legal pages describe
+  only card processing, so those methods are gone from *its* checkout and the marketing copy
+  no longer promises them. Do not put them back without checking Polar's current
+  documentation. PayPal being available again is a separate gateway sitting beside Polar, not
+  a method inside it — that distinction is what the checkout picker exists to make.
+
+**The full sandbox walkthrough is [`docs/POLAR_SETUP.md`](docs/POLAR_SETUP.md)** — account,
+products, every variable, the webhook, going live, and how to confirm a purchase actually
+granted a plan. The application copy for Polar's own review is in
+[`docs/payments/POLAR_APPLICATION.md`](docs/payments/POLAR_APPLICATION.md).
 
 The short version:
 
 ```env
-PADDLE_API_KEY=pdl_sdbx_apikey_…          # secret  — Developer tools > Authentication
-PADDLE_PRICE_PRO=pri_…                    # not secret, but sandbox ≠ production
-PADDLE_PRICE_LIFETIME=pri_…
-PADDLE_WEBHOOK_SECRET=pdl_ntfset_…        # secret  — Developer tools > Notifications
-PADDLE_ENVIRONMENT=sandbox                # "production" to go live. Not "live".
-NEXT_PUBLIC_PADDLE_CLIENT_TOKEN=test_…    # PUBLIC. Never the pdl_… API key.
-NEXT_PUBLIC_PADDLE_ENVIRONMENT=sandbox
+POLAR_ACCESS_TOKEN=polar_oat_…            # secret  — Settings > Developers
+POLAR_PRODUCT_PRO=<uuid>                  # not secret, but sandbox ≠ production
+POLAR_PRODUCT_LIFETIME=<uuid>
+POLAR_WEBHOOK_SECRET=whsec_…              # secret  — Settings > Webhooks
+POLAR_ENVIRONMENT=sandbox                 # "production" to go live
 NEXT_PUBLIC_STORE_CURRENCY=USD
 ```
 
-Webhook URL `https://your-domain.com/api/payments/paddle/webhook`, subscribed to
-`transaction.completed` and `transaction.paid`. Without `PADDLE_WEBHOOK_SECRET` that
-endpoint **rejects every event with 401**. That is deliberate: the route cannot tell a
-misconfiguration from a forgery, and an unverifiable webhook that granted paid access would
-be the worst bug in the codebase.
+Webhook URL `https://your-domain.com/api/payments/polar/webhook`, subscribed to
+`order.paid` and `order.refunded`. Without `POLAR_WEBHOOK_SECRET` that endpoint **rejects
+every event with 403**. That is deliberate: the route cannot tell a misconfiguration from a
+forgery, and an unverifiable webhook that granted paid access would be the worst bug in the
+codebase.
 
-The gateway counts as configured only when the API key *and* both price ids are present.
-Half a configuration offers no checkout at all — an honest "payments are not available"
-message rather than a button that fails on the customer's card.
+The gateway counts as configured only when the access token *and* both product ids are
+present and well-formed. Half a configuration offers no checkout at all — an honest
+"payments are not available" message rather than a button that fails on the customer's card.
+
+> **`@polar-sh/sdk` is pinned to `1.0.0-alpha.20` on purpose.** Polar moved webhook signing
+> to Standard Webhooks on 8 September 2026, and the old and new schemes derive different
+> signing keys from the same `whsec_…` secret. The pinned version derives both and accepts
+> either. The `0.49.x` release npm tags `latest` implements only the old scheme, so a secret
+> generated after the cutover fails every signature check — checkout keeps working while
+> fulfilment silently stops. Do not "upgrade" it.
 
 ### Taking a test payment
 
 1. `npm run dev`, sign in, go to `/pricing`, choose Pro.
 2. You land on `/payment/checkout?plan=pro` — the order summary. Signed out, you are sent
    through `/login?next=…` and returned here, which is why `/pricing` can stay static.
-3. The checkout button calls `POST /api/payments/paddle/create-transaction`. The browser
-   sends only `{ planId }`; the price id comes from the environment and the amount from
-   `lib/plans.ts`.
-4. Pay in the overlay with the sandbox card `4242 4242 4242 4242`.
-5. The overlay closes and you land on `/payment/success`, which calls
-   `POST /api/payments/paddle/verify`.
+3. The checkout button calls `POST /api/payments/polar/create-checkout`. The browser sends
+   only `{ planId }`; the product id comes from the environment and the amount from Polar.
+4. You are redirected to `polar.sh`. Pay with the Stripe test card `4242 4242 4242 4242`.
+5. Polar returns you to `/payment/success?plan=pro&checkout_id=…`, which calls
+   `POST /api/payments/polar/verify`.
 6. Confirm in `/dashboard/account` that the plan is now Pro, and in `/admin/payments` that
-   the transaction is `completed`.
+   the payment is `completed`.
 
-`npm run paddle:doctor` checks the configuration in the order it has to be true — keys,
-prices, environments, routes — and `npm run paddle:doctor -- --remote https://your-site`
-reads the deployed bundle, which is the only way to catch a `NEXT_PUBLIC_*` value that was
-set in the hosting dashboard after the last build.
+`npm run polar:doctor -- https://your-site` checks a deployment from the outside:
+configuration, whether the configured products exist, and that an unsigned webhook is
+refused.
 
 ### How the money is protected
 
-- The browser sends a **plan id**, never a price. The amount comes from `lib/plans.ts`.
-- The overlay is opened against a transaction the *server* created from the plan's own
-  price id, so the client never names an amount.
-- The plan a webhook grants is derived from the **price id**, not from the `customData` we
-  round-tripped through Paddle and the customer's browser.
-- Verification re-reads the transaction from Paddle and compares amount **and** currency
-  against the plan. A mismatch grants nothing and logs the discrepancy.
-- Fulfilment is a Firestore transaction keyed by the Paddle transaction id, so the two
-  webhook events, a retry and the success page all converge on one grant.
+- The browser sends a **plan id**, never a price. The amount comes from Polar's own product.
+- The session is created **server-side** against the product configured for that plan, and
+  the browser is handed only the URL to go to. It cannot name an amount or a product.
+- The plan a webhook grants is derived from the **product id**, not from the `metadata` we
+  round-tripped through Polar. If the two disagree, the money is the truth.
+- Verification checks the payment was billed against that plan's product, rather than
+  comparing amounts. Polar localises prices, so a German customer legitimately pays in EUR
+  for a plan listed in USD — matching the product delegates the arithmetic to the party that
+  performed it. (The amount is still checked as a second gate in the store currency, where
+  it means something.)
+- Fulfilment is a Firestore transaction keyed by the Polar checkout id, so a retry, the
+  webhook and the success page all converge on one grant.
+- `order.refunded` marks the payment refunded **and takes the plan back**, which matters
+  most for Lifetime: it has no expiry to lapse at.
 
-See `tests/lib/paddle.test.ts`.
+See `tests/lib/polar.test.ts`.
 
 ### Payments taken through PayPal, before the removal
 
-`types/payment.ts` still lists `'paypal'` in `paymentProviderSchema`, and that is
-deliberate rather than an oversight. Every payment recorded through the old integration is
-still in Firestore; drop the value and each of those documents stops parsing and disappears
-from `/admin/payments`, which is the one place support looks when a customer asks about a
-charge from last year.
+`types/payment.ts` lists every provider that has ever written a row — `paypal`, `paddle`,
+`polar` and `manual` — and that is deliberate rather than an oversight. Drop a value and
+each document written under it stops parsing and disappears from `/admin/payments`, which is
+the one place support looks when a customer asks about a charge from last year.
 
-Reading those records is all that is on offer. `gatewayFor('paypal')` throws instead of
-resolving to Paddle, because asking Paddle about a transaction it never took returns "not
-found" — which reads as "this customer never paid", and a confident wrong answer is worse
-than a refused one. So a historical PayPal row still displays, but cannot be re-checked
-against a live API, and a refund for one is issued in the PayPal dashboard.
+`gatewayFor()` is stricter than the schema, and on purpose: it resolves a provider only when
+*this deployment* has credentials for it, and throws otherwise. Two cases follow from that.
+
+- **Paddle** is unreachable by design. The seller account was declined, so the only rows that
+  exist are sandbox ones from the aborted integration. They display; they cannot be
+  re-checked.
+- **PayPal** is reachable exactly while it is configured. Turn it off after Polar goes live
+  and its historical rows behave like Paddle's — readable in the console, not re-checkable,
+  with any refund issued from the PayPal dashboard.
+
+What never happens is a fallback. Asking Polar about a payment PayPal took returns "not
+found", which reads as "this customer never paid" — and a confident wrong answer about
+somebody's money is worse than a refused one.
+
+`'paddle'` is in the same schema for the same reason. Paddle never took a live payment
+here, so in practice the only such rows are sandbox ones, but a schema that can only parse
+the happy path is not a schema.
 
 ---
 
@@ -476,7 +536,8 @@ locally, and no tool can produce it before the site is deployed.
 | CSP, HSTS, `X-Frame-Options`, `Permissions-Policy` | `next.config.ts` |
 | Firestore + Storage rules, deny by default | `firestore.rules`, `storage.rules` |
 | Signed, expiring render tokens for `/print` | `lib/pdf/token.ts` |
-| Paddle amount verification, plan derived from the price id, HMAC webhook signatures | `lib/payments/paddle.ts` |
+| Polar payment verification, plan derived from the product id, signed webhooks | `lib/payments/polar.ts` |
+| PayPal capture verification against the plan price, signed webhooks | `lib/payments/paypal.ts` |
 | Honeypot + rate limit on the contact form | `app/api/contact/route.ts` |
 
 Three things worth stating plainly:
@@ -491,23 +552,30 @@ for statically pre-rendered pages; a nonce-based policy would force every market
 into dynamic rendering. To trade that away, set the CSP header from `proxy.ts` with a
 per-request nonce instead of in `next.config.ts`.
 
-**The CSP has to name Paddle, and nothing on the server can tell you when it does not.**
-The overlay is not one script from one host: `cdn.paddle.com` serves Paddle.js,
-`buy.paddle.com` renders the card form in an iframe, `checkout-service.paddle.com` takes
-the XHR, each with a `sandbox-` twin, and the set differs by payment method. So
-`next.config.ts` allows `https://*.paddle.com` in `script-src`, `frame-src`, `connect-src`,
-`img-src`, `style-src` and `font-src` — a wildcard rather than a host list, because it is
-still bounded by a domain Paddle controls and enumerating subdomains breaks the next time
-Paddle adds one.
+**The CSP grants no payment origin, and that is now the correct state.** It was not always.
+Paddle's overlay was not one script from one host: `cdn.paddle.com` served the script,
+`buy.paddle.com` rendered the card form in an iframe, `checkout-service.paddle.com` took
+the XHR, each with a `sandbox-` twin, and the set differed by payment method — so
+`next.config.ts` carried `https://*.paddle.com` across six directives.
 
-Get this wrong and the failure is silent everywhere you would look for it. The customer
-sees "the payment window could not load", or an empty rectangle where the card form should
-be, with a Content Security Policy violation in the browser console naming
-`cdn.paddle.com`. Meanwhile `/api/payments/paddle/status` reports every field green,
-`npm run paddle:doctor` passes and the server log is empty — the browser blocked the
-script before a line of our code ran, so there is nothing server-side that could have
-observed it.
-This cost an afternoon here. The fix is the six directives above; `tests/lib/csp.test.ts`
+Getting that wrong failed silently everywhere you would look. The customer saw "the payment
+window could not load", or an empty rectangle where the card form should be, with a Content
+Security Policy violation in the console. Meanwhile the status endpoint reported every field
+green, the doctor script passed, and the server log was empty — the browser blocked the
+script before a line of our code ran, so nothing server-side could observe it.
+
+Redirecting removes the whole class of failure, and both current gateways redirect: Polar
+and PayPal each host the checkout on their own site, so no payment origin is loaded, framed
+or called from ours and there is nothing to allow. That is why bringing PayPal back needed no
+CSP change at all — the browser leaves our page before it talks to PayPal.
+
+`tests/lib/csp.test.ts` asserts the *absence* of any payment origin rather than the presence
+of one, on the reasoning that a policy naming a gateway nothing loads is a standing
+permission for a third party to run scripts on the checkout. If a future change ever embeds a
+checkout in-page instead of redirecting, that test is where the requirement to add its
+origins back lives.
+
+`tests/lib/csp.test.ts`
 pins them, and also asserts that the removed PayPal integration's origins left the policy
 with it, since a CSP naming a gateway nobody uses is a standing permission for a third
 party to run scripts on the checkout page.
@@ -532,12 +600,15 @@ What is covered:
 - **Entitlements** — quotas, expiry, downgrade behaviour, customization sanitisation.
 - **Payment verification** — underpayment, plan substitution, currency swap, minor-unit
   conversion (including zero-decimal currencies), price-id-to-plan mapping, the
-  localised-currency rule, webhook parsing and HMAC signature checks, gateway selection,
-  and that `gatewayFor('paypal')` throws rather than answering a question about a retired
-  gateway with the current one.
-- **The security headers** — that every origin Paddle's overlay loads from is allowed in
-  the CSP, that the allowance stays scoped to a domain Paddle controls, and that the
-  removed gateway's origins are gone (`tests/lib/csp.test.ts`).
+  localised-currency rule, webhook parsing and HMAC signature checks, and — for PayPal,
+  where the amount is ours rather than the provider's — underpayment, plan substitution and
+  currency substitution against the plan price. Plus gateway selection: which gateways a
+  deployment offers, in which order, and that `gatewayFor()` throws for a provider this
+  deployment has no credentials for rather than answering the question with a different one
+  (`tests/lib/polar.test.ts`, `tests/lib/paypal.test.ts`).
+- **The security headers** — that every remaining allowance stays scoped to a named
+  domain, and that no payment origin appears in the policy at all, because every gateway
+  here redirects rather than embedding (`tests/lib/csp.test.ts`).
 - **Render tokens** — tampering, expiry, cross-user forgery.
 - **The real PDF pipeline** — one-page, three-page, sidebar-across-pages, US Letter, and
   one template from every category, rendered in an actual Chromium. Skipped
@@ -556,11 +627,19 @@ What is covered:
    Set `NEXT_PUBLIC_SITE_URL` to your production URL.
 3. Deploy. `prebuild` regenerates the template registry automatically.
 4. Add your domain, then add it to Firebase **Authorized domains**.
-5. Create a live Paddle notification destination for the production domain, and set both
-   `PADDLE_ENVIRONMENT` and `NEXT_PUBLIC_PADDLE_ENVIRONMENT` to `production` — the exact
-   word, not `live`. The public value is inlined at build time, so it needs a redeploy
-   rather than a restart (see
-   [`docs/PADDLE_SETUP.md` §10](docs/PADDLE_SETUP.md#10-going-live)).
+5. Create a live Polar webhook endpoint for the production domain, and switch all five
+   `POLAR_*` variables to production together — a new access token, both product ids, the
+   webhook secret, and `POLAR_ENVIRONMENT=production`. The build **refuses to start** if
+   that last one still says `sandbox` on a Vercel production deployment: Polar's tokens
+   carry no environment marker, so it is the only thing standing between a mis-set variable
+   and free Pro accounts (see
+   [`docs/POLAR_SETUP.md` §8](docs/POLAR_SETUP.md#8-going-live)).
+6. If you are launching on PayPal instead, the same rule applies to all four `PAYPAL_*`
+   variables — live client id, live secret, a webhook created on the *live* app, and
+   `PAYPAL_ENVIRONMENT=live` — and the build refuses to start on a production deployment
+   while that last one says `sandbox`, for the same reason
+   ([`docs/PAYPAL_SETUP.md` §7](docs/PAYPAL_SETUP.md#7-going-live)). Remember that PayPal
+   leaves the EU VAT with you; see [Payments](#payments).
 
 Pasting `FIREBASE_PRIVATE_KEY` into the Vercel UI: keep the literal `\n` sequences and
 wrap the whole value in double quotes.
@@ -595,7 +674,7 @@ app/
   (auth)/             login, register, forgot-password, verify-email
   dashboard/          CV management, account, settings, and the editor
   admin/              users, payments, templates, blog, configuration
-  api/                auth, CVs, Paddle, OG images, contact, admin
+  api/                auth, CVs, Polar, OG images, contact, admin
   print/[id]          bare document for browser printing
   cv/[shareId]        public share view (noindex)
   sitemap.ts robots.ts manifest.ts
@@ -632,7 +711,7 @@ firestore.rules  firestore.indexes.json  storage.rules  firebase.json
 | `npm run generate:templates` | Rebuild the template registry |
 | `npm run seed` | Seed settings, template stubs, optional demo data |
 | `npm run set-admin` | Grant or revoke admin |
-| `npm run paddle:doctor` | Check the Paddle configuration layer by layer; `-- --remote <url>` checks a deployment |
+| `npm run polar:doctor` | Check a deployment's Polar configuration: `-- https://your-site` |
 | `npm run firebase:rules` | Deploy rules, indexes and storage rules |
 
 ---
@@ -649,8 +728,8 @@ Stated plainly so nothing is a surprise in production:
 - **The contact form writes to Firestore rather than sending e-mail**, so the project has
   no SMTP dependency. Forward `contactMessages` with a Firestore trigger if you want mail.
 - **Refunds are recorded, not issued.** `/admin/payments` marks an order refunded locally;
-  the actual refund is issued in the Paddle dashboard — or, for a record taken through the
-  retired PayPal integration, in PayPal's.
+  the actual refund is issued in the Polar dashboard. (A refund made *in Polar* does flow
+  back automatically: `order.refunded` marks the payment and revokes the plan.)
 - **Legal pages are a starting template**, clearly labelled as such on each page. Have a
   qualified lawyer review them before launch.
 - **Analytics is opt-in.** With no measurement id configured, the app makes zero

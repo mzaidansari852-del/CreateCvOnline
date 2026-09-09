@@ -92,8 +92,8 @@ const SECTIONS: LegalSection[] = [
           temps.
         </p>
         <p>
-          Les paiements sont traités par Paddle, qui agit en qualité de vendeur officiel :
-          Paddle facture, collecte et reverse la TVA applicable dans votre pays, et vous adresse
+          Les paiements sont traités par Polar, qui agit en qualité de vendeur officiel :
+          Polar facture, collecte et reverse la TVA applicable dans votre pays, et vous adresse
           le reçu et la facture. Nous ne voyons ni ne conservons vos coordonnées bancaires.
         </p>
         <p>
@@ -344,7 +344,7 @@ export default function FrenchTermsPage() {
           ne se redistribuent pas en tant que modèles.
         </>,
         <>
-          Les paiements passent par Paddle, vendeur officiel, qui gère la TVA. Nous ne voyons
+          Les paiements passent par Polar, vendeur officiel, qui gère la TVA. Nous ne voyons
           jamais votre carte.
         </>,
         <>

@@ -271,7 +271,7 @@ export const DE = {
       {
         question: 'Wie wird bezahlt?',
         answer:
-          'Der Bezahlvorgang läuft über Paddle, das sich als Fenster auf der Seite öffnet. Darin zahlen Sie per Karte (Visa, Mastercard, American Express), mit PayPal, Apple Pay oder Google Pay. Paddle tritt als Verkäufer auf und weist die in Ihrem Land fällige Umsatzsteuer aus. Abgerechnet wird in US-Dollar; Ihre Bank rechnet zum jeweiligen Kurs um.',
+          'Der Bezahlvorgang läuft über Polar. Ein Klick auf die Kaufschaltfläche führt Sie zur gesicherten Kasse von Polar, wo Sie per Karte zahlen (Visa, Mastercard, American Express). Polar tritt als Verkäufer auf und weist die in Ihrem Land fällige Umsatzsteuer aus. Abgerechnet wird in US-Dollar; Ihre Bank rechnet zum jeweiligen Kurs um.',
       },
     ],
   },

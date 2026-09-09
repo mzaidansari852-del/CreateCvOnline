@@ -23,9 +23,21 @@ import { cn } from '@/lib/utils/cn';
  * re-checks the order, the amount and the currency with the gateway before it changes any
  * entitlement.
  *
- * Paddle's transaction id arrives in `?transaction=`, put there by the checkout button.
+ * Each gateway names its reference differently, because each substitutes its own into the
+ * return URL: PayPal's order id arrives as `token`, Polar's checkout id as `checkout_id`.
+ * `?transaction=` is still read as a Polar fallback so that any link produced by the
+ * previous Paddle integration still resolves to an answer rather than to "no reference".
+ * Exactly one of them is meaningful, and which one picks the branch.
  *
- * ## Why it takes more than one attempt
+ * ## Why the two branches are not the same shape
+ *
+ * PayPal's flow is sequential: the payer approves, comes back, and *this page* asks the
+ * server to capture. There is one answer and it arrives once. Polar's is a race against its
+ * own webhook, which is the authoritative grant — so that branch asks repeatedly until the
+ * answer stops being "not yet", as described below. Collapsing them into one loop would
+ * mean retrying a PayPal capture that has already given a final verdict.
+ *
+ * ## Why the Polar branch takes more than one attempt
  *
  * Confirmation is a race. The signed webhook is the authoritative grant and it may land
  * before this page does, after it, or — while a bank settles a card — a good few seconds
@@ -45,15 +57,23 @@ import { cn } from '@/lib/utils/cn';
 type Phase = 'verifying' | 'settling' | 'success' | 'already' | 'failed';
 
 /**
- * How long to keep asking before reporting what we last heard. Paddle's webhook is normally
- * a second or two behind the overlay; card settlement occasionally takes longer than that.
+ * How long to keep asking before reporting what we last heard. Polar's webhook is normally
+ * a second or two behind the redirect; card settlement occasionally takes longer than that.
  * Fifteen seconds is past the point where a person will keep reading a spinner.
  */
-const PADDLE_ATTEMPTS = 6;
-const PADDLE_RETRY_MS = 2500;
+const POLAR_ATTEMPTS = 6;
+const POLAR_RETRY_MS = 2500;
 
-/** Paddle ids look like `txn_01j…`. Anything else did not come from a checkout of ours. */
-function readTransactionId(value: string | null): string | null {
+/**
+ * Polar checkout ids are UUIDs, Paddle's were `txn_01j…`, and PayPal's are short
+ * alphanumeric strings.
+ *
+ * The pattern stays deliberately loose enough for both, because this only decides whether
+ * to *ask* the server about a reference. The server looks the id up in our own ledger and
+ * checks it belongs to the caller, so a stricter regex here would buy no safety and would
+ * turn a future id format into "no reference" for somebody who has already paid.
+ */
+function readReference(value: string | null): string | null {
   if (!value) return null;
   const trimmed = value.trim();
   return /^[A-Za-z0-9_-]{4,64}$/.test(trimmed) ? trimmed : null;
@@ -81,11 +101,11 @@ interface Failure {
 }
 
 /**
- * `pending` is the distinction that makes the Paddle branch work: an answer that is still
- * allowed to change. Separating it from `refused` is what stops the page reporting "not
- * paid" one second before the webhook says otherwise.
+ * `pending` is the distinction that makes this work: an answer that is still allowed to
+ * change. Separating it from `refused` is what stops the page reporting "not paid" one
+ * second before the webhook says otherwise.
  */
-type PaddleOutcome =
+type VerifyOutcome =
   | { kind: 'granted'; planId: string | null }
   | { kind: 'pending'; message: string }
   | { kind: 'refused'; code: string; message: string };
@@ -97,13 +117,13 @@ type PaddleOutcome =
  * heading that reads as a half-broken page at the exact moment someone is wondering whether
  * their card was charged.
  */
-async function askPaddle(transactionId: string, copy: AppCopy): Promise<PaddleOutcome> {
+async function askPolar(checkoutId: string, copy: AppCopy): Promise<VerifyOutcome> {
   const offlineMessage = copy.checkout.offline;
   try {
-    const response = await fetch('/api/payments/paddle/verify', {
+    const response = await fetch('/api/payments/polar/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transactionId }),
+      body: JSON.stringify({ checkoutId }),
     });
     const payload = (await response.json().catch(() => null)) as
       (CaptureResponse & ApiErrorBody) | null;
@@ -114,9 +134,9 @@ async function askPaddle(transactionId: string, copy: AppCopy): Promise<PaddleOu
     const message = copy.checkout.serverError(code) ?? offlineMessage;
 
     /*
-     * Two answers are worth asking about again. `payment-not-completed` is what Paddle says
+     * Two answers are worth asking about again. `payment-not-completed` is what Polar says
      * while a card is still settling, and `payment-provider-error` is us failing to reach
-     * Paddle at all — neither says the customer was not charged, and the webhook turns both
+     * Polar at all — neither says the customer was not charged, and the webhook turns both
      * into a granted plan when it lands. Everything else is settled: a mismatched amount or
      * an unknown transaction will read the same in ten seconds.
      */
@@ -131,8 +151,11 @@ async function askPaddle(transactionId: string, copy: AppCopy): Promise<PaddleOu
 }
 
 export function PaymentConfirmation({
+  orderId,
   planHint,
 }: {
+  /** From `?token=` — PayPal's order id. `null` unless PayPal took the payment. */
+  orderId: string | null;
   /** From `?plan=` — used only for the heading before the server confirms. */
   planHint: string | null;
 }) {
@@ -145,8 +168,18 @@ export function PaymentConfirmation({
    * reopens this page from their history an hour later gets the same answer as the tab the
    * overlay closed in. Nothing here assumes the checkout ran in *this* tab.
    */
-  const transactionId = readTransactionId(searchParams.get('transaction'));
-  const reference = transactionId;
+  const polarReference = orderId
+    ? null
+    : readReference(searchParams.get('checkout_id') ?? searchParams.get('transaction'));
+
+  /*
+   * At most one of the two can be meaningful. The page above only forwards PayPal's
+   * parameters, so a Polar checkout id is read here — but if PayPal's `token` is present it
+   * takes precedence and the Polar branch is switched off entirely. Posting a Polar id to
+   * PayPal's capture endpoint would be a confusing 404 for the customer and a misleading
+   * line in the support log.
+   */
+  const reference = orderId ?? polarReference;
 
   const [phase, setPhase] = useState<Phase>(reference ? 'verifying' : 'failed');
   const [planId, setPlanId] = useState<string | null>(
@@ -165,30 +198,122 @@ export function PaymentConfirmation({
   /** Guards against React's double-invoked effects in development. */
   const lastCapturedKey = useRef<string | null>(null);
 
-  const verifyPaddle = useCallback(
+  /**
+   * PayPal: capture, once.
+   *
+   * Unlike the Polar branch below there is no waiting: the payer has already approved on
+   * PayPal's site, so `captureOrder` either moves the money now or gives a reason it did
+   * not. The server re-reads the order from PayPal and re-checks the amount and currency
+   * against the plan before granting anything — the `token` in this URL is treated as a
+   * question, never as proof.
+   */
+  const capturePayPal = useCallback(
+    async (id: string) => {
+      setPhase('verifying');
+      setFailure(null);
+
+      try {
+        const response = await fetch('/api/payments/paypal/capture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: id }),
+        });
+
+        const payload = (await response.json().catch(() => null)) as
+          | (CaptureResponse & ApiErrorBody)
+          | null;
+
+        if (!response.ok) {
+          const code = payload?.error?.code ?? 'payment-failed';
+          setFailure({
+            message: copy.checkout.serverError(code) ?? copy.checkout.paypalFailedBody,
+            nextStep:
+              code === 'unauthenticated'
+                ? copy.checkout.nextSignIn
+                : code === 'unknown-order'
+                  ? copy.checkout.paypalNextUnknownOrder(site.supportEmail)
+                  : copy.checkout.paypalNextSupport(site.supportEmail),
+            retryable: code !== 'amount-mismatch' && code !== 'unknown-order',
+          });
+          setPhase('failed');
+          trackEvent('payment_failed', { gateway: 'paypal', reason: code });
+          return;
+        }
+
+        const resolvedPlan = payload?.planId ?? null;
+        if (resolvedPlan) setPlanId(resolvedPlan);
+
+        /*
+         * `alreadyFulfilled` *is* turned into the "already active" panel here, where the
+         * Polar branch deliberately does not. On this path it is genuinely unusual: nothing
+         * else captures a PayPal order, so the only way to see it is to reload a
+         * confirmation link for an order that completed earlier — which is exactly what the
+         * panel says. Under Polar the webhook normally wins the race, so the same flag is
+         * the expected answer for a first-time buyer and would be a lie.
+         */
+        if (payload?.alreadyFulfilled) {
+          setPhase('already');
+          return;
+        }
+
+        setPhase('success');
+        const plan = getPlan(resolvedPlan ?? 'free');
+        trackEvent('payment_completed', {
+          plan: plan.id,
+          gateway: 'paypal',
+          value: Number.parseFloat(plan.price),
+          currency: publicEnv.storeCurrency,
+        });
+      } catch {
+        setFailure({
+          message: copy.checkout.confirmOffline,
+          nextStep: copy.checkout.nextRetryConnection,
+          retryable: true,
+        });
+        setPhase('failed');
+        trackEvent('payment_failed', { gateway: 'paypal', reason: 'network' });
+      }
+    },
+    [copy],
+  );
+
+  useEffect(() => {
+    if (!orderId) return;
+    /*
+     * React runs effects twice in development. Capturing twice is harmless on the server —
+     * fulfilment is idempotent — but it would show a first-time buyer the "already
+     * confirmed" state, which reads as a bug.
+     */
+    const key = `paypal:${orderId}:${attempt}`;
+    if (lastCapturedKey.current === key) return;
+    lastCapturedKey.current = key;
+    void capturePayPal(orderId);
+  }, [orderId, attempt, capturePayPal]);
+
+  const verifyPolar = useCallback(
     async (id: string) => {
       setPhase('verifying');
       setFailure(null);
 
       for (let round = 0; ; round += 1) {
-        const outcome = await askPaddle(id, copy);
+        const outcome = await askPolar(id, copy);
 
         if (outcome.kind === 'granted') {
           const resolvedPlan = outcome.planId;
           if (resolvedPlan) setPlanId(resolvedPlan);
           /*
            * `alreadyFulfilled` is deliberately not turned into an "already active" panel.
-           * On this path it is the *expected* answer: the
-           * checkout button verifies the moment the overlay closes, so by the time this
-           * page asks, the transaction is nearly always fulfilled already. Reading that as
-           * "you owned this before" would tell every single first-time buyer they had
-           * bought the plan twice.
+           * On this path it is the *expected* answer: Polar's webhook usually lands before
+           * the customer's browser finishes following the redirect, so by the time this
+           * page asks, the order is nearly always fulfilled already. Reading that as "you
+           * owned this before" would tell every single first-time buyer they had bought the
+           * plan twice.
            */
           setPhase('success');
           const plan = getPlan(resolvedPlan ?? 'free');
           trackEvent('payment_completed', {
             plan: plan.id,
-            gateway: 'paddle',
+            gateway: 'polar',
             value: Number.parseFloat(plan.price),
             currency: publicEnv.storeCurrency,
           });
@@ -208,39 +333,42 @@ export function PaymentConfirmation({
             retryable: outcome.code !== 'amount-mismatch' && outcome.code !== 'unknown-order',
           });
           setPhase('failed');
-          trackEvent('payment_failed', { gateway: 'paddle', reason: outcome.code });
+          trackEvent('payment_failed', { gateway: 'polar', reason: outcome.code });
           return;
         }
 
-        if (round + 1 >= PADDLE_ATTEMPTS) {
+        if (round + 1 >= POLAR_ATTEMPTS) {
           setFailure({
             message: outcome.message,
             nextStep: copy.checkout.nextWait,
             retryable: true,
           });
           setPhase('failed');
-          trackEvent('payment_failed', { gateway: 'paddle', reason: 'pending' });
+          trackEvent('payment_failed', { gateway: 'polar', reason: 'pending' });
           return;
         }
 
         setPhase('settling');
-        await sleep(PADDLE_RETRY_MS);
+        await sleep(POLAR_RETRY_MS);
       }
     },
     [copy],
   );
 
   useEffect(() => {
-    if (!transactionId) return;
+    // `polarReference` rather than `reference`: the latter is PayPal's id on a PayPal
+    // return, and the effect above already owns that case.
+    if (!polarReference) return;
     /*
      * React runs effects twice in development. Verifying twice is harmless on the server —
-     * fulfilment is idempotent — but the guard keeps the analytics event honest.
+     * fulfilment is idempotent — but the guard keeps the analytics event honest. The key is
+     * prefixed because both effects share the ref and only one of them ever has a reference.
      */
-    const key = `paddle:${transactionId}:${attempt}`;
+    const key = `polar:${polarReference}:${attempt}`;
     if (lastCapturedKey.current === key) return;
     lastCapturedKey.current = key;
-    void verifyPaddle(transactionId);
-  }, [transactionId, attempt, verifyPaddle]);
+    void verifyPolar(polarReference);
+  }, [polarReference, attempt, verifyPolar]);
 
   if (phase === 'verifying' || phase === 'settling') {
     return (
@@ -249,9 +377,11 @@ export function PaymentConfirmation({
           <Spinner size={32} className="text-brand-600" />
           <h2 className="text-xl font-bold text-ink-950">{copy.checkout.confirmTitle}</h2>
           <p className="max-w-md text-sm leading-relaxed text-ink-600">
-            {phase === 'settling'
-              ? copy.checkout.stillConfirmingBody
-              : copy.checkout.confirmBody}
+            {orderId
+              ? copy.checkout.paypalConfirmBody
+              : phase === 'settling'
+                ? copy.checkout.stillConfirmingBody
+                : copy.checkout.confirmBody}
           </p>
         </div>
       </Panel>
@@ -350,7 +480,7 @@ export function PaymentConfirmation({
 
       <div className="mt-8 border-t border-ink-100 pt-5 text-center text-xs leading-relaxed text-ink-500">
         <p>
-          {copy.checkout.receiptNote}{' '}
+          {orderId ? copy.checkout.paypalReceiptNote : copy.checkout.receiptNote}{' '}
           {plan.accessDays === null
             ? copy.checkout.noRenewalNote
             : copy.checkout.accessDaysNote(plan.accessDays)}

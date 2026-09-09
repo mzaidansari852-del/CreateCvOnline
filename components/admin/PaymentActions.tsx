@@ -12,7 +12,7 @@ import type { PaymentStatus } from '@/types/payment';
 /**
  * "Mark as refunded" for a single order.
  *
- * This only rewrites the status on our own ledger document — it does not call Paddle and
+ * This only rewrites the status on our own ledger document — it does not call Polar and
  * no money moves. The dialog says so, because an operator who assumes otherwise will
  * leave a customer unrefunded.
  */
@@ -58,7 +58,7 @@ export function PaymentActions({
     }
 
     setOpen(false);
-    toast.success('Order marked as refunded', 'Issue the actual refund in Paddle.');
+    toast.success('Order marked as refunded', 'Issue the actual refund in Polar.');
     router.refresh();
   };
 
@@ -74,7 +74,7 @@ export function PaymentActions({
         onClose={() => setOpen(false)}
         onConfirm={confirm}
         title="Mark this order as refunded?"
-        description={`This records ${amount} ${currency} as refunded on order ${orderId} in our ledger only. It does not contact Paddle and it does not move any money — issue the refund in the Paddle dashboard as well, or the customer will not get it. The account's plan is left untouched; change it separately if access should end.`}
+        description={`This records ${amount} ${currency} as refunded on order ${orderId} in our ledger only. It does not contact Polar and it does not move any money — issue the refund in the Polar dashboard as well, or the customer will not get it. The account's plan is left untouched; change it separately if access should end.`}
         confirmLabel="Mark as refunded"
       />
     </>

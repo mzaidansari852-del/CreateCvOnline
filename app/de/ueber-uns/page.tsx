@@ -152,7 +152,7 @@ export default function GermanAboutPage() {
               keinen Datenverkauf und keine Provision auf Bewerbungen.
             </p>
             <p>
-              Zahlungen laufen über Paddle, das Verkäufer im Rechtssinne ist und die
+              Zahlungen laufen über Polar, das Verkäufer im Rechtssinne ist und die
               Umsatzsteuer abführt. Ihre Zahlungsdaten sehen wir nie. Die Rückerstattung
               beträgt vierzehn Tage und ist in unserer{' '}
               <Link

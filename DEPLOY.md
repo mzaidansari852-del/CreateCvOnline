@@ -3,7 +3,7 @@
 Everything in the repo is deploy-ready. This is the exact sequence, plus the three things
 that genuinely bite people on this stack.
 
-Budget about 25 minutes: 5 for the deploy, 20 for Firebase and Paddle.
+Budget about 25 minutes: 5 for the deploy, 20 for Firebase and a payment gateway.
 
 ---
 
@@ -14,11 +14,20 @@ You need:
 - a **Vercel** account (Hobby is fine to start — see the PDF warning below),
 - a **GitHub/GitLab/Bitbucket** account,
 - a **Firebase** project — [README → Firebase setup](README.md#firebase-setup),
-- a **Paddle** account — [README → Paddle setup](README.md#paddle-setup), and the full
-  sandbox walkthrough in [`docs/PADDLE_SETUP.md`](docs/PADDLE_SETUP.md),
+- **a payment gateway** — [README → Payments](README.md#payments). Either will do, and
+  both can be on at once:
+  - **Polar**, the intended one and the merchant of record. Full sandbox walkthrough in
+    [`docs/POLAR_SETUP.md`](docs/POLAR_SETUP.md). Production needs Polar's review; the
+    application copy is in
+    [`docs/payments/POLAR_APPLICATION.md`](docs/payments/POLAR_APPLICATION.md).
+  - **PayPal**, the interim, for while that review is outstanding —
+    [`docs/PAYPAL_SETUP.md`](docs/PAYPAL_SETUP.md). Faster to get live, but PayPal is not a
+    merchant of record, so the EU VAT on every sale is yours to account for. Read the note
+    at the top of that file before you rely on it.
+
 - the **createcvonline.com** domain, if you want it live on the real address.
 
-You can deploy *before* Firebase and Paddle are ready. The site will render completely —
+You can deploy *before* Firebase and the gateway are ready. The site will render completely —
 all 133 pages, all 56 template previews — and sign-in will show an honest "not configured"
 message rather than breaking. Adding the variables later triggers a redeploy that lights
 everything up.
@@ -59,7 +68,7 @@ NEXT_PUBLIC_SITE_URL = https://createcvonline.com
 ```
 
 Get this wrong and every canonical URL, every sitemap entry, every Open Graph tag and
-every checkout return URL handed to Paddle points at the wrong host. If you have not
+every checkout return URL handed to the payment gateway points at the wrong host. If you have not
 attached the domain yet, use your `*.vercel.app` URL and change it later — but do change it
 before you submit anything to Search Console.
 
@@ -117,9 +126,13 @@ Then by hand:
 - [ ] Register an account. The verification e-mail arrives.
 - [ ] Create a CV, edit it, confirm autosave shows "Saved".
 - [ ] **Download a PDF.** See the warning below if this fails.
-- [ ] Buy Pro against **sandbox** Paddle with the test card `4242 4242 4242 4242`; confirm
-      the overlay actually opens, `/dashboard/account` shows Pro and `/admin/payments`
-      shows the transaction as completed.
+- [ ] Buy Pro against whichever **sandbox** gateway you configured, and confirm
+      `/dashboard/account` shows Pro and `/admin/payments` shows the payment as completed.
+      - Polar: the Stripe test card `4242 4242 4242 4242`.
+      - PayPal: a sandbox buyer from **Testing Tools → Sandbox Accounts**.
+- [ ] Check `/admin/settings`. The **Checkout** card names exactly what a customer will be
+      offered, which is the fastest way to catch a gateway you thought was configured and
+      is not.
 - [ ] `npm run set-admin -- --email you@example.com`, sign out and in, open `/admin`.
 - [ ] Open the site on a real phone.
 

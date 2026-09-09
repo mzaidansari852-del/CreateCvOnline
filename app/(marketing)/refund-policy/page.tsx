@@ -145,7 +145,7 @@ const SECTIONS: LegalSection[] = [
         </p>
         <ul>
           <li>
-            <strong>The Paddle transaction id</strong> — the reference for the payment, which
+            <strong>The Polar checkout id</strong> — the reference for the payment, which
             looks like <code>txn_01j…</code>. This is the one detail that makes the request
             instant instead of a conversation.
           </li>
@@ -170,8 +170,8 @@ const SECTIONS: LegalSection[] = [
             bottom of the page you landed on after paying.
           </li>
           <li>
-            <strong>In your e-mail:</strong> the receipt Paddle sent when the payment went
-            through. Paddle is the seller of record for the sale, so the receipt comes from
+            <strong>In your e-mail:</strong> the receipt Polar sent when the payment went
+            through. Polar is the seller of record for the sale, so the receipt comes from
             them rather than from us, and the same reference is printed on it.
           </li>
         </ul>
@@ -196,12 +196,12 @@ const SECTIONS: LegalSection[] = [
         <ul>
           <li>
             <strong>Our part: within 2 working days</strong>, usually the same day. We reply to
-            confirm, issue the refund through Paddle and remove the paid plan from the account
+            confirm, issue the refund through Polar and remove the paid plan from the account
             in the same action.
           </li>
           <li>
             <strong>
-              Paddle&apos;s part and your bank&apos;s: typically 3 to 5 working days
+              Polar&apos;s part and your bank&apos;s: typically 3 to 5 working days
             </strong>{' '}
             for the money to appear, and it can be longer if you paid by card, because the
             refund has to travel back through your card issuer. That leg is outside our
@@ -215,7 +215,7 @@ const SECTIONS: LegalSection[] = [
           voucher instead of returning real money.
         </p>
         <p>
-          You will get a confirmation from us and a separate one from Paddle, which is the
+          You will get a confirmation from us and a separate one from Polar, which is the
           merchant of record for the sale and therefore the party that issues both the original
           receipt and the credit note. If more than five working days pass after our
           confirmation and nothing has arrived, reply to that e-mail and we will chase it with
@@ -282,14 +282,14 @@ const SECTIONS: LegalSection[] = [
           {pro.accessDays} days; when those days are up, the account returns to{' '}
           {PLANS.free.name} on its own and the paid features switch off. {lifetime.name} is
           bought once and never expires. We hold no card details of our own — they are typed
-          into Paddle&apos;s checkout and never reach us — so there is nothing on our side to
+          into Polar&apos;s checkout on its own website and never reach us — so there is nothing on our side to
           delete.
         </p>
         <p>
           <Link href="/dashboard/account">Your account page</Link> is the quickest way to see
           where you stand: it lists every payment recorded against the account and the date
-          your current access ends. Paddle e-mails a receipt for each payment as well, and
-          because Paddle is the seller of record, that receipt is the thread to pull on for
+          your current access ends. Polar e-mails a receipt for each payment as well, and
+          because Polar is the seller of record, that receipt is the thread to pull on for
           anything to do with the billing itself.
         </p>
         <p>
@@ -308,14 +308,14 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>
           <strong>
-            The line on your statement reads Paddle, not {site.name}.
+            The line on your statement reads Polar, not {site.name}.
           </strong>{' '}
-          Paddle is the merchant of record, so it is Paddle&apos;s name your bank prints next to
+          Polar is the merchant of record, so it is Polar&apos;s name your bank prints next to
           the amount. That is worth knowing before you decide an unfamiliar charge is fraud —
           it is the commonest reason a perfectly ordinary payment turns into a dispute.
         </p>
         <p>
-          If you do raise a dispute with Paddle or ask your bank for a chargeback, we will not
+          If you do raise a dispute with Polar or ask your bank for a chargeback, we will not
           fight it. But please ask us first: a refund from us takes a couple of days, whereas a
           dispute takes weeks, freezes the payment while it runs, and usually ends in exactly
           the same place.
@@ -389,10 +389,10 @@ export default function RefundPolicyPage() {
           <strong>
             Ask through the <Link href="/contact">contact form</Link> or by e-mail
           </strong>
-          , quoting your Paddle transaction id and writing from the address on the account.
+          , quoting your Polar checkout id and writing from the address on the account.
         </>,
         <>
-          <strong>We process it within 2 working days;</strong> Paddle and your bank then take
+          <strong>We process it within 2 working days;</strong> Polar and your bank then take
           about 3 to 5 for the money to land back on your original payment method.
         </>,
         <>
@@ -402,7 +402,7 @@ export default function RefundPolicyPage() {
         <>
           <strong>A payment buys a fixed term of access</strong> — {pro.accessDays} days for{' '}
           {pro.name}, no expiry for {lifetime.name} — and your card details are entered in
-          Paddle&apos;s checkout, never on our pages.
+          Polar&apos;s checkout on Polar&apos;s own website, never on our pages.
         </>,
       ]}
       sections={SECTIONS}

@@ -74,11 +74,11 @@ const SECTIONS: LegalSection[] = [
         </p>
         <h3>Zahlungsdaten</h3>
         <p>
-          Bei einem Tarifkauf speichern wir die Paddle-Transaktions-ID, den gekauften Tarif,
+          Bei einem Tarifkauf speichern wir die Polar-Checkout-ID, den gekauften Tarif,
           den Betrag, die Währung, den Status und den Zeitpunkt.{' '}
           <strong>Ihre Kartennummer sehen wir nie.</strong> Das Zahlungsfenster öffnet sich
-          über unserer Seite, das Formular darin ist jedoch ein iframe von Paddle: Kartendaten
-          werden dort eingegeben und ausschließlich von Paddle verarbeitet.
+          über unserer Seite, das Formular darin ist jedoch ein iframe von Polar: Kartendaten
+          werden dort eingegeben und ausschließlich von Polar verarbeitet.
         </p>
         <h3>Technische Daten und Nutzungsdaten</h3>
         <p>
@@ -144,10 +144,10 @@ const SECTIONS: LegalSection[] = [
             Dateispeicher) — hostet Ihr Konto, Ihre Lebensläufe und Ihre Profilfotos.
           </li>
           <li>
-            <strong>Paddle</strong> — Verkäufer im Rechtssinne für Zahlungen. Paddle erhebt
+            <strong>Polar</strong> — Verkäufer im Rechtssinne für Zahlungen. Polar erhebt
             Ihre Zahlungsdaten, berechnet und führt die anfallende Umsatzsteuer ab und
             übermittelt uns eine Transaktions-ID und einen Status. Für die eigene
-            Rechnungsstellung ist Paddle selbst Verantwortlicher.
+            Rechnungsstellung ist Polar selbst Verantwortlicher.
           </li>
           <li>
             <strong>Vercel</strong> — Hosting der Anwendung und des Auslieferungsnetzes.
@@ -371,7 +371,7 @@ export default function GermanPrivacyPage() {
         </>,
         <>
           Ihr Passwort und Ihre Kartennummer sehen wir nie: das übernehmen Firebase und
-          Paddle.
+          Polar.
         </>,
         <>Sie exportieren jederzeit alle Lebensläufe als JSON aus den Einstellungen.</>,
         <>

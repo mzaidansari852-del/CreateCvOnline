@@ -2,7 +2,13 @@ import { createHmac } from 'node:crypto';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { __resetServerEnvCache, isPaddleConfigured, publicEnv, serverEnv } from '@/lib/env';
+import {
+  __resetServerEnvCache,
+  isPaddleConfigured,
+  isPolarConfigured,
+  publicEnv,
+  serverEnv,
+} from '@/lib/env';
 import {
   PaymentsUnavailableError,
   availableGateways,
@@ -658,30 +664,23 @@ describe('readWebhookTransaction', () => {
 /* -------------------------------------------------------------------------- */
 
 describe('gateway selection', () => {
-  it('offers Paddle when Paddle is configured', () => {
-    expect(availableGateways()).toEqual(['paddle']);
-    expect(paymentsAvailable()).toBe(true);
-    expect(gateway()).toBe(paddleGateway);
-  });
-
-  it('offers nothing when Paddle is not configured', () => {
-    setEnv({
-      PADDLE_API_KEY: undefined,
-      PADDLE_PRICE_PRO: undefined,
-      PADDLE_PRICE_LIFETIME: undefined,
-    });
-    expect(availableGateways()).toEqual([]);
-    expect(paymentsAvailable()).toBe(false);
-    expect(() => gateway()).toThrow(PaymentsUnavailableError);
-  });
-
   /*
-   * Half-configured must read as absent. A gateway that can open a checkout but has no
-   * price to charge fails *after* the customer has entered a card, which is the worst
-   * possible moment to discover a configuration mistake.
+   * Paddle is fully configured in this file's fixture, and `gateway()` still refuses it.
+   *
+   * That inversion is the whole point of the migration and is worth a test of its own.
+   * Paddle declined the seller account during review, so credentials left in a deployment's
+   * environment are not a working fallback — they are a gateway that would fail at the
+   * moment a customer's card is entered. Selection follows Polar alone. Paddle resolves
+   * only when a reconciliation path names it, which `gatewayFor` covers below.
+   *
+   * If someone later re-enables Paddle by adding it back to `availableGateways()`, this is
+   * the test that should stop them long enough to ask whether the account was ever
+   * approved.
    */
-  it('does not offer a half-configured Paddle', () => {
-    setEnv({ PADDLE_PRICE_LIFETIME: undefined });
+  it('does not offer Paddle for new checkouts, even fully configured', () => {
+    expect(isPaddleConfigured()).toBe(true);
+    expect(isPolarConfigured()).toBe(false);
+
     expect(availableGateways()).toEqual([]);
     expect(paymentsAvailable()).toBe(false);
     expect(() => gateway()).toThrow(PaymentsUnavailableError);

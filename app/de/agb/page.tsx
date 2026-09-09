@@ -90,7 +90,7 @@ const SECTIONS: LegalSection[] = [
           mit den kostenlosen Vorlagen — ohne Kreditkarte und ohne befristete Testphase.
         </p>
         <p>
-          Zahlungen wickelt Paddle als Verkäufer im Rechtssinne ab: Paddle stellt in Rechnung,
+          Zahlungen wickelt Polar als Verkäufer im Rechtssinne ab: Polar stellt in Rechnung,
           erhebt und führt die in Ihrem Land anfallende Umsatzsteuer ab und sendet Ihnen Beleg
           und Rechnung. Ihre Zahlungsdaten sehen und speichern wir nicht.
         </p>
@@ -339,7 +339,7 @@ export default function GermanTermsPage() {
           Vorlagen weitergeben.
         </>,
         <>
-          Zahlungen laufen über Paddle als Verkäufer im Rechtssinne, samt Umsatzsteuer. Ihre
+          Zahlungen laufen über Polar als Verkäufer im Rechtssinne, samt Umsatzsteuer. Ihre
           Karte sehen wir nie.
         </>,
         <>

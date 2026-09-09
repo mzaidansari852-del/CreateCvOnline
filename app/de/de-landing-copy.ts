@@ -1147,12 +1147,12 @@ export const DE_LANDING: Record<string, Landing> = {
       {
         question: 'Wie läuft die Zahlung?',
         answer:
-          'Über Paddle, das sich in einem Fenster auf der Seite öffnet. Kreditkarte, PayPal, Apple Pay oder Google Pay. Paddle ist der Verkäufer im Rechtssinne und berechnet die in Ihrem Land geltende Umsatzsteuer. Die Beträge lauten auf US-Dollar; Ihre Bank wendet ihren Umrechnungskurs an.',
+          'Über Polar. Sie werden zur gesicherten Kasse von Polar weitergeleitet und zahlen dort per Kreditkarte. Polar ist der Verkäufer im Rechtssinne und berechnet die in Ihrem Land geltende Umsatzsteuer. Die Beträge lauten auf US-Dollar; Ihre Bank wendet ihren Umrechnungskurs an.',
       },
       {
         question: 'Bekomme ich mein Geld zurück?',
         answer:
-          'Ja, innerhalb von vierzehn Tagen nach dem Kauf, nach unserer Rückerstattungsrichtlinie. Schreiben Sie uns mit der Bestellnummer aus dem Beleg von Paddle.',
+          'Ja, innerhalb von vierzehn Tagen nach dem Kauf, nach unserer Rückerstattungsrichtlinie. Schreiben Sie uns mit der Bestellnummer aus dem Beleg von Polar.',
       },
       {
         question: 'Wie lösche ich mein Konto?',

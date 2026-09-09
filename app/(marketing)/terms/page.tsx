@@ -121,21 +121,24 @@ const SECTIONS: LegalSection[] = [
           payment recorded against the account and the date your access ends.
         </p>
         <p>
-          Payment is taken through <strong>Paddle</strong>, which acts as the{' '}
-          <strong>merchant of record</strong> for the sale. Paddle is therefore the seller for the
-          transaction itself: it takes the payment, calculates and remits any VAT or sales tax due
-          in your country, and issues the invoice or receipt.{' '}
+          Payment is taken through <strong>Polar</strong> (Polar Software, Inc., 3500 South
+          DuPont Highway, Dover, DE 19901, United States), which acts as the{' '}
+          <strong>merchant of record</strong> and authorised reseller for the sale. Polar is
+          therefore the seller for the transaction itself: it takes the payment, calculates and
+          remits any VAT or sales tax due in your country, and issues the invoice or receipt.{' '}
           <strong>
-            The charge on your card or bank statement shows Paddle rather than {site.name}
+            The charge on your card or bank statement is from Polar rather than {site.name}
           </strong>{' '}
           — worth knowing before an unfamiliar line looks like fraud.
         </p>
         <p>
-          The checkout opens as an overlay on our page, and the payment form inside it is served by
-          Paddle: card details are entered there and never reach our servers. Access is granted only
-          after our server has confirmed with Paddle that the payment completed and that the amount
-          and currency match the plan ordered. Prices are shown in {publicEnv.storeCurrency};
-          conversion and any cross-border fee charged by your bank are between you and them.
+          Pressing a buy button takes you to Polar&apos;s own website, where the checkout and the
+          card form live: your card details are entered there and never reach our servers. When
+          the payment completes, Polar returns you here with a checkout reference, and access is
+          granted only after our server has confirmed with Polar that the payment completed and
+          that it was billed against the plan you ordered. Prices are shown in{' '}
+          {publicEnv.storeCurrency}; conversion and any cross-border fee charged by your bank are
+          between you and them.
         </p>
         <p>
           We may change prices. A change never affects a payment already made, and access you have
@@ -438,8 +441,8 @@ export default function TermsPage() {
           templates or use them to build a competing builder.
         </>,
         <>
-          <strong>A payment buys a fixed term of access</strong>, taken through Paddle as merchant
-          of record — so your statement reads Paddle, and Paddle handles the tax and the receipt.
+          <strong>A payment buys a fixed term of access</strong>, taken through Polar as merchant
+          of record — so the charge is from Polar, and Polar handles the tax and the receipt.
         </>,
         <>
           <strong>We do not promise a job, an interview, or perfect ATS parsing.</strong> We promise

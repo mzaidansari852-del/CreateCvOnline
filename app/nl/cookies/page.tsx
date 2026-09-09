@@ -126,19 +126,22 @@ const SECTIONS: LegalSection[] = [
     ),
   },
   {
-    id: 'paddle',
-    title: 'Paddle-cookies tijdens het betalen',
+    id: 'payment',
+    title: 'Betalen: hier wordt geen cookie geplaatst',
     body: (
       <>
         <p>
-          Van Paddle draait er niets zolang je het betaalvenster niet opent. Op dat moment wordt
-          het script van Paddle op onze pagina geladen en verschijnt zijn kaartformulier in een
-          iframe vanaf het domein van Paddle.
+          Een abonnement kopen brengt je naar een andere website. Een klik op de koopknop
+          stuurt je naar onze betaaldienst Polar; het hele afrekenen — het kaartformulier, de
+          betaling, de bon — gebeurt daar op <code>polar.sh</code> en niet op {site.domain}.
         </p>
         <p>
-          Paddle plaatst dan zijn eigen cookies, voor het volgen van de transactie en zijn
+          Van Polar draait er niets op deze site: geen enkele pagina hier laadt een script van
+          Polar, plaatst een frame van Polar of zet een cookie van Polar. Polar plaatst eigen
+          cookies op zijn eigen domein terwijl je daar betaalt, voor het volgen van de
+          bestelling en zijn
           fraudecontroles. Wij kunnen ze niet lezen en niet sturen; hun duur en doel vallen
-          onder het beleid van Paddle, dat hier voor zijn eigen facturatie zelf
+          onder het beleid van Polar, dat hier voor zijn eigen facturatie zelf
           verwerkingsverantwoordelijke is.
         </p>
       </>
@@ -211,11 +214,11 @@ const SECTIONS: LegalSection[] = [
               duration: 'Standaard van Google, ongeveer 2 jaar',
             },
             {
-              name: 'Paddle-cookies',
+              name: 'Geen betaalcookie',
               purpose:
-                'Door Paddle geplaatst zodra je het betaalvenster opent: voortgang van de transactie, fraude- en risicocontroles. Het script van Paddle draait op onze pagina’s en zijn formulier is een iframe op zijn eigen domein, dus deze cookies kunnen onder beide domeinen verschijnen. Wij kunnen ze niet lezen en niet sturen.',
-              type: 'Cookies van derden, door Paddle geplaatst · pas na het openen van de betaling',
-              duration: 'Bepaald door Paddle',
+                'Het afrekenen gebeurt op polar.sh, niet hier. Polar plaatst eigen cookies op zijn eigen domein terwijl je daar betaalt — voortgang van de bestelling, fraude- en risicocontroles — onder het beleid van Polar. Van Polar wordt door deze site niets geladen, dus op dit domein wordt geen betaalcookie geplaatst.',
+              type: 'Niet door deze site geplaatst · niet op dit domein',
+              duration: 'Niet van toepassing',
             },
             {
               name: 'createcvonline:preferences',
@@ -285,7 +288,7 @@ export default function DutchCookiePolicyPage() {
           Geen advertentiecookies, geen social-mediapixels, geen trackers over sites heen —
           vandaar geen cookiebanner.
         </>,
-        <>Cookies van Paddle verschijnen pas als je het betaalvenster opent.</>,
+        <>Op deze site wordt geen betaalcookie geplaatst; er wordt betaald op polar.sh.</>,
         <>De inhoud van je cv’s gaat naar geen enkele statistiektool.</>,
       ]}
       sections={SECTIONS}

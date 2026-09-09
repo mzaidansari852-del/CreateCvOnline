@@ -19,16 +19,16 @@ import { PLANS, PLAN_ORDER } from '@/lib/plans';
 
 const read = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
 
-const checkoutButton = read('components/payments/PaddleCheckoutButton.tsx');
+const checkoutButton = read('components/payments/PolarCheckoutButton.tsx');
 const checkoutPage = read('app/payment/checkout/page.tsx');
 const pricingCards = read('components/marketing/PricingCards.tsx');
 const upgradeCard = read('components/dashboard/UpgradeCard.tsx');
 const accountPage = read('app/dashboard/account/page.tsx');
 
 describe('checkout flow', () => {
-  it('has a client component that calls the create-transaction endpoint', () => {
+  it('has a client component that calls the create-checkout endpoint', () => {
     expect(checkoutButton).toContain("'use client'");
-    expect(checkoutButton).toContain('/api/payments/paddle/create-transaction');
+    expect(checkoutButton).toContain('/api/payments/polar/create-checkout');
   });
 
   it('sends only a plan id to the server, never a price', () => {
@@ -36,9 +36,8 @@ describe('checkout flow', () => {
      * The whole anti-tampering design rests on this: the browser names a plan, the server
      * prices it. A body carrying an amount would undo that in one line.
      *
-     * Every request body in the file is checked, not just the first. The button makes two
-     * calls — create-transaction and verify — and asserting on one of them would leave the
-     * other free to grow a price field unnoticed.
+     * Every request body in the file is checked, not just the first, so a second call
+     * added later cannot grow a price field unnoticed.
      */
     const bodies = [...checkoutButton.matchAll(/body:\s*JSON\.stringify\(\{([^}]*)\}\)/g)].map(
       (match) => match[1] ?? '',
@@ -49,13 +48,26 @@ describe('checkout flow', () => {
   });
 
   /*
-   * The overlay is opened against a transaction id the server created, never against a
-   * price id or an amount. Opening with `items: [...]` would put the thing being sold in
-   * the browser's hands; opening with an amount would put the price there.
+   * The customer is sent to a URL the *server* returned, never to one this file builds.
+   *
+   * Under Paddle the equivalent guard was "open the overlay against a transaction id, not
+   * against a price". The redirect model moves the risk rather than removing it: a button
+   * that assembled a Polar checkout URL out of a product id and an amount would put both
+   * the thing being sold and its price back in the browser's hands. So the file must carry
+   * no Polar URL of its own, and must navigate to the response field.
    */
-  it('opens the overlay against a server-created transaction, not a price', () => {
-    expect(checkoutButton).toMatch(/transactionId/);
-    expect(checkoutButton).not.toMatch(/Checkout\.open\(\s*\{\s*items/);
+  it('navigates to a server-supplied URL rather than one it builds itself', () => {
+    expect(checkoutButton).toMatch(/window\.location\.assign\(\s*payload\.url\s*\)/);
+    expect(checkoutButton).not.toMatch(/polar\.sh|buy\.polar|checkout\.polar/i);
+  });
+
+  /*
+   * A second click must not open a second checkout. `location.assign` does not stop React,
+   * so without a latch an impatient customer gets two sessions, two ledger rows, and the
+   * chance to pay twice for one plan.
+   */
+  it('latches against starting a second checkout while navigating away', () => {
+    expect(checkoutButton).toMatch(/leaving\.current/);
   });
 
   it('renders the checkout page behind an auth guard that returns the user to it', () => {
@@ -69,8 +81,8 @@ describe('checkout flow', () => {
   });
 
   it('mounts the checkout button on the checkout page', () => {
-    expect(checkoutPage).toContain('PaddleCheckoutButton');
-    expect(checkoutPage).toContain("from '@/components/payments/PaddleCheckoutButton'");
+    expect(checkoutPage).toContain('PolarCheckoutButton');
+    expect(checkoutPage).toContain("from '@/components/payments/PolarCheckoutButton'");
   });
 
   it('points every purchasable plan on the pricing table at checkout', () => {

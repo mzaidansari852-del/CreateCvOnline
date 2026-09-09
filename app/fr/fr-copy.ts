@@ -297,7 +297,7 @@ export const FR = {
       {
         question: 'Comment se fait le paiement ?',
         answer:
-          'Le paiement passe par Paddle, qui s’ouvre dans une fenêtre sur la page, sans quitter le site. Vous y payez par carte (Visa, Mastercard, American Express), avec PayPal, Apple Pay ou Google Pay. Paddle est le vendeur officiel et calcule la TVA applicable dans votre pays. Les montants sont facturés en dollars américains ; votre banque applique son taux de change.',
+          'Le paiement passe par Polar. Un clic sur le bouton d’achat vous conduit à la page de paiement sécurisée de Polar, où vous payez par carte (Visa, Mastercard, American Express). Polar est le vendeur officiel et calcule la TVA applicable dans votre pays. Les montants sont facturés en dollars américains ; votre banque applique son taux de change.',
       },
     ],
   },

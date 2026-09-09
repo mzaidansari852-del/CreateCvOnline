@@ -27,7 +27,7 @@ Grounded in this codebase: 61 templates, 6 categories, 3 languages, PayPal, Fire
 - [Templates — 61 of them](#templates) — 6
 - [PDF export](#pdf) — 7
 - [Sharing and the public CV page](#share) — 6
-- [Payment — PayPal](#payment) — 16
+- [Payment — Polar](#payment) — 16
 - [Admin](#admin) — 9
 - [SEO and crawlability](#seo) — 9
 - [Security spot checks](#security) — 8
@@ -303,9 +303,9 @@ _This is the one place private user data is deliberately exposed. Get it wrong a
 
 <a id="payment"></a>
 
-## Payment — PayPal
+## Payment — Polar
 
-_The only path where a bug costs money or a customer. PayPal is the sole gateway; Paddle has been removed._
+_The only path where a bug costs money or a customer. Polar is the sole gateway and the merchant of record; PayPal and Paddle are both retired. Checkout is a redirect to polar.sh, and card is the only payment method._
 
 - [ ] **/pricing → Pro → /payment/checkout?plan=pro**
       The card reads: Pro, $9, every 31 days, cancellable, and YOUR email address.
@@ -337,8 +337,8 @@ _The only path where a bug costs money or a customer. PayPal is the sole gateway
       Approve, then kill your connection before the return. The page should tell you the payment may have gone through and not to pay twice.
 - [ ] **The admin ledger records the order**
       /admin/payments shows it with the right plan, amount and provider.
-- [ ] **No PADDLE_ variables remain in Vercel**
-      Nothing reads them now. A live API key sitting in a dashboard that no code uses is a credential nobody is watching.
+- [ ] **No PADDLE_ or PAYPAL_ variables remain in Vercel**
+      Nothing selects either gateway now. A live API key sitting in a dashboard that no code uses is a credential nobody is watching.
 
 <a id="admin"></a>
 
@@ -361,7 +361,7 @@ _The only path where a bug costs money or a customer. PayPal is the sole gateway
 - [ ] **/admin/blog**
       Inventory.
 - [ ] **/admin/settings — configuration readiness**
-      Should now report PayPal configured, Firebase configured, and no Paddle anywhere.
+      Should report Polar configured and Firebase configured. Note the warning that a green Polar badge does not prove the environment: Polar tokens look identical in sandbox and production.
 
 <a id="seo"></a>
 

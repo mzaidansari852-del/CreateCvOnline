@@ -269,7 +269,7 @@ const FAQ = [
       `Pro is a single payment that grants ${PLANS.pro.accessDays} days of access, and that fixed term is the whole ` +
       'of what you buy. When the period ends your account simply returns to Free — your CVs stay where they are — ' +
       'and buying another period is a separate, deliberate purchase. We hold no card details of our own; they are ' +
-      'entered in Paddle’s checkout. Your account page lists every payment and the date your access ends.',
+      'entered in Polar’s checkout. Your account page lists every payment and the date your access ends.',
   },
   {
     question: 'What happens to my CVs if I stop paying?',
@@ -282,24 +282,23 @@ const FAQ = [
   {
     question: 'Which payment methods can I use?',
     answer:
-      'Checkout runs through Paddle and opens as an overlay on the page rather than sending you elsewhere. Inside ' +
-      'it you can pay by debit or credit card — Visa, Mastercard, American Express — or with PayPal, Apple Pay or ' +
-      'Google Pay. We never see or store your card number: the form is served by Paddle and the number goes ' +
-      'straight to them.',
+      'Checkout runs through Polar. Pressing a buy button takes you to Polar’s own secure checkout, where you can ' +
+      'pay by debit or credit card — Visa, Mastercard, American Express. We never see or store your card number: ' +
+      'the form is Polar’s, on Polar’s site, and the number goes straight to them.',
   },
   {
     question: 'Which currency am I charged in?',
     answer:
       `All prices on this page are in ${publicEnv.storeCurrency} and that is the currency you are charged in. If ` +
-      'your bank account is in another currency, your bank or Paddle converts it at their rate and may add a ' +
-      'foreign-transaction fee, which is outside our control. Paddle is the merchant of record, so it adds any VAT ' +
+      'your bank account is in another currency, your bank or Polar converts it at their rate and may add a ' +
+      'foreign-transaction fee, which is outside our control. Polar is the merchant of record, so it adds any VAT ' +
       'or sales tax your country requires, shows it before you confirm, and remits it.',
   },
   {
     question: 'Can I get a refund?',
     answer:
       'Yes — within 14 days of the payment, for any reason, including simply changing your mind. E-mail ' +
-      `${site.supportEmail} from the address on the account and we will refund the full amount through Paddle. ` +
+      `${site.supportEmail} from the address on the account and we will refund the full amount through Polar. ` +
       'We do not ask you to justify it and we do not make you talk to anyone first.',
   },
   {
@@ -342,7 +341,7 @@ export default function PricingPage() {
         <PricingCards className="mt-14" />
 
         <p className="mt-8 text-center text-sm text-ink-500">
-          Prices in {publicEnv.storeCurrency}. Secure checkout through Paddle.{' '}
+          Prices in {publicEnv.storeCurrency}. Secure checkout through Polar.{' '}
           <Link href="#refunds" className="font-medium text-brand-700 underline underline-offset-2">
             14-day refund
           </Link>{' '}
@@ -539,16 +538,16 @@ export default function PricingPage() {
           <div className="rounded-xl border border-ink-200 bg-white p-6">
             <h3 className="text-base font-semibold text-ink-950">Payment methods</h3>
             <p className="mt-2 text-sm leading-relaxed text-ink-600">
-              Checkout is handled by <strong className="font-semibold text-ink-800">Paddle</strong>.
-              Inside it you can pay by debit or credit card — Visa, Mastercard, American Express —
-              or with PayPal, Apple Pay or Google Pay. The payment form is served by Paddle, so your
-              card details never reach our servers.
+              Checkout is handled by <strong className="font-semibold text-ink-800">Polar</strong>.
+              You pay by debit or credit card — Visa, Mastercard, American Express. The payment form
+              is Polar&apos;s and lives on Polar&apos;s own site, so your card details never reach
+              our servers.
             </p>
             <p className="mt-3 text-sm leading-relaxed text-ink-600">
-              The checkout opens over this page rather than sending you away, and closes when the
-              payment is done. Access is granted only after our server has confirmed the transaction
-              with Paddle directly. Paddle is the merchant of record, so it handles the tax and the
-              receipt — and your statement will read Paddle, not {site.name}.
+              Pressing a buy button takes you to Polar to pay, and Polar returns you here when the
+              payment is done. Access is granted only after our server has confirmed the payment
+              with Polar directly. Polar is the merchant of record, so it handles the tax and the
+              receipt — and the charge on your statement is from Polar, not {site.name}.
             </p>
           </div>
 
@@ -563,7 +562,7 @@ export default function PricingPage() {
               >
                 {site.supportEmail}
               </a>{' '}
-              from the address on your account and we refund the full amount through Paddle,
+              from the address on your account and we refund the full amount through Polar,
               normally within two working days.
             </p>
             <p className="mt-3 text-sm leading-relaxed text-ink-600">
@@ -583,12 +582,12 @@ export default function PricingPage() {
             <p className="mt-2 text-sm leading-relaxed text-ink-600">
               Prices are shown and charged in{' '}
               <strong className="font-semibold text-ink-800">{publicEnv.storeCurrency}</strong>. If
-              your account is in a different currency, Paddle or your bank converts at their own
+              your account is in a different currency, Polar or your bank converts at their own
               rate and may add a cross-border fee — that part is between you and them.
             </p>
             <p className="mt-3 text-sm leading-relaxed text-ink-600">
-              Paddle is the merchant of record, so any sales tax or VAT your country requires is
-              worked out by Paddle, shown at checkout before you confirm, and remitted by Paddle.
+              Polar is the merchant of record, so any sales tax or VAT your country requires is
+              worked out by Polar, shown at checkout before you confirm, and remitted by Polar.
               Nothing is ever charged after the fact.
             </p>
           </div>
@@ -600,7 +599,7 @@ export default function PricingPage() {
             A fixed term of access, and nothing more elaborate than that. Pro is a payment for{' '}
             {PLANS.pro.accessDays} days; when it ends, the account quietly returns to Free and
             buying another period is a separate, deliberate purchase. Lifetime is bought once and
-            never expires. We hold no card details of our own — they are entered in Paddle&apos;s
+            never expires. We hold no card details of our own — they are entered in Polar&apos;s
             checkout — and your account page lists every payment recorded against the account
             alongside the date your access ends.
           </p>

@@ -1,8 +1,8 @@
 import 'server-only';
 
 import { adminDb, COLLECTIONS, paymentCollection, toIso } from '@/lib/firebase/admin';
-import { setEntitlement } from './users';
-import { computePeriodEnd, getPlan } from '@/lib/plans';
+import { getUserProfile, setEntitlement } from './users';
+import { computePeriodEnd, defaultEntitlement, getPlan } from '@/lib/plans';
 import {
   paymentRecordSchema,
   type CaptureResult,
@@ -166,6 +166,41 @@ export async function fulfilPayment(input: {
     entitlement,
     record: hydrate(capture.orderId, userId, outcome.record),
   };
+}
+
+/**
+ * Marks a payment refunded and takes the plan back.
+ *
+ * ## Why revoking is part of this and not a separate concern
+ *
+ * Under a merchant of record, refunds are largely self-serve: the customer asks Polar, and
+ * we hear about it through `order.refunded`. Recording the refund without acting on the
+ * entitlement is the dangerous half-measure — a monthly plan would quietly lapse at the
+ * end of its period and look fine, while a refunded **Lifetime** purchase would keep
+ * working forever, because `accessDays: null` means there is no expiry to reach.
+ *
+ * The entitlement is only taken back if it still points at *this* payment. A customer who
+ * refunded an old purchase and has since bought again should keep what they most recently
+ * paid for, and `lastPaymentId` is what distinguishes the two. Anything else is left
+ * alone and logged, because guessing wrong here removes access somebody has paid for.
+ */
+export async function refundPayment(
+  userId: string,
+  orderId: string,
+): Promise<{ revoked: boolean }> {
+  await markPaymentStatus(userId, orderId, 'refunded');
+
+  const profile = await getUserProfile(userId);
+  if (!profile || profile.entitlement.lastPaymentId !== orderId) {
+    return { revoked: false };
+  }
+
+  await setEntitlement(userId, {
+    ...defaultEntitlement(),
+    updatedAt: new Date().toISOString(),
+  });
+
+  return { revoked: true };
 }
 
 export async function markPaymentStatus(

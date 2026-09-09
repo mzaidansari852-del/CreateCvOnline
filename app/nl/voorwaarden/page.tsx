@@ -89,7 +89,7 @@ const SECTIONS: LegalSection[] = [
           gratis sjablonen, zonder creditcard en zonder aflopende proefperiode.
         </p>
         <p>
-          Betalingen lopen via Paddle, dat optreedt als verkoper in juridische zin: Paddle
+          Betalingen lopen via Polar, dat optreedt als verkoper in juridische zin: Polar
           factureert, int en draagt de btw af die in jouw land geldt, en stuurt je de bon en de
           factuur. Wij zien noch bewaren je betaalgegevens.
         </p>
@@ -330,7 +330,7 @@ export default function DutchTermsPage() {
           door als sjablonen.
         </>,
         <>
-          Betalingen lopen via Paddle als verkoper in juridische zin, inclusief btw. Je kaart
+          Betalingen lopen via Polar als verkoper in juridische zin, inclusief btw. Je kaart
           zien we nooit.
         </>,
         <>

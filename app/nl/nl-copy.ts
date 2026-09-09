@@ -313,7 +313,7 @@ export const NL = {
       {
         question: 'Hoe verloopt de betaling?',
         answer:
-          'De betaling gaat via Paddle, dat in een venster op de pagina opent zodat je de site niet verlaat. Je betaalt met creditcard (Visa, Mastercard, American Express), PayPal, Apple Pay of Google Pay. Paddle is de officiële verkoper en berekent de btw die in jouw land geldt. De bedragen worden in Amerikaanse dollars afgerekend; je bank rekent zijn eigen wisselkoers.',
+          'De betaling gaat via Polar. Een klik op de koopknop brengt je naar de beveiligde afrekenpagina van Polar, waar je met creditcard betaalt (Visa, Mastercard, American Express). Polar is de officiële verkoper en berekent de btw die in jouw land geldt. De bedragen worden in Amerikaanse dollars afgerekend; je bank rekent zijn eigen wisselkoers.',
       },
     ],
   },

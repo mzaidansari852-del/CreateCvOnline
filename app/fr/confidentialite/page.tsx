@@ -76,12 +76,12 @@ const SECTIONS: LegalSection[] = [
         </p>
         <h3>Données de paiement</h3>
         <p>
-          Si vous achetez une offre, nous conservons l’identifiant de transaction Paddle,
+          Si vous achetez une offre, nous conservons l’identifiant de transaction Polar,
           l’offre achetée, le montant, la devise, le statut et l’horodatage.{' '}
           <strong>Nous ne voyons jamais votre numéro de carte.</strong> La fenêtre de paiement
           s’ouvre par-dessus notre page, mais le formulaire qu’elle contient est une iframe
-          servie par Paddle : les coordonnées bancaires y sont saisies et traitées
-          intégralement par Paddle.
+          servie par Polar : les coordonnées bancaires y sont saisies et traitées
+          intégralement par Polar.
         </p>
         <h3>Données techniques et d’usage</h3>
         <p>
@@ -148,9 +148,9 @@ const SECTIONS: LegalSection[] = [
             stockage de fichiers) — héberge votre compte, vos CV et vos photos de profil.
           </li>
           <li>
-            <strong>Paddle</strong> — vendeur officiel pour les paiements. Paddle collecte vos
+            <strong>Polar</strong> — vendeur officiel pour les paiements. Polar collecte vos
             coordonnées bancaires, calcule et déclare la TVA applicable, et nous transmet un
-            identifiant de transaction et un statut. Paddle est responsable de traitement pour
+            identifiant de transaction et un statut. Polar est responsable de traitement pour
             ses propres besoins de facturation.
           </li>
           <li>
@@ -381,7 +381,7 @@ export default function FrenchPrivacyPage() {
         </>,
         <>
           Nous ne voyons jamais votre mot de passe ni votre numéro de carte : Firebase et
-          Paddle s’en chargent.
+          Polar s’en chargent.
         </>,
         <>
           Vous exportez l’intégralité de vos CV en JSON quand vous voulez, depuis les réglages.

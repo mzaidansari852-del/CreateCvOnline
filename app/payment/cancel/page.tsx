@@ -10,8 +10,8 @@ import { privateMetadata } from '@/lib/seo/metadata';
 /**
  * Where a payer lands when they close the checkout without paying.
  *
- * This route is referenced by `app/api/payments/paddle/create-transaction/route.ts`, which
- * passes it to Paddle as the `cancelUrl`, and it did not exist — so backing out of the
+ * This route is referenced by `app/api/payments/polar/create-checkout/route.ts`, which
+ * passes it to Polar as the `return_url`, and it once did not exist — so backing out of the
  * overlay answered 404. The audience for that 404 is precisely the person who hesitated
  * over a payment, and a page-not-found is the worst possible thing to show them: it reads
  * as "something went wrong with your money" at the exact moment they are wondering whether

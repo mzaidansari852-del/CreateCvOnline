@@ -133,19 +133,23 @@ const SECTIONS: LegalSection[] = [
     ),
   },
   {
-    id: 'paddle',
-    title: 'Cookies Paddle pendant le paiement',
+    id: 'payment',
+    title: 'Paiement : aucun cookie déposé ici',
     body: (
       <>
         <p>
-          Rien de Paddle ne s’exécute tant que vous n’ouvrez pas la fenêtre de paiement. À ce
-          moment-là, le script de Paddle est chargé sur notre page et son formulaire de carte
-          s’affiche dans une iframe servie par le domaine de Paddle.
+          Acheter une formule vous emmène sur un autre site. Un clic sur le bouton d’achat vous
+          conduit chez notre prestataire de paiement, Polar : tout le paiement — le formulaire
+          de carte, la transaction, le reçu — se déroule là-bas, sur <code>polar.sh</code>, et
+          non sur {site.domain}.
         </p>
         <p>
-          Paddle dépose alors ses propres cookies, pour le suivi de la transaction et ses
+          Rien de Polar ne s’exécute sur ce site : aucune de nos pages ne charge un script de
+          Polar, n’intègre une iframe de Polar ni ne dépose un cookie de Polar. Polar dépose
+          ses propres cookies sur son propre domaine pendant que vous y payez, pour le suivi de
+          la commande et ses
           contrôles antifraude. Nous ne pouvons ni les lire ni les contrôler ; leur durée et
-          leur finalité relèvent de la politique de Paddle, qui agit ici comme responsable de
+          leur finalité relèvent de la politique de Polar, qui agit ici comme responsable de
           traitement pour ses besoins de facturation.
         </p>
       </>
@@ -221,11 +225,11 @@ const SECTIONS: LegalSection[] = [
               duration: 'Valeur par défaut de Google, environ 2 ans',
             },
             {
-              name: 'Cookies Paddle',
+              name: 'Aucun cookie de paiement',
               purpose:
-                'Déposés par Paddle dès l’ouverture de la fenêtre de paiement : suivi de la transaction, contrôles antifraude. Le script de Paddle s’exécute sur nos pages et son formulaire est une iframe sur son domaine ; ces cookies peuvent donc apparaître sous l’un ou l’autre. Nous ne pouvons ni les lire ni les contrôler.',
-              type: 'Cookies tiers, déposés par Paddle · uniquement après ouverture du paiement',
-              duration: 'Déterminée par Paddle',
+                'Le paiement se déroule sur polar.sh, pas ici. Polar dépose ses propres cookies sur son propre domaine pendant que vous y payez — suivi de la commande, contrôles antifraude — selon la politique de Polar. Rien de Polar n’est chargé par ce site, donc aucun cookie de paiement n’est déposé sur ce domaine.',
+              type: 'Non déposé par ce site · pas sur ce domaine',
+              duration: 'Sans objet',
             },
             {
               name: 'createcvonline:preferences',
@@ -299,7 +303,7 @@ export default function FrenchCookiePolicyPage() {
           d’où l’absence de bandeau de consentement.
         </>,
         <>
-          Les cookies de Paddle n’apparaissent qu’à partir du moment où vous ouvrez la fenêtre
+          Les cookies de Polar n’apparaissent qu’à partir du moment où vous ouvrez la fenêtre
           de paiement.
         </>,
         <>

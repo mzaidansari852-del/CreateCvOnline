@@ -500,11 +500,50 @@ export interface DashboardCopy {
     openingCheckout: string;
     completing: string;
     reopen: string;
+
+    /* ------------------------------------------------ choosing between gateways */
+    /**
+     * Rendered only when both gateways are configured; one option is not a choice.
+     *
+     * That is the unusual case rather than the normal one: PayPal is an interim gateway
+     * and is expected to be the only one until Polar's account goes live. See
+     * `lib/payments/index.ts`.
+     */
+    methodHeading: string;
+    methodCard: string;
+    methodPaypal: string;
+    /** One short line under the tile name — not a paragraph about tax treatment. */
+    methodCardHint: string;
+    methodPaypalHint: string;
+
+    /* --------------------------------------------------- PayPal, before it opens */
+    continueToPaypal: (priceLabel: string) => string;
+    redirectingToPaypal: string;
+    paypalNote: (planName: string) => string;
+    paypalStartFailed: string;
+    paypalNoApproveUrl: (email: string) => string;
+    /** PayPal's own machine-readable cause and support reference, labelled. */
+    diagnosticCause: (issue: string) => string;
+    diagnosticReference: (reference: string) => string;
+
+    /* ------------------------------------------------- PayPal, on the way back */
+    payerReference: string;
+    payerReferenceNote: string;
+    paypalConfirmBody: string;
+    paypalFailedBody: string;
+    /** The PayPal wording of `nextSupport` and of its unknown-order case. */
+    paypalNextSupport: (email: string) => string;
+    paypalNextUnknownOrder: (email: string) => string;
+    /** Reaching our own server failed — which says nothing about whether money moved. */
+    confirmOffline: string;
+    nextRetryConnection: string;
+    paypalReceiptNote: string;
     /** `priceLabel` is already formatted by the page, e.g. `$9 per month`. */
     payNow: (priceLabel: string) => string;
     opening: string;
     confirming: string;
-    paddleNote: (planName: string) => string;
+    /** Names the merchant of record and warns that checkout happens on their page. */
+    gatewayNote: (planName: string) => string;
     startFailedTitle: string;
     startFailedBody: string;
     /**
@@ -518,7 +557,6 @@ export interface DashboardCopy {
      * fall back to its own already-translated wording rather than to the server's English.
      */
     serverError: (code: string | undefined) => string | null;
-    scriptFailed: string;
     offline: string;
     confirmTitle: string;
     confirmBody: string;
@@ -602,7 +640,13 @@ export interface DashboardCopy {
     /* ------------------------------------------- after the checkout window closes */
     stepConfirmation: string;
     confirmationTitle: string;
-    confirmationLede: string;
+    /**
+     * `gateway` is the provider's name — "Polar" or "PayPal" — chosen by the page from
+     * the reference the provider put in the return URL. Named rather than left vague
+     * because the reassuring half of this sentence is that the company the customer just
+     * paid is the same one we are checking with.
+     */
+    confirmationLede: (gateway: string) => string;
     missingReference: string;
     missingReferenceNext: string;
     emailSupport: (email: string) => string;
@@ -618,8 +662,8 @@ export interface DashboardCopy {
     /*
      * The cancel screen.
      *
-     * `create-transaction` has always told Paddle to send a cancelling customer to
-     * `/payment/cancel`, and that route did not exist — so backing out of the overlay
+     * `create-checkout` gives the gateway `/payment/cancel` as the return URL for a
+     * customer who backs out, and that route once did not exist — so abandoning a payment
      * answered 404. The person most likely to see it is one who hesitated over a payment,
      * which is the worst possible audience for a page-not-found.
      */
@@ -1085,11 +1129,39 @@ const EN: DashboardCopy = {
     openingCheckout: 'Opening the payment window…',
     completing: 'Payment received — confirming it now…',
     reopen: 'Reopen the payment window',
+    methodHeading: 'How would you like to pay?',
+    methodCard: 'Credit or debit card',
+    methodPaypal: 'PayPal',
+    methodCardHint: 'Visa, Mastercard or American Express',
+    methodPaypalHint: 'No PayPal account needed',
+    continueToPaypal: (priceLabel) => `Continue to PayPal — ${priceLabel}`,
+    redirectingToPaypal: 'Taking you to PayPal…',
+    paypalNote: (planName) =>
+      `You approve on PayPal and come straight back. ${planName} unlocks once it is confirmed.`,
+    paypalStartFailed: 'PayPal could not start this payment. Please try again in a moment.',
+    paypalNoApproveUrl: (email) =>
+      `The order was created but PayPal did not return a checkout link. Nothing has been charged — please try again, or contact ${email} if it keeps happening.`,
+    diagnosticCause: (issue) => `Cause: ${issue}`,
+    diagnosticReference: (reference) => `Reference: ${reference}`,
+    payerReference: 'PayPal payer reference',
+    payerReferenceNote:
+      'Keep it with your receipt — quoting it alongside the order id lets us find a payment instantly.',
+    paypalConfirmBody:
+      'We are checking the order with PayPal before we unlock anything. This normally takes a couple of seconds — please do not close this tab.',
+    paypalFailedBody: 'We could not confirm this payment with PayPal.',
+    paypalNextSupport: (email) =>
+      `If money left your account, e-mail ${email} with your PayPal transaction id and we will fix it or refund it.`,
+    paypalNextUnknownOrder: (email) =>
+      `Send us your PayPal transaction id at ${email} and we will sort it out the same day.`,
+    confirmOffline: 'We could not reach our server to confirm the payment.',
+    nextRetryConnection:
+      'Check your connection and press “Try again”. Your payment is safe either way — nothing is granted or charged twice.',
+    paypalReceiptNote: 'PayPal has e-mailed you a receipt.',
     payNow: (priceLabel) => `Pay ${priceLabel}`,
     opening: 'Opening the payment window…',
     confirming: 'Confirming your payment…',
-    paddleNote: (planName) =>
-      `Paddle handles the payment — we never see your card details. ${planName} unlocks once it is confirmed.`,
+    gatewayNote: (planName) =>
+      `Polar handles the payment — we never see your card details. You will be taken to Polar's secure checkout, and ${planName} unlocks as soon as the payment is confirmed.`,
     startFailedTitle: 'Checkout could not start',
     startFailedBody:
       'We could not start the payment. Nothing has been charged — please try again in a moment.',
@@ -1119,23 +1191,21 @@ const EN: DashboardCopy = {
         'server-error': 'Something went wrong on our side. Nothing has been charged.',
         'request-failed': 'Something went wrong on our side. Nothing has been charged.',
       })[code ?? ''] ?? null,
-    scriptFailed:
-      'The payment window could not load. Check that no ad blocker or privacy extension is blocking Paddle, then try again — nothing has been charged.',
     offline:
       'We could not reach the server. Check your connection and try again — nothing has been charged.',
     confirmTitle: 'Confirming your payment…',
     confirmBody:
-      'Paddle has taken the payment and we are checking it with them before unlocking anything. You can close this tab if you need to — your plan is granted either way.',
+      'Polar has taken the payment and we are checking it with them before unlocking anything. You can close this tab if you need to — your plan is granted either way.',
     stillConfirmingBody:
-      'Paddle has not confirmed the payment yet. We are still asking — this can take a few seconds while your bank settles it. Nothing is lost by waiting here.',
+      'Polar has not confirmed the payment yet. We are still asking — this can take a few seconds while your bank settles it. Nothing is lost by waiting here.',
     confirmFailedTitle: 'We could not confirm that payment',
     nextSignIn:
       'Sign in with the account you paid with and open this page again. Your payment is safe — the plan is granted as soon as we can match it to your account.',
     nextSupport: (email) =>
-      `If money left your account, e-mail ${email} with your Paddle transaction id and we will fix it or refund it.`,
+      `If money left your account, e-mail ${email} with your Polar checkout id and we will fix it or refund it.`,
     nextWait:
       'If you completed the payment, the plan is granted on its own within a minute. Press “Try again”, or open your account page shortly — you do not need to pay twice.',
-    receiptNote: 'Paddle has e-mailed you a receipt and an invoice you can claim as an expense.',
+    receiptNote: 'Polar has e-mailed you a receipt and an invoice you can claim as an expense.',
     transactionRef: 'Transaction',
     unavailableTitle: 'Payments are not available right now',
     unavailableBody: (email) =>
@@ -1178,8 +1248,8 @@ const EN: DashboardCopy = {
       'We never see or store your card details — the payment provider handles that entirely.',
     stepConfirmation: 'Step 3 of 3 · Confirmation',
     confirmationTitle: 'Payment confirmation',
-    confirmationLede:
-      'The payment window has closed. Before anything is unlocked, our server re-reads the transaction from Paddle — so what you see below is the real outcome, not a message triggered by landing on this page.',
+    confirmationLede: (gateway) =>
+      `You have come back from ${gateway}’s checkout. Before anything is unlocked, our server re-reads the payment from ${gateway} — so what you see below is the real outcome, not a message triggered by landing on this page.`,
     missingReference: 'This confirmation link is missing its payment reference.',
     missingReferenceNext:
       'Open the receipt your payment provider e-mailed you and follow the link in it, or check your account page — a completed payment unlocks the plan on its own.',
@@ -1694,11 +1764,39 @@ const FR: DashboardCopy = {
     openingCheckout: 'Ouverture de la fenêtre de paiement…',
     completing: 'Paiement reçu — confirmation en cours…',
     reopen: 'Rouvrir la fenêtre de paiement',
+    methodHeading: 'Comment souhaitez-vous payer ?',
+    methodCard: 'Carte bancaire',
+    methodPaypal: 'PayPal',
+    methodCardHint: 'Visa, Mastercard ou American Express',
+    methodPaypalHint: 'Sans compte PayPal',
+    continueToPaypal: (priceLabel) => `Continuer vers PayPal — ${priceLabel}`,
+    redirectingToPaypal: 'Redirection vers PayPal…',
+    paypalNote: (planName) =>
+      `Vous validez sur PayPal, puis vous revenez ici. ${planName} est activé dès la confirmation.`,
+    paypalStartFailed: 'PayPal n’a pas pu démarrer ce paiement. Réessayez dans un instant.',
+    paypalNoApproveUrl: (email) =>
+      `La commande a bien été créée, mais PayPal n’a renvoyé aucun lien de paiement. Rien n’a été débité — réessayez, ou écrivez à ${email} si cela se reproduit.`,
+    diagnosticCause: (issue) => `Cause : ${issue}`,
+    diagnosticReference: (reference) => `Référence : ${reference}`,
+    payerReference: 'Référence payeur PayPal',
+    payerReferenceNote:
+      'Conservez-la avec votre reçu : en l’indiquant avec le numéro de commande, nous retrouvons un paiement immédiatement.',
+    paypalConfirmBody:
+      'Nous vérifions la commande auprès de PayPal avant de débloquer quoi que ce soit. Cela prend généralement quelques secondes — ne fermez pas cet onglet.',
+    paypalFailedBody: 'Nous n’avons pas pu confirmer ce paiement auprès de PayPal.',
+    paypalNextSupport: (email) =>
+      `Si un montant a été débité, écrivez à ${email} en indiquant votre identifiant de transaction PayPal : nous corrigerons la situation ou vous rembourserons.`,
+    paypalNextUnknownOrder: (email) =>
+      `Envoyez-nous votre identifiant de transaction PayPal à ${email} et nous réglerons cela le jour même.`,
+    confirmOffline: 'Nous n’avons pas pu joindre notre serveur pour confirmer le paiement.',
+    nextRetryConnection:
+      'Vérifiez votre connexion et appuyez sur « Réessayer ». Votre paiement ne risque rien : rien ne sera accordé ni débité deux fois.',
+    paypalReceiptNote: 'PayPal vous a envoyé un reçu par e-mail.',
     payNow: (priceLabel) => `Payer ${priceLabel}`,
     opening: 'Ouverture de la fenêtre de paiement…',
     confirming: 'Confirmation du paiement…',
-    paddleNote: (planName) =>
-      `Paddle gère le paiement : nous ne voyons pas vos données bancaires. ${planName} est activé dès la confirmation.`,
+    gatewayNote: (planName) =>
+      `Polar gère le paiement : nous ne voyons pas vos données bancaires. Vous serez redirigé vers le paiement sécurisé de Polar, et ${planName} est activé dès la confirmation.`,
     startFailedTitle: 'Le paiement n’a pas pu démarrer',
     startFailedBody:
       'Nous n’avons pas pu démarrer le paiement. Rien n’a été débité — réessayez dans un instant.',
@@ -1729,24 +1827,22 @@ const FR: DashboardCopy = {
         'server-error': 'Une erreur est survenue de notre côté. Rien n’a été débité.',
         'request-failed': 'Une erreur est survenue de notre côté. Rien n’a été débité.',
       })[code ?? ''] ?? null,
-    scriptFailed:
-      'La fenêtre de paiement n’a pas pu se charger. Vérifiez qu’aucun bloqueur de publicités ni aucune extension de confidentialité ne bloque Paddle, puis réessayez — rien n’a été débité.',
     offline:
       'Impossible de joindre le serveur. Vérifiez votre connexion et réessayez — rien n’a été débité.',
     confirmTitle: 'Confirmation de votre paiement…',
     confirmBody:
-      'Paddle a encaissé le paiement et nous le vérifions auprès d’eux avant de débloquer quoi que ce soit. Vous pouvez fermer cet onglet si nécessaire : votre formule sera activée dans tous les cas.',
+      'Polar a encaissé le paiement et nous le vérifions auprès d’eux avant de débloquer quoi que ce soit. Vous pouvez fermer cet onglet si nécessaire : votre formule sera activée dans tous les cas.',
     stillConfirmingBody:
-      'Paddle n’a pas encore confirmé le paiement. Nous continuons de demander — cela peut prendre quelques secondes, le temps que votre banque le valide. Attendre ici ne fait rien perdre.',
+      'Polar n’a pas encore confirmé le paiement. Nous continuons de demander — cela peut prendre quelques secondes, le temps que votre banque le valide. Attendre ici ne fait rien perdre.',
     confirmFailedTitle: 'Nous n’avons pas pu confirmer ce paiement',
     nextSignIn:
       'Connectez-vous avec le compte utilisé pour payer, puis rouvrez cette page. Votre paiement n’est pas perdu : la formule est activée dès que nous pouvons la rattacher à votre compte.',
     nextSupport: (email) =>
-      `Si un montant a été débité, écrivez à ${email} en indiquant votre identifiant de transaction Paddle : nous corrigerons la situation ou vous rembourserons.`,
+      `Si un montant a été débité, écrivez à ${email} en indiquant votre identifiant de commande Polar : nous corrigerons la situation ou vous rembourserons.`,
     nextWait:
       'Si vous avez finalisé le paiement, la formule s’active d’elle-même en moins d’une minute. Appuyez sur « Réessayer » ou ouvrez la page de votre compte dans un instant — inutile de payer une seconde fois.',
     receiptNote:
-      'Paddle vous a envoyé par e-mail un reçu ainsi qu’une facture que vous pouvez passer en frais.',
+      'Polar vous a envoyé par e-mail un reçu ainsi qu’une facture que vous pouvez passer en frais.',
     transactionRef: 'Transaction',
     unavailableTitle: 'Les paiements sont indisponibles pour le moment',
     unavailableBody: (email) =>
@@ -1789,8 +1885,8 @@ const FR: DashboardCopy = {
       'Nous ne voyons ni ne conservons vos données bancaires — le prestataire de paiement s’en charge entièrement.',
     stepConfirmation: 'Étape 3 sur 3 · Confirmation',
     confirmationTitle: 'Confirmation du paiement',
-    confirmationLede:
-      'La fenêtre de paiement s’est refermée. Avant tout déblocage, notre serveur relit la transaction directement auprès de Paddle : ce que vous voyez ci-dessous est le résultat réel, pas un message déclenché par l’arrivée sur cette page.',
+    confirmationLede: (gateway) =>
+      `Vous revenez du paiement sécurisé de ${gateway}. Avant tout déblocage, notre serveur relit le paiement directement auprès de ${gateway} : ce que vous voyez ci-dessous est le résultat réel, pas un message déclenché par l’arrivée sur cette page.`,
     missingReference: 'Il manque la référence de paiement dans ce lien de confirmation.',
     missingReferenceNext:
       'Ouvrez le reçu que votre prestataire de paiement vous a envoyé par e-mail et suivez le lien qu’il contient, ou consultez la page de votre compte : un paiement abouti active la formule de lui-même.',
@@ -2296,11 +2392,40 @@ const DE: DashboardCopy = {
     openingCheckout: 'Zahlungsfenster wird geöffnet…',
     completing: 'Zahlung eingegangen — wird bestätigt…',
     reopen: 'Zahlungsfenster erneut öffnen',
+    methodHeading: 'Wie möchten Sie bezahlen?',
+    methodCard: 'Kredit- oder Debitkarte',
+    methodPaypal: 'PayPal',
+    methodCardHint: 'Visa, Mastercard oder American Express',
+    methodPaypalHint: 'Ohne PayPal-Konto möglich',
+    continueToPaypal: (priceLabel) => `Weiter zu PayPal — ${priceLabel}`,
+    redirectingToPaypal: 'Sie werden zu PayPal weitergeleitet…',
+    paypalNote: (planName) =>
+      `Sie bestätigen bei PayPal und kommen direkt zurück. ${planName} wird nach der Bestätigung freigeschaltet.`,
+    paypalStartFailed:
+      'PayPal konnte diese Zahlung nicht starten. Bitte versuchen Sie es gleich noch einmal.',
+    paypalNoApproveUrl: (email) =>
+      `Die Bestellung wurde angelegt, aber PayPal hat keinen Zahlungslink zurückgegeben. Es wurde nichts abgebucht — bitte versuchen Sie es erneut oder schreiben Sie an ${email}, falls es weiterhin passiert.`,
+    diagnosticCause: (issue) => `Ursache: ${issue}`,
+    diagnosticReference: (reference) => `Referenz: ${reference}`,
+    payerReference: 'PayPal-Zahlerreferenz',
+    payerReferenceNote:
+      'Bewahren Sie sie mit Ihrem Beleg auf — zusammen mit der Bestellnummer finden wir eine Zahlung damit sofort.',
+    paypalConfirmBody:
+      'Wir prüfen die Bestellung bei PayPal, bevor etwas freigeschaltet wird. Das dauert normalerweise ein paar Sekunden — bitte schließen Sie diesen Tab nicht.',
+    paypalFailedBody: 'Wir konnten diese Zahlung nicht bei PayPal bestätigen.',
+    paypalNextSupport: (email) =>
+      `Falls Geld von Ihrem Konto abgebucht wurde, schreiben Sie an ${email} und nennen Sie Ihre PayPal-Transaktionsnummer — wir bringen das in Ordnung oder erstatten den Betrag.`,
+    paypalNextUnknownOrder: (email) =>
+      `Schicken Sie uns Ihre PayPal-Transaktionsnummer an ${email}, dann klären wir das noch am selben Tag.`,
+    confirmOffline: 'Wir konnten unseren Server nicht erreichen, um die Zahlung zu bestätigen.',
+    nextRetryConnection:
+      'Prüfen Sie Ihre Verbindung und klicken Sie auf „Erneut versuchen“. Ihre Zahlung ist in jedem Fall sicher — es wird nichts doppelt freigeschaltet oder abgebucht.',
+    paypalReceiptNote: 'PayPal hat Ihnen einen Beleg per E-Mail geschickt.',
     payNow: (priceLabel) => `${priceLabel} bezahlen`,
     opening: 'Zahlungsfenster wird geöffnet…',
     confirming: 'Zahlung wird bestätigt…',
-    paddleNote: (planName) =>
-      `Paddle wickelt die Zahlung ab — wir sehen Ihre Kartendaten nicht. ${planName} wird nach der Bestätigung freigeschaltet.`,
+    gatewayNote: (planName) =>
+      `Polar wickelt die Zahlung ab — wir sehen Ihre Kartendaten nicht. Sie werden zur sicheren Kasse von Polar weitergeleitet; ${planName} wird nach der Bestätigung freigeschaltet.`,
     startFailedTitle: 'Der Bezahlvorgang konnte nicht starten',
     startFailedBody:
       'Wir konnten die Zahlung nicht starten. Es wurde nichts abgebucht — bitte versuchen Sie es gleich noch einmal.',
@@ -2331,24 +2456,22 @@ const DE: DashboardCopy = {
         'server-error': 'Auf unserer Seite ist etwas schiefgelaufen. Es wurde nichts abgebucht.',
         'request-failed': 'Auf unserer Seite ist etwas schiefgelaufen. Es wurde nichts abgebucht.',
       })[code ?? ''] ?? null,
-    scriptFailed:
-      'Das Zahlungsfenster konnte nicht geladen werden. Prüfen Sie, ob ein Werbeblocker oder eine Datenschutz-Erweiterung Paddle blockiert, und versuchen Sie es erneut — es wurde nichts abgebucht.',
     offline:
       'Der Server ist nicht erreichbar. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut — es wurde nichts abgebucht.',
     confirmTitle: 'Ihre Zahlung wird bestätigt…',
     confirmBody:
-      'Paddle hat die Zahlung eingezogen und wir prüfen sie dort, bevor etwas freigeschaltet wird. Sie können diesen Tab schließen, wenn Sie müssen — Ihr Tarif wird so oder so freigeschaltet.',
+      'Polar hat die Zahlung eingezogen und wir prüfen sie dort, bevor etwas freigeschaltet wird. Sie können diesen Tab schließen, wenn Sie müssen — Ihr Tarif wird so oder so freigeschaltet.',
     stillConfirmingBody:
-      'Paddle hat die Zahlung noch nicht bestätigt. Wir fragen weiter nach — das kann ein paar Sekunden dauern, bis Ihre Bank sie verbucht hat. Warten kostet Sie nichts.',
+      'Polar hat die Zahlung noch nicht bestätigt. Wir fragen weiter nach — das kann ein paar Sekunden dauern, bis Ihre Bank sie verbucht hat. Warten kostet Sie nichts.',
     confirmFailedTitle: 'Wir konnten diese Zahlung nicht bestätigen',
     nextSignIn:
       'Melden Sie sich mit dem Konto an, mit dem Sie bezahlt haben, und öffnen Sie diese Seite erneut. Ihre Zahlung ist sicher — der Tarif wird freigeschaltet, sobald wir sie Ihrem Konto zuordnen können.',
     nextSupport: (email) =>
-      `Falls Geld von Ihrem Konto abgebucht wurde, schreiben Sie an ${email} und nennen Sie Ihre Paddle-Transaktionsnummer — wir bringen das in Ordnung oder erstatten den Betrag.`,
+      `Falls Geld von Ihrem Konto abgebucht wurde, schreiben Sie an ${email} und nennen Sie Ihre Polar-Checkout-ID — wir bringen das in Ordnung oder erstatten den Betrag.`,
     nextWait:
       'Wenn Sie die Zahlung abgeschlossen haben, wird der Tarif innerhalb einer Minute von selbst freigeschaltet. Klicken Sie auf „Erneut versuchen“ oder öffnen Sie gleich Ihre Kontoseite — ein zweites Mal bezahlen müssen Sie nicht.',
     receiptNote:
-      'Paddle hat Ihnen einen Beleg und eine Rechnung per E-Mail geschickt, die Sie als Ausgabe geltend machen können.',
+      'Polar hat Ihnen einen Beleg und eine Rechnung per E-Mail geschickt, die Sie als Ausgabe geltend machen können.',
     transactionRef: 'Transaktion',
     unavailableTitle: 'Zahlungen sind derzeit nicht möglich',
     unavailableBody: (email) =>
@@ -2391,8 +2514,8 @@ const DE: DashboardCopy = {
       'Ihre Kartendaten sehen und speichern wir nie — das übernimmt vollständig der Zahlungsanbieter.',
     stepConfirmation: 'Schritt 3 von 3 · Bestätigung',
     confirmationTitle: 'Zahlungsbestätigung',
-    confirmationLede:
-      'Das Zahlungsfenster hat sich geschlossen. Bevor etwas freigeschaltet wird, liest unser Server die Transaktion erneut bei Paddle aus — was Sie unten sehen, ist also das tatsächliche Ergebnis und keine Meldung, die nur der Aufruf dieser Seite ausgelöst hat.',
+    confirmationLede: (gateway) =>
+      `Sie kommen von der Kasse von ${gateway} zurück. Bevor etwas freigeschaltet wird, liest unser Server die Zahlung erneut bei ${gateway} aus — was Sie unten sehen, ist also das tatsächliche Ergebnis und keine Meldung, die nur der Aufruf dieser Seite ausgelöst hat.`,
     missingReference: 'Diesem Bestätigungslink fehlt die Zahlungsreferenz.',
     missingReferenceNext:
       'Öffnen Sie den Beleg, den Ihnen Ihr Zahlungsanbieter per E-Mail geschickt hat, und folgen Sie dem Link darin — oder sehen Sie auf Ihrer Kontoseite nach: Eine abgeschlossene Zahlung schaltet den Tarif von selbst frei.',
@@ -2906,11 +3029,39 @@ const NL: DashboardCopy = {
     openingCheckout: 'Het betaalvenster wordt geopend…',
     completing: 'Betaling ontvangen — we bevestigen hem nu…',
     reopen: 'Het betaalvenster opnieuw openen',
+    methodHeading: 'Hoe wilt u betalen?',
+    methodCard: 'Creditcard of debetkaart',
+    methodPaypal: 'PayPal',
+    methodCardHint: 'Visa, Mastercard of American Express',
+    methodPaypalHint: 'Geen PayPal-account nodig',
+    continueToPaypal: (priceLabel) => `Verder naar PayPal — ${priceLabel}`,
+    redirectingToPaypal: 'U wordt doorgestuurd naar PayPal…',
+    paypalNote: (planName) =>
+      `U bevestigt bij PayPal en komt meteen weer terug. ${planName} wordt vrijgegeven zodra de betaling bevestigd is.`,
+    paypalStartFailed: 'PayPal kon deze betaling niet starten. Probeer het zo meteen opnieuw.',
+    paypalNoApproveUrl: (email) =>
+      `De bestelling is aangemaakt, maar PayPal gaf geen betaallink terug. Er is niets afgeschreven — probeer het opnieuw, of mail ${email} als het blijft gebeuren.`,
+    diagnosticCause: (issue) => `Oorzaak: ${issue}`,
+    diagnosticReference: (reference) => `Referentie: ${reference}`,
+    payerReference: 'PayPal-betalersreferentie',
+    payerReferenceNote:
+      'Bewaar hem bij uw bon — samen met het bestelnummer vinden wij een betaling er direct mee terug.',
+    paypalConfirmBody:
+      'We controleren de bestelling bij PayPal voordat er iets wordt vrijgegeven. Dat duurt meestal een paar seconden — sluit dit tabblad niet.',
+    paypalFailedBody: 'We konden deze betaling niet bij PayPal bevestigen.',
+    paypalNextSupport: (email) =>
+      `Is er geld van uw rekening afgeschreven, mail dan ${email} met uw PayPal-transactienummer; wij zetten het recht of betalen het terug.`,
+    paypalNextUnknownOrder: (email) =>
+      `Stuur uw PayPal-transactienummer naar ${email} en wij lossen het dezelfde dag op.`,
+    confirmOffline: 'We konden onze server niet bereiken om de betaling te bevestigen.',
+    nextRetryConnection:
+      'Controleer uw verbinding en klik op “Opnieuw proberen”. Uw betaling loopt hoe dan ook geen gevaar — er wordt niets dubbel vrijgegeven of afgeschreven.',
+    paypalReceiptNote: 'PayPal heeft u een bon gemaild.',
     payNow: (priceLabel) => `${priceLabel} betalen`,
     opening: 'Het betaalvenster wordt geopend…',
     confirming: 'Je betaling wordt bevestigd…',
-    paddleNote: (planName) =>
-      `Paddle handelt de betaling af — wij zien je kaartgegevens nooit. ${planName} wordt vrijgegeven zodra de betaling bevestigd is.`,
+    gatewayNote: (planName) =>
+      `Polar handelt de betaling af — wij zien je kaartgegevens nooit. Je wordt doorgestuurd naar de beveiligde afrekenpagina van Polar en ${planName} wordt vrijgegeven zodra de betaling bevestigd is.`,
     startFailedTitle: 'Het afrekenen kon niet worden gestart',
     startFailedBody:
       'We konden de betaling niet starten. Er is niets afgeschreven — probeer het zo meteen opnieuw.',
@@ -2941,24 +3092,22 @@ const NL: DashboardCopy = {
         'server-error': 'Er is iets misgegaan aan onze kant. Er is niets afgeschreven.',
         'request-failed': 'Er is iets misgegaan aan onze kant. Er is niets afgeschreven.',
       })[code ?? ''] ?? null,
-    scriptFailed:
-      'Het betaalvenster kon niet laden. Controleer of een adblocker of privacy-extensie Paddle niet blokkeert en probeer het opnieuw — er is niets afgeschreven.',
     offline:
       'We konden de server niet bereiken. Controleer je verbinding en probeer het opnieuw — er is niets afgeschreven.',
     confirmTitle: 'Je betaling wordt bevestigd…',
     confirmBody:
-      'Paddle heeft de betaling ontvangen en wij controleren die bij hen voordat er iets wordt vrijgegeven. Je mag dit tabblad sluiten als dat nodig is — je abonnement wordt hoe dan ook toegekend.',
+      'Polar heeft de betaling ontvangen en wij controleren die bij hen voordat er iets wordt vrijgegeven. Je mag dit tabblad sluiten als dat nodig is — je abonnement wordt hoe dan ook toegekend.',
     stillConfirmingBody:
-      'Paddle heeft de betaling nog niet bevestigd. We vragen het nog steeds — dat kan een paar seconden duren terwijl je bank hem verwerkt. Wachten kost je niets.',
+      'Polar heeft de betaling nog niet bevestigd. We vragen het nog steeds — dat kan een paar seconden duren terwijl je bank hem verwerkt. Wachten kost je niets.',
     confirmFailedTitle: 'We konden die betaling niet bevestigen',
     nextSignIn:
       'Log in met het account waarmee je hebt betaald en open deze pagina opnieuw. Je betaling is veilig — het abonnement wordt toegekend zodra we het aan je account kunnen koppelen.',
     nextSupport: (email) =>
-      `Als er geld van je rekening is gegaan, mail dan ${email} met je Paddle-transactie-id, dan zetten we het recht of betalen we het terug.`,
+      `Als er geld van je rekening is gegaan, mail dan ${email} met je Polar-checkout-id, dan zetten we het recht of betalen we het terug.`,
     nextWait:
       'Als je de betaling hebt afgerond, wordt het abonnement binnen een minuut vanzelf toegekend. Druk op “Opnieuw proberen”, of open zo je accountpagina — je hoeft niet twee keer te betalen.',
     receiptNote:
-      'Paddle heeft je een bonnetje en een factuur gemaild die je als onkosten kunt indienen.',
+      'Polar heeft je een bonnetje en een factuur gemaild die je als onkosten kunt indienen.',
     transactionRef: 'Transactie',
     unavailableTitle: 'Betalen is op dit moment niet mogelijk',
     unavailableBody: (email) =>
@@ -3001,8 +3150,8 @@ const NL: DashboardCopy = {
       'Wij zien of bewaren je kaartgegevens nooit — de betaalprovider handelt dat volledig af.',
     stepConfirmation: 'Stap 3 van 3 · Bevestiging',
     confirmationTitle: 'Betalingsbevestiging',
-    confirmationLede:
-      'Het betaalvenster is gesloten. Voordat er iets wordt vrijgegeven, leest onze server de transactie opnieuw uit bij Paddle — wat je hieronder ziet is dus de echte uitkomst, geen bericht dat verschijnt omdat je op deze pagina bent beland.',
+    confirmationLede: (gateway) =>
+      `Je komt terug van de afrekenpagina van ${gateway}. Voordat er iets wordt vrijgegeven, leest onze server de betaling opnieuw uit bij ${gateway} — wat je hieronder ziet is dus de echte uitkomst, geen bericht dat verschijnt omdat je op deze pagina bent beland.`,
     missingReference: 'Bij deze bevestigingslink ontbreekt de betaalreferentie.',
     missingReferenceNext:
       'Open het bonnetje dat je betaalprovider je heeft gemaild en volg de link daarin, of kijk op je accountpagina — een afgeronde betaling geeft het abonnement vanzelf vrij.',

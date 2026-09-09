@@ -4,14 +4,19 @@ import { planIdSchema } from './user';
 /**
  * `manual` is an admin grant, not a gateway.
  *
- * `paypal` stays in the enum although nothing writes it any more. This schema parses
- * *stored* records, and removing a value from it would turn any historical order into a
- * parse error rather than a readable row — a support ticket about a payment from last year
- * would fail on the way out of the database. It costs one string to keep old data readable.
- * `gatewayFor('paypal')` still throws, so a record can be displayed but never re-checked
- * against an API that no longer knows us.
+ * `paypal` and `paddle` stay in the enum although nothing writes them any more. This
+ * schema parses *stored* records, and removing a value from it would turn any historical
+ * order into a parse error rather than a readable row — a support ticket about a payment
+ * from last year would fail on the way out of the database. It costs one string each to
+ * keep old data readable. `gatewayFor()` still throws for both, so such a record can be
+ * displayed but never re-checked against an API that no longer knows us.
+ *
+ * `polar` is the live gateway. Paddle never took a real payment here — the seller account
+ * was declined during review — so in practice the only `paddle` rows that exist are
+ * sandbox ones. The value is kept anyway, because a schema that can only parse the happy
+ * path is not a schema.
  */
-export const paymentProviderSchema = z.enum(['paypal', 'paddle', 'manual']);
+export const paymentProviderSchema = z.enum(['paypal', 'paddle', 'polar', 'manual']);
 export type PaymentProvider = z.infer<typeof paymentProviderSchema>;
 
 export const paymentStatusSchema = z.enum([
@@ -28,8 +33,8 @@ export const paymentRecordSchema = z.object({
   id: z.string(),
   userId: z.string(),
   provider: paymentProviderSchema,
-  /** Provider-side identifier — a Paddle transaction id, or a PayPal order id on an
-   * older record. */
+  /** Provider-side identifier — a Polar checkout id, or a Paddle transaction / PayPal
+   * order id on an older record. */
   providerOrderId: z.string(),
   /** Provider-side capture/transaction id, present once money moved. */
   providerCaptureId: z.string().nullable().default(null),
@@ -49,12 +54,19 @@ export type PaymentRecord = z.infer<typeof paymentRecordSchema>;
 /**
  * Provider-agnostic checkout contract.
  *
- * Swapping Paddle for Stripe later means implementing this interface and
- * changing one line in `lib/payments/index.ts` — no call-site touches routes or UI.
+ * This seam has now survived two gateway changes without a call site moving: PayPal out,
+ * Paddle in, then Paddle out and Polar in. That is the whole argument for it.
  */
 export interface CheckoutOrder {
   orderId: string;
   status: PaymentStatus;
+  /**
+   * Where to send the customer to pay, when the provider hosts the payment form.
+   *
+   * Unused under Paddle, whose overlay opened in place against a transaction id. Polar
+   * hosts its checkout, so this carries the URL the browser is redirected to — which is
+   * what the field was originally designed for under PayPal's approve flow.
+   */
   approveUrl?: string;
 }
 

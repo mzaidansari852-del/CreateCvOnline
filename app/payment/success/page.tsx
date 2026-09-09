@@ -8,16 +8,21 @@ import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { privateMetadata } from '@/lib/seo/metadata';
 
 /**
- * Where the payer lands once the checkout overlay closes.
+ * Where the payer lands when the gateway sends them back.
  *
  * This page grants nothing. Landing here only means a URL was opened, and it is a URL
- * anyone can type. `PaymentConfirmation` asks our own verify endpoint what happened, and
- * that endpoint re-reads the transaction, the amount and the currency from Paddle before a
+ * anyone can type. `PaymentConfirmation` asks our own server what happened, and that
+ * endpoint re-reads the order, the amount and the currency from the gateway before a
  * single entitlement changes.
  *
- * The transaction id travels in `?transaction=`, read by the component straight from the
- * URL; `plan` is ours, added when the transaction was created, and is only ever a hint for
- * the heading before the server answers.
+ * The reference arrives under a different name per gateway, because each provider
+ * substitutes its own into the return URL: PayPal appends `token` (its order id) and
+ * `PayerID`, Polar appends `checkout_id`. `plan` is ours, added when the checkout was
+ * created, and is only ever a hint for the heading before the server answers.
+ *
+ * Only PayPal's is read here; Polar's is read by the component straight from the URL. The
+ * split is deliberate rather than untidy — see the note in `PaymentConfirmation` about why
+ * at most one of the two may be treated as meaningful.
  */
 
 export const metadata: Metadata = privateMetadata(
@@ -37,6 +42,8 @@ function firstValue(value: string | string[] | undefined): string | null {
 export default async function PaymentSuccessPage(props: { searchParams: Promise<SearchParams> }) {
   const params = await props.searchParams;
   const planHint = firstValue(params.plan);
+  const orderId = firstValue(params.token);
+  const payerId = firstValue(params.PayerID);
 
   /*
    * The layout resolves the same language for `LocaleProvider`, but a server component
@@ -60,12 +67,20 @@ export default async function PaymentSuccessPage(props: { searchParams: Promise<
           {copy.checkout.confirmationTitle}
         </h1>
         <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-pretty text-ink-600">
-          {copy.checkout.confirmationLede}
+          {/* PayPal's `token` is what says PayPal took it; Polar's `checkout_id` is read
+              by the component below, so its absence here is the Polar case. */}
+          {copy.checkout.confirmationLede(orderId ? 'PayPal' : 'Polar')}
         </p>
       </div>
 
-      <PaymentConfirmation planHint={planHint} />
+      <PaymentConfirmation orderId={orderId} planHint={planHint} />
 
+      {payerId ? (
+        <p className="mt-6 text-center text-xs leading-relaxed text-ink-500">
+          {copy.checkout.payerReference} <code className="font-mono">{payerId}</code>.{' '}
+          {copy.checkout.payerReferenceNote}
+        </p>
+      ) : null}
     </>
   );
 }

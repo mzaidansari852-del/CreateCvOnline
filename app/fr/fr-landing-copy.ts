@@ -1143,12 +1143,12 @@ export const FR_LANDING: Record<string, Landing> = {
       {
         question: 'Comment se passe le paiement ?',
         answer:
-          'Par Paddle, qui s’ouvre dans une fenêtre sur la page. Carte bancaire, PayPal, Apple Pay ou Google Pay. Paddle est le vendeur officiel et calcule la TVA applicable dans votre pays. Les montants sont facturés en dollars américains ; votre banque applique son taux de change.',
+          'Par Polar. Vous êtes redirigé vers la page de paiement sécurisée de Polar, où vous payez par carte bancaire. Polar est le vendeur officiel et calcule la TVA applicable dans votre pays. Les montants sont facturés en dollars américains ; votre banque applique son taux de change.',
       },
       {
         question: 'Puis-je être remboursé ?',
         answer:
-          'Oui, dans les quatorze jours suivant l’achat, conformément à notre politique de remboursement. Écrivez-nous avec le numéro de commande figurant sur le reçu envoyé par Paddle.',
+          'Oui, dans les quatorze jours suivant l’achat, conformément à notre politique de remboursement. Écrivez-nous avec le numéro de commande figurant sur le reçu envoyé par Polar.',
       },
       {
         question: 'Comment supprimer mon compte ?',

@@ -411,8 +411,8 @@
     },
     {
       "id": "payment",
-      "name": "Payment — PayPal",
-      "note": "The only path where a bug costs money or a customer. PayPal is the sole gateway; Paddle has been removed.",
+      "name": "Payment — Polar",
+      "note": "The only path where a bug costs money or a customer. Polar is the sole gateway and the merchant of record; PayPal and Paddle are both retired. Checkout is a redirect to polar.sh, and card is the only payment method.",
       "items": [
         {
           "t": "/pricing → Pro → /payment/checkout?plan=pro",
@@ -469,8 +469,8 @@
           "d": "/admin/payments shows it with the right plan, amount and provider."
         },
         {
-          "t": "No PADDLE_ variables remain in Vercel",
-          "d": "Nothing reads them now. A live API key sitting in a dashboard that no code uses is a credential nobody is watching."
+          "t": "No PADDLE_ or PAYPAL_ variables remain in Vercel",
+          "d": "Nothing selects either gateway now. A live API key sitting in a dashboard that no code uses is a credential nobody is watching."
         }
       ]
     },
@@ -497,7 +497,7 @@
         { "t": "/admin/blog", "d": "Inventory." },
         {
           "t": "/admin/settings — configuration readiness",
-          "d": "Should now report PayPal configured, Firebase configured, and no Paddle anywhere."
+          "d": "Should report Polar configured and Firebase configured. Note the warning that a green Polar badge does not prove the environment: Polar tokens look identical in sandbox and production."
         }
       ]
     },

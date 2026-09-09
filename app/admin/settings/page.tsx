@@ -5,8 +5,19 @@ import { AdminPageHeader, Env } from '@/components/admin/primitives';
 import { Alert, Badge, type BadgeTone } from '@/components/ui/feedback';
 import { Card, Panel } from '@/components/ui/card';
 import { requireAdmin } from '@/lib/auth/guards';
-import { isFirebaseClientConfigured, isPaddleConfigured, publicEnv, serverEnv } from '@/lib/env';
-import { describePaddleApiKey, explainPaddleKeyProblem } from '@/lib/payments/paddle-key';
+import {
+  isFirebaseClientConfigured,
+  isPayPalConfigured,
+  isPolarConfigured,
+  publicEnv,
+  serverEnv,
+} from '@/lib/env';
+import { availableGateways } from '@/lib/payments';
+import {
+  describePolarAccessToken,
+  explainPolarProductIdProblem,
+  explainPolarTokenProblem,
+} from '@/lib/payments/polar-token';
 import { hasAdminCredentials } from '@/lib/firebase/admin';
 import { privateMetadata } from '@/lib/seo/metadata';
 import { site } from '@/lib/site';
@@ -47,14 +58,28 @@ export default async function AdminSettingsPage() {
   await requireAdmin();
 
   const env = serverEnv();
-  // `isPaddleConfigured()` is the yes/no check; the object carries the detail to show.
-  const paddle = isPaddleConfigured() ? env.paddle : null;
+  // `isPolarConfigured()` is the yes/no check; the object carries the detail to show.
+  const polar = isPolarConfigured() ? env.polar : null;
+  const paypal = isPayPalConfigured() ? env.paypal : null;
   /*
-   * Read straight from `process.env` rather than from `env.paddle` — a key that fails the
-   * format check leaves `paddle` null, and this report is the only thing that can say why.
+   * What the checkout page will actually offer, asked of the same function the page calls
+   * rather than re-derived here. Two cards can both say "Configured" while the checkout
+   * shows one button or none, and this is the line that settles which.
+   */
+  const gateways = availableGateways();
+  /*
+   * Read straight from `process.env` rather than from `env.polar` — a token that fails the
+   * format check leaves `polar` null, and this report is the only thing that can say why.
    * It returns lengths and fixed prefixes, never any part of the random portion.
    */
-  const paddleKey = describePaddleApiKey(process.env.PADDLE_API_KEY?.trim());
+  const polarToken = describePolarAccessToken(process.env.POLAR_ACCESS_TOKEN?.trim());
+  const polarProductProblems = [
+    explainPolarProductIdProblem('POLAR_PRODUCT_PRO', process.env.POLAR_PRODUCT_PRO?.trim()),
+    explainPolarProductIdProblem(
+      'POLAR_PRODUCT_LIFETIME',
+      process.env.POLAR_PRODUCT_LIFETIME?.trim(),
+    ),
+  ].filter((problem): problem is string => problem !== null);
   const firebaseAdminReady = hasAdminCredentials();
   const analyticsId = publicEnv.gaMeasurementId;
   const pdfPinned = Boolean(env.pdf.browserWSEndpoint || env.pdf.executablePath);
@@ -122,59 +147,146 @@ export default async function AdminSettingsPage() {
         />
 
         <ReadinessCard
-          title="Paddle"
-          state={paddle ? (paddle.webhookSecret ? 'ready' : 'partial') : 'missing'}
+          title="Polar"
+          state={polar ? (polar.webhookSecret ? 'ready' : 'partial') : 'missing'}
           summary={
-            paddle
-              ? `Checkout is configured against the ${paddle.environment} environment.${
-                  paddle.webhookSecret
+            polar
+              ? `Checkout is configured against the ${polar.environment} environment.${
+                  polar.webhookSecret
                     ? ''
-                    : ' No webhook secret is set, so the webhook route rejects every event with a 401 and a plan is granted only if the browser finishes the verify step.'
+                    : ' No webhook secret is set, so the webhook route rejects every event with a 403 and a plan is granted only if the customer’s browser finishes the verify step.'
                 }`
               : 'Checkout is disabled. Purchase routes answer 503 and the pricing page cannot take money.'
           }
           badges={
-            paddle
+            polar
               ? [
                   {
-                    label: paddle.environment === 'production' ? 'Live' : 'Sandbox',
-                    tone: paddle.environment === 'production' ? 'accent' : 'neutral',
+                    label: polar.environment === 'production' ? 'Live' : 'Sandbox',
+                    tone: polar.environment === 'production' ? 'accent' : 'neutral',
                   },
                 ]
               : []
           }
           variables={[
-            'PADDLE_API_KEY',
-            'PADDLE_PRICE_PRO',
-            'PADDLE_PRICE_LIFETIME',
-            'PADDLE_WEBHOOK_SECRET',
-            'PADDLE_ENVIRONMENT',
-            'NEXT_PUBLIC_PADDLE_CLIENT_TOKEN',
-            'NEXT_PUBLIC_PADDLE_ENVIRONMENT',
+            'POLAR_ACCESS_TOKEN',
+            'POLAR_PRODUCT_PRO',
+            'POLAR_PRODUCT_LIFETIME',
+            'POLAR_WEBHOOK_SECRET',
+            'POLAR_ENVIRONMENT',
           ]}
           note={
             <>
-              <Env>PADDLE_ENVIRONMENT</Env> accepts <Env>sandbox</Env> or{' '}
-              <Env>production</Env> — not <Env>live</Env> — and defaults to sandbox, so a
-              deployment that takes real money must set it explicitly.{' '}
-              <Env>NEXT_PUBLIC_PADDLE_ENVIRONMENT</Env> must agree with it, and is currently{' '}
-              <span className="font-medium">{publicEnv.paddleEnvironment}</span>. The overlay
-              additionally needs <Env>NEXT_PUBLIC_PADDLE_CLIENT_TOKEN</Env>, which is{' '}
-              {publicEnv.paddleClientToken ? 'present' : 'missing'}. Store currency:{' '}
+              <Env>POLAR_ENVIRONMENT</Env> accepts <Env>sandbox</Env> or{' '}
+              <Env>production</Env> and defaults to sandbox, so a deployment that takes real
+              money must set it explicitly. Store currency:{' '}
               <span className="font-medium">{publicEnv.storeCurrency}</span>.
-              {paddleKey.problem ? (
+              {polarToken.problem ? (
                 <span className="mt-2 block">
-                  <strong className="font-semibold">The API key is unusable.</strong>{' '}
-                  {explainPaddleKeyProblem(paddleKey)}
+                  <strong className="font-semibold">Check the access token.</strong>{' '}
+                  {explainPolarTokenProblem(polarToken)}
                 </span>
               ) : null}
+              {polarProductProblems.map((problem) => (
+                <span key={problem} className="mt-2 block">
+                  <strong className="font-semibold">Check the product ids.</strong> {problem}
+                </span>
+              ))}
               <span className="mt-2 block">
-                For the fuller picture — including whether the configured price ids exist in
-                this Paddle account — open{' '}
-                <Env>/api/payments/paddle/status?probe=1</Env>, which asks Paddle directly
-                and returns its own error text. A blocked <Env>cdn.paddle.com</Env> in the
-                Content Security Policy is the one failure it cannot see, because that one
-                happens in the browser.
+                <strong className="font-semibold">
+                  A green badge here does not prove the environment is right.
+                </strong>{' '}
+                Polar’s access tokens use the same <Env>polar_oat_</Env> prefix in sandbox and
+                production, so nothing on this page can tell a sandbox token apart from a live
+                one — the badge reports what <Env>POLAR_ENVIRONMENT</Env> claims. The build
+                refuses to start if that says <Env>sandbox</Env> on a Vercel production
+                deployment, which is the guard that actually stands between a mis-set variable
+                and free Pro accounts.
+              </span>
+              <span className="mt-2 block">
+                For the fuller picture — including whether the configured products exist in
+                this Polar organisation — open <Env>/api/payments/polar/status?probe=1</Env>,
+                which asks Polar directly and returns its own error text. That probe is also
+                the closest thing to an environment check: a token pointed at the wrong
+                environment cannot see the other one’s products.
+              </span>
+            </>
+          }
+        />
+
+        <ReadinessCard
+          title="PayPal"
+          state={paypal ? (paypal.webhookId ? 'ready' : 'partial') : 'missing'}
+          summary={
+            paypal
+              ? `The interim gateway, configured against the ${paypal.environment} environment.${
+                  paypal.webhookId
+                    ? ''
+                    : ' No webhook id is set, so the webhook route rejects every event and a plan is granted only if the customer’s browser finishes the capture step.'
+                }`
+              : 'Not offered at checkout. This is the intended end state — PayPal is here only until Polar is live.'
+          }
+          badges={
+            paypal
+              ? [
+                  {
+                    label: paypal.environment === 'live' ? 'Live' : 'Sandbox',
+                    tone: paypal.environment === 'live' ? 'accent' : 'neutral',
+                  },
+                ]
+              : []
+          }
+          variables={[
+            'PAYPAL_CLIENT_ID',
+            'PAYPAL_CLIENT_SECRET',
+            'PAYPAL_WEBHOOK_ID',
+            'PAYPAL_ENVIRONMENT',
+          ]}
+          note={
+            <>
+              <Env>PAYPAL_ENVIRONMENT</Env> accepts <Env>sandbox</Env> or <Env>live</Env> —
+              PayPal’s own words, not the <Env>production</Env> the Polar block uses — and
+              defaults to sandbox. The build refuses to start if it says <Env>sandbox</Env> on
+              a Vercel production deployment, because a sandbox order still captures as
+              COMPLETED for the plan price.
+              <span className="mt-2 block">
+                <strong className="font-semibold">PayPal is not a merchant of record.</strong>{' '}
+                While it is taking payments, this business is the seller of record and owes the
+                VAT on every EU sale itself — Polar would owe it instead. Nothing in the
+                application tracks or reports that liability, so it has to be accounted for
+                outside it. Turn PayPal off once Polar is live.
+              </span>
+              <span className="mt-2 block">
+                For the fuller picture — including whether these credentials actually
+                authenticate — open <Env>/api/payments/paypal/status?probe=1</Env>, which asks
+                PayPal for a token and returns its own error text.
+              </span>
+            </>
+          }
+        />
+
+        <ReadinessCard
+          title="Checkout"
+          state={gateways.length > 0 ? 'ready' : 'missing'}
+          summary={
+            gateways.length === 0
+              ? 'No gateway is configured. Purchase routes answer 503 and the pricing page cannot take money.'
+              : gateways.length > 1
+                ? `Both gateways are live, so the checkout shows a picker defaulting to ${gateways[0]}.`
+                : `One gateway: ${gateways[0]}. The checkout mounts its button directly, with no picker.`
+          }
+          badges={gateways.map((id) => ({ label: id, tone: 'neutral' as BadgeTone }))}
+          note={
+            <>
+              This is what <Env>availableGateways()</Env> returns, which is the same function
+              the checkout page calls — so it is the answer to “what will a customer see”,
+              rather than a second opinion about it. Store currency:{' '}
+              <span className="font-medium">{publicEnv.storeCurrency}</span>, which both
+              gateways charge in.
+              <span className="mt-2 block">
+                Paddle is never in this list. Its seller account was declined during review and
+                it stays only so that sandbox rows from that attempt remain readable in the
+                payments console.
               </span>
             </>
           }
@@ -303,14 +415,15 @@ function ReadinessCard({
   title,
   state,
   summary,
-  variables,
+  variables = [],
   note,
   badges = [],
 }: {
   title: string;
   state: State;
   summary: string;
-  variables: string[];
+  /** Optional: a card that reports a derived state has no variable of its own to name. */
+  variables?: string[];
   note?: ReactNode;
   badges?: { label: string; tone: BadgeTone }[];
 }) {
@@ -328,11 +441,13 @@ function ReadinessCard({
 
       <p className="mt-2 text-sm leading-relaxed text-ink-700">{summary}</p>
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {variables.map((variable) => (
-          <Env key={variable}>{variable}</Env>
-        ))}
-      </div>
+      {variables.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {variables.map((variable) => (
+            <Env key={variable}>{variable}</Env>
+          ))}
+        </div>
+      ) : null}
 
       {note ? <p className="mt-3 text-xs leading-relaxed text-ink-500">{note}</p> : null}
     </Card>

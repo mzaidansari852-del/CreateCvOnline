@@ -56,7 +56,7 @@ const TIMES = [
   {
     label: 'Demandes de remboursement',
     value: 'Traitées sous 2 jours ouvrés',
-    note: 'Paddle et votre banque prennent ensuite quelques jours pour restituer les fonds.',
+    note: 'Polar et votre banque prennent ensuite quelques jours pour restituer les fonds.',
   },
   {
     label: 'Signalements de bug',
@@ -127,7 +127,7 @@ export default function FrenchContactPage() {
               </p>
               <p className="mt-3 text-sm leading-relaxed text-ink-600">
                 Si votre message concerne un paiement, indiquez le numéro de commande figurant
-                sur le reçu envoyé par Paddle : cela nous évite un aller-retour.
+                sur le reçu envoyé par Polar : cela nous évite un aller-retour.
               </p>
             </div>
 

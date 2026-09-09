@@ -3,7 +3,9 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 
-import { PaddleCheckoutButton } from '@/components/payments/PaddleCheckoutButton';
+import { CheckoutMethodChoice } from '@/components/payments/CheckoutMethodChoice';
+import { PayPalCheckoutButton } from '@/components/payments/PayPalCheckoutButton';
+import { PolarCheckoutButton } from '@/components/payments/PolarCheckoutButton';
 import { ButtonLink } from '@/components/ui/button';
 import { Alert } from '@/components/ui/feedback';
 import { requireViewer } from '@/lib/auth/guards';
@@ -31,8 +33,8 @@ import type { PlanId } from '@/types/user';
  * the payer what they are about to agree to; what the gateway actually charges is looked
  * up again, server-side, when the order or transaction is created.
  *
- * Whether there is a gateway at all is also decided here rather than in the browser. The
- * client is told what it may use; it does not get to nominate one.
+ * Which gateways exist — and whether any do — is decided here rather than in the browser.
+ * The client is told what it may use; it does not get to nominate one.
  *
  * ## What this page deliberately no longer says
  *
@@ -255,16 +257,34 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
           <Alert tone="danger" title={copy.checkout.unavailableTitle}>
             {copy.checkout.unavailableBody(site.supportEmail)}
           </Alert>
+        ) : gateways.length > 1 ? (
+          /*
+            Both gateways configured, so the customer is asked. This is not the same
+            question Polar's own checkout asks on the next page: Polar presents card, Apple
+            Pay and Google Pay, and PayPal is a different processor entirely rather than one
+            more tile inside it. The default is `gateways[0]`, which `availableGateways()`
+            orders so the merchant-of-record option leads.
+          */
+          <CheckoutMethodChoice
+            planId={planId}
+            planName={plan.name}
+            priceLabel={priceLabel}
+            defaultMethod={gateways[0] === 'paypal' ? 'paypal' : 'polar'}
+            summary={summary}
+          />
         ) : (
           /*
-            No method picker: Paddle's overlay presents card, PayPal, Apple Pay and Google
-            Pay itself, and asking the customer to choose out here only to be asked again
-            inside the overlay is a question posed twice. The summary sits directly above
-            the button so the total is the last thing read before committing.
+            One gateway: no picker, because a choice of one is a control that asks to be
+            read and teaches the customer nothing. The summary sits directly above the
+            button so the total is the last thing read before leaving the site.
           */
           <div className="flex flex-col gap-4">
             {summary}
-            <PaddleCheckoutButton planId={planId} planName={plan.name} priceLabel={priceLabel} />
+            {gateways[0] === 'paypal' ? (
+              <PayPalCheckoutButton planId={planId} planName={plan.name} priceLabel={priceLabel} />
+            ) : (
+              <PolarCheckoutButton planId={planId} planName={plan.name} priceLabel={priceLabel} />
+            )}
           </div>
         )}
       </div>

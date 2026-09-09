@@ -98,7 +98,7 @@ const SECTIONS: LegalSection[] = [
         <p>Nennen Sie:</p>
         <ul>
           <li>
-            die <strong>Paddle-Transaktionsnummer</strong> aus dem Beleg, den Sie beim Kauf
+            die <strong>Polar-Checkout-ID</strong> aus dem Beleg, den Sie beim Kauf
             per E-Mail erhalten haben;
           </li>
           <li>
@@ -111,7 +111,7 @@ const SECTIONS: LegalSection[] = [
           Voraussetzung.
         </p>
         <p>
-          Da Paddle Verkäufer im Rechtssinne ist, funktioniert auch der Link auf Ihrem Beleg.
+          Da Polar Verkäufer im Rechtssinne ist, funktioniert auch der Link auf Ihrem Beleg.
           Beide Wege führen zum selben Ergebnis; uns zu schreiben ist meist schneller.
         </p>
       </>
@@ -128,12 +128,12 @@ const SECTIONS: LegalSection[] = [
             selben Tag.
           </li>
           <li>
-            <strong>Bearbeitung durch Paddle</strong> — die Erstattung wird unmittelbar nach
+            <strong>Bearbeitung durch Polar</strong> — die Erstattung wird unmittelbar nach
             unserer Zustimmung angewiesen.
           </li>
           <li>
             <strong>Gutschrift auf Ihrem Konto</strong> — drei bis zehn Werktage, je nach Bank
-            oder Kartenherausgeber. Dieser letzte Schritt liegt weder bei uns noch bei Paddle.
+            oder Kartenherausgeber. Dieser letzte Schritt liegt weder bei uns noch bei Polar.
           </li>
         </ul>
         <p>
@@ -177,7 +177,7 @@ const SECTIONS: LegalSection[] = [
         </p>
         <p>
           Gekündigt wird auf der Seite „Konto“ in Ihrem Bereich oder über den Verwaltungslink
-          auf dem Paddle-Beleg. Sie wirkt zum Ende des bereits bezahlten Zeitraums: Bis dahin
+          auf dem Polar-Beleg. Sie wirkt zum Ende des bereits bezahlten Zeitraums: Bis dahin
           behalten Sie den Zugang, was folgerichtig ist, da dieser Zeitraum berechnet wurde.
         </p>
         <p>
@@ -194,7 +194,7 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>
           Können Sie eine Zahlung nicht zuordnen, schreiben Sie uns, bevor Sie bei Ihrer Bank
-          eine Rückbuchung veranlassen. Eine Rückbuchung löst bei Paddle ein förmliches
+          eine Rückbuchung veranlassen. Eine Rückbuchung löst bei Polar ein förmliches
           Verfahren aus, dauert mehrere Wochen und friert den Vorgang ein — während eine
           direkte Erstattung zwei Tage braucht.
         </p>

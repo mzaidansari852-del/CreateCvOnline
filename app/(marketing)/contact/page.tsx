@@ -40,7 +40,7 @@ const TIMES = [
   {
     label: 'Refund requests',
     value: 'Processed within 2 working days',
-    note: 'Paddle and your bank then take a few days to return the money.',
+    note: 'Polar and your bank then take a few days to return the money.',
   },
   {
     label: 'Bug reports',
@@ -91,7 +91,7 @@ export default function ContactPage() {
               </a>
               <p className="mt-4 text-sm leading-relaxed text-ink-600">
                 If your question is about a payment, send it from the address on the account and
-                include the Paddle transaction id — it is on the receipt Paddle e-mailed you, and it
+                include the Polar checkout id — it is on the receipt Polar e-mailed you, and it
                 lets us find the order without a second round trip.
               </p>
               <p className="mt-3 text-sm leading-relaxed text-ink-600">

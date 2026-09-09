@@ -129,7 +129,7 @@ export function PricingCards({
               <p className="mt-3 text-center text-xs text-ink-500">No card required</p>
             ) : (
               <p className="mt-3 text-center text-xs text-ink-500">
-                Secure checkout with Paddle · 14-day refund
+                Secure checkout with Polar · 14-day refund
               </p>
             )}
           </div>

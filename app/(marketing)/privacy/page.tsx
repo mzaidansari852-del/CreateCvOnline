@@ -58,10 +58,10 @@ const SECTIONS: LegalSection[] = [
         </p>
         <h3>Payment data</h3>
         <p>
-          If you buy a plan, we store the Paddle transaction id, the plan purchased, the amount,
+          If you buy a plan, we store the Polar checkout id, the plan purchased, the amount,
           the currency, the status and the time. <strong>We never see your card number.</strong>{' '}
           The checkout opens as an overlay on our page, but the form inside it is an iframe served
-          by Paddle: card details are entered there and processed entirely by Paddle.
+          by Polar: card details are entered there and processed entirely by Polar.
         </p>
         <h3>Usage and technical data</h3>
         <p>
@@ -141,12 +141,13 @@ const SECTIONS: LegalSection[] = [
             CV documents, your payment records and contact messages.
           </li>
           <li>
-            <strong>Paddle.</strong> Takes payments as the merchant of record for the sale, and is
-            an independent controller for the transaction: the payment, the tax and the receipt are
-            Paddle&apos;s to handle. Receives whatever you enter in its checkout; we receive only
-            the transaction reference, amount, currency and status. Paddle&apos;s script also runs
-            on our pages while the checkout is open, which the{' '}
-            <Link href="/cookies">cookie policy</Link> sets out in detail.
+            <strong>Polar</strong> (Polar Software, Inc., Dover, Delaware, United States). Takes
+            payments as the merchant of record for the sale, and is an independent controller for
+            the transaction: the payment, the tax and the receipt are Polar&apos;s to handle. The
+            checkout runs on Polar&apos;s own website, so it receives whatever you enter there and
+            we receive only the checkout reference, amount, currency and status. Nothing of
+            Polar&apos;s runs on our pages, which the <Link href="/cookies">cookie policy</Link>{' '}
+            sets out in detail.
           </li>
           <li>
             <strong>Google Fonts.</strong> Typefaces used by the interface and by the CV templates
@@ -225,7 +226,7 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>
           Firebase and Firestore are Google Cloud services and the storage region is chosen by the
-          operator of this deployment when the project is created. Paddle, Google Analytics and
+          operator of this deployment when the project is created. Polar, Google Analytics and
           Google Fonts operate globally. That means your personal data may be processed outside the
           country you live in, including in the United States.
         </p>
@@ -405,8 +406,7 @@ export default function PrivacyPolicyPage() {
         </>,
         <>
           <strong>We never see your password or your card number.</strong> Sign-in is handled by
-          Firebase Authentication and payment by Paddle, in a form served from Paddle&apos;s own
-          domain.
+          Firebase Authentication, and payment by Polar on Polar&apos;s own website.
         </>,
         <>
           <strong>One cookie keeps you signed in.</strong> Analytics is optional, off unless
@@ -417,7 +417,7 @@ export default function PrivacyPolicyPage() {
           removes the account, the profile, every CV and the payment records.
         </>,
         <>
-          <strong>The third parties are Google (Firebase and Firestore) and Paddle</strong>, plus
+          <strong>The third parties are Google (Firebase and Firestore) and Polar</strong>, plus
           Google Fonts for typefaces and, optionally, Google Analytics.
         </>,
       ]}

@@ -4,16 +4,30 @@ import type { NextConfig } from 'next';
  * Content Security Policy.
  *
  * The policy is intentionally explicit: every third-party origin the app talks to
- * (Firebase, Paddle, Google Analytics, Google Fonts) is listed here and nowhere else.
+ * (Firebase, Google Analytics, Google Fonts) is listed here and nowhere else.
  *
- * Paddle is the one entry that is a wildcard rather than a host list, and it is deliberate.
- * Its overlay is assembled from several subdomains that differ by environment and by payment
- * method — `cdn.` serves the script, `buy.` the checkout frame, `checkout-service.` the XHR,
- * each with a `sandbox-` twin — and a card form that renders in an iframe is exactly the
- * place where an origin missing from this list produces a blank box rather than an error
- * anyone reads. `https://*.paddle.com` is still bounded by a domain Paddle controls, which
- * is the property that matters; enumerating the subdomains buys nothing and breaks the next
- * time Paddle adds one.
+ * ## No payment origins at all, and why that is correct
+ *
+ * There used to be a `https://*.paddle.com` wildcard in five directives, because Paddle's
+ * overlay rendered a card form *inside this page* out of several subdomains — `cdn.` for
+ * the script, `buy.` for the frame, `checkout-service.` for the XHR, each with a
+ * `sandbox-` twin.
+ *
+ * Polar hosts its checkout on its own site and the customer is redirected there, so no
+ * Polar code ever runs in this origin: no script to fetch, no iframe to render, no XHR to
+ * allow. Top-level navigation is not restricted by any directive here — `form-action`
+ * covers form submissions, and this navigates via `location.assign` — so the redirect
+ * needs no grant either.
+ *
+ * That makes the removal the point rather than a side effect. A policy that still named a
+ * gateway nobody uses would be a standing permission for a third party to run scripts on
+ * the checkout: quiet, harmless-looking, and exactly the kind of thing that survives for
+ * years because nothing fails. PayPal's origins were removed on the same reasoning; these
+ * follow.
+ *
+ * If a future change ever embeds the checkout in-page instead of redirecting, the
+ * provider's origins have to come back here — `tests/lib/csp.test.ts` is where that is
+ * asserted.
  *
  * `'unsafe-inline'` is required in `script-src` because the public marketing pages are
  * statically pre-rendered and Next.js emits inline bootstrap scripts for them. A stricter
@@ -27,12 +41,12 @@ const csp = [
   `object-src 'none'`,
   `frame-ancestors 'none'`,
   `form-action 'self'`,
-  `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://apis.google.com https://*.firebaseapp.com https://*.paddle.com`,
-  `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.paddle.com`,
-  `font-src 'self' data: https://fonts.gstatic.com https://*.paddle.com`,
-  `img-src 'self' data: blob: https://*.googleusercontent.com https://firebasestorage.googleapis.com https://www.google-analytics.com https://*.paddle.com`,
-  `connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebase.com wss://*.firebaseio.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firebasestorage.googleapis.com https://www.google-analytics.com https://*.paddle.com`,
-  `frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://*.paddle.com`,
+  `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://apis.google.com https://*.firebaseapp.com`,
+  `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
+  `font-src 'self' data: https://fonts.gstatic.com`,
+  `img-src 'self' data: blob: https://*.googleusercontent.com https://firebasestorage.googleapis.com https://www.google-analytics.com`,
+  `connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebase.com wss://*.firebaseio.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firebasestorage.googleapis.com https://www.google-analytics.com`,
+  `frame-src 'self' https://*.firebaseapp.com https://accounts.google.com`,
   `worker-src 'self' blob:`,
   `manifest-src 'self'`,
   `upgrade-insecure-requests`,

@@ -12,6 +12,11 @@
  */
 
 import { describePaddleApiKey, explainPaddleKeyProblem } from '@/lib/payments/paddle-key';
+import {
+  describePolarAccessToken,
+  explainPolarProductIdProblem,
+  explainPolarTokenProblem,
+} from '@/lib/payments/polar-token';
 
 /* -------------------------------------------------------------------------- */
 /* Public                                                                      */
@@ -340,6 +345,40 @@ export interface ServerEnv {
     environment: 'sandbox' | 'production';
     prices: { pro: string; lifetime: string };
   } | null;
+  /**
+   * Polar — the live gateway.
+   *
+   * Shaped like the Paddle block above so `lib/payments/index.ts` can treat them the same
+   * way, but with one fewer moving part: Polar hosts its own checkout, so there is no
+   * public client token and nothing to police between the browser and the server.
+   */
+  polar: {
+    accessToken: string;
+    /** Undefined until the webhook endpoint is created in the Polar dashboard. */
+    webhookSecret: string | undefined;
+    environment: 'sandbox' | 'production';
+    products: { pro: string; lifetime: string };
+  } | null;
+  /**
+   * PayPal — the interim gateway.
+   *
+   * Present because Polar's account is not live yet and Paddle's was declined, so this is
+   * the only gateway that can actually take money today. It is a plain payment processor
+   * rather than a merchant of record, which is a real difference and not a detail: see the
+   * note at the top of `lib/payments/paypal.ts`.
+   *
+   * `environment` is PayPal's own vocabulary — `sandbox` / `live` — rather than the
+   * `sandbox` / `production` the other two blocks use, because it is what the developer
+   * console prints next to the credentials being copied. Translating it here would mean
+   * whoever is pasting a value has to translate it back.
+   */
+  paypal: {
+    clientId: string;
+    clientSecret: string;
+    environment: 'sandbox' | 'live';
+    /** Undefined until the webhook is created in the PayPal developer console. */
+    webhookId: string | undefined;
+  } | null;
   pdf: {
     executablePath: string | undefined;
     browserWSEndpoint: string | undefined;
@@ -449,6 +488,118 @@ export function serverEnv(): ServerEnv {
     lifetime: readOpaqueToken(process.env.PADDLE_PRICE_LIFETIME),
   };
 
+  /* ------------------------------------------------------------------ */
+  /* Polar                                                               */
+  /* ------------------------------------------------------------------ */
+
+  const polarAccessToken = readOpaqueToken(process.env.POLAR_ACCESS_TOKEN);
+  const polarTokenReport = describePolarAccessToken(polarAccessToken);
+  if (polarAccessToken && polarTokenReport.problem) {
+    // Once per process, at the point the value is first read. Never the value itself.
+    const explanation = explainPolarTokenProblem(polarTokenReport);
+    if (explanation) console.error('[polar]', explanation);
+  }
+
+  const polarWebhookSecret = readOpaqueToken(process.env.POLAR_WEBHOOK_SECRET);
+  const polarEnvironment = (
+    readOpaqueToken(process.env.POLAR_ENVIRONMENT) || 'sandbox'
+  ).toLowerCase();
+  const resolvedPolarEnvironment = polarEnvironment === 'production' ? 'production' : 'sandbox';
+
+  /*
+   * One product id per paid plan. Not secrets — the customer sees them in the checkout URL
+   * — but sandbox and production have entirely different ids and the same build has to run
+   * against both, so they belong in the environment rather than in `lib/plans.ts`.
+   */
+  const polarProducts = {
+    pro: readOpaqueToken(process.env.POLAR_PRODUCT_PRO),
+    lifetime: readOpaqueToken(process.env.POLAR_PRODUCT_LIFETIME),
+  };
+
+  /*
+   * A product id that is not a UUID cannot be a Polar product, so the gateway is treated
+   * as absent rather than offered and left to fail at the checkout. The most likely cause
+   * is a Paddle `pri_…` left in place during the migration.
+   */
+  const polarProductProblems = [
+    explainPolarProductIdProblem('POLAR_PRODUCT_PRO', polarProducts.pro),
+    explainPolarProductIdProblem('POLAR_PRODUCT_LIFETIME', polarProducts.lifetime),
+  ].filter((problem): problem is string => problem !== null);
+
+  for (const problem of polarProductProblems) console.error('[polar]', problem);
+
+  /*
+   * Sandbox credentials on the production deployment: refuse to build.
+   *
+   * Under Paddle this was one guard among several, because a Paddle key announces its own
+   * environment in its prefix and a mismatch could be caught three other ways. Polar's
+   * tokens carry no such marker — `polar_oat_…` is the prefix in both environments — so
+   * this is now the *only* thing standing between a mis-set variable and a deployment
+   * where anyone can pay with a test card and be granted a real Pro account.
+   *
+   * Gated on `VERCEL_ENV` rather than `NODE_ENV`, because preview deployments are also
+   * `NODE_ENV=production` and running those against sandbox is correct. Failing them would
+   * make this check something people work around.
+   */
+  if (polarAccessToken && resolvedPolarEnvironment === 'sandbox') {
+    const message =
+      'POLAR_ENVIRONMENT is "sandbox" on a production deployment. Sandbox payments take no ' +
+      'real money, but they still satisfy the checks that grant a plan — anyone could pay ' +
+      'with a test card and be granted Pro for free. Switch POLAR_ACCESS_TOKEN, both ' +
+      'POLAR_PRODUCT_ ids, POLAR_WEBHOOK_SECRET and POLAR_ENVIRONMENT to production ' +
+      'together.';
+    if (process.env.VERCEL_ENV === 'production') {
+      throw new Error(`[env] ${message}`);
+    }
+    if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+      console.warn(`
+[polar] Warning: ${message}
+`);
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* PayPal                                                              */
+  /* ------------------------------------------------------------------ */
+
+  const paypalClientId = readOpaqueToken(process.env.PAYPAL_CLIENT_ID);
+  const paypalClientSecret = readOpaqueToken(process.env.PAYPAL_CLIENT_SECRET);
+  const paypalEnvironment = (
+    readOpaqueToken(process.env.PAYPAL_ENVIRONMENT) || 'sandbox'
+  ).toLowerCase();
+  const resolvedPayPalEnvironment = paypalEnvironment === 'live' ? 'live' : 'sandbox';
+
+  /*
+   * Sandbox credentials on the production deployment: refuse to build.
+   *
+   * The same guard the Polar block carries, for the same reason and with the same force.
+   * A PayPal client id announces nothing about its environment — sandbox and live ids are
+   * both 80-odd characters beginning `A` — so nothing downstream can notice the mistake.
+   * What it costs is precise: sandbox orders capture as COMPLETED for the plan's exact
+   * price using a PayPal test account, and `captureOrder` cannot tell that from a real
+   * payment, so anyone who found the checkout would be granted a genuine Pro entitlement
+   * for nothing.
+   *
+   * Gated on `VERCEL_ENV` rather than `NODE_ENV`, because preview deployments are also
+   * `NODE_ENV=production` and running those against sandbox is correct.
+   */
+  if (paypalClientId && resolvedPayPalEnvironment === 'sandbox') {
+    const message =
+      'PAYPAL_ENVIRONMENT is "sandbox" on a production deployment. Sandbox orders take no ' +
+      'real money, but they still capture as COMPLETED for the plan price — anyone could ' +
+      'pay with a PayPal test account and be granted Pro for free. Switch ' +
+      'PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_WEBHOOK_ID and PAYPAL_ENVIRONMENT ' +
+      'to live together.';
+    if (process.env.VERCEL_ENV === 'production') {
+      throw new Error(`[env] ${message}`);
+    }
+    if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+      console.warn(`
+[paypal] Warning: ${message}
+`);
+    }
+  }
+
   cached = {
     firebaseAdmin,
     storageBucket:
@@ -476,6 +627,53 @@ export function serverEnv(): ServerEnv {
             webhookSecret: paddleWebhookSecret,
             environment: resolvedPaddleEnvironment,
             prices: { pro: paddlePrices.pro, lifetime: paddlePrices.lifetime },
+          }
+        : null,
+    /*
+     * Polar is configured only when a usable access token *and* both product ids are
+     * present and well-formed. A half-configured gateway is worse than an absent one: the
+     * checkout button renders, the customer commits to buying, and the purchase fails.
+     * `paymentsAvailable()` reads this, so an incomplete setup shows the "payments
+     * unavailable" notice instead.
+     *
+     * The webhook secret is deliberately not part of that test. It is required to grant
+     * entitlements and the webhook route refuses to run without it, but a deployment that
+     * can take a payment and cannot yet confirm it is recoverable by reconciliation —
+     * whereas one that cannot take a payment at all is not.
+     */
+    polar:
+      polarAccessToken &&
+      polarTokenReport.usable &&
+      polarProductProblems.length === 0 &&
+      polarProducts.pro &&
+      polarProducts.lifetime
+        ? {
+            accessToken: polarAccessToken,
+            webhookSecret: polarWebhookSecret,
+            environment: resolvedPolarEnvironment,
+            products: { pro: polarProducts.pro, lifetime: polarProducts.lifetime },
+          }
+        : null,
+    /*
+     * PayPal needs only the OAuth pair. Unlike Polar and Paddle there are no product or
+     * price ids to configure, because the amount is not held at the provider at all — it is
+     * read from `lib/plans.ts` and sent with the order. That removes a whole class of
+     * half-configured deployment, and moves the corresponding risk here instead: nothing
+     * outside our own code decides what a plan costs, so `captureMatchesPlan` is the only
+     * thing standing between a tampered order and a wrong charge.
+     *
+     * The webhook id is deliberately not part of the test, for the same reason the other
+     * two gateways exclude their webhook secrets: without it the webhook route refuses to
+     * act, but a deployment that can take a payment and confirm it in the browser is
+     * recoverable, and one that cannot take a payment at all is not.
+     */
+    paypal:
+      paypalClientId && paypalClientSecret
+        ? {
+            clientId: paypalClientId,
+            clientSecret: paypalClientSecret,
+            environment: resolvedPayPalEnvironment,
+            webhookId: readOpaqueToken(process.env.PAYPAL_WEBHOOK_ID),
           }
         : null,
     pdf: {
@@ -523,8 +721,29 @@ export function isFirebaseAdminConfigured(): boolean {
   return serverEnv().firebaseAdmin !== null;
 }
 
+/** Throws a descriptive `MissingEnvError` when PayPal is not configured. */
+export function requirePayPalEnv(): NonNullable<ServerEnv['paypal']> {
+  const env = serverEnv();
+  if (!env.paypal) {
+    throw new MissingEnvError(
+      ['PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET'],
+      'Create a REST API app at https://developer.paypal.com/dashboard/applications and ' +
+        'copy the client id and secret from it.',
+    );
+  }
+  return env.paypal;
+}
+
+export function isPayPalConfigured(): boolean {
+  return serverEnv().paypal !== null;
+}
+
 export function isPaddleConfigured(): boolean {
   return serverEnv().paddle !== null;
+}
+
+export function isPolarConfigured(): boolean {
+  return serverEnv().polar !== null;
 }
 
 /** Used by tests to reset memoised state between cases. */

@@ -97,7 +97,7 @@ const SECTIONS: LegalSection[] = [
         <p>Vermeld daarbij:</p>
         <ul>
           <li>
-            het <strong>Paddle-transactienummer</strong>, dat op de bon staat die je bij de
+            het <strong>Polar-transactienummer</strong>, dat op de bon staat die je bij de
             aankoop per e-mail hebt gekregen;
           </li>
           <li>
@@ -110,7 +110,7 @@ const SECTIONS: LegalSection[] = [
           voorwaarde voor.
         </p>
         <p>
-          Omdat Paddle de verkoper in juridische zin is, kun je ook de link op je bon gebruiken.
+          Omdat Polar de verkoper in juridische zin is, kun je ook de link op je bon gebruiken.
           Beide wegen leiden tot hetzelfde; ons mailen is meestal sneller.
         </p>
       </>
@@ -126,12 +126,12 @@ const SECTIONS: LegalSection[] = [
             <strong>Onze beslissing</strong> — binnen twee werkdagen, meestal dezelfde dag.
           </li>
           <li>
-            <strong>Verwerking door Paddle</strong> — de opdracht gaat direct na onze goedkeuring
+            <strong>Verwerking door Polar</strong> — de opdracht gaat direct na onze goedkeuring
             de deur uit.
           </li>
           <li>
             <strong>Het geld op je rekening</strong> — drie tot tien werkdagen, afhankelijk van
-            je bank of kaartuitgever. Die laatste stap ligt niet bij ons en niet bij Paddle.
+            je bank of kaartuitgever. Die laatste stap ligt niet bij ons en niet bij Polar.
           </li>
         </ul>
         <p>
@@ -175,7 +175,7 @@ const SECTIONS: LegalSection[] = [
         </p>
         <p>
           Opzeggen doe je op de pagina “Account” in je omgeving, of via de beheerlink op je
-          Paddle-bon. Het gaat in aan het eind van de periode die je al hebt betaald: tot dan
+          Polar-bon. Het gaat in aan het eind van de periode die je al hebt betaald: tot dan
           houd je toegang, wat logisch is omdat die periode in rekening is gebracht.
         </p>
         <p>
@@ -192,7 +192,7 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>
           Herken je een betaling niet, mail ons dan voordat je bij je bank een terugboeking
-          aanvraagt. Een terugboeking start bij Paddle een formele procedure, duurt enkele weken
+          aanvraagt. Een terugboeking start bij Polar een formele procedure, duurt enkele weken
           en zet het dossier vast — terwijl een directe terugbetaling twee dagen kost.
         </p>
         <p>

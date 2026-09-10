@@ -190,7 +190,7 @@ const GROUPS: FaqGroup[] = [
       },
       {
         question: 'Does a paid plan renew automatically?',
-        answer: `What a payment buys is a fixed term of access: ${pro.accessDays} days for ${pro.name}, and no expiry at all for ${lifetime.name}. When the ${pro.accessDays} days are up, the account quietly returns to the free plan and the paid features switch off. We hold no card details of our own — they are entered in Polar’s checkout, never on our pages — and your account page lists every payment recorded against the account with the date your access ends.`,
+        answer: `What a payment buys is a fixed term of access: ${pro.accessDays} days for ${pro.name}, and no expiry at all for ${lifetime.name}. When the ${pro.accessDays} days are up, the account quietly returns to the free plan and the paid features switch off. We hold no card details of our own — they are entered on PayPal’s own site, never on our pages — and your account page lists every payment recorded against the account with the date your access ends.`,
       },
       {
         question: 'How do I cancel?',
@@ -199,15 +199,15 @@ const GROUPS: FaqGroup[] = [
       {
         question: 'Which payment methods do you accept?',
         answer:
-          'Checkout runs through Polar. Pressing a buy button takes you to Polar’s own secure checkout, where you pay by debit or credit card — Visa, Mastercard, American Express. The payment form is Polar’s and lives on Polar’s site, so your card details never touch our servers and we never store them. When the payment is done, Polar sends you straight back here.',
+          'Checkout runs through PayPal. Pressing a buy button takes you to PayPal’s own secure checkout, where you can pay with your PayPal balance, a linked bank account, or a debit or credit card — a PayPal account is not required. The payment page is PayPal’s and lives on PayPal’s site, so your card details never touch our servers and we never store them. When the payment is done, PayPal sends you straight back here.',
       },
       {
         question: 'What currency will I be charged in?',
-        answer: `Prices are shown and charged in ${publicEnv.storeCurrency}. If your account is in a different currency, Polar or your bank converts at their rate and may add a cross-border fee, which is outside our control. Polar is the merchant of record for the sale, so it works out any VAT or sales tax due in your country, shows it before you confirm, and remits it — and the charge on your statement reads Polar rather than ${site.name}.`,
+        answer: `Prices are shown and charged in ${publicEnv.storeCurrency}, and the price shown is the total — nothing is added at checkout. If your account is in a different currency, PayPal or your bank converts at their rate and may add a cross-border fee, which is outside our control. The charge on your statement reads PayPal followed by ${site.name}.`,
       },
       {
         question: 'Can I get a refund?',
-        answer: `Yes — within 14 days of the payment, for any reason at all, including simply changing your mind or finding a job the same week. E-mail ${site.supportEmail} from the address on the account and we refund the full amount through Polar, normally within two working days. Polar and your bank then take about three to five working days to put the money back. You keep every CV you made.`,
+        answer: `Yes — within 14 days of the payment, for any reason at all, including simply changing your mind or finding a job the same week. E-mail ${site.supportEmail} from the address on the account and we refund the full amount through PayPal, normally within two working days. PayPal and your bank then take about three to five working days to put the money back. You keep every CV you made.`,
       },
       {
         question: 'What happens to my CVs when a paid plan ends?',
@@ -216,7 +216,7 @@ const GROUPS: FaqGroup[] = [
       },
       {
         question: 'I paid and my account still shows the free plan.',
-        answer: `Access is granted only after our server has confirmed the payment with Polar directly, so a slow confirmation can leave a short gap. Reload the confirmation page first. If it still has not applied, e-mail ${site.supportEmail} with the Polar checkout id — it is a long identifier made of letters, digits and dashes, and is on the receipt Polar sent you — and we will fix it the same day, because we can see the order in our own ledger.`,
+        answer: `Access is granted only after our server has confirmed the payment with PayPal directly, so a slow confirmation can leave a short gap. Reload the confirmation page first. If it still has not applied, e-mail ${site.supportEmail} with the PayPal transaction id — a short run of letters and digits, printed on the receipt PayPal sent you — and we will fix it the same day, because we can see the order in our own ledger.`,
       },
     ],
   },
@@ -253,7 +253,7 @@ const GROUPS: FaqGroup[] = [
       {
         question: 'Who processes my payment data?',
         answer:
-          'Polar, as merchant of record for the sale. We store the transaction id, the plan, the amount and the status so we can support you and honour refunds. We never receive your card number, and we do not store one.',
+          'PayPal, which processes the payment. We store the transaction id, the plan, the amount and the status so we can support you and honour refunds. We never receive your card number, and we do not store one.',
       },
       {
         question: 'How do I contact a human?',

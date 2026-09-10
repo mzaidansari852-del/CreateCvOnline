@@ -55,7 +55,7 @@ const TIMES = [
   {
     label: 'Verzoeken om terugbetaling',
     value: 'Binnen 2 werkdagen afgehandeld',
-    note: 'Polar en je bank hebben daarna nog een paar dagen nodig om het geld terug te zetten.',
+    note: 'PayPal en je bank hebben daarna nog een paar dagen nodig om het geld terug te zetten.',
   },
   {
     label: 'Foutmeldingen',
@@ -123,7 +123,7 @@ export default function DutchContactPage() {
                 .
               </p>
               <p className="mt-3 text-sm leading-relaxed text-ink-600">
-                Gaat het over een betaling, noem dan het bestelnummer van de bon die Polar je
+                Gaat het over een betaling, noem dan het bestelnummer van de bon die PayPal je
                 heeft gestuurd: dat scheelt ons allebei een heen-en-weer.
               </p>
             </div>

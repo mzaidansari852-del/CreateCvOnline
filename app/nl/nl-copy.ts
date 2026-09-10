@@ -313,7 +313,7 @@ export const NL = {
       {
         question: 'Hoe verloopt de betaling?',
         answer:
-          'De betaling gaat via Polar. Een klik op de koopknop brengt je naar de beveiligde afrekenpagina van Polar, waar je met creditcard betaalt (Visa, Mastercard, American Express). Polar is de officiële verkoper en berekent de btw die in jouw land geldt. De bedragen worden in Amerikaanse dollars afgerekend; je bank rekent zijn eigen wisselkoers.',
+          'De betaling gaat via PayPal. Een klik op de koopknop brengt je naar de beveiligde betaalpagina van PayPal, waar je betaalt met je PayPal-saldo, een gekoppelde bankrekening of een debit- of creditcard — een PayPal-account is niet nodig. De bedragen worden in Amerikaanse dollars afgerekend en de getoonde prijs is het totaal; je bank rekent zijn eigen wisselkoers.',
       },
     ],
   },

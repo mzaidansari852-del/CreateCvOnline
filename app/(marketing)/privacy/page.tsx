@@ -58,10 +58,11 @@ const SECTIONS: LegalSection[] = [
         </p>
         <h3>Payment data</h3>
         <p>
-          If you buy a plan, we store the Polar checkout id, the plan purchased, the amount,
-          the currency, the status and the time. <strong>We never see your card number.</strong>{' '}
-          The checkout opens as an overlay on our page, but the form inside it is an iframe served
-          by Polar: card details are entered there and processed entirely by Polar.
+          If you buy a plan, we store the PayPal order id, the plan purchased, the amount, the
+          currency, the status and the time. <strong>We never see your card number.</strong>{' '}
+          Pressing a buy button sends you to PayPal&apos;s own website: your card or account
+          details are entered there and processed entirely by PayPal, and never touch our
+          servers.
         </p>
         <h3>Usage and technical data</h3>
         <p>
@@ -141,13 +142,14 @@ const SECTIONS: LegalSection[] = [
             CV documents, your payment records and contact messages.
           </li>
           <li>
-            <strong>Polar</strong> (Polar Software, Inc., Dover, Delaware, United States). Takes
-            payments as the merchant of record for the sale, and is an independent controller for
-            the transaction: the payment, the tax and the receipt are Polar&apos;s to handle. The
-            checkout runs on Polar&apos;s own website, so it receives whatever you enter there and
-            we receive only the checkout reference, amount, currency and status. Nothing of
-            Polar&apos;s runs on our pages, which the <Link href="/cookies">cookie policy</Link>{' '}
-            sets out in detail.
+            <strong>PayPal</strong> — PayPal (Europe) S.à r.l. et Cie, S.C.A., Luxembourg for
+            customers in the EEA and the UK, and PayPal, Inc. elsewhere. Processes the payment,
+            and is an independent controller for it: PayPal decides its own purposes for the data
+            it holds about a transaction, and issues the receipt. The payment runs on
+            PayPal&apos;s own website, so it receives whatever you enter there and we receive only
+            the order reference, amount, currency, status and the e-mail address on the paying
+            account. Nothing of PayPal&apos;s runs on our pages, which the{' '}
+            <Link href="/cookies">cookie policy</Link> sets out in detail.
           </li>
           <li>
             <strong>Google Fonts.</strong> Typefaces used by the interface and by the CV templates
@@ -226,7 +228,7 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>
           Firebase and Firestore are Google Cloud services and the storage region is chosen by the
-          operator of this deployment when the project is created. Polar, Google Analytics and
+          operator of this deployment when the project is created. PayPal, Google Analytics and
           Google Fonts operate globally. That means your personal data may be processed outside the
           country you live in, including in the United States.
         </p>
@@ -406,7 +408,7 @@ export default function PrivacyPolicyPage() {
         </>,
         <>
           <strong>We never see your password or your card number.</strong> Sign-in is handled by
-          Firebase Authentication, and payment by Polar on Polar&apos;s own website.
+          Firebase Authentication, and payment by PayPal on PayPal&apos;s own website.
         </>,
         <>
           <strong>One cookie keeps you signed in.</strong> Analytics is optional, off unless
@@ -417,7 +419,7 @@ export default function PrivacyPolicyPage() {
           removes the account, the profile, every CV and the payment records.
         </>,
         <>
-          <strong>The third parties are Google (Firebase and Firestore) and Polar</strong>, plus
+          <strong>The third parties are Google (Firebase and Firestore) and PayPal</strong>, plus
           Google Fonts for typefaces and, optionally, Google Analytics.
         </>,
       ]}

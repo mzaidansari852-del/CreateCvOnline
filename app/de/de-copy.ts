@@ -271,7 +271,7 @@ export const DE = {
       {
         question: 'Wie wird bezahlt?',
         answer:
-          'Der Bezahlvorgang läuft über Polar. Ein Klick auf die Kaufschaltfläche führt Sie zur gesicherten Kasse von Polar, wo Sie per Karte zahlen (Visa, Mastercard, American Express). Polar tritt als Verkäufer auf und weist die in Ihrem Land fällige Umsatzsteuer aus. Abgerechnet wird in US-Dollar; Ihre Bank rechnet zum jeweiligen Kurs um.',
+          'Der Bezahlvorgang läuft über PayPal. Ein Klick auf die Kaufschaltfläche führt Sie zur gesicherten Zahlungsseite von PayPal, wo Sie mit Ihrem PayPal-Guthaben, einem verknüpften Bankkonto oder einer Debit- oder Kreditkarte zahlen können — ein PayPal-Konto ist nicht erforderlich. Abgerechnet wird in US-Dollar, und der angezeigte Preis ist der Gesamtbetrag; Ihre Bank rechnet zum jeweiligen Kurs um.',
       },
     ],
   },

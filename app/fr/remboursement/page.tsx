@@ -102,7 +102,7 @@ const SECTIONS: LegalSection[] = [
         <p>Indiquez :</p>
         <ul>
           <li>
-            le <strong>numéro de transaction Polar</strong>, qui figure sur le reçu envoyé par
+            le <strong>numéro de transaction PayPal</strong>, qui figure sur le reçu envoyé par
             e-mail au moment de l’achat ;
           </li>
           <li>
@@ -115,9 +115,8 @@ const SECTIONS: LegalSection[] = [
           conditionne rien.
         </p>
         <p>
-          Polar étant le vendeur officiel, vous pouvez également passer par le lien figurant sur
-          votre reçu. Les deux voies aboutissent au même résultat ; nous écrire est en général
-          plus rapide.
+          Vous pouvez également passer par le lien figurant sur le reçu envoyé par PayPal. Les
+          deux voies aboutissent au même résultat ; nous écrire est en général plus rapide.
         </p>
       </>
     ),
@@ -133,13 +132,13 @@ const SECTIONS: LegalSection[] = [
             même.
           </li>
           <li>
-            <strong>Le traitement par Polar</strong> — l’ordre de remboursement part
+            <strong>Le traitement par PayPal</strong> — l’ordre de remboursement part
             immédiatement après notre accord.
           </li>
           <li>
             <strong>Le retour des fonds sur votre compte</strong> — de trois à dix jours ouvrés
             selon votre banque ou votre émetteur de carte. Cette dernière étape ne dépend ni de
-            nous ni de Polar.
+            nous ni de PayPal.
           </li>
         </ul>
         <p>
@@ -183,7 +182,7 @@ const SECTIONS: LegalSection[] = [
         </p>
         <p>
           La résiliation se fait depuis la page « Compte » de votre espace, ou via le lien de
-          gestion figurant sur le reçu Polar. Elle prend effet à la fin de la période déjà
+          gestion figurant sur le reçu PayPal. Elle prend effet à la fin de la période déjà
           payée : vous conservez l’accès jusque-là, ce qui est normal puisque cette période
           vous a été facturée.
         </p>
@@ -201,7 +200,7 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>
           Si vous ne reconnaissez pas un paiement, écrivez-nous avant de faire opposition auprès
-          de votre banque. Une opposition déclenche une procédure formelle chez Polar, qui
+          de votre banque. Une opposition déclenche une procédure formelle chez PayPal, qui
           prend plusieurs semaines et gèle le dossier — alors qu’un remboursement direct prend
           deux jours.
         </p>

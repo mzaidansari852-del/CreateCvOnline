@@ -89,13 +89,15 @@ const SECTIONS: LegalSection[] = [
           gratis sjablonen, zonder creditcard en zonder aflopende proefperiode.
         </p>
         <p>
-          Betalingen lopen via Polar, dat optreedt als verkoper in juridische zin: Polar
-          factureert, int en draagt de btw af die in jouw land geldt, en stuurt je de bon en de
-          factuur. Wij zien noch bewaren je betaalgegevens.
+          Betalingen worden verwerkt door PayPal. De verkoper zijn wij: PayPal voert de betaling
+          uit en stuurt je daarvan de bon, maar de overeenkomst over het abonnement sluit je met
+          ons. Wij zien noch bewaren je betaalgegevens. Op je afschrift staat PayPal, gevolgd
+          door onze naam.
         </p>
         <p>
-          De bedragen luiden in Amerikaanse dollars; je bank hanteert zijn eigen wisselkoers en
-          kan kosten rekenen waar wij buiten staan. Een abonnement verlengt automatisch tot je
+          De bedragen luiden in Amerikaanse dollars en de getoonde prijs is het totaal — er komt
+          bij het afrekenen niets bij. Je bank hanteert zijn eigen wisselkoers en kan kosten
+          rekenen waar wij buiten staan. Een abonnement verlengt automatisch tot je
           opzegt; levenslange toegang is een eenmalige betaling zonder verlenging.
         </p>
         <p>
@@ -330,7 +332,7 @@ export default function DutchTermsPage() {
           door als sjablonen.
         </>,
         <>
-          Betalingen lopen via Polar als verkoper in juridische zin, inclusief btw. Je kaart
+          Betalingen worden verwerkt door PayPal; op je afschrift staat PayPal, gevolgd door onze naam. Je kaart
           zien we nooit.
         </>,
         <>

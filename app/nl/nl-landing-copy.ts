@@ -1132,12 +1132,12 @@ export const NL_LANDING: Record<string, Landing> = {
       {
         question: 'Hoe verloopt de betaling?',
         answer:
-          'Via Polar. Je wordt doorgestuurd naar de beveiligde afrekenpagina van Polar, waar je met creditcard betaalt. Polar is de verkoper in juridische zin en berekent de btw die in jouw land geldt. De bedragen luiden in Amerikaanse dollars; je bank rekent zijn eigen wisselkoers.',
+          'Via PayPal. Je wordt doorgestuurd naar de beveiligde betaalpagina van PayPal, waar je betaalt met saldo, bankrekening of kaart. De bedragen luiden in Amerikaanse dollars en de getoonde prijs is het totaal; je bank rekent zijn eigen wisselkoers.',
       },
       {
         question: 'Krijg ik mijn geld terug?',
         answer:
-          'Ja, binnen veertien dagen na de aankoop, volgens ons terugbetalingsbeleid. Mail ons met het bestelnummer van de bon die Polar heeft gestuurd.',
+          'Ja, binnen veertien dagen na de aankoop, volgens ons terugbetalingsbeleid. Mail ons met het bestelnummer van de bon die PayPal heeft gestuurd.',
       },
       {
         question: 'Hoe verwijder ik mijn account?',

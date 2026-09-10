@@ -152,8 +152,8 @@ export default function GermanAboutPage() {
               keinen Datenverkauf und keine Provision auf Bewerbungen.
             </p>
             <p>
-              Zahlungen laufen über Polar, das Verkäufer im Rechtssinne ist und die
-              Umsatzsteuer abführt. Ihre Zahlungsdaten sehen wir nie. Die Rückerstattung
+              Zahlungen wickelt PayPal ab und stellt den Beleg aus. Ihre Zahlungsdaten sehen
+              wir nie. Die Rückerstattung
               beträgt vierzehn Tage und ist in unserer{' '}
               <Link
                 href="/de/rueckerstattung"

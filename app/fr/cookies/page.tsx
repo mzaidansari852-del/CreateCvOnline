@@ -139,18 +139,18 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>
           Acheter une formule vous emmène sur un autre site. Un clic sur le bouton d’achat vous
-          conduit chez notre prestataire de paiement, Polar : tout le paiement — le formulaire
-          de carte, la transaction, le reçu — se déroule là-bas, sur <code>polar.sh</code>, et
+          conduit chez notre prestataire de paiement, PayPal : tout le paiement — le formulaire
+          de carte, la transaction, le reçu — se déroule là-bas, sur <code>paypal.com</code>, et
           non sur {site.domain}.
         </p>
         <p>
-          Rien de Polar ne s’exécute sur ce site : aucune de nos pages ne charge un script de
-          Polar, n’intègre une iframe de Polar ni ne dépose un cookie de Polar. Polar dépose
+          Rien de PayPal ne s’exécute sur ce site : aucune de nos pages ne charge un script de
+          PayPal, n’intègre une iframe de PayPal ni ne dépose un cookie de PayPal. PayPal dépose
           ses propres cookies sur son propre domaine pendant que vous y payez, pour le suivi de
           la commande et ses
           contrôles antifraude. Nous ne pouvons ni les lire ni les contrôler ; leur durée et
-          leur finalité relèvent de la politique de Polar, qui agit ici comme responsable de
-          traitement pour ses besoins de facturation.
+          leur finalité relèvent de la politique de PayPal, qui agit ici comme responsable de
+          traitement pour ses besoins de traitement des paiements.
         </p>
       </>
     ),
@@ -227,7 +227,7 @@ const SECTIONS: LegalSection[] = [
             {
               name: 'Aucun cookie de paiement',
               purpose:
-                'Le paiement se déroule sur polar.sh, pas ici. Polar dépose ses propres cookies sur son propre domaine pendant que vous y payez — suivi de la commande, contrôles antifraude — selon la politique de Polar. Rien de Polar n’est chargé par ce site, donc aucun cookie de paiement n’est déposé sur ce domaine.',
+                'Le paiement se déroule sur paypal.com, pas ici. PayPal dépose ses propres cookies sur son propre domaine pendant que vous y payez — suivi de la commande, contrôles antifraude — selon la politique de PayPal. Rien de PayPal n’est chargé par ce site, donc aucun cookie de paiement n’est déposé sur ce domaine.',
               type: 'Non déposé par ce site · pas sur ce domaine',
               duration: 'Sans objet',
             },
@@ -303,7 +303,7 @@ export default function FrenchCookiePolicyPage() {
           d’où l’absence de bandeau de consentement.
         </>,
         <>
-          Les cookies de Polar n’apparaissent qu’à partir du moment où vous ouvrez la fenêtre
+          Les cookies de PayPal n’apparaissent qu’à partir du moment où vous ouvrez la fenêtre
           de paiement.
         </>,
         <>

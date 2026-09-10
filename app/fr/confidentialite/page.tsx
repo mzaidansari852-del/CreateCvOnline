@@ -76,12 +76,11 @@ const SECTIONS: LegalSection[] = [
         </p>
         <h3>Données de paiement</h3>
         <p>
-          Si vous achetez une offre, nous conservons l’identifiant de transaction Polar,
+          Si vous achetez une offre, nous conservons l’identifiant de transaction PayPal,
           l’offre achetée, le montant, la devise, le statut et l’horodatage.{' '}
-          <strong>Nous ne voyons jamais votre numéro de carte.</strong> La fenêtre de paiement
-          s’ouvre par-dessus notre page, mais le formulaire qu’elle contient est une iframe
-          servie par Polar : les coordonnées bancaires y sont saisies et traitées
-          intégralement par Polar.
+          <strong>Nous ne voyons jamais votre numéro de carte.</strong> Un clic sur le bouton
+          d’achat vous conduit sur le site de PayPal : les coordonnées bancaires y sont
+          saisies, traitées intégralement par PayPal, et n’atteignent jamais nos serveurs.
         </p>
         <h3>Données techniques et d’usage</h3>
         <p>
@@ -148,10 +147,11 @@ const SECTIONS: LegalSection[] = [
             stockage de fichiers) — héberge votre compte, vos CV et vos photos de profil.
           </li>
           <li>
-            <strong>Polar</strong> — vendeur officiel pour les paiements. Polar collecte vos
-            coordonnées bancaires, calcule et déclare la TVA applicable, et nous transmet un
-            identifiant de transaction et un statut. Polar est responsable de traitement pour
-            ses propres besoins de facturation.
+            <strong>PayPal</strong> — PayPal (Europe) S.à r.l. et Cie, S.C.A., Luxembourg pour
+            les clients de l’EEE et du Royaume-Uni. Traite le paiement : PayPal collecte vos
+            coordonnées bancaires, émet le reçu et nous transmet un identifiant de transaction,
+            le montant, la devise et un statut. PayPal est responsable de traitement pour ses
+            propres besoins de traitement des paiements.
           </li>
           <li>
             <strong>Vercel</strong> — hébergement de l’application et du réseau de diffusion.
@@ -381,7 +381,7 @@ export default function FrenchPrivacyPage() {
         </>,
         <>
           Nous ne voyons jamais votre mot de passe ni votre numéro de carte : Firebase et
-          Polar s’en chargent.
+          PayPal s’en chargent.
         </>,
         <>
           Vous exportez l’intégralité de vos CV en JSON quand vous voulez, depuis les réglages.

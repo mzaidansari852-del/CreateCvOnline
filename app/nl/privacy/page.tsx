@@ -72,11 +72,11 @@ const SECTIONS: LegalSection[] = [
         </p>
         <h3>Betaalgegevens</h3>
         <p>
-          Koop je een abonnement, dan bewaren we het Polar-transactienummer, het gekochte
+          Koop je een abonnement, dan bewaren we het PayPal-transactienummer, het gekochte
           abonnement, het bedrag, de valuta, de status en het tijdstip.{' '}
-          <strong>Je kaartnummer zien we nooit.</strong> Het betaalvenster opent over onze
-          pagina heen, maar het formulier erin is een iframe van Polar: kaartgegevens worden
-          daar ingevoerd en volledig door Polar verwerkt.
+          <strong>Je kaartnummer zien we nooit.</strong> Een klik op de koopknop brengt je naar
+          de website van PayPal: betaalgegevens worden daar ingevoerd, volledig door PayPal
+          verwerkt en bereiken onze servers nooit.
         </p>
         <h3>Technische en gebruiksgegevens</h3>
         <p>
@@ -138,10 +138,11 @@ const SECTIONS: LegalSection[] = [
             — host je account, je cv’s en je profielfoto’s.
           </li>
           <li>
-            <strong>Polar</strong> — verkoper in juridische zin voor betalingen. Polar
-            verzamelt je betaalgegevens, berekent en draagt de btw af die in jouw land geldt,
-            en geeft ons een transactienummer en een status door. Voor zijn eigen facturatie
-            is Polar zelf verwerkingsverantwoordelijke.
+            <strong>PayPal</strong> — PayPal (Europe) S.à r.l. et Cie, S.C.A., Luxemburg voor
+            klanten in de EER en het Verenigd Koninkrijk. Verwerkt de betaling: PayPal verzamelt
+            je betaalgegevens, geeft de bon uit en geeft ons een transactienummer, het bedrag,
+            de valuta en een status door. Voor zijn eigen betalingsverwerking is PayPal zelf
+            verwerkingsverantwoordelijke.
           </li>
           <li>
             <strong>Vercel</strong> — hosting van de applicatie en het uitleveringsnetwerk.
@@ -359,7 +360,7 @@ export default function DutchPrivacyPage() {
           Niemand behalve jij ziet je cv’s, zolang je zelf geen deellink aanzet.
         </>,
         <>
-          Je wachtwoord en je kaartnummer zien we nooit: Firebase en Polar handelen die af.
+          Je wachtwoord en je kaartnummer zien we nooit: Firebase en PayPal handelen die af.
         </>,
         <>Je exporteert al je cv’s wanneer je wilt als JSON, vanuit de instellingen.</>,
         <>

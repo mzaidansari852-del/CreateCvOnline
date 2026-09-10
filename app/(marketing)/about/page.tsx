@@ -259,8 +259,7 @@ export default function AboutPage() {
               {PLANS.pro.accessDays} days of access as a single payment. {PLANS.lifetime.name} is a
               one-off payment with no expiry. Both unlock all {TEMPLATE_COUNT} templates, unlimited
               CVs and downloads, full typography control, custom sections and a share link. Payment
-              is taken through Polar, which is the merchant of record for the sale and handles the
-              tax and the receipt; we never see a card number.
+              is processed by PayPal, which issues the receipt; we never see a card number.
             </p>
             <h3>What the free plan costs us</h3>
             <p>

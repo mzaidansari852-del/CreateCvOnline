@@ -7,7 +7,7 @@ import { site } from '@/lib/site';
 
 export const metadata: Metadata = pageMetadata({
   title: 'Cookie Policy',
-  description: `Every cookie ${site.name} sets, what each is for and how long it lasts: one necessary session cookie and optional analytics. Payment happens on Polar's own site, so no payment cookie is set here.`,
+  description: `Every cookie ${site.name} sets, what each is for and how long it lasts: one necessary session cookie and optional analytics. Payment happens on PayPal's own site, so no payment cookie is set here.`,
   path: '/cookies',
 });
 
@@ -21,7 +21,7 @@ export const metadata: Metadata = pageMetadata({
  * The payment section is the one that needs care, and it has now been rewritten twice.
  * Paddle's overlay ran a script on our pages and embedded an iframe from theirs, so a
  * third-party cookie could genuinely appear under our own domain and the disclosure had to
- * say so. Polar hosts its checkout on its own site and the customer is redirected there, so
+ * say so. PayPal hosts its checkout on its own site and the customer is redirected there, so
  * the honest answer is back to "nothing of theirs runs here": no script, no iframe, and no
  * payment cookie on this domain at all.
  *
@@ -198,31 +198,31 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>
           Buying a plan takes you to a different website. Pressing a buy button sends you to
-          our payment provider, Polar, and the whole checkout — the card form, the payment,
-          the receipt — happens there on <code>polar.sh</code> rather than on {site.domain}.
+          our payment provider, PayPal, and the whole checkout — the card form, the payment,
+          the receipt — happens there on <code>paypal.com</code> rather than on {site.domain}.
         </p>
         <p>
-          <strong>Nothing of Polar&apos;s runs on this site.</strong> No page here loads a
-          Polar script, embeds a Polar frame, or sets a Polar cookie. That is worth stating
+          <strong>Nothing of PayPal&apos;s runs on this site.</strong> No page here loads a
+          PayPal script, embeds a PayPal frame, or sets a PayPal cookie. That is worth stating
           plainly because it used to be otherwise: our previous provider ran its checkout as
           an overlay on our own pages, and one of its cookies could appear under{' '}
           {site.domain} in a browser&apos;s developer tools. Under the current arrangement it
           cannot, because there is nothing of theirs here to set one.
         </p>
         <p>
-          Polar does set cookies on its own site while you are paying — carrying your progress
+          PayPal does set cookies on its own site while you are paying — carrying your progress
           through the checkout and running the fraud and risk checks that come with taking a
-          payment. Those are Polar&apos;s, set on Polar&apos;s domain during your visit to it,
+          payment. Those are PayPal&apos;s, set on PayPal&apos;s domain during your visit to it,
           and governed by{' '}
-          <a href="https://polar.sh/legal/privacy" target="_blank" rel="noopener noreferrer">
-            Polar&apos;s own privacy and cookie policy
+          <a href="https://www.paypal.com/webapps/mpp/ua/privacy-full" target="_blank" rel="noopener noreferrer">
+            PayPal&apos;s own privacy and cookie policy
           </a>
           , not by this one. We do not read them, set them, or control what they contain.
         </p>
         <p>
-          Your card details are typed on Polar&apos;s site and never reach our servers. When
-          the payment completes, Polar sends you back here with a checkout reference — an
-          identifier and nothing more — and our server confirms that payment with Polar
+          Your card details are typed on PayPal&apos;s site and never reach our servers. When
+          the payment completes, PayPal sends you back here with an order reference — an
+          identifier and nothing more — and our server confirms that payment with PayPal
           directly before any plan is unlocked. We are never told your card number, and we do
           not take your word for it that the payment succeeded.
         </p>
@@ -305,7 +305,7 @@ const SECTIONS: LegalSection[] = [
             {
               name: 'No payment cookie',
               purpose:
-                'Checkout happens on polar.sh, not here. Polar sets its own cookies on its own domain while you pay — checkout progress, fraud and risk checks — governed by Polar’s policy. Nothing of Polar’s is loaded by this site, so no payment cookie is set on this domain.',
+                'Checkout happens on paypal.com, not here. PayPal sets its own cookies on its own domain while you pay — checkout progress, fraud and risk checks — governed by PayPal’s policy. Nothing of PayPal’s is loaded by this site, so no payment cookie is set on this domain.',
               type: 'Not set by this site · not set on this domain',
               duration: 'Not applicable',
             },
@@ -355,7 +355,7 @@ const SECTIONS: LegalSection[] = [
           <li>
             <strong>Blocking the payment provider</strong> is not something this site can be
             configured around: the checkout is a separate website. A content blocker that
-            prevents <code>polar.sh</code> from loading will stop you completing a purchase
+            prevents <code>paypal.com</code> from loading will stop you completing a purchase
             once you arrive there, but it cannot break anything on {site.domain}, because
             nothing here depends on it. Everything except buying a plan carries on working.
           </li>
@@ -415,8 +415,8 @@ export default function CookiePolicyPage() {
         </>,
         <>
           <strong>No payment cookie is set on this site.</strong> Checkout happens on
-          Polar&apos;s own website, so any cookie it sets belongs to <code>polar.sh</code> and
-          is covered by Polar&apos;s policy, not this one.
+          PayPal&apos;s own website, so any cookie it sets belongs to <code>paypal.com</code> and
+          is covered by PayPal&apos;s policy, not this one.
         </>,
         <>
           <strong>Your dashboard preferences use localStorage, which is not a cookie</strong>{' '}

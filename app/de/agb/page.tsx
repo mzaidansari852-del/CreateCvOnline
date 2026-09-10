@@ -90,12 +90,14 @@ const SECTIONS: LegalSection[] = [
           mit den kostenlosen Vorlagen — ohne Kreditkarte und ohne befristete Testphase.
         </p>
         <p>
-          Zahlungen wickelt Polar als Verkäufer im Rechtssinne ab: Polar stellt in Rechnung,
-          erhebt und führt die in Ihrem Land anfallende Umsatzsteuer ab und sendet Ihnen Beleg
-          und Rechnung. Ihre Zahlungsdaten sehen und speichern wir nicht.
+          Zahlungen wickelt PayPal ab. Verkäufer sind wir: PayPal führt die Zahlung aus und
+          sendet Ihnen den Beleg dazu, der Vertrag über den Tarif besteht aber zwischen Ihnen
+          und uns. Ihre Zahlungsdaten sehen und speichern wir nicht. Auf Ihrem Kontoauszug
+          erscheint PayPal, gefolgt von unserem Namen.
         </p>
         <p>
-          Die Beträge lauten auf US-Dollar; Ihre Bank wendet ihren eigenen Umrechnungskurs an
+          Die Beträge lauten auf US-Dollar, und der angezeigte Preis ist der Gesamtbetrag —
+          beim Bezahlen kommt nichts hinzu. Ihre Bank wendet ihren eigenen Umrechnungskurs an
           und kann Entgelte erheben, auf die wir keinen Einfluss haben. Ein Abonnement
           verlängert sich automatisch bis zur Kündigung; der lebenslange Zugang ist eine
           Einmalzahlung ohne Verlängerung.
@@ -339,8 +341,8 @@ export default function GermanTermsPage() {
           Vorlagen weitergeben.
         </>,
         <>
-          Zahlungen laufen über Polar als Verkäufer im Rechtssinne, samt Umsatzsteuer. Ihre
-          Karte sehen wir nie.
+          Zahlungen wickelt PayPal ab; auf Ihrem Kontoauszug erscheint PayPal, gefolgt von
+          unserem Namen. Ihre Karte sehen wir nie.
         </>,
         <>
           Vierzehn Tage Rückerstattung, und Ihre gesetzlichen Verbraucherrechte kommen

@@ -297,7 +297,7 @@ export const FR = {
       {
         question: 'Comment se fait le paiement ?',
         answer:
-          'Le paiement passe par Polar. Un clic sur le bouton d’achat vous conduit à la page de paiement sécurisée de Polar, où vous payez par carte (Visa, Mastercard, American Express). Polar est le vendeur officiel et calcule la TVA applicable dans votre pays. Les montants sont facturés en dollars américains ; votre banque applique son taux de change.',
+          'Le paiement passe par PayPal. Un clic sur le bouton d’achat vous conduit à la page de paiement sécurisée de PayPal, où vous payez avec votre solde PayPal, un compte bancaire associé ou une carte — aucun compte PayPal n’est exigé. Les montants sont facturés en dollars américains et le prix affiché est le total ; votre banque applique son taux de change.',
       },
     ],
   },

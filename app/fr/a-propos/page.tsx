@@ -157,8 +157,8 @@ export default function FrenchAboutPage() {
               pas de revente de données et pas de commission sur des candidatures.
             </p>
             <p>
-              Les paiements passent par Polar, qui est le vendeur officiel et se charge de la
-              TVA applicable dans votre pays. Nous ne voyons jamais vos coordonnées bancaires.
+              Les paiements sont traités par PayPal, qui émet le reçu. Nous ne voyons jamais
+              vos coordonnées bancaires.
               Le remboursement est de quatorze jours et il est décrit dans notre{' '}
               <Link
                 href="/fr/remboursement"

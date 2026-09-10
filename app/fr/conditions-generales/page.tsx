@@ -92,13 +92,15 @@ const SECTIONS: LegalSection[] = [
           temps.
         </p>
         <p>
-          Les paiements sont traités par Polar, qui agit en qualité de vendeur officiel :
-          Polar facture, collecte et reverse la TVA applicable dans votre pays, et vous adresse
-          le reçu et la facture. Nous ne voyons ni ne conservons vos coordonnées bancaires.
+          Les paiements sont traités par PayPal. Le vendeur, c’est nous : PayPal exécute le
+          paiement et vous en adresse le reçu, mais le contrat portant sur l’offre vous lie à
+          nous. Nous ne voyons ni ne conservons vos coordonnées bancaires. Sur votre relevé, le
+          débit apparaît sous PayPal, suivi de notre nom.
         </p>
         <p>
-          Les montants sont libellés en dollars américains ; votre banque applique son propre
-          taux de change et peut prélever des frais qui ne relèvent pas de nous. Un abonnement
+          Les montants sont libellés en dollars américains et le prix affiché est le total —
+          rien ne s’ajoute au moment de payer. Votre banque applique son propre taux de change
+          et peut prélever des frais qui ne relèvent pas de nous. Un abonnement
           se renouvelle automatiquement jusqu’à résiliation ; l’accès à vie est un paiement
           unique sans renouvellement.
         </p>
@@ -344,8 +346,8 @@ export default function FrenchTermsPage() {
           ne se redistribuent pas en tant que modèles.
         </>,
         <>
-          Les paiements passent par Polar, vendeur officiel, qui gère la TVA. Nous ne voyons
-          jamais votre carte.
+          Les paiements sont traités par PayPal ; sur votre relevé, le débit apparaît sous
+          PayPal, suivi de notre nom. Nous ne voyons jamais votre carte.
         </>,
         <>
           Quatorze jours pour être remboursé, et vos droits légaux de consommateur s’ajoutent à

@@ -132,16 +132,16 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>
           Een abonnement kopen brengt je naar een andere website. Een klik op de koopknop
-          stuurt je naar onze betaaldienst Polar; het hele afrekenen — het kaartformulier, de
-          betaling, de bon — gebeurt daar op <code>polar.sh</code> en niet op {site.domain}.
+          stuurt je naar onze betaaldienst PayPal; het hele afrekenen — het kaartformulier, de
+          betaling, de bon — gebeurt daar op <code>paypal.com</code> en niet op {site.domain}.
         </p>
         <p>
-          Van Polar draait er niets op deze site: geen enkele pagina hier laadt een script van
-          Polar, plaatst een frame van Polar of zet een cookie van Polar. Polar plaatst eigen
+          Van PayPal draait er niets op deze site: geen enkele pagina hier laadt een script van
+          PayPal, plaatst een frame van PayPal of zet een cookie van PayPal. PayPal plaatst eigen
           cookies op zijn eigen domein terwijl je daar betaalt, voor het volgen van de
           bestelling en zijn
           fraudecontroles. Wij kunnen ze niet lezen en niet sturen; hun duur en doel vallen
-          onder het beleid van Polar, dat hier voor zijn eigen facturatie zelf
+          onder het beleid van PayPal, dat hier voor zijn eigen betalingsverwerking zelf
           verwerkingsverantwoordelijke is.
         </p>
       </>
@@ -216,7 +216,7 @@ const SECTIONS: LegalSection[] = [
             {
               name: 'Geen betaalcookie',
               purpose:
-                'Het afrekenen gebeurt op polar.sh, niet hier. Polar plaatst eigen cookies op zijn eigen domein terwijl je daar betaalt — voortgang van de bestelling, fraude- en risicocontroles — onder het beleid van Polar. Van Polar wordt door deze site niets geladen, dus op dit domein wordt geen betaalcookie geplaatst.',
+                'Het afrekenen gebeurt op paypal.com, niet hier. PayPal plaatst eigen cookies op zijn eigen domein terwijl je daar betaalt — voortgang van de bestelling, fraude- en risicocontroles — onder het beleid van PayPal. Van PayPal wordt door deze site niets geladen, dus op dit domein wordt geen betaalcookie geplaatst.',
               type: 'Niet door deze site geplaatst · niet op dit domein',
               duration: 'Niet van toepassing',
             },
@@ -288,7 +288,7 @@ export default function DutchCookiePolicyPage() {
           Geen advertentiecookies, geen social-mediapixels, geen trackers over sites heen —
           vandaar geen cookiebanner.
         </>,
-        <>Op deze site wordt geen betaalcookie geplaatst; er wordt betaald op polar.sh.</>,
+        <>Op deze site wordt geen betaalcookie geplaatst; er wordt betaald op paypal.com.</>,
         <>De inhoud van je cv’s gaat naar geen enkele statistiektool.</>,
       ]}
       sections={SECTIONS}

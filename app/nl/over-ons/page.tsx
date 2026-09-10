@@ -151,8 +151,8 @@ export default function DutchAboutPage() {
               geen doorverkoop van gegevens en geen commissie op sollicitaties.
             </p>
             <p>
-              Betalingen lopen via Polar, dat de verkoper in juridische zin is en de btw
-              afdraagt. Je betaalgegevens zien we nooit. De terugbetaling is veertien dagen en
+              Betalingen worden verwerkt door PayPal, dat de bon uitgeeft. Je betaalgegevens
+              zien we nooit. De terugbetaling is veertien dagen en
               staat beschreven in ons{' '}
               <Link
                 href="/nl/terugbetaling"

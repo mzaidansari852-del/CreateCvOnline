@@ -1147,12 +1147,12 @@ export const DE_LANDING: Record<string, Landing> = {
       {
         question: 'Wie läuft die Zahlung?',
         answer:
-          'Über Polar. Sie werden zur gesicherten Kasse von Polar weitergeleitet und zahlen dort per Kreditkarte. Polar ist der Verkäufer im Rechtssinne und berechnet die in Ihrem Land geltende Umsatzsteuer. Die Beträge lauten auf US-Dollar; Ihre Bank wendet ihren Umrechnungskurs an.',
+          'Über PayPal. Sie werden zur gesicherten Zahlungsseite von PayPal weitergeleitet und zahlen dort mit Guthaben, Bankkonto oder Karte. Die Beträge lauten auf US-Dollar, und der angezeigte Preis ist der Gesamtbetrag; Ihre Bank wendet ihren Umrechnungskurs an.',
       },
       {
         question: 'Bekomme ich mein Geld zurück?',
         answer:
-          'Ja, innerhalb von vierzehn Tagen nach dem Kauf, nach unserer Rückerstattungsrichtlinie. Schreiben Sie uns mit der Bestellnummer aus dem Beleg von Polar.',
+          'Ja, innerhalb von vierzehn Tagen nach dem Kauf, nach unserer Rückerstattungsrichtlinie. Schreiben Sie uns mit der Bestellnummer aus dem Beleg von PayPal.',
       },
       {
         question: 'Wie lösche ich mein Konto?',

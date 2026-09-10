@@ -74,11 +74,11 @@ const SECTIONS: LegalSection[] = [
         </p>
         <h3>Zahlungsdaten</h3>
         <p>
-          Bei einem Tarifkauf speichern wir die Polar-Checkout-ID, den gekauften Tarif,
+          Bei einem Tarifkauf speichern wir die PayPal-Transaktionsnummer, den gekauften Tarif,
           den Betrag, die Währung, den Status und den Zeitpunkt.{' '}
-          <strong>Ihre Kartennummer sehen wir nie.</strong> Das Zahlungsfenster öffnet sich
-          über unserer Seite, das Formular darin ist jedoch ein iframe von Polar: Kartendaten
-          werden dort eingegeben und ausschließlich von Polar verarbeitet.
+          <strong>Ihre Kartennummer sehen wir nie.</strong> Ein Klick auf die Kaufschaltfläche
+          führt Sie zur Website von PayPal: Zahlungsdaten werden dort eingegeben,
+          ausschließlich von PayPal verarbeitet und erreichen unsere Server nie.
         </p>
         <h3>Technische Daten und Nutzungsdaten</h3>
         <p>
@@ -144,10 +144,11 @@ const SECTIONS: LegalSection[] = [
             Dateispeicher) — hostet Ihr Konto, Ihre Lebensläufe und Ihre Profilfotos.
           </li>
           <li>
-            <strong>Polar</strong> — Verkäufer im Rechtssinne für Zahlungen. Polar erhebt
-            Ihre Zahlungsdaten, berechnet und führt die anfallende Umsatzsteuer ab und
-            übermittelt uns eine Transaktions-ID und einen Status. Für die eigene
-            Rechnungsstellung ist Polar selbst Verantwortlicher.
+            <strong>PayPal</strong> — PayPal (Europe) S.à r.l. et Cie, S.C.A., Luxemburg für
+            Kundinnen und Kunden im EWR und im Vereinigten Königreich. Wickelt die Zahlung ab:
+            PayPal erhebt Ihre Zahlungsdaten, stellt den Beleg aus und übermittelt uns eine
+            Transaktions-ID, den Betrag, die Währung und einen Status. Für die eigene
+            Zahlungsabwicklung ist PayPal selbst Verantwortlicher.
           </li>
           <li>
             <strong>Vercel</strong> — Hosting der Anwendung und des Auslieferungsnetzes.
@@ -371,7 +372,7 @@ export default function GermanPrivacyPage() {
         </>,
         <>
           Ihr Passwort und Ihre Kartennummer sehen wir nie: das übernehmen Firebase und
-          Polar.
+          PayPal.
         </>,
         <>Sie exportieren jederzeit alle Lebensläufe als JSON aus den Einstellungen.</>,
         <>

@@ -131,7 +131,7 @@ const faqs: FaqEntry[] = [
   {
     question: 'Do I have to enter a credit card?',
     answer:
-      'No. An email address and a password create the account, and the editor opens straight away. Payment details are only requested if you decide to buy a paid plan, and even then they are entered in Polar’s checkout rather than stored by us.',
+      'No. An email address and a password create the account, and the editor opens straight away. Payment details are only requested if you decide to buy a paid plan, and even then they are entered on PayPal’s own site rather than stored by us.',
   },
   {
     question: `What happens after my ${limits.maxDownloadsPerMonth} downloads?`,

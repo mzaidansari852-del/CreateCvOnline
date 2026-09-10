@@ -133,15 +133,15 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>
           Der Kauf eines Tarifs führt Sie auf eine andere Website. Ein Klick auf die
-          Kaufschaltfläche bringt Sie zu unserem Zahlungsdienstleister Polar; der gesamte
+          Kaufschaltfläche bringt Sie zu unserem Zahlungsdienstleister PayPal; der gesamte
           Bezahlvorgang — Kartenformular, Zahlung, Beleg — findet dort auf{' '}
-          <code>polar.sh</code> statt und nicht auf {site.domain}.
+          <code>paypal.com</code> statt und nicht auf {site.domain}.
         </p>
         <p>
-          Von Polar läuft auf dieser Website nichts. Keine unserer Seiten lädt ein Skript von
-          Polar, bindet einen Frame von Polar ein oder setzt ein Cookie von Polar. Polar setzt
+          Von PayPal läuft auf dieser Website nichts. Keine unserer Seiten lädt ein Skript von
+          PayPal, bindet einen Frame von PayPal ein oder setzt ein Cookie von PayPal. PayPal setzt
           eigene Cookies auf der eigenen Domain, während Sie dort bezahlen — für den
-          Bestellverlauf und die Betrugsprüfung. Diese unterliegen der Richtlinie von Polar,
+          Bestellverlauf und die Betrugsprüfung. Diese unterliegen der Richtlinie von PayPal,
           nicht dieser; wir können sie weder lesen noch setzen noch steuern.
         </p>
       </>
@@ -216,7 +216,7 @@ const SECTIONS: LegalSection[] = [
             {
               name: 'Kein Zahlungs-Cookie',
               purpose:
-                'Der Bezahlvorgang findet auf polar.sh statt, nicht hier. Polar setzt eigene Cookies auf der eigenen Domain, während Sie dort bezahlen — Bestellverlauf, Betrugs- und Risikoprüfung — nach der Richtlinie von Polar. Von Polar wird auf dieser Website nichts geladen, hier wird also kein Zahlungs-Cookie gesetzt.',
+                'Der Bezahlvorgang findet auf paypal.com statt, nicht hier. PayPal setzt eigene Cookies auf der eigenen Domain, während Sie dort bezahlen — Bestellverlauf, Betrugs- und Risikoprüfung — nach der Richtlinie von PayPal. Von PayPal wird auf dieser Website nichts geladen, hier wird also kein Zahlungs-Cookie gesetzt.',
               type: 'Nicht von dieser Website gesetzt · nicht auf dieser Domain',
               duration: 'Nicht zutreffend',
             },
@@ -289,7 +289,7 @@ export default function GermanCookiePolicyPage() {
           Keine Werbe-Cookies, keine Social-Media-Pixel, keine seitenübergreifenden Tracker —
           deshalb auch kein Consent-Banner.
         </>,
-        <>Auf dieser Website wird kein Zahlungs-Cookie gesetzt; bezahlt wird auf polar.sh.</>,
+        <>Auf dieser Website wird kein Zahlungs-Cookie gesetzt; bezahlt wird auf paypal.com.</>,
         <>Die Inhalte Ihrer Lebensläufe gehen an kein Analysewerkzeug.</>,
       ]}
       sections={SECTIONS}

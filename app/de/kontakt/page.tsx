@@ -47,7 +47,7 @@ const TIMES = [
   {
     label: 'Rückerstattungen',
     value: 'Innerhalb von 2 Werktagen bearbeitet',
-    note: 'Polar und Ihre Bank brauchen danach einige Tage für die Gutschrift.',
+    note: 'PayPal und Ihre Bank brauchen danach einige Tage für die Gutschrift.',
   },
   {
     label: 'Fehlermeldungen',
@@ -116,7 +116,7 @@ export default function GermanContactPage() {
               </p>
               <p className="mt-3 text-sm leading-relaxed text-ink-600">
                 Geht es um eine Zahlung, nennen Sie bitte die Bestellnummer aus dem Beleg von
-                Polar: Das erspart uns beiden eine Rückfrage.
+                PayPal: Das erspart uns beiden eine Rückfrage.
               </p>
             </div>
 

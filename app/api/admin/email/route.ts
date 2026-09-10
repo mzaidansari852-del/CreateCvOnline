@@ -35,6 +35,14 @@ const bodySchema = z.object({
   expectedRecipients: z.number().int().min(0).optional(),
 });
 
+/**
+ * What stands in for a first name when nobody real is being written to.
+ *
+ * Used by preview and by the test send. A test goes to the admin's own inbox, where a
+ * stranger's name in the greeting is just as confusing as it is in the preview pane.
+ */
+const PREVIEW_NAME = '[first name]';
+
 /** The context a template renders against, for one recipient. */
 async function buildContext(
   member: Pick<AudienceMember, 'name' | 'locale'>,
@@ -93,10 +101,17 @@ export const POST = authedRoute(
 
     if (input.action === 'preview') {
       const locale = input.locale as Locale;
+      /*
+       * An obvious placeholder, not a plausible name.
+       *
+       * This was `Sara`, on the reasoning that a preview should show the greeting the way a
+       * reader sees it. In practice it showed the person previewing a stranger's name in
+       * their own e-mail, which reads as a bug — and a preview that looks broken is worse
+       * than one that looks like a template, because the reviewer stops reading the rest of
+       * it. Square brackets say "this is substituted" without needing a caption.
+       */
       const context = await buildContext(
-        // A representative name rather than an empty one: a preview should show the greeting
-        // as a reader sees it, and "Hi," reads as a bug when it is actually the no-name case.
-        { name: 'Sara', locale },
+        { name: PREVIEW_NAME, locale },
         custom,
         template.path[locale],
       );
@@ -129,7 +144,11 @@ export const POST = authedRoute(
       }
 
       const locale = input.locale as Locale;
-      const context = await buildContext({ name: 'Sara', locale }, custom, template.path[locale]);
+      const context = await buildContext(
+        { name: PREVIEW_NAME, locale },
+        custom,
+        template.path[locale],
+      );
       const url = unsubscribeUrl(profile.uid);
 
       try {

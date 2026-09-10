@@ -151,6 +151,30 @@ describe('rendering', () => {
   it('sets the document language so screen readers pronounce it correctly', () => {
     expect(render({ locale: 'de' }).html).toContain('<html lang="de">');
   });
+
+  it('renders the price block into both parts, or neither', () => {
+    const withPrice = render({
+      body: {
+        subject: 'S',
+        heading: 'H',
+        badge: '86% off',
+        price: { was: '$69.00', now: '$10.00', saveLabel: 'You save $59.00' },
+        bullets: ['One', 'Two'],
+        paragraphs: ['p'],
+        cta: 'Go',
+        footnote: null,
+      },
+    });
+    expect(withPrice.html).toContain('$69.00');
+    expect(withPrice.html).toContain('$10.00');
+    expect(withPrice.html).toContain('86% off');
+    // The text part states the same thing in words rather than attempting a layout.
+    expect(withPrice.text).toContain('$69.00 → $10.00 (You save $59.00)');
+    expect(withPrice.text).toContain('- One');
+
+    const without = render();
+    expect(without.html).not.toContain('line-through');
+  });
 });
 
 /* -------------------------------------------------------------------------- */
@@ -214,13 +238,51 @@ describe('templates', () => {
     expect(without.paragraphs[0]).not.toContain(' ,');
   });
 
+  /*
+   * The figures moved out of the prose and into the badge and price block when the layout
+   * was redesigned — which is the point of the redesign, and exactly the kind of change
+   * that silently drops a number if the assertion only looks at paragraphs.
+   */
   it('quotes the offer price, the list price and the saving', () => {
     const body = emailTemplate('offer')!.render.en(context);
-    const all = [body.subject, body.heading, ...body.paragraphs, body.cta].join(' ');
-    expect(all).toContain('$6.00');
-    expect(all).toContain('$69.00');
-    expect(all).toContain('91%');
-    expect(all).toContain('1,000');
+
+    expect(body.price?.was).toBe('$69.00');
+    expect(body.price?.now).toBe('$6.00');
+    expect(body.price?.saveLabel).toContain('$63.00');
+    expect(body.badge).toContain('91%');
+
+    // The seat promise stays in the prose, because it is a sentence rather than a figure.
+    expect(body.paragraphs.join(' ')).toContain('1,000');
+    // And the price is in the subject line, which is what decides whether it gets opened.
+    expect(body.subject).toContain('$6.00');
+    expect(body.cta).toContain('$6.00');
+  });
+
+  it('gives the offer templates a price block and features, and the others neither', () => {
+    for (const locale of LOCALES) {
+      expect(emailTemplate('offer')!.render[locale](context).price, locale).toBeTruthy();
+      expect(emailTemplate('offer')!.render[locale](context).bullets?.length, locale).toBe(4);
+      expect(emailTemplate('offer-ending')!.render[locale](context).price, locale).toBeTruthy();
+      // A product update has no price to show, and inventing a block for it would be worse
+      // than the empty space.
+      expect(emailTemplate('product-update')!.render[locale](context).price ?? null).toBeNull();
+      expect(emailTemplate('plain')!.render[locale](context).price ?? null).toBeNull();
+    }
+  });
+
+  /*
+   * With no offer, the spread that adds the badge and price contributes nothing — so these
+   * must be absent rather than half-built. A price block rendered from an absent offer is
+   * the "$undefined" e-mail.
+   */
+  it('omits the price block entirely when no offer is running', () => {
+    for (const id of ['offer', 'offer-ending']) {
+      for (const locale of LOCALES) {
+        const body = emailTemplate(id)!.render[locale]({ ...context, offer: null });
+        expect(body.price ?? null, `${id}/${locale}`).toBeNull();
+        expect(body.badge ?? null, `${id}/${locale}`).toBeNull();
+      }
+    }
   });
 
   it('marks the price-quoting templates as needing an offer', () => {

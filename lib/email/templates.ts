@@ -46,10 +46,22 @@ export interface EmailContext {
 
 export interface EmailBody {
   subject: string;
+  /** The small pill above the heading — "86% off". Null for templates with nothing to shout. */
+  badge?: string | null;
   /** The big line at the top. */
   heading: string;
   /** Paragraphs. Rendered as `<p>`, and joined with blank lines in the plain-text part. */
   paragraphs: string[];
+  /**
+   * The price comparison, rendered as a bordered block rather than a sentence.
+   *
+   * A discount stated in prose is read; a discount set as two figures side by side is
+   * *seen*, which is the whole job of an offer e-mail. Structured rather than pre-formatted
+   * so the plain-text part can state the same thing in words.
+   */
+  price?: { was: string; now: string; saveLabel: string } | null;
+  /** Ticked lines under the price. Four at most — this is an e-mail, not the pricing page. */
+  bullets?: string[];
   /** The button. */
   cta: string;
   /** One quiet line under the button, or null. */
@@ -96,6 +108,61 @@ function money(amount: string, currency: string): string {
   return symbol ? `${symbol}${amount}` : `${amount} ${currency}`;
 }
 
+/**
+ * The badge, price block and feature list an offer template shares.
+ *
+ * Built here rather than in each language block because they are the same *structure* in
+ * every language with different words in them — and a structure repeated eight times is a
+ * structure that will diverge the first time one of them is edited.
+ */
+function offerBlocks(offer: NonNullable<EmailContext['offer']>, locale: Locale) {
+  return {
+    badge: `${offer.percent}% ${OFF_WORD[locale]}`,
+    price: {
+      was: money(offer.listPrice, offer.currency),
+      now: money(offer.price, offer.currency),
+      saveLabel: SAVE_LABEL[locale](money(offer.saving, offer.currency)),
+    },
+    bullets: FEATURE_LINES[locale],
+  };
+}
+
+const OFF_WORD: Record<Locale, string> = {"en": "off", "fr": "de remise", "de": "Rabatt", "nl": "korting"};
+
+const SAVE_LABEL: Record<Locale, (amount: string) => string> = {
+  en: (amount) => `You save ${amount}`,
+  fr: (amount) => `${amount} d’économie`,
+  de: (amount) => `${amount} gespart`,
+  nl: (amount) => `Je bespaart ${amount}`,
+};
+
+const FEATURE_LINES: Record<Locale, string[]> = {
+  "en": [
+    "Every template, including the ones we add later",
+    "Unlimited CVs and unlimited PDF downloads",
+    "Full control of fonts, colours and spacing",
+    "No credit line on your exported PDF"
+  ],
+  "fr": [
+    "Tous les modèles, y compris ceux à venir",
+    "CV et téléchargements PDF illimités",
+    "Contrôle total des polices, couleurs et espacements",
+    "Aucune mention CreateCVOnline sur votre PDF"
+  ],
+  "de": [
+    "Alle Vorlagen, auch die später hinzukommenden",
+    "Unbegrenzt Lebensläufe und PDF-Downloads",
+    "Volle Kontrolle über Schriften, Farben und Abstände",
+    "Kein Hinweis auf CreateCVOnline in Ihrem PDF"
+  ],
+  "nl": [
+    "Alle sjablonen, ook de sjablonen die later komen",
+    "Onbeperkt cv’s en onbeperkt pdf-downloads",
+    "Volledige controle over lettertypen, kleuren en witruimte",
+    "Geen vermelding van CreateCVOnline in je pdf"
+  ]
+};
+
 /* -------------------------------------------------------------------------- */
 /* 1. The offer announcement                                                   */
 /* -------------------------------------------------------------------------- */
@@ -115,14 +182,12 @@ const offerAnnouncement: EmailTemplate = {
       heading: offer
         ? `${offer.planName}, now ${money(offer.price, offer.currency)}`
         : 'A new offer',
+      ...(offer ? offerBlocks(offer, 'en') : {}),
       paragraphs: [
         greeting(name, HI, 'en'),
-        offer
-          ? `${offer.planName} normally costs ${money(offer.listPrice, offer.currency)}. For now it is ${money(offer.price, offer.currency)} — a saving of ${money(offer.saving, offer.currency)}, ${offer.percent}% off.`
-          : '',
-        'It is a single payment with no renewal and no expiry date: every template, unlimited CVs, unlimited PDF downloads, and every template we add later.',
+        'One payment, kept permanently — no renewal, no expiry date, no subscription to remember to cancel.',
         offer?.seats
-          ? `The price is for the first ${offer.seats.toLocaleString('en')} members, after which it goes back to normal.`
+          ? `This price is for the first ${offer.seats.toLocaleString('en')} members, after which it goes back to normal.`
           : '',
       ].filter(Boolean),
       cta: offer ? `Get ${offer.planName} for ${money(offer.price, offer.currency)}` : 'See the offer',
@@ -135,12 +200,10 @@ const offerAnnouncement: EmailTemplate = {
       heading: offer
         ? `${offer.planName}, désormais à ${money(offer.price, offer.currency)}`
         : 'Une nouvelle offre',
+      ...(offer ? offerBlocks(offer, 'fr') : {}),
       paragraphs: [
         greeting(name, HI, 'fr'),
-        offer
-          ? `${offer.planName} coûte normalement ${money(offer.listPrice, offer.currency)}. Pour le moment, c’est ${money(offer.price, offer.currency)} — soit ${money(offer.saving, offer.currency)} d’économie, ${offer.percent} % de remise.`
-          : '',
-        'Un paiement unique, sans renouvellement ni date d’expiration : tous les modèles, un nombre illimité de CV, des téléchargements PDF illimités, et tous les modèles que nous ajouterons par la suite.',
+        'Un paiement unique, conservé définitivement — sans renouvellement, sans date d’expiration, sans abonnement à penser à résilier.',
         offer?.seats
           ? `Ce tarif est réservé aux ${offer.seats.toLocaleString('fr-FR')} premiers membres ; ensuite, il revient au prix normal.`
           : '',
@@ -157,12 +220,10 @@ const offerAnnouncement: EmailTemplate = {
       heading: offer
         ? `${offer.planName}, jetzt für ${money(offer.price, offer.currency)}`
         : 'Ein neues Angebot',
+      ...(offer ? offerBlocks(offer, 'de') : {}),
       paragraphs: [
         greeting(name, HI, 'de'),
-        offer
-          ? `${offer.planName} kostet normalerweise ${money(offer.listPrice, offer.currency)}. Im Moment sind es ${money(offer.price, offer.currency)} — ${money(offer.saving, offer.currency)} gespart, ${offer.percent} % Rabatt.`
-          : '',
-        'Eine einmalige Zahlung, ohne Verlängerung und ohne Ablaufdatum: alle Vorlagen, unbegrenzt viele Lebensläufe, unbegrenzte PDF-Downloads und jede Vorlage, die später dazukommt.',
+        'Eine einmalige Zahlung, dauerhaft behalten — ohne Verlängerung, ohne Ablaufdatum und ohne Abo, an dessen Kündigung man denken muss.',
         offer?.seats
           ? `Der Preis gilt für die ersten ${offer.seats.toLocaleString('de-DE')} Mitglieder, danach gilt wieder der reguläre Preis.`
           : '',
@@ -179,12 +240,10 @@ const offerAnnouncement: EmailTemplate = {
       heading: offer
         ? `${offer.planName}, nu ${money(offer.price, offer.currency)}`
         : 'Een nieuwe aanbieding',
+      ...(offer ? offerBlocks(offer, 'nl') : {}),
       paragraphs: [
         greeting(name, HI, 'nl'),
-        offer
-          ? `${offer.planName} kost normaal ${money(offer.listPrice, offer.currency)}. Nu is het ${money(offer.price, offer.currency)} — dat scheelt ${money(offer.saving, offer.currency)}, ${offer.percent}% korting.`
-          : '',
-        'Eén betaling, zonder verlenging en zonder vervaldatum: alle sjablonen, onbeperkt cv’s, onbeperkt pdf-downloads, en elk sjabloon dat we later toevoegen.',
+        'Eén betaling, blijft van jou — geen verlenging, geen vervaldatum en geen abonnement dat je moet opzeggen.',
         offer?.seats
           ? `Deze prijs geldt voor de eerste ${offer.seats.toLocaleString('nl-NL')} leden; daarna gaat hij terug naar normaal.`
           : '',
@@ -214,12 +273,13 @@ const offerEnding: EmailTemplate = {
         ? `Last call: ${offer.planName} at ${money(offer.price, offer.currency)}`
         : 'The offer is ending',
       heading: 'This one is closing',
+      ...(offer ? { badge: 'Ending soon', price: offerBlocks(offer, 'en').price } : {}),
       paragraphs: [
         greeting(name, HI, 'en'),
         offer
-          ? `${offer.planName} goes back to ${money(offer.listPrice, offer.currency)} shortly. Until then it is ${money(offer.price, offer.currency)}.`
+          ? `${offer.planName} goes back to ${money(offer.listPrice, offer.currency)} shortly.`
           : '',
-        'Nothing else changes and there is no catch — one payment, kept permanently, and 14 days to change your mind.',
+        'No catch — one payment, kept permanently, and 14 days to change your mind.',
       ].filter(Boolean),
       cta: offer ? `Get it for ${money(offer.price, offer.currency)}` : 'See the offer',
       footnote: 'If you have already bought it, ignore this — nothing is being charged again.',
@@ -229,12 +289,13 @@ const offerEnding: EmailTemplate = {
         ? `Dernier rappel : ${offer.planName} à ${money(offer.price, offer.currency)}`
         : 'L’offre se termine',
       heading: 'L’offre se termine bientôt',
+      ...(offer ? { badge: 'Bientôt terminé', price: offerBlocks(offer, 'fr').price } : {}),
       paragraphs: [
         greeting(name, HI, 'fr'),
         offer
-          ? `${offer.planName} repassera bientôt à ${money(offer.listPrice, offer.currency)}. D’ici là, le tarif est de ${money(offer.price, offer.currency)}.`
+          ? `${offer.planName} repassera bientôt à ${money(offer.listPrice, offer.currency)}.`
           : '',
-        'Rien d’autre ne change et il n’y a pas de piège : un paiement unique, conservé définitivement, et 14 jours pour changer d’avis.',
+        'Pas de piège : un paiement unique, conservé définitivement, et 14 jours pour changer d’avis.',
       ].filter(Boolean),
       cta: offer ? `En profiter à ${money(offer.price, offer.currency)}` : 'Voir l’offre',
       footnote: 'Si vous l’avez déjà acheté, ignorez ce message — rien ne sera débité une seconde fois.',
@@ -244,12 +305,11 @@ const offerEnding: EmailTemplate = {
         ? `Letzte Erinnerung: ${offer.planName} für ${money(offer.price, offer.currency)}`
         : 'Das Angebot endet',
       heading: 'Das Angebot endet bald',
+      ...(offer ? { badge: 'Endet bald', price: offerBlocks(offer, 'de').price } : {}),
       paragraphs: [
         greeting(name, HI, 'de'),
-        offer
-          ? `${offer.planName} kostet bald wieder ${money(offer.listPrice, offer.currency)}. Bis dahin sind es ${money(offer.price, offer.currency)}.`
-          : '',
-        'Sonst ändert sich nichts, und es gibt keinen Haken: eine einmalige Zahlung, dauerhaft behalten, und 14 Tage Zeit, es sich anders zu überlegen.',
+        offer ? `${offer.planName} kostet bald wieder ${money(offer.listPrice, offer.currency)}.` : '',
+        'Kein Haken: eine einmalige Zahlung, dauerhaft behalten, und 14 Tage Zeit, es sich anders zu überlegen.',
       ].filter(Boolean),
       cta: offer ? `Für ${money(offer.price, offer.currency)} sichern` : 'Angebot ansehen',
       footnote: 'Falls Sie bereits gekauft haben, ignorieren Sie diese E-Mail — es wird nichts erneut abgebucht.',
@@ -259,12 +319,11 @@ const offerEnding: EmailTemplate = {
         ? `Laatste kans: ${offer.planName} voor ${money(offer.price, offer.currency)}`
         : 'De aanbieding loopt af',
       heading: 'De aanbieding loopt af',
+      ...(offer ? { badge: 'Loopt bijna af', price: offerBlocks(offer, 'nl').price } : {}),
       paragraphs: [
         greeting(name, HI, 'nl'),
-        offer
-          ? `${offer.planName} gaat binnenkort terug naar ${money(offer.listPrice, offer.currency)}. Tot die tijd is het ${money(offer.price, offer.currency)}.`
-          : '',
-        'Verder verandert er niets en er zit geen addertje onder het gras: één betaling, blijft van jou, en 14 dagen bedenktijd.',
+        offer ? `${offer.planName} gaat binnenkort terug naar ${money(offer.listPrice, offer.currency)}.` : '',
+        'Geen addertje onder het gras: één betaling, blijft van jou, en 14 dagen bedenktijd.',
       ].filter(Boolean),
       cta: offer ? `Nemen voor ${money(offer.price, offer.currency)}` : 'Bekijk de aanbieding',
       footnote: 'Heb je het al gekocht, negeer dit dan — er wordt niets opnieuw afgeschreven.',

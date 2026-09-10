@@ -16,6 +16,7 @@ import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { StartCVPanel } from '@/components/dashboard/StartCVPanel';
 import { StatTile } from '@/components/dashboard/StatTile';
 import { UpgradeCard } from '@/components/dashboard/UpgradeCard';
+import { OfferBanner } from '@/components/marketing/OfferBanner';
 import { topGaps } from '@/components/dashboard/completeness';
 import { ButtonLink } from '@/components/ui/button';
 import { Alert, EmptyState } from '@/components/ui/feedback';
@@ -136,6 +137,15 @@ export default async function DashboardOverviewPage() {
       }
     >
       <div className="flex flex-col gap-6">
+        {/*
+          Above the usage tiles rather than beside the upgrade card at the bottom. Somebody
+          who has just been told they have 1 of 2 CVs left is at the moment the offer is
+          worth reading; four screens further down, they have stopped looking.
+
+          Renders nothing when no offer is running, so this costs an empty component call.
+        */}
+        {!viewer.isPremium ? <OfferBanner locale={locale} variant="card" /> : null}
+
         <section
           aria-label={copy.dashboard.planUsage}
           className="grid grid-cols-2 gap-3 lg:grid-cols-4"

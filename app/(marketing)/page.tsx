@@ -1,3 +1,4 @@
+import { OfferBanner } from '@/components/marketing/OfferBanner';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -184,7 +185,13 @@ const FAQS: FaqEntry[] = [
 /* Page                                                                        */
 /* -------------------------------------------------------------------------- */
 
-export default function HomePage() {
+/*
+ * Revalidated so the offer banner appears and disappears with the offer itself,
+ * rather than at the next deploy. Same window as the pricing pages.
+ */
+export const revalidate = 300;
+
+export default async function HomePage() {
   const showcase = SHOWCASE_IDS.map((id) => findTemplate(id)).filter(
     (template): template is TemplateDefinition => Boolean(template),
   );
@@ -192,6 +199,7 @@ export default function HomePage() {
 
   return (
     <>
+      <OfferBanner locale="en" />
       <HomeHero />
 
       {/* 2 — Template showcase --------------------------------------------- */}

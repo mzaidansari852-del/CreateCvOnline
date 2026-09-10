@@ -1,3 +1,4 @@
+import { OfferBanner } from '@/components/marketing/OfferBanner';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
@@ -44,12 +45,19 @@ export const metadata: Metadata = pageMetadata({
  * convention, the photo question, Ort/Datum/Unterschrift, GER language levels. That section
  * is the part a German reader will recognise as written for them rather than translated.
  */
-export default function GermanHomePage() {
+/*
+ * Revalidated so the offer banner appears and disappears with the offer itself,
+ * rather than at the next deploy. Same window as the pricing pages.
+ */
+export const revalidate = 300;
+
+export default async function GermanHomePage() {
   const showcase = TEMPLATES.filter((template) => !template.premium).slice(0, 8);
   const atsPerfect = atsSafeTemplates().length;
 
   return (
     <>
+      <OfferBanner locale="de" />
       <HomeHero
         copy={{
           headingBefore: DE.home.hero.headingBefore,

@@ -4,7 +4,8 @@ import { ArrowRight, Check, Crown } from 'lucide-react';
 
 import { ButtonLink } from '@/components/ui/button';
 import { getViewer } from '@/lib/auth/guards';
-import { PLANS, getPlan } from '@/lib/plans';
+import { PLANS, applyOffer, getPlan, offerApplies } from '@/lib/plans';
+import { readLaunchOffer } from '@/lib/db/offers';
 import { FREE_TEMPLATE_COUNT, TEMPLATE_COUNT } from '@/lib/cv/template-registry';
 import { appCopy } from '@/lib/i18n/app-copy';
 import { planTagline } from '@/lib/i18n/copy/content';
@@ -46,6 +47,18 @@ export async function UpgradeCard({
 
   const pro = PLANS.pro;
   const free = PLANS.free;
+
+  /*
+   * The lifetime price quoted below has to be the one the checkout will charge.
+   *
+   * It read `getPlan('lifetime').price` — the *list* price — which was correct until the
+   * offer moved into Firestore and `getPlan` went back to returning list prices. The card
+   * then advertised $69 on the dashboard while the pricing page and the checkout both said
+   * $10. Two prices for one plan, on the same site, is worse than no discount at all.
+   */
+  const offer = await readLaunchOffer();
+  const lifetime = applyOffer(getPlan('lifetime'), offer);
+  const lifetimeOnOffer = offerApplies(offer, 'lifetime');
 
   const gains = [
     copy.dashboard.gainUnlimitedCvs(free.limits.maxCvs ?? 0),
@@ -100,8 +113,13 @@ export async function UpgradeCard({
             href={`/payment/checkout?plan=${PLANS.lifetime.id}`}
             className="font-medium text-brand-700 underline underline-offset-2 hover:text-brand-800"
           >
-            {copy.dashboard.upgradeLifetime(PLANS.lifetime.name, getPlan('lifetime').price)}
+            {copy.dashboard.upgradeLifetime(PLANS.lifetime.name, lifetime.price)}
           </Link>
+          {lifetimeOnOffer ? (
+            <span className="ml-1 rounded-full bg-accent-100 px-1.5 py-0.5 text-[10.5px] font-extrabold tracking-wide text-accent-700 uppercase">
+              {offer?.label}
+            </span>
+          ) : null}
           {copy.dashboard.upgradeAltJoin}{' '}
           <Link
             href="/pricing"

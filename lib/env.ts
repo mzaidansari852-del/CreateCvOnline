@@ -384,6 +384,27 @@ export interface ServerEnv {
     /** Undefined until the webhook is created in the PayPal developer console. */
     webhookId: string | undefined;
   } | null;
+  /**
+   * Outbound e-mail, over SMTP.
+   *
+   * Null unless a host, user and password are all present. Absent rather than partial for
+   * the same reason a gateway is: a transport that cannot authenticate is not a mail
+   * server with a bad password, it is no mail server, and the admin console should say so
+   * instead of failing halfway through a send.
+   */
+  smtp: {
+    host: string;
+    port: number;
+    /** Implicit TLS on 465; STARTTLS on 587. Derived from the port unless overridden. */
+    secure: boolean;
+    user: string;
+    password: string;
+    /** The From: address. Defaults to the SMTP user, which is what Hostinger expects. */
+    from: string;
+    fromName: string;
+    /** Where replies go, when that should differ from the sending address. */
+    replyTo: string | undefined;
+  } | null;
   pdf: {
     executablePath: string | undefined;
     browserWSEndpoint: string | undefined;
@@ -634,6 +655,20 @@ export function serverEnv(): ServerEnv {
     }
   }
 
+  /* ------------------------------------------------------------------ */
+  /* SMTP                                                                */
+  /* ------------------------------------------------------------------ */
+
+  const smtpHost = readOpaqueToken(process.env.SMTP_HOST);
+  const smtpUser = process.env.SMTP_USER?.trim();
+  /*
+   * Not `readOpaqueToken`: a mailbox password is chosen by a human and may legitimately
+   * contain characters that function strips as paste damage. Only the wrapping quotes a
+   * hosting dashboard encourages are removed.
+   */
+  const smtpPassword = process.env.SMTP_PASSWORD?.replace(/^["']|["']$/g, '');
+  const smtpPort = clampNumber(process.env.SMTP_PORT, 465, 1, 65_535);
+
   cached = {
     firebaseAdmin,
     storageBucket:
@@ -712,6 +747,33 @@ export function serverEnv(): ServerEnv {
             webhookId: readOpaqueToken(process.env.PAYPAL_WEBHOOK_ID),
           }
         : null,
+    smtp:
+      smtpHost && smtpUser && smtpPassword
+        ? {
+            host: smtpHost,
+            port: smtpPort,
+            /*
+             * 465 is implicit TLS, 587 is STARTTLS. Derived rather than configured because
+             * getting it wrong produces a connection that hangs rather than one that fails,
+             * and the port already carries the answer. `SMTP_SECURE` overrides for a server
+             * that does something unusual.
+             */
+            secure:
+              process.env.SMTP_SECURE !== undefined
+                ? process.env.SMTP_SECURE.trim().toLowerCase() === 'true'
+                : smtpPort === 465,
+            user: smtpUser,
+            password: smtpPassword,
+            /*
+             * Most providers, Hostinger included, refuse to send with a From: that is not
+             * the authenticated mailbox. Defaulting to the user makes the common case work
+             * with one fewer variable and the wrong case impossible to reach by accident.
+             */
+            from: process.env.SMTP_FROM?.trim() || smtpUser,
+            fromName: process.env.SMTP_FROM_NAME?.trim() || publicEnv.siteName,
+            replyTo: process.env.SMTP_REPLY_TO?.trim() || undefined,
+          }
+        : null,
     pdf: {
       executablePath: process.env.PDF_CHROMIUM_EXECUTABLE_PATH?.trim() || undefined,
       browserWSEndpoint: process.env.PDF_BROWSER_WS_ENDPOINT?.trim() || undefined,
@@ -755,6 +817,22 @@ export function requireFirebaseAdminEnv(): NonNullable<ServerEnv['firebaseAdmin'
 /** True when server-side Firebase operations are possible. */
 export function isFirebaseAdminConfigured(): boolean {
   return serverEnv().firebaseAdmin !== null;
+}
+
+/** Throws a descriptive `MissingEnvError` when no mail transport is configured. */
+export function requireSmtpEnv(): NonNullable<ServerEnv['smtp']> {
+  const env = serverEnv();
+  if (!env.smtp) {
+    throw new MissingEnvError(
+      ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASSWORD'],
+      'For Hostinger: smtp.hostinger.com on port 465, with the full mailbox address as the user.',
+    );
+  }
+  return env.smtp;
+}
+
+export function isSmtpConfigured(): boolean {
+  return serverEnv().smtp !== null;
 }
 
 /** Throws a descriptive `MissingEnvError` when PayPal is not configured. */

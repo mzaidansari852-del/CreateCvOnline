@@ -209,6 +209,7 @@ export const adminNav: NavLink[] = [
   { label: 'Templates', href: '/admin/templates' },
   { label: 'Payments', href: '/admin/payments' },
   { label: 'Offers', href: '/admin/offers' },
+  { label: 'Email', href: '/admin/email' },
   { label: 'Promo codes', href: '/admin/promo' },
   { label: 'Blog', href: '/admin/blog' },
   { label: 'Settings', href: '/admin/settings' },

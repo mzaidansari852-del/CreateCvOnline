@@ -2,7 +2,7 @@ import { ButtonLink } from '@/components/ui/button';
 import { Badge } from '@/components/ui/feedback';
 import { FREE_TEMPLATE_COUNT, TEMPLATE_COUNT } from '@/lib/cv/template-registry';
 import { publicEnv } from '@/lib/env';
-import { PLAN_ORDER, PLANS } from '@/lib/plans';
+import { PLAN_ORDER, getPlan, hasLaunchOffer, launchOffer, listPrice } from '@/lib/plans';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -10,7 +10,9 @@ import { cn } from '@/lib/utils/cn';
  *
  * Rendered from `lib/plans.ts`, which is the same object the server reads when it decides
  * what a user may do — so the page can never advertise a limit the backend does not
- * actually enforce.
+ * actually enforce. Prices come from `getPlan()` rather than from `PLANS` directly, which
+ * is what makes the launch offer arrive here, at the checkout and in the amount PayPal is
+ * asked for as one number instead of three that have to be kept in agreement.
  */
 
 const currencySymbols: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', MAD: 'MAD ' };
@@ -37,9 +39,26 @@ function intervalLabel(interval: string): string {
   }
 }
 
+/** Whole percent off the list price, for the badge. */
+function savedPercent(planId: string): number {
+  const full = Number.parseFloat(listPrice(planId));
+  const now = Number.parseFloat(getPlan(planId).price);
+  if (!Number.isFinite(full) || !Number.isFinite(now) || full <= 0) return 0;
+  return Math.round(((full - now) / full) * 100);
+}
+
+/** Money saved, as a decimal string the formatter can take. */
+function savedAmount(planId: string): string {
+  const full = Number.parseFloat(listPrice(planId));
+  const now = Number.parseFloat(getPlan(planId).price);
+  if (!Number.isFinite(full) || !Number.isFinite(now)) return '0.00';
+  return (full - now).toFixed(2);
+}
+
 export function PricingCards({
   ctaHref = '/register',
   checkoutHref = '/payment/checkout',
+  seatsClaimed,
   className,
 }: {
   /** Where the free plan's button goes. */
@@ -52,13 +71,30 @@ export function PricingCards({
    * every page that renders it — stay fully static and still sell.
    */
   checkoutHref?: string;
+  /**
+   * How many launch-offer seats have been taken, counted from the payment ledger.
+   *
+   * Optional, and omitted rather than defaulted when the count could not be read: the
+   * figure sits next to a public promise about how many are available, so showing a made-up
+   * one would be worse than showing none. Pages that render statically and have no ledger
+   * access simply leave it out.
+   */
+  seatsClaimed?: number;
   className?: string;
 }) {
+  const offer = launchOffer();
+
   return (
     <div className={cn('grid gap-6 lg:grid-cols-3', className)}>
       {PLAN_ORDER.map((planId) => {
-        const plan = PLANS[planId];
-        const featured = plan.featured;
+        const plan = getPlan(planId);
+        const onOffer = hasLaunchOffer(planId);
+        /*
+         * The offer takes the spotlight while it runs. Pro is the featured plan normally,
+         * but a one-off payment worth less than one month of it is not a card to leave
+         * looking like the quiet third option.
+         */
+        const featured = onOffer || (plan.featured && !offer);
 
         return (
           <div
@@ -72,24 +108,65 @@ export function PricingCards({
           >
             {featured ? (
               <span className="absolute -top-3 left-6">
-                <Badge tone="brand" className="bg-brand-600 text-white ring-brand-600">
-                  Most popular
+                <Badge
+                  tone="brand"
+                  className={cn(
+                    'text-white',
+                    onOffer ? 'bg-accent-600 ring-accent-600' : 'bg-brand-600 ring-brand-600',
+                  )}
+                >
+                  {onOffer ? offer?.label : 'Most popular'}
                 </Badge>
               </span>
             ) : null}
 
             <div className="flex items-baseline justify-between gap-3">
               <h3 className="text-lg font-bold text-ink-950">{plan.name}</h3>
-              {plan.id === 'lifetime' ? <Badge tone="accent">Best value</Badge> : null}
+              {plan.id === 'lifetime' && !onOffer ? <Badge tone="accent">Best value</Badge> : null}
+              {onOffer ? <Badge tone="accent">{savedPercent(planId)}% off</Badge> : null}
             </div>
             <p className="mt-1 text-sm text-ink-600">{plan.tagline}</p>
 
-            <p className="mt-5 flex items-baseline gap-1.5">
-              <span className="text-4xl font-extrabold tracking-tight text-ink-950">
+            <p className="mt-5 flex items-baseline gap-2">
+              {/*
+                The list price is struck through rather than dropped, because a price with
+                nothing to compare it against is just a low price — the saving is the offer.
+                `<s>` and not a CSS line-through: a screen reader should announce that this
+                figure no longer applies.
+              */}
+              {onOffer ? (
+                <s className="text-xl font-semibold text-ink-400 decoration-2">
+                  {formatPrice(listPrice(planId))}
+                </s>
+              ) : null}
+              <span
+                className={cn(
+                  'text-4xl font-extrabold tracking-tight',
+                  onOffer ? 'text-accent-700' : 'text-ink-950',
+                )}
+              >
                 {formatPrice(plan.price)}
               </span>
               <span className="text-sm text-ink-500">{intervalLabel(plan.interval)}</span>
             </p>
+
+            {onOffer ? (
+              <p className="mt-2 text-[13px] font-semibold text-accent-700">
+                Save {formatPrice(savedAmount(planId))} — first {offer?.seats.toLocaleString('en')}{' '}
+                members
+                {/*
+                  The claimed figure is only rendered when the page actually counted it.
+                  A scarcity number that is really a graphic is a false claim, so when the
+                  count is unavailable this says nothing rather than inventing a number.
+                */}
+                {seatsClaimed !== undefined ? (
+                  <span className="font-normal text-ink-500">
+                    {' '}
+                    · {seatsClaimed.toLocaleString('en')} claimed so far
+                  </span>
+                ) : null}
+              </p>
+            ) : null}
 
             <p className="mt-3 text-sm leading-relaxed text-ink-600">{plan.description}</p>
 
@@ -129,7 +206,7 @@ export function PricingCards({
               <p className="mt-3 text-center text-xs text-ink-500">No card required</p>
             ) : (
               <p className="mt-3 text-center text-xs text-ink-500">
-                Secure checkout with Polar · 14-day refund
+                Secure checkout with PayPal · 14-day refund
               </p>
             )}
           </div>

@@ -4,7 +4,7 @@ import { ArrowRight, Check, Crown } from 'lucide-react';
 
 import { ButtonLink } from '@/components/ui/button';
 import { getViewer } from '@/lib/auth/guards';
-import { PLANS } from '@/lib/plans';
+import { PLANS, getPlan } from '@/lib/plans';
 import { FREE_TEMPLATE_COUNT, TEMPLATE_COUNT } from '@/lib/cv/template-registry';
 import { appCopy } from '@/lib/i18n/app-copy';
 import { planTagline } from '@/lib/i18n/copy/content';
@@ -100,7 +100,7 @@ export async function UpgradeCard({
             href={`/payment/checkout?plan=${PLANS.lifetime.id}`}
             className="font-medium text-brand-700 underline underline-offset-2 hover:text-brand-800"
           >
-            {copy.dashboard.upgradeLifetime(PLANS.lifetime.name, PLANS.lifetime.price)}
+            {copy.dashboard.upgradeLifetime(PLANS.lifetime.name, getPlan('lifetime').price)}
           </Link>
           {copy.dashboard.upgradeAltJoin}{' '}
           <Link

@@ -142,8 +142,95 @@ export const PLAN_ORDER: PlanId[] = ['free', 'pro', 'lifetime'];
 
 export const FREE_PLAN = PLANS.free;
 
+/* -------------------------------------------------------------------------- */
+/* Launch offer                                                                */
+/* -------------------------------------------------------------------------- */
+
+export interface LaunchOffer {
+  planId: PlanId;
+  /** What the plan costs while the offer runs. Decimal string, store currency. */
+  price: string;
+  /** What it costs normally — kept for the struck-through comparison price. */
+  normalPrice: string;
+  /** How many members the offer is promised to. Displayed, and counted against. */
+  seats: number;
+  label: string;
+}
+
+/**
+ * The launch offer, and the one place it is defined.
+ *
+ * ## Why the price lives here rather than at the gateway
+ *
+ * PayPal is told what to charge; it holds no product of its own. So `getPlan()` is the
+ * single number that the checkout displays, the order is created for, and the capture is
+ * verified against. Discounting anywhere else would break that chain — the most likely
+ * shape being an order created at the offer price and refused at verification for not
+ * matching the list price, which reads to the customer as a failed payment after their
+ * money has moved.
+ *
+ * ## Turning it off
+ *
+ * Set `NEXT_PUBLIC_LAUNCH_OFFER=off` in the hosting dashboard and redeploy. No code change,
+ * no deploy from a laptop, and it takes effect everywhere at once because everything reads
+ * `getPlan()`.
+ *
+ * ## What `seats` does and does not do
+ *
+ * It is a promise made in public, and `claimedLaunchOfferSeats()` counts the completed
+ * purchases that have been made against it, so the number shown to customers is measured
+ * rather than asserted. It does not switch the offer off by itself: the price has to stay
+ * synchronously knowable — see above — and a price that changed mid-checkout would fail the
+ * verification of an order already in flight.
+ *
+ * So the counter is the honest part and the switch is manual. `/admin/settings` reports the
+ * count and says plainly when the promise has been met. Do not raise `seats` past a number
+ * already advertised; end the offer instead.
+ */
+const LAUNCH_OFFER_CONFIG: LaunchOffer = {
+  planId: 'lifetime',
+  price: '6.00',
+  normalPrice: PLANS.lifetime.price,
+  seats: 1000,
+  label: 'Launch offer',
+};
+
+/**
+ * Read from the environment rather than memoised, so the kill switch takes effect on the
+ * next request instead of the next deploy. Anything but the exact word `off` leaves it on.
+ */
+export function launchOffer(): LaunchOffer | null {
+  const disabled = (process.env.NEXT_PUBLIC_LAUNCH_OFFER ?? '').trim().toLowerCase() === 'off';
+  return disabled ? null : LAUNCH_OFFER_CONFIG;
+}
+
+/** The offer's seat promise, for copy that names the number outside a plan card. */
+export const LAUNCH_OFFER_SEATS = LAUNCH_OFFER_CONFIG.seats;
+
+/**
+ * A plan, with the launch offer applied if one is running.
+ *
+ * Everything reads the price through here — the pricing table, the checkout summary, the
+ * order sent to PayPal, and the amount checked when the payment comes back. That is
+ * deliberate and load-bearing: under PayPal the amount is ours rather than the provider's,
+ * so `paypalCaptureMatchesPlan` compares against exactly this number.
+ */
 export function getPlan(id: string): Plan {
-  return PLANS[id as PlanId] ?? FREE_PLAN;
+  const plan = PLANS[id as PlanId] ?? FREE_PLAN;
+  const offer = launchOffer();
+  if (!offer || offer.planId !== plan.id) return plan;
+  return { ...plan, price: offer.price };
+}
+
+/** The plan's undiscounted price — the struck-through figure beside an offer. */
+export function listPrice(id: string): string {
+  return (PLANS[id as PlanId] ?? FREE_PLAN).price;
+}
+
+/** True when `id` is the plan the launch offer applies to, and the offer is running. */
+export function hasLaunchOffer(id: string): boolean {
+  const offer = launchOffer();
+  return offer !== null && offer.planId === id;
 }
 
 export function isPurchasablePlan(id: string): id is PlanId {
@@ -152,7 +239,7 @@ export function isPurchasablePlan(id: string): id is PlanId {
 }
 
 export function purchasablePlans(): Plan[] {
-  return PLAN_ORDER.map((id) => PLANS[id]).filter((plan) => plan.purchasable);
+  return PLAN_ORDER.map((id) => getPlan(id)).filter((plan) => plan.purchasable);
 }
 
 /** The entitlement a brand-new user starts with. */

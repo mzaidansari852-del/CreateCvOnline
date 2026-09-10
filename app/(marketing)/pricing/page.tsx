@@ -11,6 +11,7 @@ import {
 } from '@/components/marketing/primitives';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { Badge } from '@/components/ui/feedback';
+import { claimedLaunchOfferSeats } from '@/lib/db/payments';
 import { publicEnv } from '@/lib/env';
 import {
   FREE_TEMPLATE_COUNT,
@@ -19,7 +20,7 @@ import {
   freeTemplates,
   templatesByCategory,
 } from '@/lib/cv/template-registry';
-import { PLANS, PLAN_ORDER, type Plan } from '@/lib/plans';
+import { PLANS, PLAN_ORDER, getPlan, launchOffer, type Plan } from '@/lib/plans';
 import { pageMetadata } from '@/lib/seo/metadata';
 import { softwareApplicationSchema } from '@/lib/seo/schema';
 import { site } from '@/lib/site';
@@ -304,7 +305,7 @@ const FAQ = [
   {
     question: 'Is Lifetime really lifetime?',
     answer:
-      `Lifetime is a single ${money(PLANS.lifetime.price)} payment with no expiry date on the account, and it ` +
+      `Lifetime is a single ${money(getPlan('lifetime').price)} payment with no expiry date on the account, and it ` +
       'includes templates we add later. It is honest about being tied to the lifetime of the service rather than ' +
       'of the buyer: if we ever shut down, you would get notice and an export of everything you have made. ' +
       'For most people it pays for itself after eight months of Pro.',
@@ -315,7 +316,29 @@ const FAQ = [
 /* Page                                                                        */
 /* -------------------------------------------------------------------------- */
 
-export default function PricingPage() {
+/*
+ * Revalidated rather than fully static.
+ *
+ * The page advertises how many launch-offer seats are left, and a number baked in at build
+ * time would be a number from whenever the last deploy happened. Five minutes is short
+ * enough that the figure stays honest and long enough that the pricing page is still served
+ * from cache to almost everyone who asks for it.
+ *
+ * With the offer switched off there is nothing to count, and the page is static again.
+ */
+export const revalidate = 300;
+
+export default async function PricingPage() {
+  const offer = launchOffer();
+  /*
+   * Counted, never asserted. `claimedLaunchOfferSeats` swallows its own failures and
+   * reports zero, so this cannot stop the page rendering — but `undefined` is passed down
+   * when there is no offer at all, so the card renders nothing rather than "0 claimed".
+   */
+  const seats = offer ? await claimedLaunchOfferSeats(offer.planId, offer.seats) : null;
+  // `?? undefined` rather than `?? 0`: the card renders the figure only when it exists.
+  const seatsClaimed = seats?.claimed ?? undefined;
+
   return (
     <>
       <Section size="sm">
@@ -338,10 +361,10 @@ export default function PricingPage() {
           }
         />
 
-        <PricingCards className="mt-14" />
+        <PricingCards className="mt-14" seatsClaimed={seatsClaimed} />
 
         <p className="mt-8 text-center text-sm text-ink-500">
-          Prices in {publicEnv.storeCurrency}. Secure checkout through Polar.{' '}
+          Prices in {publicEnv.storeCurrency}. Secure checkout through PayPal.{' '}
           <Link href="#refunds" className="font-medium text-brand-700 underline underline-offset-2">
             14-day refund
           </Link>{' '}
@@ -460,7 +483,7 @@ export default function PricingPage() {
                   Feature
                 </th>
                 {PLAN_ORDER.map((planId) => {
-                  const plan = PLANS[planId];
+                  const plan = getPlan(planId);
                   return (
                     <th
                       key={plan.id}
@@ -502,7 +525,7 @@ export default function PricingPage() {
                     {PLAN_ORDER.map((planId) => (
                       <td key={planId} className="px-4 py-3.5 text-ink-700">
                         <span className="flex items-center gap-1.5">
-                          <CellValue cell={row.cell(PLANS[planId])} />
+                          <CellValue cell={row.cell(getPlan(planId))} />
                         </span>
                       </td>
                     ))}

@@ -15,7 +15,7 @@ import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { availableGateways } from '@/lib/payments';
 import { publicEnv } from '@/lib/env';
 import { formatDateTime } from '@/lib/cv/format';
-import { getPlan, isPurchasablePlan, PLANS } from '@/lib/plans';
+import { PLANS, getPlan, isPurchasablePlan } from '@/lib/plans';
 import { privateMetadata } from '@/lib/seo/metadata';
 import { site } from '@/lib/site';
 import type { PlanId } from '@/types/user';
@@ -240,7 +240,7 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
               : copy.checkout.extendsFromToday,
             site.name,
             PLANS.lifetime.name,
-            formatPrice(PLANS.lifetime.price),
+            formatPrice(getPlan('lifetime').price),
           )}{' '}
           <Link
             href="/payment/checkout?plan=lifetime"

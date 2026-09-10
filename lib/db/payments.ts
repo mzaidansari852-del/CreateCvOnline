@@ -241,6 +241,69 @@ export interface RevenueSummary {
   last30DaysCount: number;
 }
 
+export interface LaunchOfferSeats {
+  /**
+   * Completed purchases of the offer plan — counted, not asserted.
+   *
+   * `null` when the count could not be read. Distinct from `0` on purpose: the figure is
+   * rendered beside a public promise about availability, and "we could not check" and
+   * "nobody has bought one" must not look the same to the caller, or a Firestore outage
+   * would quietly publish a scarcity claim nobody verified.
+   */
+  claimed: number | null;
+  seats: number;
+  /** `null` whenever `claimed` is, for the same reason. */
+  remaining: number | null;
+  /** True only when the promise is known to have been met. */
+  metPromise: boolean;
+}
+
+/**
+ * How many of the launch offer's seats have actually been taken.
+ *
+ * The offer tells the public a number, so the number shown beside it has to be measured
+ * rather than decorative — a countdown that is really a graphic is a false scarcity claim,
+ * and in the EU, where most of this site's customers are, that is specifically actionable
+ * rather than merely tacky.
+ *
+ * Counts *completed* payments only. An abandoned checkout leaves a `created` row and has
+ * taken nothing from anybody, so counting it would quietly overstate how close the offer is
+ * to ending. Refunded rows are excluded for the same reason, by the same test.
+ *
+ * Deliberately tolerant of failure: a pricing page must render whether or not Firestore
+ * answers, so an error here logs and reports `null`. The caller then omits the figure
+ * entirely rather than printing a zero it did not measure — the page still sells, it just
+ * stops making a claim it cannot stand behind.
+ *
+ * `aggregate().count()` rather than fetching documents — the ledger grows without bound and
+ * nothing here needs to read a single payment, only how many there are.
+ */
+export async function claimedLaunchOfferSeats(
+  planId: PlanId,
+  seats: number,
+): Promise<LaunchOfferSeats> {
+  let claimed: number | null = null;
+
+  try {
+    const snapshot = await adminDb()
+      .collectionGroup(COLLECTIONS.payments)
+      .where('status', '==', 'completed')
+      .where('planId', '==', planId)
+      .count()
+      .get();
+    claimed = snapshot.data().count;
+  } catch (error) {
+    console.error('[payments] could not count launch offer seats', error);
+  }
+
+  return {
+    claimed,
+    seats,
+    remaining: claimed === null ? null : Math.max(0, seats - claimed),
+    metPromise: claimed !== null && claimed >= seats,
+  };
+}
+
 export async function revenueSummary(): Promise<RevenueSummary> {
   const snapshot = await adminDb()
     .collectionGroup(COLLECTIONS.payments)

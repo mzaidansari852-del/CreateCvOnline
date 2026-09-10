@@ -26,7 +26,7 @@ import {
   priceIdFor,
   readWebhookTransaction,
 } from '@/lib/payments/paddle';
-import { PLANS } from '@/lib/plans';
+import { getPlan } from '@/lib/plans';
 import type { CaptureResult } from '@/types/payment';
 
 /**
@@ -124,7 +124,7 @@ afterEach(() => {
 /* Fixtures                                                                    */
 /* -------------------------------------------------------------------------- */
 
-const PRO_PRICE = Number.parseFloat(PLANS.pro.price);
+const PRO_PRICE = Number.parseFloat(getPlan('pro').price);
 
 /** A decimal string in the store currency, so the boundaries survive a price change. */
 const money = (value: number): string => value.toFixed(2);
@@ -135,7 +135,7 @@ function capture(overrides: Partial<CaptureResult> = {}): CaptureResult {
     // Paddle's payment attempt id is a plain UUID, not a `pre_`/`txn_`-style id.
     captureId: '497f776b-851d-4ebf-89ab-8ba0f75d2d6a',
     status: 'completed',
-    amount: PLANS.pro.price,
+    amount: getPlan('pro').price,
     currency: 'USD',
     payerEmail: 'payer@example.com',
     raw: {},
@@ -322,7 +322,7 @@ describe('planForPriceId', () => {
 describe('paddleCaptureMatchesPlan — store currency', () => {
   it('accepts exactly the plan price', () => {
     expect(paddleCaptureMatchesPlan(capture(), 'pro')).toBe(true);
-    expect(paddleCaptureMatchesPlan(capture({ amount: PLANS.lifetime.price }), 'lifetime')).toBe(
+    expect(paddleCaptureMatchesPlan(capture({ amount: getPlan('lifetime').price }), 'lifetime')).toBe(
       true,
     );
   });
@@ -344,7 +344,7 @@ describe('paddleCaptureMatchesPlan — store currency', () => {
   });
 
   it('rejects a negative amount', () => {
-    expect(paddleCaptureMatchesPlan(capture({ amount: `-${PLANS.pro.price}` }), 'pro')).toBe(false);
+    expect(paddleCaptureMatchesPlan(capture({ amount: `-${getPlan('pro').price}` }), 'pro')).toBe(false);
   });
 
   it('rejects an unparseable amount', () => {
@@ -362,11 +362,11 @@ describe('paddleCaptureMatchesPlan — store currency', () => {
   });
 
   it('rejects the Pro price redeemed against Lifetime', () => {
-    expect(paddleCaptureMatchesPlan(capture({ amount: PLANS.pro.price }), 'lifetime')).toBe(false);
+    expect(paddleCaptureMatchesPlan(capture({ amount: getPlan('pro').price }), 'lifetime')).toBe(false);
   });
 
   it('rejects an overpayment too, because it means the plan was misidentified', () => {
-    expect(paddleCaptureMatchesPlan(capture({ amount: PLANS.lifetime.price }), 'pro')).toBe(false);
+    expect(paddleCaptureMatchesPlan(capture({ amount: getPlan('lifetime').price }), 'pro')).toBe(false);
   });
 });
 

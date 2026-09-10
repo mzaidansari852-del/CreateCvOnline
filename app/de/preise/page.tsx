@@ -6,7 +6,7 @@ import { CtaBanner, FaqSection, Section, SectionHeading } from '@/components/mar
 import { Badge } from '@/components/ui/feedback';
 import { ButtonLink } from '@/components/ui/button';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { PLANS, PLAN_ORDER } from '@/lib/plans';
+import { PLAN_ORDER, getPlan } from '@/lib/plans';
 import { pageMetadata } from '@/lib/seo/metadata';
 import { faqSchema, webPageSchema } from '@/lib/seo/schema';
 
@@ -29,7 +29,7 @@ export default function GermanPricingPage() {
   const copy = DE.pricing;
 
   const interval = (id: (typeof PLAN_ORDER)[number]) => {
-    const plan = PLANS[id];
+    const plan = getPlan(id);
     if (plan.interval === 'month') return copy.perMonth;
     if (plan.interval === 'one-time') return copy.oneTime;
     return copy.forever;
@@ -47,7 +47,7 @@ export default function GermanPricingPage() {
 
         <div className="mt-12 grid gap-5 lg:grid-cols-3">
           {PLAN_ORDER.map((id) => {
-            const plan = PLANS[id];
+            const plan = getPlan(id);
             const words = copy.plans[id];
             const featured = id === 'pro';
 

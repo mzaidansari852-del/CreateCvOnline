@@ -14,7 +14,7 @@ import {
   paypalGateway,
   readPayPalCustomId,
 } from '@/lib/payments/paypal';
-import { PLANS } from '@/lib/plans';
+import { getPlan } from '@/lib/plans';
 import type { CaptureResult } from '@/types/payment';
 
 /**
@@ -247,7 +247,7 @@ function capture(overrides: Partial<CaptureResult> = {}): CaptureResult {
     orderId: 'ORDER-123',
     captureId: 'CAPTURE-123',
     status: 'completed',
-    amount: PLANS.pro.price,
+    amount: getPlan('pro').price,
     currency: 'USD',
     payerEmail: 'payer@example.com',
     raw: {},
@@ -266,7 +266,7 @@ describe('paypalCaptureMatchesPlan', () => {
 
   it('rejects a capture redeemed against a more expensive plan', () => {
     // Paid the Pro price, tried to claim Lifetime.
-    expect(paypalCaptureMatchesPlan(capture({ amount: PLANS.pro.price }), 'lifetime')).toBe(false);
+    expect(paypalCaptureMatchesPlan(capture({ amount: getPlan('pro').price }), 'lifetime')).toBe(false);
   });
 
   it('rejects a currency substitution', () => {

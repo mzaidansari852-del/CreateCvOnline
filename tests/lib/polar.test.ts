@@ -22,7 +22,7 @@ import {
   productIdOnCapture,
   readWebhookOrder,
 } from '@/lib/payments/polar';
-import { PLANS } from '@/lib/plans';
+import { getPlan } from '@/lib/plans';
 import type { CaptureResult } from '@/types/payment';
 
 /**
@@ -442,7 +442,7 @@ describe('polarCaptureMatchesPlan', () => {
      */
     it('falls back to the amount in the store currency', () => {
       expect(
-        polarCaptureMatchesPlan(capture({ raw: {}, amount: PLANS.pro.price }), 'pro'),
+        polarCaptureMatchesPlan(capture({ raw: {}, amount: getPlan('pro').price }), 'pro'),
       ).toBe(true);
       expect(polarCaptureMatchesPlan(capture({ raw: {}, amount: '1.00' }), 'pro')).toBe(false);
     });

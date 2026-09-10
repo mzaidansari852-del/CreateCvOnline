@@ -1,148 +1,211 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
-  LAUNCH_OFFER_SEATS,
   PLANS,
+  applyOffer,
   getPlan,
-  hasLaunchOffer,
-  launchOffer,
   listPrice,
-  purchasablePlans,
+  offerApplies,
+  offerSavingAmount,
+  offerSavingPercent,
+  purchasablePlansWithOffer,
+  type PlanOffer,
 } from '@/lib/plans';
-import { paypalCaptureMatchesPlan } from '@/lib/payments/paypal';
+import { paypalCaptureMatchesAmount, paypalCaptureMatchesPlan } from '@/lib/payments/paypal';
+import { launchOfferInputSchema, offerPriceSchema } from '@/types/offer';
 import type { CaptureResult } from '@/types/payment';
 
 /**
- * The launch offer.
+ * Offers, and the invariant that makes an editable price safe.
  *
- * One property matters more than the rest, and it is the reason the discount lives in
- * `getPlan()` rather than in the pricing page: **the price shown, the price charged and the
- * price verified have to be the same number.**
+ * The price is set from `/admin/offers` and stored in Firestore, which means it can change
+ * between an order being created and that order being captured. Everything below exists to
+ * pin the consequence of that:
  *
- * Under Polar that would be partly self-enforcing, because the amount lives at the provider
- * and a checkout is created against a product id. Under PayPal the amount is ours — we send
- * it with the order and we check it when the capture comes back — so a discount applied in
- * the UI alone would produce an order created at the offer price and refused at
- * verification for not matching the list price. The customer's money moves and then they
- * are told the payment failed, which is the worst outcome this codebase can produce.
+ *   **a capture is verified against the amount its own order recorded, never against
+ *   whatever the price happens to be when the customer comes back.**
+ *
+ * Get that wrong and a customer who was quoted $6, agreed to $6 and paid $6 has their
+ * payment refused because somebody edited a price while they were typing their PayPal
+ * password. Their money has moved by then.
  */
 
-const ORIGINAL = { ...process.env };
+const OFFER: PlanOffer = {
+  active: true,
+  planId: 'lifetime',
+  price: '6.00',
+  seats: 1000,
+  label: 'Launch offer',
+};
 
-function setOffer(state: 'on' | 'off'): void {
-  if (state === 'off') process.env.NEXT_PUBLIC_LAUNCH_OFFER = 'off';
-  else delete process.env.NEXT_PUBLIC_LAUNCH_OFFER;
+function capture(amount: string): CaptureResult {
+  return {
+    orderId: 'ORDER-1',
+    captureId: 'CAPTURE-1',
+    status: 'completed',
+    amount,
+    currency: 'USD',
+    payerEmail: 'payer@example.com',
+    raw: {},
+  };
 }
 
-beforeEach(() => setOffer('on'));
-afterEach(() => {
-  process.env = { ...ORIGINAL };
-});
-
-describe('while the offer runs', () => {
-  it('discounts the offer plan and nothing else', () => {
-    expect(getPlan('lifetime').price).toBe('6.00');
-    // Pro is untouched. A launch offer that quietly moved another plan's price would be
-    // discovered by a customer, not by us.
-    expect(getPlan('pro').price).toBe(PLANS.pro.price);
-    expect(getPlan('free').price).toBe('0.00');
+describe('applyOffer', () => {
+  it('discounts the plan it names and nothing else', () => {
+    expect(applyOffer(getPlan('lifetime'), OFFER).price).toBe('6.00');
+    // Pro is untouched. An offer that quietly moved another plan's price would be found by
+    // a customer, not by us.
+    expect(applyOffer(getPlan('pro'), OFFER).price).toBe(PLANS.pro.price);
   });
 
-  it('keeps the list price available for the struck-through comparison', () => {
-    expect(listPrice('lifetime')).toBe('69.00');
-    expect(listPrice('lifetime')).toBe(PLANS.lifetime.price);
+  it('does nothing when the offer is switched off', () => {
+    expect(applyOffer(getPlan('lifetime'), { ...OFFER, active: false }).price).toBe('69.00');
+    expect(applyOffer(getPlan('lifetime'), null).price).toBe('69.00');
+    expect(applyOffer(getPlan('lifetime'), undefined).price).toBe('69.00');
   });
 
-  it('reports which plan is on offer', () => {
-    expect(hasLaunchOffer('lifetime')).toBe(true);
-    expect(hasLaunchOffer('pro')).toBe(false);
-    expect(launchOffer()?.seats).toBe(LAUNCH_OFFER_SEATS);
-  });
-
-  /*
-   * The one that would cost real money. `paypalCaptureMatchesPlan` is the last gate before
-   * an entitlement is written, and it must agree with what the order was created for.
-   */
-  it('verifies a capture at the offer price, and refuses the list price', () => {
-    const capture = (amount: string): CaptureResult => ({
-      orderId: 'ORDER-1',
-      captureId: 'CAPTURE-1',
-      status: 'completed',
-      amount,
-      currency: 'USD',
-      payerEmail: 'payer@example.com',
-      raw: {},
-    });
-
-    expect(paypalCaptureMatchesPlan(capture('6.00'), 'lifetime')).toBe(true);
-    /*
-     * Refusing 69.00 looks odd written down — it is *more* than we asked for. But the rule
-     * is that the capture matches the order, and an order created while the offer runs was
-     * for 6.00. A payment that does not match its order is exactly what this check is for,
-     * whichever direction it differs in.
-     */
-    expect(paypalCaptureMatchesPlan(capture('69.00'), 'lifetime')).toBe(false);
-  });
-
-  it('carries the offer price into the pricing table', () => {
-    const lifetime = purchasablePlans().find((plan) => plan.id === 'lifetime');
-    expect(lifetime?.price).toBe('6.00');
-  });
-
-  it('leaves the plan otherwise identical', () => {
-    const offered: Record<string, unknown> = { ...getPlan('lifetime') };
+  it('leaves everything except the price identical', () => {
+    const offered: Record<string, unknown> = { ...applyOffer(getPlan('lifetime'), OFFER) };
     const listed: Record<string, unknown> = { ...PLANS.lifetime };
     delete offered.price;
     delete listed.price;
-    // Only the price moves. Limits especially: a cheaper Lifetime is still Lifetime.
+    // Limits especially: a cheaper Lifetime is still Lifetime.
     expect(offered).toEqual(listed);
-    expect(getPlan('lifetime').accessDays).toBeNull();
+  });
+
+  it('never mutates the plan it is given', () => {
+    applyOffer(getPlan('lifetime'), OFFER);
+    // `PLANS` is shared, module-level and read by the entitlement system. Returning a copy
+    // rather than editing in place is the difference between a discount and a data race.
+    expect(PLANS.lifetime.price).toBe('69.00');
+    expect(getPlan('lifetime').price).toBe('69.00');
+  });
+
+  it('keeps the list price reachable for the struck-through comparison', () => {
+    expect(listPrice('lifetime')).toBe('69.00');
+  });
+
+  it('carries into the pricing table', () => {
+    const plans = purchasablePlansWithOffer(OFFER);
+    expect(plans.find((p) => p.id === 'lifetime')?.price).toBe('6.00');
+    expect(plans.find((p) => p.id === 'pro')?.price).toBe(PLANS.pro.price);
   });
 });
 
-describe('once the offer is switched off', () => {
-  beforeEach(() => setOffer('off'));
-
-  it('restores the list price everywhere', () => {
-    expect(getPlan('lifetime').price).toBe('69.00');
-    expect(hasLaunchOffer('lifetime')).toBe(false);
-    expect(launchOffer()).toBeNull();
-    expect(purchasablePlans().find((p) => p.id === 'lifetime')?.price).toBe('69.00');
+describe('the saving shown on the card', () => {
+  it('is computed against the list price', () => {
+    expect(offerSavingPercent(OFFER, 'lifetime')).toBe(91);
+    expect(offerSavingAmount(OFFER, 'lifetime')).toBe('63.00');
   });
 
-  it('moves verification back with it', () => {
-    const capture = (amount: string): CaptureResult => ({
-      orderId: 'ORDER-2',
-      captureId: 'CAPTURE-2',
-      status: 'completed',
-      amount,
-      currency: 'USD',
-      payerEmail: 'payer@example.com',
-      raw: {},
-    });
+  it('is zero for a plan the offer does not name', () => {
+    expect(offerSavingPercent(OFFER, 'pro')).toBe(0);
+    expect(offerSavingAmount(OFFER, 'pro')).toBe('0.00');
+    expect(offerApplies(OFFER, 'pro')).toBe(false);
+  });
 
-    expect(paypalCaptureMatchesPlan(capture('69.00'), 'lifetime')).toBe(true);
-    expect(paypalCaptureMatchesPlan(capture('6.00'), 'lifetime')).toBe(false);
+  it('never reports a negative saving', () => {
+    const above: PlanOffer = { ...OFFER, price: '99.00' };
+    expect(offerSavingAmount(above, 'lifetime')).toBe('0.00');
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* The invariant                                                               */
+/* -------------------------------------------------------------------------- */
+
+describe('a capture is verified against its own order', () => {
+  it('accepts the amount the order was created for', () => {
+    expect(paypalCaptureMatchesAmount(capture('6.00'), '6.00')).toBe(true);
   });
 
   /*
-   * The kill switch is read per call rather than memoised, so flipping it takes effect on
-   * the next request instead of the next deploy. That is the whole point of it being an
-   * environment variable, and it is worth a test because a `const` at module scope would
-   * pass every other assertion here while making the switch useless in production.
+   * The case the whole design exists for. An order was created at 6.00; by the time the
+   * customer returns from PayPal the offer has ended and Lifetime lists at 69.00 again.
+   * Their payment must still be accepted — they paid exactly what they agreed to.
    */
-  it('takes effect without a restart', () => {
-    expect(getPlan('lifetime').price).toBe('69.00');
-    setOffer('on');
-    expect(getPlan('lifetime').price).toBe('6.00');
-    setOffer('off');
-    expect(getPlan('lifetime').price).toBe('69.00');
+  it('accepts a payment made at a price that has since been withdrawn', () => {
+    const paid = capture('6.00');
+    // Verified against the ledger: correct.
+    expect(paypalCaptureMatchesAmount(paid, '6.00')).toBe(true);
+    // Verified against today's price list: this is the bug, written down.
+    expect(paypalCaptureMatchesPlan(paid, 'lifetime')).toBe(false);
   });
 
-  it('only treats the exact word "off" as off', () => {
-    process.env.NEXT_PUBLIC_LAUNCH_OFFER = 'no';
-    expect(getPlan('lifetime').price).toBe('6.00');
-    process.env.NEXT_PUBLIC_LAUNCH_OFFER = ' OFF ';
-    expect(getPlan('lifetime').price).toBe('69.00');
+  it('still refuses an underpayment', () => {
+    expect(paypalCaptureMatchesAmount(capture('1.00'), '6.00')).toBe(false);
+    expect(paypalCaptureMatchesAmount(capture('0.00'), '6.00')).toBe(false);
+  });
+
+  it('refuses an overpayment too, because it does not match the order', () => {
+    expect(paypalCaptureMatchesAmount(capture('69.00'), '6.00')).toBe(false);
+  });
+
+  /*
+   * A ledger row that failed to parse defaults its amount to "0.00". Treating that as an
+   * expectation would accept a zero-value capture and grant the plan for nothing.
+   */
+  it('refuses a non-positive expectation outright', () => {
+    expect(paypalCaptureMatchesAmount(capture('0.00'), '0.00')).toBe(false);
+    expect(paypalCaptureMatchesAmount(capture('6.00'), '-6.00')).toBe(false);
+    expect(paypalCaptureMatchesAmount(capture('6.00'), 'free')).toBe(false);
+    expect(paypalCaptureMatchesAmount(capture('6.00'), '')).toBe(false);
+  });
+
+  it('refuses a currency substitution', () => {
+    expect(paypalCaptureMatchesAmount({ ...capture('6.00'), currency: 'MAD' }, '6.00')).toBe(false);
+    expect(paypalCaptureMatchesAmount({ ...capture('6.00'), currency: 'usd' }, '6.00')).toBe(true);
+  });
+
+  it('tolerates sub-cent float noise but nothing larger', () => {
+    expect(paypalCaptureMatchesAmount(capture('6.001'), '6.00')).toBe(true);
+    expect(paypalCaptureMatchesAmount(capture('5.98'), '6.00')).toBe(false);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* What the admin form may save                                                */
+/* -------------------------------------------------------------------------- */
+
+describe('offer price parsing', () => {
+  it('normalises to two decimals so stored prices compare as strings', () => {
+    expect(offerPriceSchema.parse('6')).toBe('6.00');
+    expect(offerPriceSchema.parse('6.5')).toBe('6.50');
+    expect(offerPriceSchema.parse(' 6.00 ')).toBe('6.00');
+  });
+
+  it('refuses anything that is not a price', () => {
+    for (const bad of ['', 'free', '-6', '6.005', '6,00', '1e3', '£6']) {
+      expect(offerPriceSchema.safeParse(bad).success).toBe(false);
+    }
+  });
+});
+
+describe('offer input', () => {
+  const base = {
+    active: true,
+    planId: 'lifetime' as const,
+    price: '6.00',
+    seats: 1000,
+    label: 'Launch offer',
+    note: '',
+  };
+
+  it('accepts a well-formed offer', () => {
+    expect(launchOfferInputSchema.safeParse(base).success).toBe(true);
+  });
+
+  it('accepts no seat limit, which makes no scarcity claim', () => {
+    const parsed = launchOfferInputSchema.safeParse({ ...base, seats: null });
+    expect(parsed.success).toBe(true);
+  });
+
+  it('refuses a seat count of zero or a fractional one', () => {
+    expect(launchOfferInputSchema.safeParse({ ...base, seats: 0 }).success).toBe(false);
+    expect(launchOfferInputSchema.safeParse({ ...base, seats: 10.5 }).success).toBe(false);
+  });
+
+  it('refuses an empty badge, which would render a blank ribbon', () => {
+    expect(launchOfferInputSchema.safeParse({ ...base, label: '' }).success).toBe(false);
   });
 });

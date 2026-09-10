@@ -146,91 +146,75 @@ export const FREE_PLAN = PLANS.free;
 /* Launch offer                                                                */
 /* -------------------------------------------------------------------------- */
 
-export interface LaunchOffer {
+/**
+ * Applying an offer is a pure function of a plan and an offer.
+ *
+ * The offer itself lives in Firestore and is read by `lib/db/offers.ts`, which is
+ * server-only and asynchronous. Keeping the *application* of it here, as a plain function
+ * over values, is what lets a client component be handed an already-resolved plan without
+ * dragging a database import into the browser bundle.
+ *
+ * It was a constant in this file once, which let `getPlan()` return the discounted price
+ * and every caller stay unchanged. That was convenient and wrong: changing a price meant
+ * editing code and deploying, which put a pricing decision behind an engineering task.
+ */
+
+export interface PlanOffer {
+  active: boolean;
   planId: PlanId;
-  /** What the plan costs while the offer runs. Decimal string, store currency. */
+  /** Decimal string in the store currency. */
   price: string;
-  /** What it costs normally — kept for the struck-through comparison price. */
-  normalPrice: string;
-  /** How many members the offer is promised to. Displayed, and counted against. */
-  seats: number;
+  seats: number | null;
   label: string;
 }
 
-/**
- * The launch offer, and the one place it is defined.
- *
- * ## Why the price lives here rather than at the gateway
- *
- * PayPal is told what to charge; it holds no product of its own. So `getPlan()` is the
- * single number that the checkout displays, the order is created for, and the capture is
- * verified against. Discounting anywhere else would break that chain — the most likely
- * shape being an order created at the offer price and refused at verification for not
- * matching the list price, which reads to the customer as a failed payment after their
- * money has moved.
- *
- * ## Turning it off
- *
- * Set `NEXT_PUBLIC_LAUNCH_OFFER=off` in the hosting dashboard and redeploy. No code change,
- * no deploy from a laptop, and it takes effect everywhere at once because everything reads
- * `getPlan()`.
- *
- * ## What `seats` does and does not do
- *
- * It is a promise made in public, and `claimedLaunchOfferSeats()` counts the completed
- * purchases that have been made against it, so the number shown to customers is measured
- * rather than asserted. It does not switch the offer off by itself: the price has to stay
- * synchronously knowable — see above — and a price that changed mid-checkout would fail the
- * verification of an order already in flight.
- *
- * So the counter is the honest part and the switch is manual. `/admin/settings` reports the
- * count and says plainly when the promise has been met. Do not raise `seats` past a number
- * already advertised; end the offer instead.
- */
-const LAUNCH_OFFER_CONFIG: LaunchOffer = {
-  planId: 'lifetime',
-  price: '6.00',
-  normalPrice: PLANS.lifetime.price,
-  seats: 1000,
-  label: 'Launch offer',
-};
-
-/**
- * Read from the environment rather than memoised, so the kill switch takes effect on the
- * next request instead of the next deploy. Anything but the exact word `off` leaves it on.
- */
-export function launchOffer(): LaunchOffer | null {
-  const disabled = (process.env.NEXT_PUBLIC_LAUNCH_OFFER ?? '').trim().toLowerCase() === 'off';
-  return disabled ? null : LAUNCH_OFFER_CONFIG;
+/** True when `offer` is running and applies to this plan. */
+export function offerApplies(offer: PlanOffer | null | undefined, id: string): boolean {
+  return Boolean(offer?.active) && offer?.planId === id;
 }
 
-/** The offer's seat promise, for copy that names the number outside a plan card. */
-export const LAUNCH_OFFER_SEATS = LAUNCH_OFFER_CONFIG.seats;
-
 /**
- * A plan, with the launch offer applied if one is running.
+ * `plan` with the offer's price, or `plan` unchanged.
  *
- * Everything reads the price through here — the pricing table, the checkout summary, the
- * order sent to PayPal, and the amount checked when the payment comes back. That is
- * deliberate and load-bearing: under PayPal the amount is ours rather than the provider's,
- * so `paypalCaptureMatchesPlan` compares against exactly this number.
+ * Only the price moves. A discounted Lifetime is still Lifetime — same limits, same
+ * `accessDays`, same everything the entitlement system reads.
  */
-export function getPlan(id: string): Plan {
-  const plan = PLANS[id as PlanId] ?? FREE_PLAN;
-  const offer = launchOffer();
-  if (!offer || offer.planId !== plan.id) return plan;
-  return { ...plan, price: offer.price };
+export function applyOffer(plan: Plan, offer: PlanOffer | null | undefined): Plan {
+  if (!offerApplies(offer, plan.id)) return plan;
+  return { ...plan, price: offer!.price };
 }
 
-/** The plan's undiscounted price — the struck-through figure beside an offer. */
+/** The list price — the undiscounted figure, for the struck-through comparison. */
 export function listPrice(id: string): string {
   return (PLANS[id as PlanId] ?? FREE_PLAN).price;
 }
 
-/** True when `id` is the plan the launch offer applies to, and the offer is running. */
-export function hasLaunchOffer(id: string): boolean {
-  const offer = launchOffer();
-  return offer !== null && offer.planId === id;
+/** Whole percent off, for the badge. Zero when there is no offer on this plan. */
+export function offerSavingPercent(offer: PlanOffer | null | undefined, id: string): number {
+  if (!offerApplies(offer, id)) return 0;
+  const full = Number.parseFloat(listPrice(id));
+  const now = Number.parseFloat(offer!.price);
+  if (!Number.isFinite(full) || !Number.isFinite(now) || full <= 0) return 0;
+  return Math.round(((full - now) / full) * 100);
+}
+
+/** Money saved, as a decimal string. Zero when there is no offer on this plan. */
+export function offerSavingAmount(offer: PlanOffer | null | undefined, id: string): string {
+  if (!offerApplies(offer, id)) return '0.00';
+  const full = Number.parseFloat(listPrice(id));
+  const now = Number.parseFloat(offer!.price);
+  if (!Number.isFinite(full) || !Number.isFinite(now)) return '0.00';
+  return Math.max(0, full - now).toFixed(2);
+}
+
+/** The list price of a plan. The offer is applied by `applyOffer`, never here. */
+export function getPlan(id: string): Plan {
+  return PLANS[id as PlanId] ?? FREE_PLAN;
+}
+
+/** Every purchasable plan, with `offer` applied to whichever one it names. */
+export function purchasablePlansWithOffer(offer: PlanOffer | null | undefined): Plan[] {
+  return PLAN_ORDER.map((id) => applyOffer(PLANS[id], offer)).filter((plan) => plan.purchasable);
 }
 
 export function isPurchasablePlan(id: string): id is PlanId {
@@ -239,7 +223,7 @@ export function isPurchasablePlan(id: string): id is PlanId {
 }
 
 export function purchasablePlans(): Plan[] {
-  return PLAN_ORDER.map((id) => getPlan(id)).filter((plan) => plan.purchasable);
+  return PLAN_ORDER.map((id) => PLANS[id]).filter((plan) => plan.purchasable);
 }
 
 /** The entitlement a brand-new user starts with. */

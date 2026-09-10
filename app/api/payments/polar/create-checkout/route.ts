@@ -3,8 +3,9 @@ import { z } from 'zod';
 
 import { apiError, authedRoute, readJson } from '@/lib/api/handler';
 import { recordOrderCreated } from '@/lib/db/payments';
+import { readLaunchOffer } from '@/lib/db/offers';
 import { PolarError, gatewayFor } from '@/lib/payments';
-import { getPlan, isPurchasablePlan } from '@/lib/plans';
+import { applyOffer, getPlan, isPurchasablePlan } from '@/lib/plans';
 import { publicEnv } from '@/lib/env';
 
 export const runtime = 'nodejs';
@@ -41,12 +42,16 @@ export const POST = authedRoute(
       return apiError(400, 'invalid-plan', 'That plan cannot be purchased.');
     }
 
-    const plan = getPlan(planId);
+    // Resolved once and used for the ledger. Polar charges from its own product; the
+    // figure recorded here is what the customer was quoted and what a capture is checked
+    // against, so it must be the same read.
+    const plan = applyOffer(getPlan(planId), await readLaunchOffer());
 
     try {
       const order = await gatewayFor('polar').createOrder({
         planId,
         userId: profile.uid,
+        amount: plan.price,
         returnUrl: `/payment/success?plan=${planId}`,
         cancelUrl: `/payment/cancel?plan=${planId}`,
       });

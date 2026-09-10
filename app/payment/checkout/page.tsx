@@ -13,9 +13,10 @@ import { appCopy } from '@/lib/i18n/app-copy';
 import { planHighlights, planTagline } from '@/lib/i18n/copy/content';
 import { LOCALE_COOKIE, resolveLocale } from '@/lib/i18n/resolve';
 import { availableGateways } from '@/lib/payments';
+import { readLaunchOffer } from '@/lib/db/offers';
 import { publicEnv } from '@/lib/env';
 import { formatDateTime } from '@/lib/cv/format';
-import { PLANS, getPlan, isPurchasablePlan } from '@/lib/plans';
+import { PLANS, applyOffer, getPlan, isPurchasablePlan, listPrice } from '@/lib/plans';
 import { privateMetadata } from '@/lib/seo/metadata';
 import { site } from '@/lib/site';
 import type { PlanId } from '@/types/user';
@@ -75,7 +76,7 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
   if (!requested || !isPurchasablePlan(requested)) redirect('/pricing');
 
   const planId = requested as PlanId;
-  const plan = getPlan(planId);
+  const plan = applyOffer(getPlan(planId), await readLaunchOffer());
   const viewer = await requireViewer(`/payment/checkout?plan=${planId}`);
   const locale = resolveLocale({
     profileLocale: viewer.profile.locale,
@@ -240,7 +241,7 @@ export default async function CheckoutPage(props: { searchParams: Promise<Search
               : copy.checkout.extendsFromToday,
             site.name,
             PLANS.lifetime.name,
-            formatPrice(getPlan('lifetime').price),
+            formatPrice(listPrice('lifetime')),
           )}{' '}
           <Link
             href="/payment/checkout?plan=lifetime"

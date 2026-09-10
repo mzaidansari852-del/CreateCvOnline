@@ -6,7 +6,8 @@ import { CtaBanner, FaqSection, Section, SectionHeading } from '@/components/mar
 import { Badge } from '@/components/ui/feedback';
 import { ButtonLink } from '@/components/ui/button';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { PLAN_ORDER, getPlan } from '@/lib/plans';
+import { PLAN_ORDER, applyOffer, getPlan } from '@/lib/plans';
+import { readLaunchOffer } from '@/lib/db/offers';
 import { pageMetadata } from '@/lib/seo/metadata';
 import { faqSchema, webPageSchema } from '@/lib/seo/schema';
 
@@ -25,11 +26,19 @@ export const metadata: Metadata = pageMetadata({
  * and French pages and the checkout read — so a price change lands in one place and cannot
  * leave one language quoting last year's number. Only the words are German.
  */
-export default function GermanPricingPage() {
+/*
+ * Revalidated rather than fully static: the price on this page comes from the offer
+ * document, which an admin can change at any time. Five minutes keeps it honest without
+ * giving up the cache.
+ */
+export const revalidate = 300;
+
+export default async function GermanPricingPage() {
+  const offer = await readLaunchOffer();
   const copy = DE.pricing;
 
   const interval = (id: (typeof PLAN_ORDER)[number]) => {
-    const plan = getPlan(id);
+    const plan = applyOffer(getPlan(id), offer);
     if (plan.interval === 'month') return copy.perMonth;
     if (plan.interval === 'one-time') return copy.oneTime;
     return copy.forever;
@@ -47,7 +56,7 @@ export default function GermanPricingPage() {
 
         <div className="mt-12 grid gap-5 lg:grid-cols-3">
           {PLAN_ORDER.map((id) => {
-            const plan = getPlan(id);
+            const plan = applyOffer(getPlan(id), offer);
             const words = copy.plans[id];
             const featured = id === 'pro';
 

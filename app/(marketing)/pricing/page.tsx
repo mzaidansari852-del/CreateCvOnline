@@ -12,6 +12,7 @@ import {
 import { JsonLd } from '@/components/seo/JsonLd';
 import { Badge } from '@/components/ui/feedback';
 import { claimedLaunchOfferSeats } from '@/lib/db/payments';
+import { readLaunchOffer } from '@/lib/db/offers';
 import { publicEnv } from '@/lib/env';
 import {
   FREE_TEMPLATE_COUNT,
@@ -20,7 +21,7 @@ import {
   freeTemplates,
   templatesByCategory,
 } from '@/lib/cv/template-registry';
-import { PLANS, PLAN_ORDER, getPlan, launchOffer, type Plan } from '@/lib/plans';
+import { PLANS, PLAN_ORDER, applyOffer, getPlan, listPrice, type Plan } from '@/lib/plans';
 import { pageMetadata } from '@/lib/seo/metadata';
 import { softwareApplicationSchema } from '@/lib/seo/schema';
 import { site } from '@/lib/site';
@@ -306,7 +307,7 @@ const FAQ = [
   {
     question: 'Is Lifetime really lifetime?',
     answer:
-      `Lifetime is a single ${money(getPlan('lifetime').price)} payment with no expiry date on the account, and it ` +
+      `Lifetime is a single ${money(listPrice('lifetime'))} payment with no expiry date on the account, and it ` +
       'includes templates we add later. It is honest about being tied to the lifetime of the service rather than ' +
       'of the buyer: if we ever shut down, you would get notice and an export of everything you have made. ' +
       'For most people it pays for itself after eight months of Pro.',
@@ -330,13 +331,14 @@ const FAQ = [
 export const revalidate = 300;
 
 export default async function PricingPage() {
-  const offer = launchOffer();
+  const offer = await readLaunchOffer();
   /*
    * Counted, never asserted. `claimedLaunchOfferSeats` swallows its own failures and
    * reports zero, so this cannot stop the page rendering — but `undefined` is passed down
    * when there is no offer at all, so the card renders nothing rather than "0 claimed".
    */
-  const seats = offer ? await claimedLaunchOfferSeats(offer.planId, offer.seats) : null;
+  const seats =
+    offer?.seats != null ? await claimedLaunchOfferSeats(offer.planId, offer.seats) : null;
   // `?? undefined` rather than `?? 0`: the card renders the figure only when it exists.
   const seatsClaimed = seats?.claimed ?? undefined;
 
@@ -362,7 +364,7 @@ export default async function PricingPage() {
           }
         />
 
-        <PricingCards className="mt-14" seatsClaimed={seatsClaimed} />
+        <PricingCards className="mt-14" offer={offer} seatsClaimed={seatsClaimed} />
 
         <p className="mt-8 text-center text-sm text-ink-500">
           Prices in {publicEnv.storeCurrency}. Secure checkout through PayPal.{' '}
@@ -484,7 +486,7 @@ export default async function PricingPage() {
                   Feature
                 </th>
                 {PLAN_ORDER.map((planId) => {
-                  const plan = getPlan(planId);
+                  const plan = applyOffer(getPlan(planId), offer);
                   return (
                     <th
                       key={plan.id}
@@ -526,7 +528,7 @@ export default async function PricingPage() {
                     {PLAN_ORDER.map((planId) => (
                       <td key={planId} className="px-4 py-3.5 text-ink-700">
                         <span className="flex items-center gap-1.5">
-                          <CellValue cell={row.cell(getPlan(planId))} />
+                          <CellValue cell={row.cell(applyOffer(getPlan(planId), offer))} />
                         </span>
                       </td>
                     ))}

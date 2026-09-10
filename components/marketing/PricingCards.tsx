@@ -2,7 +2,16 @@ import { ButtonLink } from '@/components/ui/button';
 import { Badge } from '@/components/ui/feedback';
 import { FREE_TEMPLATE_COUNT, TEMPLATE_COUNT } from '@/lib/cv/template-registry';
 import { publicEnv } from '@/lib/env';
-import { PLAN_ORDER, getPlan, hasLaunchOffer, launchOffer, listPrice } from '@/lib/plans';
+import {
+  PLAN_ORDER,
+  applyOffer,
+  getPlan,
+  listPrice,
+  offerApplies,
+  offerSavingAmount,
+  offerSavingPercent,
+  type PlanOffer,
+} from '@/lib/plans';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -39,25 +48,10 @@ function intervalLabel(interval: string): string {
   }
 }
 
-/** Whole percent off the list price, for the badge. */
-function savedPercent(planId: string): number {
-  const full = Number.parseFloat(listPrice(planId));
-  const now = Number.parseFloat(getPlan(planId).price);
-  if (!Number.isFinite(full) || !Number.isFinite(now) || full <= 0) return 0;
-  return Math.round(((full - now) / full) * 100);
-}
-
-/** Money saved, as a decimal string the formatter can take. */
-function savedAmount(planId: string): string {
-  const full = Number.parseFloat(listPrice(planId));
-  const now = Number.parseFloat(getPlan(planId).price);
-  if (!Number.isFinite(full) || !Number.isFinite(now)) return '0.00';
-  return (full - now).toFixed(2);
-}
-
 export function PricingCards({
   ctaHref = '/register',
   checkoutHref = '/payment/checkout',
+  offer = null,
   seatsClaimed,
   className,
 }: {
@@ -72,6 +66,14 @@ export function PricingCards({
    */
   checkoutHref?: string;
   /**
+   * The offer to apply, resolved by the page that renders this.
+   *
+   * Passed rather than read here: this component appears on statically generated marketing
+   * pages, and a database call inside it would either drag `server-only` into a client
+   * bundle or make every page that mentions pricing dynamic. `null` means list prices.
+   */
+  offer?: PlanOffer | null;
+  /**
    * How many launch-offer seats have been taken, counted from the payment ledger.
    *
    * Optional, and omitted rather than defaulted when the count could not be read: the
@@ -82,13 +84,11 @@ export function PricingCards({
   seatsClaimed?: number;
   className?: string;
 }) {
-  const offer = launchOffer();
-
   return (
     <div className={cn('grid gap-6 lg:grid-cols-3', className)}>
       {PLAN_ORDER.map((planId) => {
-        const plan = getPlan(planId);
-        const onOffer = hasLaunchOffer(planId);
+        const plan = applyOffer(getPlan(planId), offer);
+        const onOffer = offerApplies(offer, planId);
         /*
          * The offer takes the spotlight while it runs. Pro is the featured plan normally,
          * but a one-off payment worth less than one month of it is not a card to leave
@@ -123,7 +123,7 @@ export function PricingCards({
             <div className="flex items-baseline justify-between gap-3">
               <h3 className="text-lg font-bold text-ink-950">{plan.name}</h3>
               {plan.id === 'lifetime' && !onOffer ? <Badge tone="accent">Best value</Badge> : null}
-              {onOffer ? <Badge tone="accent">{savedPercent(planId)}% off</Badge> : null}
+              {onOffer ? <Badge tone="accent">{offerSavingPercent(offer, planId)}% off</Badge> : null}
             </div>
             <p className="mt-1 text-sm text-ink-600">{plan.tagline}</p>
 
@@ -152,8 +152,8 @@ export function PricingCards({
 
             {onOffer ? (
               <p className="mt-2 text-[13px] font-semibold text-accent-700">
-                Save {formatPrice(savedAmount(planId))} — first {offer?.seats.toLocaleString('en')}{' '}
-                members
+                Save {formatPrice(offerSavingAmount(offer, planId))}
+                {offer?.seats ? ` — first ${offer.seats.toLocaleString('en')} members` : null}
                 {/*
                   The claimed figure is only rendered when the page actually counted it.
                   A scarcity number that is really a graphic is a false claim, so when the

@@ -287,6 +287,12 @@ export const polarGateway: PaymentGateway = {
    * on purpose — encoding the braces would hand the customer a literal `%7BCHECKOUT_ID%7D`
    * in their address bar and a success page that could confirm nothing.
    */
+  /*
+   * `amount` is deliberately unread. Polar holds the price against the product id, so the
+   * customer is charged whatever that product costs and there is nothing here to set. The
+   * caller still records the quoted figure in our ledger, which is what a capture is
+   * checked against.
+   */
   async createOrder({ planId, userId, returnUrl, cancelUrl }) {
     const productId = productIdFor(planId);
     if (!productId) throw new PolarError(`No Polar product is configured for plan "${planId}".`, 400);

@@ -82,10 +82,22 @@ export interface CaptureResult {
 
 export interface PaymentGateway {
   readonly id: PaymentProvider;
-  /** Creates an order on the provider. Amount is derived server-side from the plan. */
+  /**
+   * Creates an order on the provider.
+   *
+   * `amount` is the figure the customer was quoted, resolved server-side from the plan and
+   * whatever offer was running at that moment. It is passed rather than looked up because
+   * the offer is editable at runtime: a price read again inside the gateway could differ
+   * from the one on the page the customer just agreed to.
+   *
+   * A gateway that holds its own prices — Polar bills against a product id — ignores it for
+   * the charge itself. It is still recorded in our ledger, which is what the capture is
+   * later verified against.
+   */
   createOrder(input: {
     planId: string;
     userId: string;
+    amount: string;
     returnUrl: string;
     cancelUrl: string;
   }): Promise<CheckoutOrder>;

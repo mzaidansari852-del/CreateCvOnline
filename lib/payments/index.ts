@@ -126,7 +126,12 @@ export {
   PolarError,
 } from './polar';
 
-export { paypalCaptureMatchesPlan, readPayPalCustomId, PayPalError } from './paypal';
+export {
+  paypalCaptureMatchesAmount,
+  paypalCaptureMatchesPlan,
+  readPayPalCustomId,
+  PayPalError,
+} from './paypal';
 
 /*
  * Paddle's helpers stay exported for the reconciliation path and for the tests that still

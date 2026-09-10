@@ -243,13 +243,24 @@ function readOrder(order: PayPalOrder): CaptureResult {
 export const paypalGateway: PaymentGateway = {
   id: 'paypal',
 
-  async createOrder({ planId, userId, returnUrl, cancelUrl }): Promise<CheckoutOrder> {
+  async createOrder({ planId, userId, amount, returnUrl, cancelUrl }): Promise<CheckoutOrder> {
     if (!isPurchasablePlan(planId)) {
       throw new PayPalError(400, `Plan "${planId}" is not available for purchase.`);
     }
 
     const plan = getPlan(planId);
     const currency = publicEnv.storeCurrency;
+
+    /*
+     * The caller resolved this against the plan and the running offer. Refusing a
+     * non-positive amount here rather than sending it: PayPal would reject it anyway, but a
+     * zero-value order that somehow succeeded would be a free plan grant, and this is the
+     * last place that can tell.
+     */
+    const charge = Number.parseFloat(amount);
+    if (!Number.isFinite(charge) || charge <= 0) {
+      throw new PayPalError(400, `Refusing to create an order for "${amount}".`);
+    }
 
     const order = await call<PayPalOrder>('/v2/checkout/orders', {
       method: 'POST',
@@ -263,7 +274,7 @@ export const paypalGateway: PaymentGateway = {
             // how an asynchronous notification is attributed to the right account.
             custom_id: `${userId}|${planId}`,
             description: `${publicEnv.siteName} ${plan.name}`.slice(0, 127),
-            amount: { currency_code: currency, value: plan.price },
+            amount: { currency_code: currency, value: charge.toFixed(2) },
           },
         ],
         payment_source: {
@@ -355,18 +366,51 @@ export const paypalGateway: PaymentGateway = {
 };
 
 /**
- * Confirms that a capture matches what the plan actually costs.
- * Guards against a client that starts an order for one plan and tries to redeem it
- * against another, and against currency substitution.
+ * Confirms that a capture matches the amount the order was created for.
+ *
+ * ## Why this takes an amount rather than a plan id
+ *
+ * It used to look the plan's price up itself, which was correct only while the price was a
+ * constant. Prices are now editable from `/admin/offers`, so "what this plan costs" is a
+ * question with a different answer before and after somebody edits it — and a customer who
+ * was shown $6, agreed to $6, and paid $6 must not have their payment refused because the
+ * offer ended while they were typing their password.
+ *
+ * So the comparison is against `expectedAmount`: the figure written to our own ledger when
+ * the order was created, which is also the figure sent to PayPal. The invariant becomes
+ * "the capture matches its own order" rather than "the capture matches today's price list",
+ * which is both stricter and the one that was actually meant. Nothing about it is
+ * client-supplied — the ledger row is written server-side before the customer ever reaches
+ * PayPal.
  */
-export function paypalCaptureMatchesPlan(result: CaptureResult, planId: string): boolean {
-  const plan = getPlan(planId);
-  const expected = Number.parseFloat(plan.price);
+export function paypalCaptureMatchesAmount(
+  result: CaptureResult,
+  expectedAmount: string,
+): boolean {
+  const expected = Number.parseFloat(expectedAmount);
   const actual = Number.parseFloat(result.amount);
   if (!Number.isFinite(expected) || !Number.isFinite(actual)) return false;
+  /*
+   * A zero or negative expectation is not a price. Guarded explicitly because the ledger's
+   * amount defaults to "0.00" on a malformed row, and a free upgrade is exactly the sort of
+   * thing this check exists to prevent.
+   */
+  if (expected <= 0) return false;
   // Tolerate sub-cent float noise only.
   if (Math.abs(expected - actual) > 0.005) return false;
   return result.currency.toUpperCase() === publicEnv.storeCurrency.toUpperCase();
+}
+
+/**
+ * The same check, against a plan's list price.
+ *
+ * Kept for the webhook, which is attributed by `custom_id` and may arrive for an order this
+ * deployment has no ledger row for — a payment completed after the row was lost, or one
+ * replayed from PayPal's dashboard. There it is the only expectation available. Prefer
+ * `paypalCaptureMatchesAmount` wherever the order is known.
+ */
+export function paypalCaptureMatchesPlan(result: CaptureResult, planId: string): boolean {
+  return paypalCaptureMatchesAmount(result, getPlan(planId).price);
 }
 
 /** Extracts `userId` and `planId` from the `custom_id` we set at order creation. */

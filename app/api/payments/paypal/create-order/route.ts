@@ -3,8 +3,9 @@ import { z } from 'zod';
 
 import { apiError, authedRoute, readJson } from '@/lib/api/handler';
 import { recordOrderCreated } from '@/lib/db/payments';
+import { readLaunchOffer } from '@/lib/db/offers';
 import { PayPalError, gatewayFor } from '@/lib/payments';
-import { getPlan, isPurchasablePlan } from '@/lib/plans';
+import { applyOffer, getPlan, isPurchasablePlan } from '@/lib/plans';
 import { publicEnv } from '@/lib/env';
 import { absoluteUrl } from '@/lib/site';
 import { planIdSchema } from '@/types/user';
@@ -29,12 +30,23 @@ export const POST = authedRoute(
       return apiError(400, 'invalid-plan', 'That plan cannot be purchased.');
     }
 
-    const plan = getPlan(planId);
+    /*
+     * The price is resolved here, once, and then used for both the charge and the ledger.
+     *
+     * Reading it twice would be the bug: the offer is editable from `/admin/offers`, so two
+     * reads a few milliseconds apart can disagree, and the ledger would then record a figure
+     * different from the one PayPal was asked for. The capture is verified against the
+     * ledger, so that disagreement would surface as a failed payment for a customer who did
+     * nothing wrong.
+     */
+    const plan = applyOffer(getPlan(planId), await readLaunchOffer());
+    const amount = plan.price;
 
     try {
       const order = await gatewayFor('paypal').createOrder({
         planId,
         userId: profile.uid,
+        amount,
         returnUrl: absoluteUrl(`/payment/success?plan=${planId}`),
         cancelUrl: absoluteUrl(`/payment/cancel?plan=${planId}`),
       });
@@ -43,7 +55,7 @@ export const POST = authedRoute(
         userId: profile.uid,
         orderId: order.orderId,
         planId,
-        amount: plan.price,
+        amount,
         currency: publicEnv.storeCurrency,
         provider: 'paypal',
       });

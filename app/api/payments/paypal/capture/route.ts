@@ -3,8 +3,8 @@ import { z } from 'zod';
 
 import { apiError, authedRoute, readJson } from '@/lib/api/handler';
 import { fulfilPayment, getPayment, markPaymentStatus } from '@/lib/db/payments';
-import { PayPalError, gatewayFor, paypalCaptureMatchesPlan } from '@/lib/payments';
-import { getPlan } from '@/lib/plans';
+import { PayPalError, gatewayFor, paypalCaptureMatchesAmount } from '@/lib/payments';
+
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -58,14 +58,21 @@ export const POST = authedRoute(
         );
       }
 
-      // (3) The money that moved must match the plan that was ordered.
-      if (!paypalCaptureMatchesPlan(capture, existing.planId)) {
+      /*
+       * (3) The money that moved must match *this order*, not today's price list.
+       *
+       * `existing.amount` was written by our own server when the order was created, and is
+       * the same figure PayPal was asked for. Comparing against it rather than against the
+       * plan's current price is what makes an editable offer safe: a customer who was quoted
+       * $6 and paid $6 is not refused because the offer ended while they were on PayPal.
+       */
+      if (!paypalCaptureMatchesAmount(capture, existing.amount)) {
         await markPaymentStatus(profile.uid, orderId, 'failed');
         console.error(
           '[paypal] amount mismatch',
           JSON.stringify({
             orderId,
-            expected: getPlan(existing.planId).price,
+            expected: existing.amount,
             received: capture.amount,
             currency: capture.currency,
           }),

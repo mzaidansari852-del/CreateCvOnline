@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { availableGateways } from '@/lib/payments';
-import { isPayPalConfigured, publicEnv, serverEnv } from '@/lib/env';
+import { isPayPalConfigured, publicEnv, readOpaqueToken, serverEnv } from '@/lib/env';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -37,13 +37,25 @@ export const dynamic = 'force-dynamic';
  * with the wrong secret. It is a read that creates nothing and charges nothing, and it is
  * deliberately not the default so an ordinary request stays free.
  *
+ * It runs whenever both credentials are present — deliberately *not* only when the gateway
+ * resolved. A gateway that was refused is the case this endpoint exists for, and the first
+ * version answered nothing at all in exactly that situation.
+ *
+ * ## Reading the two "ok"s
+ *
+ * `probe.ok` and `paypal.configured` answer different questions and can disagree, which is
+ * the most useful thing this endpoint says. Sandbox credentials on a production deployment
+ * authenticate perfectly — `probe.ok: true` — and are still refused, because a sandbox
+ * order captures as COMPLETED for the real plan price. `probe.gatewayEnabled` restates the
+ * second answer next to the first so the pair cannot be misread.
+ *
  * ## What this cannot tell you
  *
- * The same blind spot the Polar endpoint has. A PayPal client id announces nothing about
- * its environment, so **nothing here can tell you that sandbox credentials have been
- * deployed to production**. `environment` reports what `PAYPAL_ENVIRONMENT` says, which is
- * a statement of intent rather than a verified fact. The probe is the closest thing to a
- * real answer: sandbox credentials do not authenticate against the live API.
+ * A PayPal client id announces nothing about its environment, so this cannot verify that a
+ * credential *is* what `PAYPAL_ENVIRONMENT` claims — `environment` is a statement of intent.
+ * What it can do is catch the mistake that matters: `sandboxOnProduction` reports the
+ * declared combination, and the probe catches the rest, since sandbox credentials do not
+ * authenticate against the live API.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const paypal = serverEnv().paypal;
@@ -104,9 +116,38 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     checkoutWillOfferPayPal: isPayPalConfigured(),
   };
 
-  if (request.nextUrl.searchParams.get('probe') !== '1' || !paypal) {
+  /*
+   * The probe runs from the *raw* variables, not from `serverEnv().paypal`.
+   *
+   * It used to short-circuit when the gateway was null, which got the priority exactly
+   * backwards: the moment you most need to know whether a credential authenticates is when
+   * something has decided it cannot be used. Sandbox credentials on a production deployment
+   * are the case that proved it — the gateway is deliberately absent, and the endpoint that
+   * exists to explain a broken configuration answered nothing at all.
+   *
+   * Cleaned through the same `readOpaqueToken` the gateway uses, so this tests the value
+   * that *would* have been sent rather than the one sitting in the dashboard.
+   */
+  const probeClientId = readOpaqueToken(rawClientId);
+  const probeClientSecret = readOpaqueToken(rawClientSecret);
+
+  if (
+    request.nextUrl.searchParams.get('probe') !== '1' ||
+    !probeClientId ||
+    !probeClientSecret
+  ) {
     return NextResponse.json(base);
   }
+
+  /*
+   * Which API to ask is a question about the *declared* environment, so it is read from the
+   * variable rather than from `paypal.environment` — which is null exactly when the gateway
+   * was refused. Same defaulting rule as `lib/env.ts`: anything but "live" means sandbox.
+   */
+  const declaredEnvironment =
+    (readOpaqueToken(process.env.PAYPAL_ENVIRONMENT) || 'sandbox').toLowerCase() === 'live'
+      ? 'live'
+      : 'sandbox';
 
   /*
    * The token request, made directly rather than through the gateway's cached helper — the
@@ -114,12 +155,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
    * changed, which is exactly the question being asked.
    */
   const apiBase =
-    paypal.environment === 'live'
+    declaredEnvironment === 'live'
       ? 'https://api-m.paypal.com'
       : 'https://api-m.sandbox.paypal.com';
 
   try {
-    const credentials = Buffer.from(`${paypal.clientId}:${paypal.clientSecret}`).toString('base64');
+    const credentials = Buffer.from(`${probeClientId}:${probeClientSecret}`).toString('base64');
     const response = await fetch(`${apiBase}/v1/oauth2/token`, {
       method: 'POST',
       headers: {
@@ -139,7 +180,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       ...base,
       probe: {
-        environment: paypal.environment,
+        environment: declaredEnvironment,
+        /*
+         * The probe can succeed while the gateway stays off — sandbox credentials on a
+         * production deployment authenticate perfectly and are still refused. Saying so here
+         * stops `ok: true` reading as "checkout works".
+         */
+        gatewayEnabled: isPayPalConfigured(),
         endpoint: apiBase,
         ok: response.ok,
         status: response.status,
@@ -153,7 +200,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       ...base,
       probe: {
-        environment: paypal.environment,
+        environment: declaredEnvironment,
+        gatewayEnabled: isPayPalConfigured(),
         endpoint: apiBase,
         ok: false,
         status: null,

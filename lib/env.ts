@@ -237,8 +237,13 @@ function readServiceAccount(): {
  * Either produces an authentication failure from the provider and an afternoon spent
  * re-reading credentials that were correct all along. Both are unambiguously mistakes, so
  * repair them here rather than reporting them.
+ *
+ * Exported for the status endpoints, which read the raw variables directly rather than the
+ * resolved gateway — they have to be able to describe a configuration that `serverEnv()`
+ * refused to build one from. They must clean the values exactly as this does, or a probe
+ * would test a credential the gateway would never have used.
  */
-function readOpaqueToken(raw: string | undefined): string | undefined {
+export function readOpaqueToken(raw: string | undefined): string | undefined {
   if (!raw) return undefined;
   const unquoted = raw.trim().replace(/^["']|["']$/g, '');
   /*

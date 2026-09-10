@@ -8,7 +8,7 @@ import {
   explainPolarTokenProblem,
   isPolarProductId,
 } from '@/lib/payments/polar-token';
-import { isPolarConfigured, publicEnv, serverEnv } from '@/lib/env';
+import { isPolarConfigured, publicEnv, readOpaqueToken, serverEnv } from '@/lib/env';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -103,7 +103,32 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     checkoutWillOfferPolar: isPolarConfigured(),
   };
 
-  if (request.nextUrl.searchParams.get('probe') !== '1' || !polar) {
+  /*
+   * The probe runs whenever a token is present, not only when the gateway resolved.
+   *
+   * Same correction as the PayPal endpoint: short-circuiting on a null gateway meant this
+   * fell silent in precisely the situation it exists for — a configuration that was
+   * refused. `serverEnv().polar` is still used for the call itself when it is available,
+   * because it carries the cleaned token; when it is not, the raw variable is cleaned the
+   * same way so the probe tests the value the gateway would have sent.
+   */
+  const probeToken = polar?.accessToken ?? readOpaqueToken(rawToken);
+  const probeEnvironment =
+    polar?.environment ??
+    ((readOpaqueToken(process.env.POLAR_ENVIRONMENT) || 'sandbox').toLowerCase() === 'production'
+      ? 'production'
+      : 'sandbox');
+  const probeProducts = {
+    pro: polar?.products.pro ?? readOpaqueToken(rawProductPro),
+    lifetime: polar?.products.lifetime ?? readOpaqueToken(rawProductLifetime),
+  };
+
+  if (
+    request.nextUrl.searchParams.get('probe') !== '1' ||
+    !probeToken ||
+    !probeProducts.pro ||
+    !probeProducts.lifetime
+  ) {
     return NextResponse.json(base);
   }
 
@@ -116,8 +141,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
    * not start the checkout" for the customer.
    */
   const client = createPolar({
-    accessToken: polar.accessToken,
-    environment: polar.environment === 'production' ? 'production' : 'sandbox',
+    accessToken: probeToken,
+    environment: probeEnvironment === 'production' ? 'production' : 'sandbox',
   });
 
   const check = async (label: string, productId: string) => {
@@ -141,9 +166,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   };
 
   const products = await Promise.all([
-    check('pro', polar.products.pro),
-    check('lifetime', polar.products.lifetime),
+    check('pro', probeProducts.pro),
+    check('lifetime', probeProducts.lifetime),
   ]);
 
-  return NextResponse.json({ ...base, probe: { environment: polar.environment, products } });
+  return NextResponse.json({
+    ...base,
+    probe: {
+      environment: probeEnvironment,
+      // A probe can succeed while the gateway stays off — sandbox credentials on a
+      // production deployment are the case. Restated here so `ok` cannot read as
+      // "checkout works".
+      gatewayEnabled: isPolarConfigured(),
+      products,
+    },
+  });
 }

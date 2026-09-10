@@ -517,6 +517,8 @@ export interface DashboardCopy {
     methodPaypalHint: string;
 
     /* --------------------------------------------------- PayPal, before it opens */
+    /** Sits beside the PayPal and card marks under the pay button. */
+    securedBy: string;
     continueToPaypal: (priceLabel: string) => string;
     redirectingToPaypal: string;
     paypalNote: (planName: string) => string;
@@ -1134,6 +1136,7 @@ const EN: DashboardCopy = {
     methodPaypal: 'PayPal',
     methodCardHint: 'Visa, Mastercard or American Express',
     methodPaypalHint: 'No PayPal account needed',
+    securedBy: 'Secure payment by',
     continueToPaypal: (priceLabel) => `Continue to PayPal — ${priceLabel}`,
     redirectingToPaypal: 'Taking you to PayPal…',
     paypalNote: (planName) =>
@@ -1769,6 +1772,7 @@ const FR: DashboardCopy = {
     methodPaypal: 'PayPal',
     methodCardHint: 'Visa, Mastercard ou American Express',
     methodPaypalHint: 'Sans compte PayPal',
+    securedBy: 'Paiement sécurisé par',
     continueToPaypal: (priceLabel) => `Continuer vers PayPal — ${priceLabel}`,
     redirectingToPaypal: 'Redirection vers PayPal…',
     paypalNote: (planName) =>
@@ -2397,6 +2401,7 @@ const DE: DashboardCopy = {
     methodPaypal: 'PayPal',
     methodCardHint: 'Visa, Mastercard oder American Express',
     methodPaypalHint: 'Ohne PayPal-Konto möglich',
+    securedBy: 'Sichere Zahlung über',
     continueToPaypal: (priceLabel) => `Weiter zu PayPal — ${priceLabel}`,
     redirectingToPaypal: 'Sie werden zu PayPal weitergeleitet…',
     paypalNote: (planName) =>
@@ -3034,6 +3039,7 @@ const NL: DashboardCopy = {
     methodPaypal: 'PayPal',
     methodCardHint: 'Visa, Mastercard of American Express',
     methodPaypalHint: 'Geen PayPal-account nodig',
+    securedBy: 'Veilig betalen via',
     continueToPaypal: (priceLabel) => `Verder naar PayPal — ${priceLabel}`,
     redirectingToPaypal: 'U wordt doorgestuurd naar PayPal…',
     paypalNote: (planName) =>

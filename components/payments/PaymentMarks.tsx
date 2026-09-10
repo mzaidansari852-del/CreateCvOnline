@@ -53,11 +53,45 @@ export function CardBrandMarks() {
  * Text rather than a path so it stays crisp at any size — an approximation either way, and
  * the honest one is the one that does not pretend to be the registered logo.
  */
-export function PayPalMark() {
+export function PayPalMark({ className = 'text-[12px]' }: { className?: string }) {
   return (
-    <span aria-hidden className="text-[12px] font-extrabold tracking-tight italic">
+    <span aria-hidden className={`font-extrabold tracking-tight italic ${className}`}>
       <span className="text-[#003087]">Pay</span>
       <span className="text-[#009cde]">Pal</span>
     </span>
+  );
+}
+
+/**
+ * The reassurance strip under a pay button.
+ *
+ * A button that says "Continue to PayPal" is a claim; the wordmark beside it is the thing
+ * people actually check. Nobody reads a checkout — they scan it for a mark they recognise
+ * and decide whether to trust the button above it, and a payment page with no mark at all
+ * reads as a form that might do anything with a card number.
+ *
+ * The card marks are here because PayPal takes a card without an account, and a visitor who
+ * does not have PayPal will otherwise assume this checkout is closed to them. That is a
+ * real abandonment cause and it costs nothing to answer.
+ */
+export function SecureCheckoutMarks({ label }: { label: string }) {
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1.5">
+      <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-ink-500">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path
+            d="M6 10V7.5a6 6 0 1 1 12 0V10"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+          />
+          <rect x="3.5" y="10" width="17" height="11" rx="2.5" fill="currentColor" />
+        </svg>
+        {label}
+      </span>
+      <PayPalMark className="text-[15px]" />
+      <span aria-hidden className="text-ink-300">·</span>
+      <CardBrandMarks />
+    </div>
   );
 }

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useCopy } from '@/components/i18n/LocaleProvider';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/feedback';
+import { SecureCheckoutMarks } from './PaymentMarks';
 import { trackEvent } from '@/lib/analytics/events';
 import { site } from '@/lib/site';
 import type { PlanId } from '@/types/user';
@@ -139,6 +140,8 @@ export function PayPalCheckoutButton({
           ) : null}
         </Alert>
       ) : null}
+
+      <SecureCheckoutMarks label={copy.checkout.securedBy} />
 
       <p className="text-center text-xs leading-relaxed text-ink-500">
         {copy.checkout.paypalNote(planName)}
